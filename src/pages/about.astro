@@ -3,18 +3,445 @@
 ---
 
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Escherize Zone</title>
-	</head>
-    <body>
-    <h1>My Site</h1>
-    <h1>About Me</h1>
-    <h2>And my blog</h2>
-    <p>This is my new site</p>
-    <p>🚦Under Construction🚦</p>
+<head>
+  <meta charset="UTF-8" />
+  <title>About Me</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="About Me page for Your Name" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --bg-alt: #020617;
+      --fg: #e5e7eb;
+      --fg-muted: #9ca3af;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.12);
+      --border: #1f2937;
+      --radius-lg: 14px;
+      --radius-xl: 22px;
+      --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.8);
+      --shadow-chip: 0 8px 20px rgba(15, 23, 42, 0.7);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0, #020617 55%, #000 100%);
+      color: var(--fg);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 960px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.92));
+      border-radius: 28px;
+      padding: 28px 26px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      backdrop-filter: blur(18px);
+    }
+
+    @media (min-width: 900px) {
+      .card {
+        padding: 32px 36px 34px;
+      }
+    }
+
+    .card-inner {
+      display: grid;
+      gap: 28px;
+    }
+
+    @media (min-width: 900px) {
+      .card-inner {
+        grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+        gap: 32px;
+      }
+    }
+
+    /* Left column */
+
+    .profile {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 999px;
+      border: 2px solid rgba(148, 163, 184, 0.35);
+      background: radial-gradient(circle at 30% 20%, #38bdf8, #0ea5e9, #0f172a);
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .avatar-badge {
+      position: absolute;
+      right: -2px;
+      bottom: -2px;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 20%, #22c55e, #16a34a);
+      border: 2px solid #020617;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #e5fef1;
+      box-shadow: 0 8px 16px rgba(22, 163, 74, 0.65);
+    }
+
+    .profile-text h1 {
+      margin: 0 0 4px;
+      font-size: 1.5rem;
+      letter-spacing: 0.01em;
+    }
+
+    .profile-text p {
+      margin: 0;
+      font-size: 0.95rem;
+      color: var(--fg-muted);
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag {
+      font-size: 0.75rem;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.15), rgba(15, 23, 42, 0.9));
+      color: #e5e7eb;
+      box-shadow: var(--shadow-chip);
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      font-size: 0.8rem;
+      margin-top: 4px;
+    }
+
+    .meta-item {
+      padding: 8px 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(55, 65, 81, 0.75);
+      background: radial-gradient(circle at top left, rgba(148, 163, 184, 0.18), rgba(15, 23, 42, 0.96));
+    }
+
+    .meta-label {
+      color: var(--fg-muted);
+      display: block;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 2px;
+    }
+
+    .meta-value {
+      font-weight: 500;
+    }
+
+    .contact-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .contact-links a {
+      font-size: 0.8rem;
+      padding: 6px 11px;
+      border-radius: 999px;
+      text-decoration: none;
+      color: var(--fg);
+      border: 1px solid rgba(156, 163, 175, 0.4);
+      background: radial-gradient(circle at top, rgba(56, 189, 248, 0.18), rgba(15, 23, 42, 0.96));
+      transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+    }
+
+    .contact-links a:hover {
+      border-color: var(--accent);
+      background: radial-gradient(circle at top, rgba(56, 189, 248, 0.3), rgba(15, 23, 42, 0.98));
+      transform: translateY(-1px);
+    }
+
+    /* Right column */
+
+    .content {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .section-heading {
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--fg-muted);
+      margin: 0;
+    }
+
+    .intro {
+      font-size: 0.98rem;
+      color: #e5e7eb;
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), rgba(15, 23, 42, 0.96));
+      border-radius: 18px;
+      padding: 14px 16px;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+
+    .intro strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    @media (min-width: 700px) {
+      .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    .panel {
+      padding: 12px 13px;
+      border-radius: 16px;
+      background: radial-gradient(circle at top left, rgba(30, 64, 175, 0.18), rgba(15, 23, 42, 0.98));
+      border: 1px solid rgba(31, 41, 55, 0.8);
+      font-size: 0.9rem;
+    }
+
+    .panel h2 {
+      margin: 0 0 6px;
+      font-size: 0.95rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--fg-muted);
+    }
+
+    .panel p {
+      margin: 0 0 6px;
+    }
+
+    .panel ul {
+      margin: 0;
+      padding-left: 1.1rem;
+    }
+
+    .panel li {
+      margin-bottom: 3px;
+    }
+
+    .pill-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .pill {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      color: var(--fg-muted);
+    }
+
+    .footer-note {
+      margin-top: 6px;
+      font-size: 0.8rem;
+      color: var(--fg-muted);
+    }
+
+    .footer-note strong {
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <article class="card" aria-label="About Me">
+      <div class="card-inner">
+        <!-- Left: profile summary -->
+        <section class="profile" aria-label="Profile">
+          <header class="profile-header">
+            <div class="avatar">
+              <div class="avatar-badge" title="Available for interesting work">
+                •
+              </div>
+            </div>
+            <div class="profile-text">
+              <h1>Your Name</h1>
+              <p>Software Engineer · Problem Solver · Builder</p>
+            </div>
+          </header>
+
+          <div class="tags" aria-label="Focus areas">
+            <span class="tag">Backend Engineering</span>
+            <span class="tag">Developer Experience</span>
+            <span class="tag">Distributed Systems</span>
+            <span class="tag">Writing & Teaching</span>
+          </div>
+
+          <div class="meta" aria-label="Quick facts">
+            <div class="meta-item">
+              <span class="meta-label">Location</span>
+              <span class="meta-value">City, Country</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Role</span>
+              <span class="meta-value">Software Engineer</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Status</span>
+              <span class="meta-value">Open to collaboration</span>
+            </div>
+          </div>
+
+          <div class="contact-links" aria-label="Contact">
+            <a href="mailto:you@example.com">Email</a>
+            <a href="https://github.com/your-username" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a href="https://www.linkedin.com/in/your-handle" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+            <a href="/resume.pdf" target="_blank" rel="noopener noreferrer">Résumé</a>
+          </div>
+        </section>
+
+        <!-- Right: detailed content -->
+        <section class="content" aria-label="About content">
+          <section aria-label="Introduction">
+            <p class="section-heading">About</p>
+            <div class="intro">
+              <p>
+                I am a <strong>software engineer</strong> who enjoys designing clear systems,
+                working on developer experience, and turning complex problems into
+                practical solutions. I care about maintainable code, thoughtful APIs,
+                and tools that make other people more effective.
+              </p>
+            </div>
+          </section>
+
+          <section class="grid" aria-label="Work and interests">
+            <div class="panel" aria-label="What I work on">
+              <h2>What I work on</h2>
+              <p>
+                My professional focus is building robust services and tools that support
+                real-world products. I like owning problems end-to-end, from initial
+                design through implementation, testing, and long-term maintenance.
+              </p>
+              <ul>
+                <li>Designing and implementing backend services and APIs</li>
+                <li>Improving performance, reliability, and observability</li>
+                <li>Building internal tooling and developer workflows</li>
+              </ul>
+              <div class="pill-list">
+                <span class="pill">Distributed systems</span>
+                <span class="pill">Databases</span>
+                <span class="pill">Testing & CI</span>
+                <span class="pill">Code quality</span>
+              </div>
+            </div>
+
+            <div class="panel" aria-label="How I think">
+              <h2>How I think</h2>
+              <p>
+                I prefer clear interfaces, boring technologies used well, and feedback
+                loops that are as tight as possible. I like to document decisions,
+                reason about trade-offs, and make it easy for future contributors to
+                pick up where I left off.
+              </p>
+              <ul>
+                <li>Bias toward small, composable building blocks</li>
+                <li>Measure before optimizing; automate where it pays off</li>
+                <li>Write things down so they survive context switches</li>
+              </ul>
+            </div>
+          </section>
+
+          <section class="grid" aria-label="Projects and personal">
+            <div class="panel" aria-label="Projects">
+              <h2>Selected projects</h2>
+              <p>
+                Outside of work, I enjoy experimenting with tools, automation, and
+                small products.
+              </p>
+              <ul>
+                <li>
+                  <strong>Project One</strong> – Short description of something you
+                  are proud of.
+                </li>
+                <li>
+                  <strong>Project Two</strong> – Another small highlight or experiment.
+                </li>
+                <li>
+                  <strong>Writing</strong> – Articles, notes, and technical write-ups.
+                </li>
+              </ul>
+              <div class="pill-list">
+                <span class="pill">Open source</span>
+                <span class="pill">Tooling</span>
+                <span class="pill">Experiments</span>
+              </div>
+            </div>
+
+            <div class="panel" aria-label="Outside of work">
+              <h2>Outside of work</h2>
+              <p>
+                Away from the editor, I value time with family and friends, reading,
+                and learning new skills that are completely unrelated to software.
+              </p>
+              <ul>
+                <li>Spending time with family and close friends</li>
+                <li>Reading books on history, systems, and design</li>
+                <li>Trying new hobbies and small side projects</li>
+              </ul>
+            </div>
+          </section>
+
+          <section aria-label="Closing">
+            <p class="footer-note">
+              If you would like to collaborate, talk about an idea, or just say hello,
+              feel free to reach out via <strong>email</strong> or connect with me on
+              <strong>LinkedIn</strong>.
+            </p>
+          </section>
+        </section>
+      </div>
+    </article>
+  </main>
 </body>
 </html>
