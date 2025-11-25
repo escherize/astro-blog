@@ -1,11 +1,20 @@
 ---
+import '../styles/global.css';
 
+const pageTitle = "About Escherize";
+const identity = {
+  firstName: "Bryan",
+  lastName: "Maass",
+  country: "USA",
+  occupation: "Software Engineer",
+  hobbies: ["strength training", "geometry", "gleam lang", "fantasy consoles"],
+};
 ---
 
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>About Me</title>
+  <title>{pageTitle}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="About Me page for Your Name" />
   <style>
@@ -98,7 +107,7 @@
       position: relative;
       overflow: hidden;
     }
-
+    
     .avatar-badge {
       position: absolute;
       right: -2px;
@@ -106,7 +115,7 @@
       width: 22px;
       height: 22px;
       border-radius: 999px;
-      background: radial-gradient(circle at 30% 20%, #22c55e, #16a34a);
+      background: radial-gradient(circle at 30% 20%, #ffc55e, #16a34a);
       border: 2px solid #020617;
       display: flex;
       align-items: center;
@@ -274,6 +283,7 @@
     }
 
     .pill {
+      cursor: crosshair;
       font-size: 0.75rem;
       padding: 4px 8px;
       border-radius: 999px;
@@ -295,9 +305,7 @@
 </head>
 <body>
   <main class="page">
-    <a href="/">Home</a>
-    <a href="/about/">About</a>
-    <article class="card" aria-label="About Me">
+    <article class="card" aria-label="{pageTitle}">
       <div class="card-inner">
         <!-- Left: profile summary -->
         <section class="profile" aria-label="Profile">
@@ -308,8 +316,10 @@
               </div>
             </div>
             <div class="profile-text">
-              <h1>Your Name</h1>
-              <p>Software Engineer · Problem Solver · Builder</p>
+              <h1>{identity.firstName} {identity.lastName}</h1>
+              <p>· Problem Solver</p>
+              <p>· Software Engineer</p>
+              <p>· Builder</p>
             </div>
           </header>
 
@@ -336,24 +346,26 @@
           </div>
 
           <div class="contact-links" aria-label="Contact">
-            <a href="mailto:you@example.com">Email</a>
-            <a href="https://github.com/your-username" target="_blank" rel="noopener noreferrer">GitHub</a>
-            <a href="https://www.linkedin.com/in/your-handle" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-            <a href="/resume.pdf" target="_blank" rel="noopener noreferrer">Résumé</a>
+            <a href="https://github.com/escherize" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <!-- <a href="https://www.linkedin.com/in/your-handle" target="_blank" rel="noopener noreferrer">LinkedIn</a> -->
+            <a href="http://escherize.com/works/resume.pdf" target="_blank" rel="noopener noreferrer">CV</a>
+            <a style="cursor:pointer" target="_blank">Email: <code>firstname</code>.<code>lastname</code>@gmail.com</a>
           </div>
         </section>
 
         <!-- Right: detailed content -->
         <section class="content" aria-label="About content">
           <section aria-label="Introduction">
-            <p class="section-heading">About</p>
+          <!-- fixme -->
+            <!-- <a href="/about"><p class="section-heading">About</p></a> -->
+            <!-- <a href="/home"><p class="section-heading">Home</p></a> -->
             <div class="intro">
               <p>
                 I am a <strong>software engineer</strong> with lots of
                 functional experience who enjoys designing clear systems,
                 working on developer experience, and turning complex problems
                 into practical business solutions. I care about maintainable
-                code, building the right thing, thoughtful APIs, and tools that
+                code, <em>building the right thing</em>, thoughtful APIs, and tools that
                 make others more effective.
               </p>
             </div>
@@ -410,7 +422,7 @@
                 files.
                 </li>
                 <li>
-                <strong>I wrote <a href="https://x.com/escherize/status/1948930729477644695">goto in Clojure</a></strong> – Another small highlight or experiment. https://x.com/escherize/status/1948930729477644695
+                  <strong>I wrote <a href="https://x.com/escherize/status/1948930729477644695">goto in Clojure</a></strong> – It's not harmful right? 🤣
                 </li>
                 <li>
                 <strong>Writing</strong> – Articles, design docs, and technical write-ups.
