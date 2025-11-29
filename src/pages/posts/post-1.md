@@ -1,6 +1,7 @@
 ---
+layout: ../../layouts/BlogPost.astro
 title: "Goto in Clojure: Why I Built It and Why It's Fun"
-pubDate: 2025-11-24
+pubDate: 2024-11-24T00:00:00Z
 description: "A deep dive into my experimental `goto` macro for Clojure—how it works, why it's cool, and why Dijkstra might still yell at me."
 author: "Bryan"
 image:

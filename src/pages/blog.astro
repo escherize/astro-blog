@@ -1,0 +1,180 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const posts = [
+  {
+    title: "Goto in Clojure: Why I Built It and Why It's Fun",
+    url: "/posts/post-1/",
+    description: "A deep dive into my experimental `goto` macro for Clojure—how it works, why it's cool, and why Dijkstra might still yell at me.",
+    pubDate: "2024-11-24",
+    tags: ["clojure", "macros", "goto", "experimental", "control flow"]
+  },
+  {
+    title: "Introducing go-silo: Markdown for File Structures & Contents",
+    url: "/posts/post-2/",
+    description: "Why I built go-silo, how it works, and how it treats file-structure-+-content as Markdown-first.",
+    pubDate: "2024-11-24",
+    tags: ["go", "golang", "file-structure", "markdown", "tools"]
+  },
+  {
+    title: "Mage at Metabase: A Unified Task Runner Built for a Growing Engineering Org",
+    url: "/posts/post-3/",
+    description: "How we built a shell-script wrapper around Babashka tasks (Mage) to streamline dev workflows at Metabase.",
+    pubDate: "2024-11-24",
+    tags: ["metabase", "tooling", "babashka", "taskrunner", "developer-experience"]
+  },
+  {
+    title: "Glick80: When Functional Purity Meets Retro Gaming",
+    url: "/posts/post-4/",
+    description: "I brought Gleam's type-safe functional programming to the TIC-80 fantasy console. Pure functions, 8-bit graphics, and zero mutations—what could go wrong?",
+    pubDate: "2024-11-28",
+    tags: ["gleam", "tic-80", "fantasy-console", "functional-programming", "game-dev", "retro"]
+  }
+];
+
+const pageTitle = "Blog - Escherize Zone";
+const description = "Technical posts about functional programming, developer tooling, and creative coding experiments.";
+---
+
+<BaseLayout 
+  title={pageTitle}
+  description={description}
+>
+  <style>
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 32px;
+    }
+
+    .page-header {
+      margin-bottom: 48px;
+    }
+
+    .page-title {
+      font-size: 2.5rem;
+      margin: 0 0 16px;
+      background: linear-gradient(135deg, #e5e7eb 0%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .page-subtitle {
+      font-size: 1.1rem;
+      color: #9ca3af;
+      margin: 0;
+    }
+
+    .posts-list {
+      display: grid;
+      gap: 32px;
+    }
+
+    .post-card {
+      padding: 28px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.92));
+      border-radius: 20px;
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      backdrop-filter: blur(12px);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .post-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.7);
+    }
+
+    .post-title {
+      margin: 0 0 12px;
+      font-size: 1.5rem;
+      line-height: 1.3;
+    }
+
+    .post-title a {
+      color: #e5e7eb;
+      text-decoration: none;
+    }
+
+    .post-title a:hover {
+      color: #38bdf8;
+    }
+
+    .post-meta {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      font-size: 0.85rem;
+      color: #9ca3af;
+    }
+
+    .post-description {
+      color: #d1d5db;
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .post-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag {
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.1), rgba(15, 23, 42, 0.8));
+      color: #d1d5db;
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 24px 16px;
+      }
+      
+      .page-title {
+        font-size: 2rem;
+      }
+      
+      .post-card {
+        padding: 20px;
+      }
+    }
+  </style>
+
+  <main class="container">
+    <div class="page-header">
+      <h1 class="page-title">Blog Posts</h1>
+      <p class="page-subtitle">
+        Technical posts about functional programming, developer tooling, and creative coding experiments.
+      </p>
+    </div>
+
+    <div class="posts-list">
+      {posts.map(post => (
+        <article class="post-card">
+          <h2 class="post-title">
+            <a href={post.url}>{post.title}</a>
+          </h2>
+          <div class="post-meta">
+            <time datetime={post.pubDate}>
+              {new Date(post.pubDate).toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </time>
+          </div>
+          <p class="post-description">{post.description}</p>
+          <div class="post-tags">
+            {post.tags.map(tag => (
+              <span class="tag">{tag}</span>
+            ))}
+          </div>
+        </article>
+      ))}
+    </div>
+  </main>
+</BaseLayout>

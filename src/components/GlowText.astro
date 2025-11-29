@@ -1,0 +1,103 @@
+---
+export interface Props {
+  color?: string;  // Any CSS color value
+  intensity?: "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10";
+  rainbow?: boolean;  // Enable rainbow gradient
+}
+
+const { 
+  color = '#38bdf8', 
+  intensity = "5",
+  rainbow = false
+} = Astro.props;
+
+// Helper to extract RGB values from hex color
+function hexToRgb(hex: string) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 56, g: 189, b: 248 }; // fallback to blue
+}
+
+const rgb = hexToRgb(color);
+const rgbaString = `${rgb.r}, ${rgb.g}, ${rgb.b}`;
+
+// Convert string intensities to numbers
+function normalizeIntensity(intensity: any): number {
+  const parsed = parseInt(intensity);
+  if (!isNaN(parsed)) return Math.max(1, Math.min(10, parsed));
+  
+  return 5;
+}
+
+// Lightweight intensity configurations - max 2 shadows for performance
+function getIntensityConfig(level: number) {
+  const baseGlow = level * 3; // 2x bigger shadows
+  const opacity = Math.min(0.9, 0.3 + level * 0.06);
+  
+  // Single shadow for levels 1-5
+  if (level <= 5) {
+    const shadows = `0 0 ${baseGlow}px rgba(${rgbaString}, ${opacity})`;
+    const dropShadows = `drop-shadow(0 0 ${baseGlow}px rgba(${rgbaString}, ${opacity}))`;
+    return { shadows, dropShadows };
+  }
+  
+  // Double shadow for levels 6-10 (stronger but still cheap)
+  const innerGlow = baseGlow * 0.6;
+  const outerGlow = baseGlow * 1.4;
+  const innerOpacity = opacity;
+  const outerOpacity = opacity * 0.4;
+  
+  const shadows = `0 0 ${innerGlow}px rgba(${rgbaString}, ${innerOpacity}), 0 0 ${outerGlow}px rgba(${rgbaString}, ${outerOpacity})`;
+  const dropShadows = `drop-shadow(0 0 ${innerGlow}px rgba(${rgbaString}, ${innerOpacity})) drop-shadow(0 0 ${outerGlow}px rgba(${rgbaString}, ${outerOpacity}))`;
+  
+  return { shadows, dropShadows };
+}
+
+const intensityLevel = normalizeIntensity(intensity);
+const currentIntensity = getIntensityConfig(intensityLevel);
+
+// Generate hover intensity (multiply by 3, cap at 10)
+const hoverLevel = Math.min(10, Math.round(intensityLevel * 3));
+const hoverIntensity = getIntensityConfig(hoverLevel);
+
+// Rainbow gradient style with higher contrast
+const rainbowStyle = rainbow 
+  ? 'background: linear-gradient(45deg, #ff4444, #ff6600, #ffdd00, #00ff88, #0088ff, #8844ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: bold;'
+  : '';
+
+// No glow by default - only on hover
+const textShadow = '';
+const filter = '';
+const baseColor = rainbow ? 'transparent' : color;
+
+// For hover - use the current intensity level (not the 3x multiplied one)
+const hoverTextShadow = currentIntensity.shadows;
+const hoverFilter = currentIntensity.dropShadows;
+
+// Create unique class name for this instance
+const glowClass = `glow-${Math.random().toString(36).substr(2, 9)}`;
+---
+
+<span 
+  class="glow-text" 
+  style={`
+    color: ${baseColor}; 
+    text-shadow: ${textShadow}; 
+    ${rainbowStyle} 
+    ${filter ? `filter: ${filter};` : ''}
+    --hover-text-shadow: ${hoverTextShadow};
+    --hover-filter: ${hoverFilter};
+  `}
+>
+  <slot />
+</span>
+
+<style>
+  .glow-text:hover {
+    text-shadow: var(--hover-text-shadow) !important;
+    filter: var(--hover-filter) !important;
+  }
+</style>

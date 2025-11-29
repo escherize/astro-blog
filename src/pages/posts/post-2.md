@@ -1,11 +1,12 @@
 ---
+layout: ../../layouts/BlogPost.astro
 title: "Introducing go-silo: Markdown for File Structures & Contents"
 author: "Bryan"
 description: "Why I built go-silo, how it works, and how it treats file-structure-+-content as Markdown-first."
 image:
   url: "https://docs.astro.build/assets/arc.webp"
   alt: "Minimalistic file-tree graphic on a muted background."
-pubDate: 2025-11-24
+pubDate: 2024-11-24T00:00:00Z
 tags: ["go", "golang", "file-structure", "markdown", "tools"]
 ---
 

@@ -1,0 +1,60 @@
+---
+export interface Props {
+  currentPath?: string;
+}
+
+const { currentPath } = Astro.props;
+const pathname = currentPath || Astro.url.pathname;
+---
+
+<header class="site-header">
+  <nav class="site-nav">
+    <a href="/" aria-current={pathname === "/" ? "page" : undefined}>Home</a>
+    <a href="/about/" aria-current={pathname === "/about/" ? "page" : undefined}>About</a>
+    <a href="/blog/" aria-current={pathname === "/blog/" ? "page" : undefined}>Blog</a>
+  </nav>
+</header>
+
+<style>
+  .site-header {
+    background: #020617;
+    padding: 20px 32px;
+    border-bottom: 1px solid #1e293b;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+  }
+
+  .site-nav {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .site-nav a {
+    color: #38bdf8;
+    text-decoration: none;
+    font-weight: 500;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    transition: all 0.2s ease;
+  }
+
+  .site-nav a:hover {
+    text-decoration: underline;
+  }
+
+  .site-nav a[aria-current="page"] {
+    color: #ffc55e;
+    text-decoration: underline;
+  }
+
+  @media (max-width: 640px) {
+    .site-header {
+      padding: 16px 20px;
+    }
+  }
+</style>

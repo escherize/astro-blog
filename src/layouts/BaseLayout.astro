@@ -1,0 +1,47 @@
+---
+import Header from '../components/Header.astro';
+
+export interface Props {
+  title: string;
+  description: string;
+  ogType?: 'website' | 'article' | 'profile';
+}
+
+const { title, description, ogType = 'website' } = Astro.props;
+---
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content={description} />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:type" content={ogType} />
+  <meta property="og:url" content={`https://escherize.com${Astro.url.pathname}`} />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:creator" content="@escherize" />
+  <title>{title}</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0, #020617 55%, #000 100%);
+      color: #e5e7eb;
+      line-height: 1.6;
+      min-height: 100vh;
+      padding-top: 80px; /* Account for fixed header */
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding-top: 70px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <Header />
+  <slot />
+</body>
+</html>

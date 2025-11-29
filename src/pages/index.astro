@@ -1,107 +1,160 @@
 ---
-var postCount = 2
+import BaseLayout from '../layouts/BaseLayout.astro';
+import GlowText from '../components/GlowText.astro';
+
+const postCount = 4;
+
+const posts = [
+  { title: "Goto in Clojure", url: "/posts/post-1/" },
+  { title: "go-silo: Markdown for File Structures", url: "/posts/post-2/" },
+  { title: "Mage: Task Runner at Metabase", url: "/posts/post-3/" },
+  { title: "Glick80: Functional Gaming on TIC-80", url: "/posts/post-4/" }
+];
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Escherize Zone</title>
-
-   <!--  # pull styles from js frontmatter: -->
-   <!--  <style define:vars={{skillColor}}> -->
-   <!--   h1 { -->
-   <!--     color: purple; -->
-   <!--     font-size: 4rem; -->
-   <!--   } -->
-   <!--   .skill { -->
-   <!--     color: green; -->
-   <!--     color: var(--skillColor); -->
-   <!--     font-weight: bold; -->
-   <!--   } -->
-   <!-- </style> -->
-
-    <style>
-      html,body {
-        margin: 0;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-          sans-serif;
-        background: #020617; /* match header/hero so blue goes down the page */
-        color: #e5e7eb;
-      }
-      header {
-        background: #020617;
-        padding: 20px 32px;
-        display: flex;
-        gap: 24px;
-        align-items: center;
-        border-bottom: 1px solid #1e293b;
-      }
-
-      .hero {
-        justify-content: center;
-        padding: 60px 32px;
-        background: #020617;
-      }
-
-      header a {
-        color: #38bdf8;
-        text-decoration: none;
-        font-weight: 500;
-      }
-      header a:hover {
-        text-decoration: underline;
-      }
-      main {
-        max-width: 900px;
-        margin: 40px auto;
-        padding: 0 32px;
-      }
-      h1 {
-        font-size: 2.5rem;
-        margin-bottom: 16px;
-      }
-      p {
-        font-size: 1.1rem;
-        line-height: 1.6;
-        color: #9ca3af;
-      }
-      ul {
-        list-style: none;
-        padding: 0;
-      }
-      ul li {
-        margin-bottom: 12px;
-      }
-      ul li a {
-        color: #38bdf8;
-        text-decoration: none;
-        font-size: 1.05rem;
-      }
-      ul li a:hover {
-        text-decoration: underline;
-      }
-    </style>
-  </head>
-  <body>
-    <header>
-      <a href="/">Home</a>
-      <a href="/about/">About</a>
-      <a href="/blog/">Blog</a>
-    </header>
-    <main>
-      <div class="hero">
-        <h1>Escherize Zone</h1>
-        <p>
-          Welcome to my blog — where I post about building tools, sharing insights, and learning in public.
+<BaseLayout 
+  title="Escherize Zone"
+  description="Welcome to my blog — where I post about building tools, sharing insights, and learning in public. Technical posts about functional programming, developer tooling, and creative coding experiments."
+>
+  <main class="container">
+    <div class="hero">
+      <h1>Escherize Zone</h1>
+      <p class="intro-text">
+        Welcome to my blog — where I post about building tools, sharing insights, and learning in public.
+      </p>
+      
+      <div class="about-section">
+        <p class="about-intro">
+          I'm Bryan, a software engineer who gets 🤯 about:
         </p>
-        <ul>
-          <li><a href="/posts/post-1/">Post 1 – Goto in Clojure</a></li>
-          <li><a href="/posts/post-2/">Post 2 – go-silo: Markdown for File Structures</a></li>
-          <!-- todo: when its ready inc the postCounter -->
-          {postCount > 2 && <li><a href="/posts/post-3/">Post 3 – Mage: Task Runner at Metabase</a></li>}
+        <ul class="interests-list">
+          <li>⚡ Developer tooling & <GlowText color="#ff6b6b" intensity="8"><em>cursed</em></GlowText> coding experiments 🧪💀</li>
+          <li>👾 Bringing <GlowText intensity="4" color="pink">Gleam</GlowText> to fantasy consoles <GlowText color="#ffc55e" intensity="6">✨</GlowText></li>
+          <li>📁 CLI tools that treat file structures as <GlowText color="#ffc55e" intensity="9"><strong>first-class citizens</strong></GlowText> 🎭</li>
+          <li>🎪 Making software that's <GlowText color="#00ffff" intensity="10">delightfully unhinged</GlowText> 🤖</li>
         </ul>
+        <p class="philosophy">
+          💭 Best ideas come from violently mashing things that shouldn't work—like goto in Clojure 💥 or pure functions in games 🎯
+        </p>
       </div>
-    </main>
-  </body>
-</html>
+      
+      <section class="posts-section">
+        <h2 class="posts-heading">Recent Posts</h2>
+        <ul class="posts-list">
+          {posts.slice(0, postCount).map((post, index) => (
+            <li>
+              <a href={post.url}>Post {index + 1} – {post.title}</a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 32px;
+  }
+
+  .hero {
+    padding: 60px 0;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    margin-bottom: 16px;
+    color: #e5e7eb;
+  }
+
+  .intro-text {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #9ca3af;
+    margin-bottom: 40px;
+  }
+
+  .about-section {
+    margin-bottom: 60px;
+    max-width: 600px;
+  }
+
+  .about-intro {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 16px;
+    color: #e5e7eb;
+  }
+
+  .interests-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px 0;
+    display: grid;
+    gap: 8px;
+  }
+
+  .interests-list li {
+    color: #a3a3a3;
+    font-size: 0.9rem;
+  }
+
+  .philosophy {
+    font-size: 0.85rem;
+    color: #6b7280;
+    font-style: italic;
+    margin: 0;
+  }
+
+  .posts-section {
+    max-width: 600px;
+  }
+
+  .posts-heading {
+    font-size: 1.5rem;
+    margin-bottom: 24px;
+    color: #e5e7eb;
+  }
+
+  .posts-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .posts-list li {
+    margin-bottom: 12px;
+  }
+
+  .posts-list a {
+    color: #38bdf8;
+    text-decoration: none;
+    font-size: 1.05rem;
+    transition: color 0.2s ease;
+  }
+
+  .posts-list a:hover {
+    text-decoration: underline;
+    color: #0ea5e9;
+  }
+
+  @media (max-width: 640px) {
+    .container {
+      padding: 24px 16px;
+    }
+
+    .hero {
+      padding: 40px 0;
+    }
+
+    h1 {
+      font-size: 2rem;
+    }
+
+    .intro-text {
+      font-size: 1rem;
+    }
+  }
+</style>

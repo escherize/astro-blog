@@ -1,11 +1,12 @@
 ---
+layout: ../../layouts/BlogPost.astro
 title: "Mage at Metabase: A Unified Task Runner Built for a Growing Engineering Org"
 author: "Bryan"
 description: "How we built a shell-script wrapper around Babashka tasks (Mage) to streamline dev workflows at Metabase."
 image:
   url: "https://docs.astro.build/assets/arc.webp"
   alt: "Terminal window and gears icon on a dark background."
-pubDate: 2025-11-24
+pubDate: 2024-11-24T00:00:00Z
 tags: ["metabase", "tooling", "babashka", "taskrunner", "developer-experience"]
 ---
 
