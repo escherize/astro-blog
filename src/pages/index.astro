@@ -2,9 +2,8 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import GlowText from '../components/GlowText.astro';
 
-const postCount = 4;
-
 const posts = [
+  { title: "SQLGlot in Metabase via GraalVM", url: "/posts/post-5/" },
   { title: "Goto in Clojure", url: "/posts/post-1/" },
   { title: "go-silo: Markdown for File Structures", url: "/posts/post-2/" },
   { title: "Mage: Task Runner at Metabase", url: "/posts/post-3/" },
@@ -41,7 +40,7 @@ const posts = [
       <section class="posts-section">
         <h2 class="posts-heading">Recent Posts</h2>
         <ul class="posts-list">
-          {posts.slice(0, postCount).map((post, index) => (
+          {posts.map((post, index) => (
             <li>
               <a href={post.url}>Post {index + 1} – {post.title}</a>
             </li>
