@@ -25,7 +25,7 @@ const posts = allPosts
         <h1 class="hero-title">
           <span class="title-line">I build</span>
           <span class="title-line title-accent">delightfully</span>
-          <span class="title-line">unhinged</span>
+          <span class="title-line title-unhinged">unhinged</span>
           <span class="title-line">software<span class="title-dot">.</span></span>
         </h1>
         <p class="hero-subtitle">
@@ -106,6 +106,11 @@ const posts = allPosts
   .title-accent {
     color: var(--color-accent);
     font-style: italic;
+  }
+
+  .title-unhinged {
+    transform: rotate(5deg);
+    display: inline-block;
   }
 
   .title-dot {
