@@ -1,0 +1,154 @@
+---
+/**
+ * Theme toggle button with sun/moon icons
+ * Persists preference to localStorage
+ * Respects system preference as default
+ */
+---
+
+<button
+  class="theme-toggle"
+  type="button"
+  aria-label="Toggle dark mode"
+  title="Toggle dark mode"
+>
+  <span class="icon icon-sun" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </span>
+  <span class="icon icon-moon" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+  </span>
+</button>
+
+<style>
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(var(--icon-md) * 2);
+    height: calc(var(--icon-md) * 2);
+    padding: 0;
+    background: transparent;
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-fg-muted);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .theme-toggle:hover {
+    border-color: var(--color-fg);
+    color: var(--color-fg);
+    transform: scale(1.05);
+  }
+
+  .theme-toggle:active {
+    transform: scale(0.95);
+  }
+
+  .icon {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-normal);
+  }
+
+  /* Light mode: show sun, hide moon */
+  .icon-sun {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+
+  .icon-moon {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.5);
+  }
+
+  /* Dark mode: show moon, hide sun */
+  :global([data-theme="dark"]) .icon-sun {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.5);
+  }
+
+  :global([data-theme="dark"]) .icon-moon {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+
+  /* System dark mode without explicit theme set */
+  @media (prefers-color-scheme: dark) {
+    :global(html:not([data-theme])) .icon-sun {
+      opacity: 0;
+      transform: rotate(90deg) scale(0.5);
+    }
+
+    :global(html:not([data-theme])) .icon-moon {
+      opacity: 1;
+      transform: rotate(0deg) scale(1);
+    }
+  }
+</style>
+
+<script>
+  // Theme toggle logic - runs on every page load
+  const toggle = document.querySelector('.theme-toggle');
+
+  function getThemePreference(): 'light' | 'dark' | null {
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem('theme');
+      if (stored === 'light' || stored === 'dark') return stored;
+    }
+    return null; // Use system preference
+  }
+
+  function getSystemTheme(): 'light' | 'dark' {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function applyTheme(theme: 'light' | 'dark' | null) {
+    if (theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  }
+
+  function toggleTheme() {
+    const currentPreference = getThemePreference();
+    const currentActual = currentPreference ?? getSystemTheme();
+    const newTheme = currentActual === 'dark' ? 'light' : 'dark';
+
+    localStorage.setItem('theme', newTheme);
+    applyTheme(newTheme);
+  }
+
+  // Apply saved preference on load
+  applyTheme(getThemePreference());
+
+  // Handle toggle click
+  toggle?.addEventListener('click', toggleTheme);
+
+  // Listen for system theme changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    // Only update if user hasn't set a preference
+    if (!getThemePreference()) {
+      // No need to do anything - CSS handles it via media query
+      // But we could add visual feedback here if desired
+    }
+  });
+</script>

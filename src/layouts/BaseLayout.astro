@@ -12,6 +12,15 @@ const { title, description, ogType = 'website' } = Astro.props;
 
 <html lang="en">
 <head>
+  <!-- Prevent flash of wrong theme - runs before CSS loads -->
+  <script is:inline>
+    (function() {
+      const stored = localStorage.getItem('theme');
+      if (stored === 'light' || stored === 'dark') {
+        document.documentElement.setAttribute('data-theme', stored);
+      }
+    })();
+  </script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content={description} />
@@ -22,20 +31,296 @@ const { title, description, ogType = 'website' } = Astro.props;
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:creator" content="@escherize" />
   <title>{title}</title>
+
+  <!-- Fonts: Space Grotesk (display) + Source Sans 3 (body) -->
+  <!-- Preconnect for faster DNS/TLS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Preload critical font files for faster LCP -->
+  <link rel="preload" href="https://fonts.gstatic.com/s/spacegrotesk/v16/V8mDoQDjQSkFtoMM3T6r8E7mPbF4Cw.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="https://fonts.gstatic.com/s/sourcesans3/v15/nwpBtKy2OAdR1K-IwhWudF-R9QMylBJAV3Bo8Ky46lEN_io6npfB.woff2" as="font" type="font/woff2" crossorigin>
+  <!-- Load stylesheet with font-display: swap (non-blocking) -->
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <!-- Fallback for no-JS -->
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  </noscript>
+
   <style>
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, #1e293b 0, #020617 55%, #000 100%);
-      color: #e5e7eb;
-      line-height: 1.6;
-      min-height: 100vh;
-      padding-top: 80px; /* Account for fixed header */
+    /* ============================================
+       DESIGN TOKENS - Playful Chaos Edition
+       ============================================ */
+    :root {
+      /* Colors - Warm cream background with ink-like text */
+      --color-bg: #faf8f5;
+      --color-bg-alt: #f0ece4;
+      --color-bg-elevated: #ffffff;
+      --color-fg: #1a1a1a;
+      --color-fg-muted: #4a4a4a;
+      --color-fg-subtle: #6b6b6b;
+
+      /* Colors - Energetic accent palette */
+      --color-accent: #e85d04;        /* Warm orange - primary */
+      --color-accent-hover: #d00000;  /* Deep red on hover */
+      --color-accent-soft: rgba(232, 93, 4, 0.1);
+      --color-pop: #8338ec;           /* Electric purple - for highlights */
+      --color-pop-soft: rgba(131, 56, 236, 0.1);
+      --color-success: #06d6a0;       /* Playful teal */
+
+      /* Colors - Border */
+      --color-border: #e0dcd4;
+      --color-border-subtle: rgba(0, 0, 0, 0.06);
+      --color-border-hover: rgba(0, 0, 0, 0.15);
+      --color-border-playful: var(--color-accent);
+
+      /* Theme state for toggle */
+      color-scheme: light dark;
+
+      /* Typography - Distinctive pairing */
+      --font-display: 'Space Grotesk', system-ui, sans-serif;
+      --font-body: 'Source Sans 3', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+      /* Fluid type scale with dramatic jumps */
+      --font-size-xs: 0.75rem;
+      --font-size-sm: 0.875rem;
+      --font-size-base: 1.0625rem;    /* Slightly larger base for readability */
+      --font-size-lg: 1.25rem;
+      --font-size-xl: 1.5rem;
+      --font-size-2xl: 2rem;
+      --font-size-3xl: clamp(2.5rem, 5vw, 3.5rem);   /* Fluid hero text */
+      --font-size-4xl: clamp(3rem, 7vw, 5rem);       /* BIG display text */
+
+      --font-weight-normal: 400;
+      --font-weight-medium: 500;
+      --font-weight-semibold: 600;
+      --font-weight-bold: 700;
+
+      --line-height-tight: 1.1;
+      --line-height-normal: 1.6;
+      --line-height-relaxed: 1.75;
+
+      /* Spacing scale with rhythm */
+      --space-1: 0.25rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-5: 1.25rem;
+      --space-6: 1.5rem;
+      --space-8: 2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+      --space-20: 5rem;
+      --space-24: 6rem;
+
+      /* Playful border radius - mix of sharp and round */
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-blob: 30% 70% 70% 30% / 30% 30% 70% 70%;  /* Organic shape */
+      --radius-full: 999px;
+
+      /* Shadows - subtle, warm tinted */
+      --shadow-sm: 0 2px 8px rgba(26, 26, 26, 0.06);
+      --shadow-md: 0 4px 20px rgba(26, 26, 26, 0.08);
+      --shadow-lg: 0 8px 40px rgba(26, 26, 26, 0.1);
+
+      /* Offset shadows - playful brutalist style */
+      --shadow-offset-sm: 4px 4px 0 var(--color-fg);
+      --shadow-offset-md: 6px 6px 0 var(--color-fg);
+      --shadow-offset-lg: 8px 8px 0 var(--color-fg);
+      --shadow-playful: var(--shadow-offset-sm);       /* Alias for backwards compat */
+
+      /* Border widths */
+      --border-thin: 1px;
+      --border-medium: 2px;
+      --border-thick: 3px;
+
+      /* Icon sizes */
+      --icon-sm: 10px;
+      --icon-md: 20px;
+      --icon-lg: 36px;
+
+      /* Transitions - snappy exponential easing */
+      --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --transition-fast: 0.15s var(--ease-out-expo);
+      --transition-normal: 0.25s var(--ease-out-expo);
+      --transition-slow: 0.4s var(--ease-out-expo);
+
+      /* Layout */
+      --header-height: 72px;
+      --header-height-mobile: 64px;
+      --container-max: 960px;
+      --container-narrow: 720px;
     }
 
+    /* ============================================
+       DARK MODE - Warm & Cozy Edition
+       Avoids AI-slop: no cyan, no navy, no glow
+       ============================================ */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        /* Warm charcoal background - hint of brown, not cold blue */
+        --color-bg: #1c1917;           /* stone-900 with warmth */
+        --color-bg-alt: #292524;       /* stone-800 */
+        --color-bg-elevated: #292524;  /* Cards match alt */
+        --color-fg: #fafaf9;           /* Warm white */
+        --color-fg-muted: #a8a29e;     /* Stone-400 */
+        --color-fg-subtle: #78716c;    /* Stone-500 */
+
+        /* Accents stay vibrant but adjust for dark bg */
+        --color-accent: #fb923c;       /* Brighter orange for dark bg */
+        --color-accent-hover: #f97316; /* Orange-500 */
+        --color-accent-soft: rgba(251, 146, 60, 0.15);
+        --color-pop: #a78bfa;          /* Softer purple for dark bg */
+        --color-pop-soft: rgba(167, 139, 250, 0.15);
+        --color-success: #34d399;      /* Adjusted teal */
+
+        /* Borders - warm gray, not cold */
+        --color-border: #44403c;       /* Stone-700 */
+        --color-border-subtle: rgba(255, 255, 255, 0.06);
+        --color-border-hover: rgba(255, 255, 255, 0.15);
+
+        /* Shadows shift to darker with warm tint */
+        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+        --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+
+        /* Offset shadows - warm gray in dark mode */
+        --shadow-offset-sm: 4px 4px 0 #44403c;
+        --shadow-offset-md: 6px 6px 0 #44403c;
+        --shadow-offset-lg: 8px 8px 0 #44403c;
+        --shadow-playful: var(--shadow-offset-sm);
+      }
+
+      /* Selection in dark mode */
+      ::selection {
+        background: var(--color-accent);
+        color: #1c1917;
+      }
+    }
+
+    /* Manual theme override via data attribute */
+    [data-theme="dark"] {
+      --color-bg: #1c1917;
+      --color-bg-alt: #292524;
+      --color-bg-elevated: #292524;
+      --color-fg: #fafaf9;
+      --color-fg-muted: #a8a29e;
+      --color-fg-subtle: #78716c;
+      --color-accent: #fb923c;
+      --color-accent-hover: #f97316;
+      --color-accent-soft: rgba(251, 146, 60, 0.15);
+      --color-pop: #a78bfa;
+      --color-pop-soft: rgba(167, 139, 250, 0.15);
+      --color-success: #34d399;
+      --color-border: #44403c;
+      --color-border-subtle: rgba(255, 255, 255, 0.06);
+      --color-border-hover: rgba(255, 255, 255, 0.15);
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+      --shadow-offset-sm: 4px 4px 0 #44403c;
+      --shadow-offset-md: 6px 6px 0 #44403c;
+      --shadow-offset-lg: 8px 8px 0 #44403c;
+      --shadow-playful: var(--shadow-offset-sm);
+    }
+
+    [data-theme="light"] {
+      --color-bg: #faf8f5;
+      --color-bg-alt: #f0ece4;
+      --color-bg-elevated: #ffffff;
+      --color-fg: #1a1a1a;
+      --color-fg-muted: #4a4a4a;
+      --color-fg-subtle: #6b6b6b;
+      --color-accent: #e85d04;
+      --color-accent-hover: #d00000;
+      --color-accent-soft: rgba(232, 93, 4, 0.1);
+      --color-pop: #8338ec;
+      --color-pop-soft: rgba(131, 56, 236, 0.1);
+      --color-success: #06d6a0;
+      --color-border: #e0dcd4;
+      --color-border-subtle: rgba(0, 0, 0, 0.06);
+      --color-border-hover: rgba(0, 0, 0, 0.15);
+      --shadow-sm: 0 2px 8px rgba(26, 26, 26, 0.06);
+      --shadow-md: 0 4px 20px rgba(26, 26, 26, 0.08);
+      --shadow-lg: 0 8px 40px rgba(26, 26, 26, 0.1);
+      --shadow-offset-sm: 4px 4px 0 var(--color-fg);
+      --shadow-offset-md: 6px 6px 0 var(--color-fg);
+      --shadow-offset-lg: 8px 8px 0 var(--color-fg);
+      --shadow-playful: var(--shadow-offset-sm);
+    }
+
+    /* ============================================
+       BASE STYLES
+       ============================================ */
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      font-size: var(--font-size-base);
+      background: var(--color-bg);
+      color: var(--color-fg);
+      line-height: var(--line-height-normal);
+      min-height: 100vh;
+      padding-top: var(--header-height);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    /* Display font for headings */
+    h1, h2, h3, h4, h5, h6 {
+      font-family: var(--font-display);
+      font-weight: var(--font-weight-bold);
+      line-height: var(--line-height-tight);
+      letter-spacing: -0.02em;
+    }
+
+    /* Selection color matches brand */
+    ::selection {
+      background: var(--color-accent);
+      color: white;
+    }
+
+    /* ============================================
+       FOCUS STYLES - Accessibility
+       ============================================ */
+    :focus-visible {
+      outline: 3px solid var(--color-accent);
+      outline-offset: 3px;
+    }
+
+    /* ============================================
+       REDUCED MOTION - Accessibility
+       ============================================ */
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      html {
+        scroll-behavior: auto;
+      }
+    }
+
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
     @media (max-width: 640px) {
       body {
-        padding-top: 70px;
+        padding-top: var(--header-height-mobile);
       }
     }
   </style>

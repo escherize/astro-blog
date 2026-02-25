@@ -1,159 +1,408 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import GlowText from '../components/GlowText.astro';
+import PenroseASCII from '../components/PenroseASCII.astro';
 
 const posts = [
-  { title: "SQLGlot in Metabase via GraalVM", url: "/posts/post-5/" },
-  { title: "Goto in Clojure", url: "/posts/post-1/" },
-  { title: "go-silo: Markdown for File Structures", url: "/posts/post-2/" },
-  { title: "Mage: Task Runner at Metabase", url: "/posts/post-3/" },
-  { title: "Glick80: Functional Gaming on TIC-80", url: "/posts/post-4/" }
+  { title: "SQLGlot in Metabase via GraalVM", url: "/posts/post-5/", tag: "tools" },
+  { title: "Goto in Clojure", url: "/posts/post-1/", tag: "cursed" },
+  { title: "go-silo: Markdown for File Structures", url: "/posts/post-2/", tag: "tools" },
+  { title: "Mage: Task Runner at Metabase", url: "/posts/post-3/", tag: "dx" },
+  { title: "Glick80: Functional Gaming on TIC-80", url: "/posts/post-4/", tag: "games" }
 ];
 ---
 
-<BaseLayout 
+<BaseLayout
   title="Escherize Zone"
-  description="Welcome to my blog — where I post about building tools, sharing insights, and learning in public. Technical posts about functional programming, developer tooling, and creative coding experiments."
+  description="Where cursed coding experiments meet delightful chaos. Technical posts about functional programming, developer tooling, and creative coding."
 >
-  <main class="container">
-    <div class="hero">
-      <h1>Escherize Zone</h1>
-      <p class="intro-text">
-        Welcome to my blog — where I post about building tools, sharing insights, and learning in public.
-      </p>
-      
-      <div class="about-section">
-        <p class="about-intro">
-          I'm Bryan, a software engineer who gets 🤯 about:
-        </p>
-        <ul class="interests-list">
-          <li>⚡ Developer tooling & <GlowText color="#ff6b6b" intensity="8"><em>cursed</em></GlowText> coding experiments 🧪💀</li>
-          <li>👾 Bringing <GlowText intensity="4" color="pink">Gleam</GlowText> to fantasy consoles <GlowText color="#ffc55e" intensity="6">✨</GlowText></li>
-          <li>📁 CLI tools that treat file structures as <GlowText color="#ffc55e" intensity="9"><strong>first-class citizens</strong></GlowText> 🎭</li>
-          <li>🎪 Making software that's <GlowText color="#00ffff" intensity="10">delightfully unhinged</GlowText> 🤖</li>
-        </ul>
-        <p class="philosophy">
-          💭 Best ideas come from violently mashing things that shouldn't work—like goto in Clojure 💥 or pure functions in games 🎯
+  <main id="main-content" class="page">
+    <!-- Penrose Triangle Banner -->
+    <section class="penrose-banner">
+      <PenroseASCII />
+    </section>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-content">
+        <h1 class="hero-title">
+          <span class="title-line">I build</span>
+          <span class="title-line title-accent">delightfully</span>
+          <span class="title-line">unhinged</span>
+          <span class="title-line">software<span class="title-dot">.</span></span>
+        </h1>
+        <p class="hero-subtitle">
+          Welcome to the zone where <em>cursed experiments</em> become reality—goto in Clojure, pure functions in games, and other things that shouldn't work but do.
         </p>
       </div>
-      
-      <section class="posts-section">
-        <h2 class="posts-heading">Recent Posts</h2>
-        <ul class="posts-list">
-          {posts.map((post, index) => (
-            <li>
-              <a href={post.url}>Post {index + 1} – {post.title}</a>
-            </li>
-          ))}
-        </ul>
-      </section>
-    </div>
+      <div class="hero-decoration" aria-hidden="true">
+        <span class="decoration-shape shape-1"></span>
+        <span class="decoration-shape shape-2"></span>
+        <span class="decoration-shape shape-3"></span>
+      </div>
+    </section>
+
+    <!-- About Snippet -->
+    <section class="about-snippet">
+      <div class="snippet-label">
+        <span class="label-line"></span>
+        <span class="label-text">About</span>
+      </div>
+      <p class="snippet-text">
+        I'm <strong>Bryan</strong>, a software engineer who gets unreasonably excited about developer tooling, functional programming, and making software that sparks joy (or at least raises eyebrows).
+      </p>
+      <a href="/about/" class="snippet-link">
+        More about me
+        <span class="link-arrow">→</span>
+      </a>
+    </section>
+
+    <!-- Posts Section -->
+    <section class="posts">
+      <div class="posts-header">
+        <h2 class="posts-title">Recent Posts</h2>
+        <a href="/blog/" class="posts-all">View all →</a>
+      </div>
+      <ul class="posts-grid">
+        {posts.map((post, index) => (
+          <li class="post-item" style={`--delay: ${index * 50}ms`}>
+            <a href={post.url} class="post-link">
+              <span class="post-tag">{post.tag}</span>
+              <span class="post-title">{post.title}</span>
+              <span class="post-arrow">↗</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
   </main>
 </BaseLayout>
 
 <style>
-  .container {
-    max-width: 900px;
+  .page {
+    max-width: var(--container-max);
     margin: 0 auto;
-    padding: 40px 32px;
+    padding: var(--space-8) var(--space-6);
   }
 
+  /* Penrose Banner */
+  .penrose-banner {
+    margin-bottom: var(--space-8);
+  }
+
+  /* ============================================
+     HERO SECTION
+     ============================================ */
   .hero {
-    padding: 60px 0;
+    position: relative;
+    padding: var(--space-16) 0 var(--space-20);
+    overflow: hidden;
   }
 
-  h1 {
-    font-size: 2.5rem;
-    margin-bottom: 16px;
-    color: #e5e7eb;
+  .hero-content {
+    position: relative;
+    z-index: 1;
   }
 
-  .intro-text {
-    font-size: 1.1rem;
-    line-height: 1.6;
-    color: #9ca3af;
-    margin-bottom: 40px;
+  .hero-title {
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-bold);
+    line-height: 1.05;
+    margin: 0 0 var(--space-8);
+    letter-spacing: -0.03em;
   }
 
-  .about-section {
-    margin-bottom: 60px;
-    max-width: 600px;
+  .title-line {
+    display: block;
   }
 
-  .about-intro {
-    font-size: 1rem;
-    line-height: 1.6;
-    margin-bottom: 16px;
-    color: #e5e7eb;
-  }
-
-  .interests-list {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 20px 0;
-    display: grid;
-    gap: 8px;
-  }
-
-  .interests-list li {
-    color: #a3a3a3;
-    font-size: 0.9rem;
-  }
-
-  .philosophy {
-    font-size: 0.85rem;
-    color: #6b7280;
+  .title-accent {
+    color: var(--color-accent);
     font-style: italic;
+  }
+
+  .title-dot {
+    color: var(--color-pop);
+  }
+
+  .hero-subtitle {
+    font-size: var(--font-size-xl);
+    line-height: var(--line-height-relaxed);
+    color: var(--color-fg-muted);
+    max-width: 540px;
     margin: 0;
   }
 
-  .posts-section {
+  .hero-subtitle em {
+    color: var(--color-fg);
+    font-style: normal;
+    background: var(--color-accent-soft);
+    padding: 0 var(--space-1);
+    border-radius: var(--radius-sm);
+  }
+
+  /* Playful decorative shapes */
+  .hero-decoration {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 40%;
+    pointer-events: none;
+  }
+
+  .decoration-shape {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.6;
+  }
+
+  .shape-1 {
+    width: 180px;
+    height: 180px;
+    background: var(--color-accent-soft);
+    top: 10%;
+    right: 5%;
+    border-radius: var(--radius-blob);
+  }
+
+  .shape-2 {
+    width: 80px;
+    height: 80px;
+    background: var(--color-pop-soft);
+    top: 50%;
+    right: 25%;
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+  }
+
+  .shape-3 {
+    width: 40px;
+    height: 40px;
+    background: var(--color-accent);
+    opacity: 0.3;
+    bottom: 20%;
+    right: 15%;
+  }
+
+  /* ============================================
+     ABOUT SNIPPET
+     ============================================ */
+  .about-snippet {
+    padding: var(--space-12) 0;
+    border-top: 1px solid var(--color-border);
     max-width: 600px;
   }
 
-  .posts-heading {
-    font-size: 1.5rem;
-    margin-bottom: 24px;
-    color: #e5e7eb;
+  .snippet-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
   }
 
-  .posts-list {
-    list-style: none;
-    padding: 0;
+  .label-line {
+    width: 32px;
+    height: 2px;
+    background: var(--color-accent);
+  }
+
+  .label-text {
+    font-family: var(--font-display);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-fg-muted);
+  }
+
+  .snippet-text {
+    font-size: var(--font-size-lg);
+    line-height: var(--line-height-relaxed);
+    color: var(--color-fg);
+    margin: 0 0 var(--space-5);
+  }
+
+  .snippet-text strong {
+    color: var(--color-accent);
+  }
+
+  .snippet-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-display);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-fg);
+    text-decoration: none;
+    padding: var(--space-2) var(--space-4);
+    border: 2px solid var(--color-fg);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+  }
+
+  .snippet-link:hover {
+    background: var(--color-fg);
+    color: var(--color-bg);
+  }
+
+  .link-arrow {
+    transition: transform var(--transition-fast);
+  }
+
+  .snippet-link:hover .link-arrow {
+    transform: translateX(4px);
+  }
+
+  /* ============================================
+     POSTS SECTION
+     ============================================ */
+  .posts {
+    padding: var(--space-12) 0;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .posts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: var(--space-8);
+  }
+
+  .posts-title {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
     margin: 0;
   }
 
-  .posts-list li {
-    margin-bottom: 12px;
-  }
-
-  .posts-list a {
-    color: #38bdf8;
+  .posts-all {
+    font-family: var(--font-display);
+    font-size: var(--font-size-sm);
+    color: var(--color-fg-muted);
     text-decoration: none;
-    font-size: 1.05rem;
-    transition: color 0.2s ease;
+    transition: color var(--transition-fast);
   }
 
-  .posts-list a:hover {
-    text-decoration: underline;
-    color: #0ea5e9;
+  .posts-all:hover {
+    color: var(--color-accent);
   }
 
+  .posts-grid {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .post-item {
+    animation: slideUp 0.4s var(--ease-out-expo) backwards;
+    animation-delay: var(--delay);
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+
+  .post-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    background: var(--color-bg-alt);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    transition: all var(--transition-fast);
+  }
+
+  .post-link:hover {
+    border-color: var(--color-fg);
+    transform: translateX(4px);
+    box-shadow: var(--shadow-playful);
+  }
+
+  .post-tag {
+    font-family: var(--font-display);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-bg);
+    background: var(--color-accent);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+  }
+
+  .post-title {
+    flex: 1;
+    font-family: var(--font-display);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-fg);
+  }
+
+  .post-arrow {
+    font-size: var(--font-size-lg);
+    color: var(--color-fg-subtle);
+    transition: all var(--transition-fast);
+  }
+
+  .post-link:hover .post-arrow {
+    color: var(--color-accent);
+    transform: translate(2px, -2px);
+  }
+
+  /* ============================================
+     RESPONSIVE
+     ============================================ */
   @media (max-width: 640px) {
-    .container {
-      padding: 24px 16px;
+    .page {
+      padding: var(--space-6) var(--space-4);
     }
 
     .hero {
-      padding: 40px 0;
+      padding: var(--space-10) 0 var(--space-12);
     }
 
-    h1 {
-      font-size: 2rem;
+    .hero-title {
+      font-size: var(--font-size-3xl);
     }
 
-    .intro-text {
-      font-size: 1rem;
+    .hero-subtitle {
+      font-size: var(--font-size-lg);
+    }
+
+    .hero-decoration {
+      display: none;
+    }
+
+    .about-snippet {
+      padding: var(--space-8) 0;
+    }
+
+    .posts {
+      padding: var(--space-8) 0;
+    }
+
+    .posts-header {
+      flex-direction: column;
+      gap: var(--space-2);
+      align-items: flex-start;
+    }
+
+    .post-link {
+      padding: var(--space-3) var(--space-4);
+      gap: var(--space-3);
+    }
+
+    .post-tag {
+      font-size: 0.65rem;
+    }
+
+    .post-title {
+      font-size: var(--font-size-sm);
     }
   }
 </style>

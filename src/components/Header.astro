@@ -1,4 +1,6 @@
 ---
+import ThemeToggle from './ThemeToggle.astro';
+
 export interface Props {
   currentPath?: string;
 }
@@ -7,19 +9,53 @@ const { currentPath } = Astro.props;
 const pathname = currentPath || Astro.url.pathname;
 ---
 
+<a href="#main-content" class="skip-link">Skip to content</a>
 <header class="site-header">
-  <nav class="site-nav">
-    <a href="/" aria-current={pathname === "/" ? "page" : undefined}>Home</a>
-    <a href="/about/" aria-current={pathname === "/about/" ? "page" : undefined}>About</a>
-    <a href="/blog/" aria-current={pathname === "/blog/" ? "page" : undefined}>Blog</a>
-  </nav>
+  <div class="header-inner">
+    <a href="/" class="logo">
+      <span class="logo-text">escherize</span>
+      <span class="logo-dot"></span>
+    </a>
+    <div class="header-right">
+      <nav class="site-nav">
+        <a href="/" aria-current={pathname === "/" ? "page" : undefined}>Home</a>
+        <a href="/about/" aria-current={pathname === "/about/" ? "page" : undefined}>About</a>
+        <a href="/blog/" aria-current={pathname === "/blog/" ? "page" : undefined}>Blog</a>
+      </nav>
+      <ThemeToggle />
+    </div>
+  </div>
 </header>
 
 <style>
+  /* Skip link - only visible on focus for keyboard users */
+  .skip-link {
+    position: fixed;
+    top: -100%;
+    left: var(--space-4);
+    z-index: 200;
+    padding: var(--space-3) var(--space-5);
+    background: var(--color-fg);
+    color: var(--color-bg);
+    font-family: var(--font-display);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-sm);
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-playful);
+    transition: top var(--transition-fast);
+  }
+
+  .skip-link:focus {
+    top: var(--space-4);
+    outline: 3px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
   .site-header {
-    background: #020617;
-    padding: 20px 32px;
-    border-bottom: 1px solid #1e293b;
+    background: var(--color-bg);
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 2px solid var(--color-fg);
     position: fixed;
     top: 0;
     left: 0;
@@ -27,34 +63,102 @@ const pathname = currentPath || Astro.url.pathname;
     z-index: 100;
   }
 
-  .site-nav {
+  .header-inner {
     display: flex;
-    gap: 24px;
+    justify-content: space-between;
     align-items: center;
-    max-width: 1200px;
+    max-width: var(--container-max);
     margin: 0 auto;
   }
 
-  .site-nav a {
-    color: #38bdf8;
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  /* Logo with playful dot accent */
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
     text-decoration: none;
-    font-weight: 500;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    transition: all 0.2s ease;
+    color: var(--color-fg);
+  }
+
+  .logo-text {
+    font-family: var(--font-display);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-xl);
+    letter-spacing: -0.03em;
+  }
+
+  .logo-dot {
+    width: var(--icon-sm);
+    height: var(--icon-sm);
+    background: var(--color-accent);
+    border-radius: 50%;
+    transition: transform var(--transition-fast);
+  }
+
+  .logo:hover .logo-dot {
+    transform: scale(1.4);
+    background: var(--color-pop);
+  }
+
+  /* Navigation */
+  .site-nav {
+    display: flex;
+    gap: var(--space-1);
+    align-items: center;
+  }
+
+  .site-nav a {
+    color: var(--color-fg);
+    text-decoration: none;
+    font-family: var(--font-display);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+    position: relative;
   }
 
   .site-nav a:hover {
-    text-decoration: underline;
+    background: var(--color-fg);
+    color: var(--color-bg);
   }
 
   .site-nav a[aria-current="page"] {
-    color: #ffc55e;
-    text-decoration: underline;
+    background: var(--color-accent);
+    color: white;
+  }
+
+  .site-nav a[aria-current="page"]:hover {
+    background: var(--color-accent-hover);
   }
 
   @media (max-width: 640px) {
     .site-header {
-      padding: 16px 20px;
+      padding: var(--space-3) var(--space-4);
+    }
+
+    .logo-text {
+      font-size: var(--font-size-lg);
+    }
+
+    .header-right {
+      gap: var(--space-2);
+    }
+
+    .site-nav {
+      gap: 0;
+    }
+
+    .site-nav a {
+      padding: var(--space-2);
+      font-size: var(--font-size-xs);
     }
   }
 </style>

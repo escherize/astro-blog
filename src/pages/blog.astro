@@ -3,32 +3,39 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 const posts = [
   {
-    title: "Goto in Clojure: Why I Built It and Why It's Fun",
-    url: "/posts/post-1/",
-    description: "A deep dive into my experimental `goto` macro for Clojure—how it works, why it's cool, and why Dijkstra might still yell at me.",
-    pubDate: "2024-11-24",
-    tags: ["clojure", "macros", "goto", "experimental", "control flow"]
+    title: "Bringing SQLGlot to Metabase: Swappable SQL Parsing via GraalVM",
+    url: "/posts/post-5/",
+    description: "How we integrated SQLGlot into Metabase's JVM codebase using GraalVM, enabling swappable SQL parsing implementations.",
+    pubDate: "2024-12-15",
+    tags: ["metabase", "graalvm", "tools"]
   },
   {
-    title: "Introducing go-silo: Markdown for File Structures & Contents",
+    title: "Goto in Clojure: Why I Built It and Why It's Fun",
+    url: "/posts/post-1/",
+    description: "A deep dive into my experimental goto macro for Clojure—how it works, why it's cool, and why Dijkstra might still yell at me.",
+    pubDate: "2024-11-24",
+    tags: ["clojure", "macros", "experimental"]
+  },
+  {
+    title: "Introducing go-silo: Markdown for File Structures",
     url: "/posts/post-2/",
     description: "Why I built go-silo, how it works, and how it treats file-structure-+-content as Markdown-first.",
     pubDate: "2024-11-24",
-    tags: ["go", "golang", "file-structure", "markdown", "tools"]
+    tags: ["go", "tools", "markdown"]
   },
   {
-    title: "Mage at Metabase: A Unified Task Runner Built for a Growing Engineering Org",
+    title: "Mage at Metabase: A Unified Task Runner",
     url: "/posts/post-3/",
     description: "How we built a shell-script wrapper around Babashka tasks (Mage) to streamline dev workflows at Metabase.",
     pubDate: "2024-11-24",
-    tags: ["metabase", "tooling", "babashka", "taskrunner", "developer-experience"]
+    tags: ["metabase", "tooling", "dx"]
   },
   {
-    title: "Glick80: When Functional Purity Meets Retro Gaming",
+    title: "Glick80: Functional Purity Meets Retro Gaming",
     url: "/posts/post-4/",
-    description: "I brought Gleam's type-safe functional programming to the TIC-80 fantasy console. Pure functions, 8-bit graphics, and zero mutations—what could go wrong?",
+    description: "I brought Gleam's type-safe functional programming to the TIC-80 fantasy console. Pure functions, 8-bit graphics, and zero mutations.",
     pubDate: "2024-11-28",
-    tags: ["gleam", "tic-80", "fantasy-console", "functional-programming", "game-dev", "retro"]
+    tags: ["gleam", "games", "functional"]
   }
 ];
 
@@ -36,145 +43,242 @@ const pageTitle = "Blog - Escherize Zone";
 const description = "Technical posts about functional programming, developer tooling, and creative coding experiments.";
 ---
 
-<BaseLayout 
+<BaseLayout
   title={pageTitle}
   description={description}
 >
-  <style>
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 40px 32px;
-    }
-
-    .page-header {
-      margin-bottom: 48px;
-    }
-
-    .page-title {
-      font-size: 2.5rem;
-      margin: 0 0 16px;
-      background: linear-gradient(135deg, #e5e7eb 0%, #38bdf8 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .page-subtitle {
-      font-size: 1.1rem;
-      color: #9ca3af;
-      margin: 0;
-    }
-
-    .posts-list {
-      display: grid;
-      gap: 32px;
-    }
-
-    .post-card {
-      padding: 28px;
-      background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.92));
-      border-radius: 20px;
-      border: 1px solid rgba(148, 163, 184, 0.12);
-      backdrop-filter: blur(12px);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .post-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.7);
-    }
-
-    .post-title {
-      margin: 0 0 12px;
-      font-size: 1.5rem;
-      line-height: 1.3;
-    }
-
-    .post-title a {
-      color: #e5e7eb;
-      text-decoration: none;
-    }
-
-    .post-title a:hover {
-      color: #38bdf8;
-    }
-
-    .post-meta {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 16px;
-      font-size: 0.85rem;
-      color: #9ca3af;
-    }
-
-    .post-description {
-      color: #d1d5db;
-      margin-bottom: 16px;
-      line-height: 1.6;
-    }
-
-    .post-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .tag {
-      font-size: 0.7rem;
-      padding: 3px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.3);
-      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.1), rgba(15, 23, 42, 0.8));
-      color: #d1d5db;
-    }
-
-    @media (max-width: 640px) {
-      .container {
-        padding: 24px 16px;
-      }
-      
-      .page-title {
-        font-size: 2rem;
-      }
-      
-      .post-card {
-        padding: 20px;
-      }
-    }
-  </style>
-
-  <main class="container">
-    <div class="page-header">
-      <h1 class="page-title">Blog Posts</h1>
+  <main id="main-content" class="page">
+    <header class="page-header">
+      <h1 class="page-title">All Posts</h1>
       <p class="page-subtitle">
-        Technical posts about functional programming, developer tooling, and creative coding experiments.
+        Functional programming, developer tooling, and creative experiments.
       </p>
-    </div>
+    </header>
 
     <div class="posts-list">
-      {posts.map(post => (
-        <article class="post-card">
-          <h2 class="post-title">
-            <a href={post.url}>{post.title}</a>
-          </h2>
-          <div class="post-meta">
-            <time datetime={post.pubDate}>
-              {new Date(post.pubDate).toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
-            </time>
-          </div>
-          <p class="post-description">{post.description}</p>
-          <div class="post-tags">
-            {post.tags.map(tag => (
-              <span class="tag">{tag}</span>
-            ))}
-          </div>
+      {posts.map((post, index) => (
+        <article class="post-card" style={`--delay: ${index * 75}ms`}>
+          <a href={post.url} class="post-link">
+            <div class="post-content">
+              <div class="post-header">
+                <time class="post-date" datetime={post.pubDate}>
+                  {new Date(post.pubDate).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}
+                </time>
+                <div class="post-tags">
+                  {post.tags.slice(0, 2).map(tag => (
+                    <span class="tag">{tag}</span>
+                  ))}
+                </div>
+              </div>
+              <h2 class="post-title">{post.title}</h2>
+              <p class="post-description">{post.description}</p>
+            </div>
+            <span class="post-arrow">→</span>
+          </a>
         </article>
       ))}
     </div>
+
+    <footer class="page-footer">
+      <a href="/" class="back-link">← Back to home</a>
+    </footer>
   </main>
 </BaseLayout>
+
+<style>
+  .page {
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: var(--space-8) var(--space-6);
+  }
+
+  /* ============================================
+     PAGE HEADER
+     ============================================ */
+  .page-header {
+    padding: var(--space-12) 0;
+    border-bottom: 2px solid var(--color-fg);
+    margin-bottom: var(--space-10);
+  }
+
+  .page-title {
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-bold);
+    margin: 0 0 var(--space-3);
+    letter-spacing: -0.03em;
+  }
+
+  .page-subtitle {
+    font-size: var(--font-size-lg);
+    color: var(--color-fg-muted);
+    margin: 0;
+    max-width: 500px;
+  }
+
+  /* ============================================
+     POSTS LIST
+     ============================================ */
+  .posts-list {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .post-card {
+    animation: slideIn 0.5s var(--ease-out-expo) backwards;
+    animation-delay: var(--delay);
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+  }
+
+  .post-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    padding: var(--space-6);
+    background: var(--color-bg-elevated);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    transition: all var(--transition-fast);
+  }
+
+  .post-link:hover {
+    border-color: var(--color-fg);
+    transform: translateX(8px);
+    box-shadow: var(--shadow-playful);
+  }
+
+  .post-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .post-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+
+  .post-date {
+    font-family: var(--font-display);
+    font-size: var(--font-size-sm);
+    color: var(--color-fg-subtle);
+  }
+
+  .post-tags {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .tag {
+    font-family: var(--font-display);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--color-bg);
+    background: var(--color-accent);
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-sm);
+  }
+
+  .tag:nth-child(2) {
+    background: var(--color-pop);
+  }
+
+  .post-title {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    margin: 0 0 var(--space-2);
+    color: var(--color-fg);
+    line-height: var(--line-height-tight);
+  }
+
+  .post-description {
+    font-size: var(--font-size-base);
+    color: var(--color-fg-muted);
+    margin: 0;
+    line-height: var(--line-height-normal);
+  }
+
+  .post-arrow {
+    font-size: var(--font-size-2xl);
+    color: var(--color-fg-subtle);
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+  }
+
+  .post-link:hover .post-arrow {
+    color: var(--color-accent);
+    transform: translateX(4px);
+  }
+
+  /* ============================================
+     PAGE FOOTER
+     ============================================ */
+  .page-footer {
+    padding-top: var(--space-12);
+    margin-top: var(--space-8);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .back-link {
+    font-family: var(--font-display);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-fg-muted);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+
+  .back-link:hover {
+    color: var(--color-accent);
+  }
+
+  /* ============================================
+     RESPONSIVE
+     ============================================ */
+  @media (max-width: 640px) {
+    .page {
+      padding: var(--space-6) var(--space-4);
+    }
+
+    .page-header {
+      padding: var(--space-8) 0;
+    }
+
+    .page-title {
+      font-size: var(--font-size-3xl);
+    }
+
+    .post-link {
+      padding: var(--space-4);
+      gap: var(--space-4);
+    }
+
+    .post-header {
+      flex-wrap: wrap;
+    }
+
+    .post-title {
+      font-size: var(--font-size-lg);
+    }
+
+    .post-description {
+      font-size: var(--font-size-sm);
+    }
+
+    .post-arrow {
+      display: none;
+    }
+  }
+</style>
