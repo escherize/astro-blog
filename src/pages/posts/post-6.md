@@ -1,7 +1,7 @@
 ---
 layout: ../../layouts/BlogPost.astro
 title: "Crossums: A Number Puzzle Roguelike"
-pubDate: 2025-02-24T00:00:00Z
+pubDate: 2026-02-24T00:00:00Z
 description: "Delete numbers until the math works out. A roguelike puzzle game about strategic subtraction."
 author: "Bryan"
 tags: ["games", "puzzle", "roguelike", "crossums"]
@@ -9,103 +9,53 @@ tags: ["games", "puzzle", "roguelike", "crossums"]
 
 # Crossums
 
-I've been building a puzzle game called **Crossums**—a mashup of crossword-style grids and sum-based logic, wrapped in a roguelike progression system.
+I made a puzzle game where you *remove* numbers instead of placing them. Every row and column has a target sum. Your job: delete cells until what's left adds up perfectly.
 
-The pitch: **Delete numbers until each row and column hits its target sum.**
+No adding. No moving. Just strategic subtraction.
 
-Simple to understand. Surprisingly deep to master.
-
----
-
-## How to Play
-
-You're given a grid of numbers. Each row and column has a **target sum** displayed on the edges.
-
-Your job: **delete cells** until the remaining numbers in each row and column add up to exactly the target.
-
-That's it. No adding. No moving. Just strategic subtraction.
-
-### The Rules
-
-1. **Every puzzle has exactly one solution** — you're finding it, not choosing it
-2. **The timer is your only enemy** — run out of time and it's game over
-3. **Undo is free** — the only cost is time, so experiment freely
-4. **Clean play is rewarded** — fewer mistakes means better scores
-
-### Controls
-
-- **Tap a cell** to delete it (it disappears)
-- **Tap again** to restore it (if you made a mistake)
-- **Circle a cell** to mark it as "definitely keeping this" (optional, but helps)
+The catch: every puzzle has exactly one solution. You're not choosing an answer—you're hunting for *the* answer, against the clock.
 
 ---
 
-## The Roguelike Layer
+## The Balatro Brain Worm
 
-Crossums isn't just puzzle after puzzle. There's a meta-game:
+I couldn't stop thinking about Balatro's operator system. Those little modifiers that don't change *what* you're doing—they change *how much you care* about doing it well.
 
-### Progression
-- **8 stages**, 3 puzzles each
-- Grids grow from 3×3 to 6×6
-- Later stages introduce negative numbers
+Crossums has the same hook. Between stages you hit a shop and buy **operators**:
 
-### Money & Operators
-After each puzzle, your score converts to **money ($)**. Between stages, you hit the **shop** where you can buy **operators**—Balatro-style modifiers that boost your scoring:
+| Operator | The Deal |
+|----------|----------|
+| **Row Master** | +50 per completed row |
+| **Purist** | +300 if you never circled a cell |
+| **Speed Demon** | +100 for solving under 10 seconds |
+| **Perfectionist** | ×3 multiplier for zero mistakes |
 
-| Operator | Effect |
-|----------|--------|
-| **Row Master** | +50 points per completed row |
-| **Purist** | +300 points if you never circled a cell |
-| **Speed Demon** | +100 points if solved under 10 seconds |
-| **Perfectionist** | ×3 score if zero missteps |
+Suddenly "just solve it" becomes "solve it *fast*, solve it *clean*, solve it without using the safety net." Same puzzle, completely different tension.
 
-Operators reward *how* you play, not what the puzzle contains. Fast and clean? Big bonuses. Slow and messy? You'll scrape by.
-
-### The Streak System
-Solve puzzles without too many mistakes and your **streak multiplier** grows (up to 3×). But make 4+ missteps in a single puzzle and the streak resets to zero.
-
-It creates a risk/reward tension: do you rush for speed, or slow down to stay clean?
+Your **streak multiplier** (up to 3×) rewards consecutive clean solves. But 4+ mistakes in a single puzzle? Back to 1×. The game is constantly asking: do you rush for speed bonuses and risk blowing your streak, or play it safe and leave points on the table?
 
 ---
 
-## Why It Works
+## Why Single Solutions Matter
 
-The single-solution design is key. In early prototypes, puzzles had multiple valid solutions—but that made operators like "keep 7s for bonus" feel random. You couldn't *plan* around them.
+Early prototypes allowed multiple valid answers. It felt broken—operators like "bonus for keeping 7s" became pure luck. Did the puzzle happen to need 7s? Who knows!
 
-With single-solution puzzles:
-- **The puzzle is the challenge** (finding the one answer)
-- **Operators modify rewards** (how much you earn for finding it)
-- **Player skill matters** (speed, accuracy, clean play)
+Single solutions fix this completely. The puzzle is deterministic. The *only* variable is you: how fast, how accurate, how stylish. No RNG excuses. You earned that score or you didn't.
 
-It's the difference between "hope for good RNG" and "execute well."
+It's the difference between slot machines and speedrunning.
 
 ---
 
-## The Vibe
+## The Progression Arc
 
-The game leans into a **flat-pack furniture** aesthetic (think IKEA assembly instructions meets number puzzles). Clean grids, minimal chrome, satisfying "click" when you delete a cell.
+8 stages, 3 puzzles each. Grids grow from 3×3 (approachable) to 6×6 (sweaty). Stage 5 introduces negative numbers, which scrambles all your intuitions about what "adds up" means.
 
-The timer keeps things tense. The operators keep things interesting. The streak system keeps you honest.
+The whole run takes maybe 15 minutes if you're quick. But the scoring system has enough depth that "winning" and "winning well" are very different achievements.
 
 ---
-
-## Try It
-
-Crossums is playable now. If you like puzzles, roguelikes, or just want to see if you can beat my high scores:
 
 <div style="text-align: center; margin: 2rem 0;">
   <a href="/crossums" style="display: inline-block; padding: 1rem 2rem; background: var(--color-accent); color: white; text-decoration: none; font-family: var(--font-display); font-weight: bold; font-size: 1.25rem; border-radius: 8px; border: 2px solid var(--color-fg); box-shadow: 4px 4px 0 var(--color-fg); transition: all 0.15s ease;">
     Play Crossums →
   </a>
 </div>
-
----
-
-## What's Next
-
-Current focus:
-- Polish the operator system (more interesting choices)
-- Improve the score screen (show *why* you earned what you earned)
-- Mobile optimization (touch controls, responsive layout)
-
-If you play it and have feedback, I'd love to hear it. The game is still evolving, and good ideas make it better.

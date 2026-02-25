@@ -1,477 +1,269 @@
 ---
 /**
- * PenroseASCII - Rotatable ASCII-rendered Penrose triangle
- *
- * A full-width, golden-ratio banner featuring an "impossible triangle"
- * built from 3 rectangular prisms at 90° angles. Uses ASCII characters
- * to render the 3D geometry with orange/purple coloring.
+ * PenroseASCII - Floating ASCII Penrose triangle background decoration
  */
 ---
 
-<div class="penrose-container" tabindex="0" role="img" aria-label="Interactive Penrose triangle - an impossible geometric figure made of three connected rectangular prisms">
-  <pre class="penrose-ascii" aria-hidden="true"></pre>
-  <noscript>
-    <div class="penrose-fallback">▲</div>
-  </noscript>
+<div class="penrose-bg" aria-hidden="true">
+  <pre class="penrose-ascii"></pre>
 </div>
 
 <style>
-  .penrose-container {
-    width: 100%;
-    aspect-ratio: 1.618 / 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--color-bg-alt);
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    cursor: grab;
-    user-select: none;
-    overflow: hidden;
-    position: relative;
-  }
-
-  .penrose-container:active {
-    cursor: grabbing;
-  }
-
-  .penrose-container:focus-visible {
-    outline: 3px solid var(--color-accent);
-    outline-offset: 2px;
+  .penrose-bg {
+    position: fixed;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: -1;
   }
 
   .penrose-ascii {
     font-family: var(--font-mono);
-    font-size: clamp(6px, 1.2vw, 14px);
-    line-height: 1.1;
-    letter-spacing: 0.05em;
+    font-size: clamp(8px, 1.4vw, 16px);
+    line-height: 1.0;
+    letter-spacing: 0;
     margin: 0;
-    padding: var(--space-4);
+    padding: 0;
     white-space: pre;
     background: transparent;
-    text-align: center;
   }
 
-  /* Color classes for ASCII characters */
-  .penrose-ascii :global(.f0) { color: var(--color-accent); }
-  .penrose-ascii :global(.f1) { color: color-mix(in srgb, var(--color-accent) 70%, var(--color-fg) 30%); }
-  .penrose-ascii :global(.f2) { color: var(--color-pop); }
-  .penrose-ascii :global(.f3) { color: color-mix(in srgb, var(--color-pop) 70%, var(--color-fg) 30%); }
-  .penrose-ascii :global(.f4) { color: color-mix(in srgb, var(--color-accent) 50%, var(--color-pop) 50%); }
-  .penrose-ascii :global(.f5) { color: var(--color-fg-muted); }
+  .penrose-ascii :global(.c0) { color: var(--color-accent); }
+  .penrose-ascii :global(.c1) { color: var(--color-pop); }
+  .penrose-ascii :global(.c2) { color: var(--color-fg-muted); }
 
-  .penrose-fallback {
-    font-size: 4rem;
-    color: var(--color-accent);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .penrose-container {
-      cursor: default;
+  @media (max-width: 768px) {
+    .penrose-bg {
+      display: none;
     }
   }
 </style>
 
 <script>
-  // === Penrose Triangle ASCII Renderer ===
-
   class PenroseRenderer {
     constructor(container) {
-      this.container = container;
       this.pre = container.querySelector('.penrose-ascii');
-      this.rotation = 0;
-      this.targetRotation = 0;
-      this.isDragging = false;
-      this.lastX = 0;
-      this.animationId = null;
-      this.idleTime = 0;
-      this.lastInteraction = 0;
-      this.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-      // Offscreen canvas for rendering
+      this.rotation = 0; // Static angle
       this.canvas = document.createElement('canvas');
       this.ctx = this.canvas.getContext('2d');
 
-      // Grid sizing
-      this.cols = 60;
-      this.rows = 37; // ~60 / 1.618
-      this.cellWidth = 10;
-      this.cellHeight = 16;
-
-      this.init();
-    }
-
-    init() {
-      this.setupEventListeners();
-      this.updateGridSize();
-      this.render();
-      this.startIdleAnimation();
-
-      // Observe resize
-      const resizeObserver = new ResizeObserver(() => this.updateGridSize());
-      resizeObserver.observe(this.container);
-    }
-
-    updateGridSize() {
-      const rect = this.container.getBoundingClientRect();
-      const width = rect.width;
-
-      // Adjust cols based on container width
-      if (width > 1000) {
-        this.cols = 80;
-      } else if (width > 700) {
-        this.cols = 60;
-      } else if (width > 500) {
-        this.cols = 45;
-      } else {
-        this.cols = 30;
-      }
-
-      this.rows = Math.round(this.cols / 1.618);
+      // Fixed size for background decoration
+      this.cols = 70;
+      this.rows = 50;
+      this.cellWidth = 8;
+      this.cellHeight = 12;
       this.canvas.width = this.cols * this.cellWidth;
       this.canvas.height = this.rows * this.cellHeight;
 
-      this.render();
+      this.animate();
     }
 
-    setupEventListeners() {
-      // Mouse
-      this.container.addEventListener('mousedown', (e) => this.onDragStart(e.clientX));
-      document.addEventListener('mousemove', (e) => this.onDragMove(e.clientX));
-      document.addEventListener('mouseup', () => this.onDragEnd());
+    animate() {
+      // Magic Penrose angle
+      const magicX = 0.670;
+      const magicY = 0.660;
 
-      // Touch
-      this.container.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        this.onDragStart(e.touches[0].clientX);
-      }, { passive: false });
-      document.addEventListener('touchmove', (e) => {
-        if (this.isDragging) this.onDragMove(e.touches[0].clientX);
-      });
-      document.addEventListener('touchend', () => this.onDragEnd());
+      // Scroll-based rotation
+      const scrollRange = 800; // pixels of scroll for full range
+      const maxOffset = 0.3; // rotation range
 
-      // Keyboard
-      this.container.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowLeft') {
-          this.targetRotation -= 0.15;
-          this.lastInteraction = Date.now();
-          e.preventDefault();
-        } else if (e.key === 'ArrowRight') {
-          this.targetRotation += 0.15;
-          this.lastInteraction = Date.now();
-          e.preventDefault();
-        }
-      });
-    }
+      const updateFromScroll = () => {
+        const scrollY = window.scrollY;
+        const t = Math.min(scrollY / scrollRange, 1); // 0 to 1
 
-    onDragStart(x) {
-      this.isDragging = true;
-      this.lastX = x;
-      this.lastInteraction = Date.now();
-    }
-
-    onDragMove(x) {
-      if (!this.isDragging) return;
-      const deltaX = x - this.lastX;
-      this.targetRotation += deltaX * 0.008;
-      this.lastX = x;
-    }
-
-    onDragEnd() {
-      this.isDragging = false;
-    }
-
-    startIdleAnimation() {
-      const animate = () => {
-        this.animationId = requestAnimationFrame(animate);
-
-        // Idle wobble (if not recently interacted and not reduced motion)
-        if (!this.prefersReducedMotion && Date.now() - this.lastInteraction > 3000) {
-          this.idleTime += 0.016;
-          this.targetRotation = Math.sin(this.idleTime * 0.3) * 0.15;
+        // Custom ease: fast at edges, slow/flat in middle (plateau at magic angle)
+        // Using smoothstep-like curve that spends more time near 0.5
+        let ease;
+        if (t < 0.33) {
+          // First third: ease quickly toward magic angle
+          const localT = t / 0.33; // 0 to 1
+          ease = -1 + localT * localT * localT; // cubic ease-in, -1 to 0
+        } else if (t < 0.66) {
+          // Middle third: stay near magic angle (plateau)
+          ease = 0; // flat at magic angle
+        } else {
+          // Last third: ease away from magic angle
+          const localT = (t - 0.66) / 0.34; // 0 to 1
+          ease = localT * localT * localT; // cubic ease-in, 0 to 1
         }
 
-        // Smooth interpolation
-        const diff = this.targetRotation - this.rotation;
-        if (Math.abs(diff) > 0.0001) {
-          this.rotation += diff * (this.prefersReducedMotion ? 1 : 0.08);
-          this.render();
-        }
+        const offset = ease * maxOffset;
+        this.currentRX = magicX + offset * 0.5;
+        this.currentRY = magicY + offset;
+        this.render();
       };
-      animate();
+
+      window.addEventListener('scroll', updateFromScroll, { passive: true });
+      updateFromScroll(); // Initial render
     }
 
-    // === 3D Math ===
-
-    rotateY(point, angle) {
+    rotateY(p, angle) {
       const cos = Math.cos(angle);
       const sin = Math.sin(angle);
-      return {
-        x: point.x * cos - point.z * sin,
-        y: point.y,
-        z: point.x * sin + point.z * cos
-      };
+      return { x: p.x * cos - p.z * sin, y: p.y, z: p.x * sin + p.z * cos };
     }
 
-    // Isometric projection
+    rotateX(p, angle) {
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      return { x: p.x, y: p.y * cos - p.z * sin, z: p.y * sin + p.z * cos };
+    }
+
     project(point) {
-      // Rotate to isometric view (about X and Y axes)
-      const isoAngleX = Math.atan(1 / Math.sqrt(2)); // ~35.26°
-      const isoAngleY = Math.PI / 4; // 45°
-
-      // Rotate around Y
-      let p = this.rotateY(point, isoAngleY);
-
-      // Rotate around X
-      const cosX = Math.cos(isoAngleX);
-      const sinX = Math.sin(isoAngleX);
-      const y2 = p.y * cosX - p.z * sinX;
-      const z2 = p.y * sinX + p.z * cosX;
-
-      return {
-        x: p.x,
-        y: y2,
-        z: z2
-      };
+      // Use scroll-adjusted rotation (defaults to magic angle)
+      const rx = this.currentRX ?? 0.670;
+      const ry = this.currentRY ?? 0.660;
+      let p = this.rotateY(point, ry);
+      p = this.rotateX(p, rx);
+      return p;
     }
 
-    // Create a rectangular prism (box)
-    createPrism(cx, cy, cz, width, height, depth) {
-      const hw = width / 2, hh = height / 2, hd = depth / 2;
+    createBar(cx, cy, cz, axis, length, thick) {
+      const hl = length / 2, ht = thick / 2;
+      let dims;
+      if (axis === 'x') dims = [length, thick, thick];
+      else if (axis === 'y') dims = [thick, length, thick];
+      else dims = [thick, thick, length];
+
+      const [w, h, d] = dims;
+      const hw = w/2, hh = h/2, hd = d/2;
+
+      // 6 faces of a box
       return [
-        // Front face
-        [
-          { x: cx - hw, y: cy - hh, z: cz + hd },
-          { x: cx + hw, y: cy - hh, z: cz + hd },
-          { x: cx + hw, y: cy + hh, z: cz + hd },
-          { x: cx - hw, y: cy + hh, z: cz + hd }
-        ],
-        // Back face
-        [
-          { x: cx + hw, y: cy - hh, z: cz - hd },
-          { x: cx - hw, y: cy - hh, z: cz - hd },
-          { x: cx - hw, y: cy + hh, z: cz - hd },
-          { x: cx + hw, y: cy + hh, z: cz - hd }
-        ],
-        // Top face
-        [
-          { x: cx - hw, y: cy - hh, z: cz - hd },
-          { x: cx + hw, y: cy - hh, z: cz - hd },
-          { x: cx + hw, y: cy - hh, z: cz + hd },
-          { x: cx - hw, y: cy - hh, z: cz + hd }
-        ],
-        // Bottom face
-        [
-          { x: cx - hw, y: cy + hh, z: cz + hd },
-          { x: cx + hw, y: cy + hh, z: cz + hd },
-          { x: cx + hw, y: cy + hh, z: cz - hd },
-          { x: cx - hw, y: cy + hh, z: cz - hd }
-        ],
-        // Right face
-        [
-          { x: cx + hw, y: cy - hh, z: cz + hd },
-          { x: cx + hw, y: cy - hh, z: cz - hd },
-          { x: cx + hw, y: cy + hh, z: cz - hd },
-          { x: cx + hw, y: cy + hh, z: cz + hd }
-        ],
-        // Left face
-        [
-          { x: cx - hw, y: cy - hh, z: cz - hd },
-          { x: cx - hw, y: cy - hh, z: cz + hd },
-          { x: cx - hw, y: cy + hh, z: cz + hd },
-          { x: cx - hw, y: cy + hh, z: cz - hd }
-        ]
-      ];
+        [[cx-hw,cy-hh,cz+hd],[cx+hw,cy-hh,cz+hd],[cx+hw,cy+hh,cz+hd],[cx-hw,cy+hh,cz+hd]], // front
+        [[cx+hw,cy-hh,cz-hd],[cx-hw,cy-hh,cz-hd],[cx-hw,cy+hh,cz-hd],[cx+hw,cy+hh,cz-hd]], // back
+        [[cx-hw,cy-hh,cz-hd],[cx+hw,cy-hh,cz-hd],[cx+hw,cy-hh,cz+hd],[cx-hw,cy-hh,cz+hd]], // top
+        [[cx-hw,cy+hh,cz+hd],[cx+hw,cy+hh,cz+hd],[cx+hw,cy+hh,cz-hd],[cx-hw,cy+hh,cz-hd]], // bottom
+        [[cx+hw,cy-hh,cz+hd],[cx+hw,cy-hh,cz-hd],[cx+hw,cy+hh,cz-hd],[cx+hw,cy+hh,cz+hd]], // right
+        [[cx-hw,cy-hh,cz-hd],[cx-hw,cy-hh,cz+hd],[cx-hw,cy+hh,cz+hd],[cx-hw,cy+hh,cz-hd]], // left
+      ].map(f => f.map(([x,y,z]) => ({x,y,z})));
     }
 
-    // Calculate face normal and brightness
     getFaceBrightness(face) {
-      const v1 = {
-        x: face[1].x - face[0].x,
-        y: face[1].y - face[0].y,
-        z: face[1].z - face[0].z
+      const v1 = { x: face[1].x-face[0].x, y: face[1].y-face[0].y, z: face[1].z-face[0].z };
+      const v2 = { x: face[2].x-face[0].x, y: face[2].y-face[0].y, z: face[2].z-face[0].z };
+      const n = {
+        x: v1.y*v2.z - v1.z*v2.y,
+        y: v1.z*v2.x - v1.x*v2.z,
+        z: v1.x*v2.y - v1.y*v2.x
       };
-      const v2 = {
-        x: face[2].x - face[0].x,
-        y: face[2].y - face[0].y,
-        z: face[2].z - face[0].z
-      };
-
-      // Cross product for normal
-      const normal = {
-        x: v1.y * v2.z - v1.z * v2.y,
-        y: v1.z * v2.x - v1.x * v2.z,
-        z: v1.x * v2.y - v1.y * v2.x
-      };
-
-      // Normalize
-      const len = Math.sqrt(normal.x ** 2 + normal.y ** 2 + normal.z ** 2);
-      normal.x /= len;
-      normal.y /= len;
-      normal.z /= len;
-
-      // Light direction (from upper-left-front)
+      const len = Math.sqrt(n.x*n.x + n.y*n.y + n.z*n.z) || 1;
+      n.x /= len; n.y /= len; n.z /= len;
       const light = { x: -0.5, y: -0.7, z: 0.5 };
-      const lightLen = Math.sqrt(light.x ** 2 + light.y ** 2 + light.z ** 2);
-      light.x /= lightLen;
-      light.y /= lightLen;
-      light.z /= lightLen;
-
-      // Dot product for brightness
-      const dot = normal.x * light.x + normal.y * light.y + normal.z * light.z;
-      return Math.max(0.1, (dot + 1) / 2); // Remap to 0.1-1
+      const llen = Math.sqrt(light.x*light.x + light.y*light.y + light.z*light.z);
+      light.x /= llen; light.y /= llen; light.z /= llen;
+      const dot = n.x*light.x + n.y*light.y + n.z*light.z;
+      return Math.max(0.15, (dot + 1) / 2);
     }
 
-    // Check if face is front-facing (visible)
-    isFrontFacing(projectedFace) {
-      // Use cross product of edges to determine winding
-      const v1 = {
-        x: projectedFace[1].x - projectedFace[0].x,
-        y: projectedFace[1].y - projectedFace[0].y
-      };
-      const v2 = {
-        x: projectedFace[2].x - projectedFace[0].x,
-        y: projectedFace[2].y - projectedFace[0].y
-      };
-      return (v1.x * v2.y - v1.y * v2.x) > 0;
+    isFrontFacing(face) {
+      const v1 = { x: face[1].x-face[0].x, y: face[1].y-face[0].y };
+      const v2 = { x: face[2].x-face[0].x, y: face[2].y-face[0].y };
+      return (v1.x*v2.y - v1.y*v2.x) > 0;
     }
-
-    // === Rendering ===
 
     render() {
       const ctx = this.ctx;
       const w = this.canvas.width;
       const h = this.canvas.height;
 
-      // Clear
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, w, h);
 
-      // Build Penrose triangle from 3 prisms
-      // Each prism is positioned at 120° intervals, rotated to form impossible connections
-      const size = Math.min(w, h) * 0.35;
-      const barLength = size * 1.2;
-      const barThick = size * 0.25;
+      // Penrose triangle from STL analysis:
+      // Bar thickness = 20, Bar length = 98
+      // Normalized and centered
+      const T = 20;  // thickness
+      const L = 98;  // length
 
-      const prisms = [];
+      // Center offset to put origin at center of bounding box
+      // Original: x=-59 to 39, y=-59 to 59, z=0 to 118
+      // Center: x=-10, y=0, z=59
+      const ox = -10, oy = 0, oz = 59;
 
-      // Prism 1: Horizontal bar (along X axis), positioned at top-right
-      const p1Faces = this.createPrism(
-        size * 0.3, -size * 0.3, 0,
-        barLength, barThick, barThick
-      );
+      // Bar 1: Horizontal (X-axis) - bottom bar going left
+      // x: -59 to 39, y: -59 to -39, z: 0 to 20
+      const bar1 = this.createBar(-10 - ox, -49 - oy, 10 - oz, 'x', L, T);
 
-      // Prism 2: Angled bar going down-left
-      const p2Faces = this.createPrism(
-        -size * 0.35, size * 0.25, 0,
-        barThick, barLength, barThick
-      );
+      // Bar 2: Vertical (Y-axis) - right side going up
+      // x: 19 to 39, y: -39 to 59, z: 0 to 20
+      const bar2 = this.createBar(29 - ox, 10 - oy, 10 - oz, 'y', L, T);
 
-      // Prism 3: Angled bar going down-right (the "impossible" one)
-      const p3Faces = this.createPrism(
-        size * 0.1, size * 0.1, size * 0.4,
-        barThick, barThick, barLength
-      );
+      // Bar 3: Depth (Z-axis) - top right going back
+      // x: 19 to 39, y: 39 to 59, z: 20 to 118
+      const bar3 = this.createBar(29 - ox, 49 - oy, 69 - oz, 'z', L, T);
 
-      // Collect all faces with their prism ID
       const allFaces = [];
-      [p1Faces, p2Faces, p3Faces].forEach((prismFaces, prismIdx) => {
-        prismFaces.forEach((face) => {
-          // Apply user rotation
-          const rotatedFace = face.map(p => this.rotateY(p, this.rotation));
-          // Project to 2D
-          const projectedFace = rotatedFace.map(p => this.project(p));
-
-          if (this.isFrontFacing(projectedFace)) {
-            const brightness = this.getFaceBrightness(rotatedFace);
-            const avgZ = projectedFace.reduce((sum, p) => sum + p.z, 0) / 4;
-
+      // Normal 3D z-ordering: faces closer to camera draw last (on top)
+      [bar1, bar2, bar3].forEach((bar, barIdx) => {
+        bar.forEach(face => {
+          const rotated = face.map(p => this.project(p));
+          if (this.isFrontFacing(rotated)) {
+            const z = rotated.reduce((s,p) => s+p.z, 0) / 4;
             allFaces.push({
-              vertices: projectedFace,
-              brightness,
-              z: avgZ,
-              prismId: prismIdx
+              verts: rotated,
+              brightness: this.getFaceBrightness(rotated),
+              z: z,
+              bar: barIdx
             });
           }
         });
       });
 
-      // Sort by Z (painter's algorithm)
-      allFaces.sort((a, b) => b.z - a.z);
+      allFaces.sort((a,b) => b.z - a.z); // Higher z (further) draws first, closer draws last
 
-      // Draw faces
-      const scale = Math.min(w, h) * 0.8;
-      const cx = w / 2;
-      const cy = h / 2;
+      const scale = 2.2;
+      const cx = w/2, cy = h/2;
 
-      allFaces.forEach(face => {
+      allFaces.forEach(f => {
         ctx.beginPath();
-        face.vertices.forEach((v, i) => {
-          const sx = cx + v.x * scale / size;
-          const sy = cy + v.y * scale / size;
-          if (i === 0) ctx.moveTo(sx, sy);
-          else ctx.lineTo(sx, sy);
+        f.verts.forEach((v,i) => {
+          const sx = cx + v.x * scale;
+          const sy = cy + v.y * scale;
+          i === 0 ? ctx.moveTo(sx,sy) : ctx.lineTo(sx,sy);
         });
         ctx.closePath();
-
-        // Grayscale based on brightness, we'll colorize in ASCII
-        const gray = Math.round(face.brightness * 255);
-        // Encode prism ID in the color channel (R=prismId*80, G=gray, B=gray)
-        ctx.fillStyle = `rgb(${face.prismId * 80 + 40}, ${gray}, ${gray})`;
+        const gray = Math.round(f.brightness * 255);
+        ctx.fillStyle = `rgb(${f.bar * 80 + 40}, ${gray}, ${gray})`;
         ctx.fill();
       });
 
-      // Convert to ASCII
-      this.renderASCII();
+      this.toASCII();
     }
 
-    renderASCII() {
-      const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-      const ASCII_RAMP = ' .:-=+*#%@';
+    toASCII() {
+      const img = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+      const RAMP = ' .:-=+*#%@';
 
-      // Clear the pre element using safe DOM methods
       this.pre.textContent = '';
-
-      // Create a document fragment for efficient DOM manipulation
-      const fragment = document.createDocumentFragment();
+      const frag = document.createDocumentFragment();
 
       for (let row = 0; row < this.rows; row++) {
         for (let col = 0; col < this.cols; col++) {
           const x = Math.floor((col + 0.5) * this.cellWidth);
           const y = Math.floor((row + 0.5) * this.cellHeight);
           const i = (y * this.canvas.width + x) * 4;
-
-          const r = imageData.data[i];
-          const g = imageData.data[i + 1];
-
-          // Extract prism ID from red channel
-          const prismId = Math.round((r - 40) / 80);
-          // Brightness from green channel
+          const r = img.data[i], g = img.data[i+1];
+          const bar = Math.round((r - 40) / 80);
           const brightness = g / 255;
 
           if (brightness < 0.05) {
-            fragment.appendChild(document.createTextNode(' '));
+            frag.appendChild(document.createTextNode(' '));
           } else {
-            const charIdx = Math.floor(brightness * (ASCII_RAMP.length - 1));
-            const char = ASCII_RAMP[Math.min(charIdx, ASCII_RAMP.length - 1)];
-            // Create span with color class
+            const char = RAMP[Math.min(Math.floor(brightness * RAMP.length), RAMP.length-1)];
             const span = document.createElement('span');
-            // Color class based on prism and brightness
-            const colorIdx = Math.min(prismId * 2 + (brightness > 0.5 ? 0 : 1), 5);
-            span.className = 'f' + colorIdx;
+            span.className = 'c' + Math.min(bar, 2);
             span.textContent = char;
-            fragment.appendChild(span);
+            frag.appendChild(span);
           }
         }
-        fragment.appendChild(document.createTextNode('\n'));
+        frag.appendChild(document.createTextNode('\n'));
       }
-
-      this.pre.appendChild(fragment);
+      this.pre.appendChild(frag);
     }
   }
 
-  // Initialize all Penrose containers
-  document.querySelectorAll('.penrose-container').forEach(container => {
-    new PenroseRenderer(container);
-  });
+  document.querySelectorAll('.penrose-bg').forEach(el => new PenroseRenderer(el));
 </script>

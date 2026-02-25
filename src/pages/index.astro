@@ -2,13 +2,15 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PenroseASCII from '../components/PenroseASCII.astro';
 
-const posts = [
-  { title: "SQLGlot in Metabase via GraalVM", url: "/posts/post-5/", tag: "tools" },
-  { title: "Goto in Clojure", url: "/posts/post-1/", tag: "cursed" },
-  { title: "go-silo: Markdown for File Structures", url: "/posts/post-2/", tag: "tools" },
-  { title: "Mage: Task Runner at Metabase", url: "/posts/post-3/", tag: "dx" },
-  { title: "Glick80: Functional Gaming on TIC-80", url: "/posts/post-4/", tag: "games" }
-];
+const allPosts = await Astro.glob('./posts/*.md');
+const posts = allPosts
+  .sort((a, b) => new Date(b.frontmatter.pubDate).getTime() - new Date(a.frontmatter.pubDate).getTime())
+  .slice(0, 5)
+  .map(post => ({
+    title: post.frontmatter.title,
+    url: post.url,
+    tag: post.frontmatter.tags?.[0] || 'post'
+  }));
 ---
 
 <BaseLayout
@@ -16,13 +18,9 @@ const posts = [
   description="Where cursed coding experiments meet delightful chaos. Technical posts about functional programming, developer tooling, and creative coding."
 >
   <main id="main-content" class="page">
-    <!-- Penrose Triangle Banner -->
-    <section class="penrose-banner">
-      <PenroseASCII />
-    </section>
-
     <!-- Hero Section -->
     <section class="hero">
+      <PenroseASCII />
       <div class="hero-content">
         <h1 class="hero-title">
           <span class="title-line">I build</span>
@@ -33,11 +31,6 @@ const posts = [
         <p class="hero-subtitle">
           Welcome to the zone where <em>cursed experiments</em> become reality—goto in Clojure, pure functions in games, and other things that shouldn't work but do.
         </p>
-      </div>
-      <div class="hero-decoration" aria-hidden="true">
-        <span class="decoration-shape shape-1"></span>
-        <span class="decoration-shape shape-2"></span>
-        <span class="decoration-shape shape-3"></span>
       </div>
     </section>
 
@@ -84,17 +77,12 @@ const posts = [
     padding: var(--space-8) var(--space-6);
   }
 
-  /* Penrose Banner */
-  .penrose-banner {
-    margin-bottom: var(--space-8);
-  }
-
   /* ============================================
      HERO SECTION
      ============================================ */
   .hero {
     position: relative;
-    padding: var(--space-16) 0 var(--space-20);
+    padding: var(--space-12) 0 var(--space-16);
     overflow: hidden;
   }
 
