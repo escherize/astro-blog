@@ -7,7 +7,7 @@ author: "Bryan"
 tags: ["architecture", "ai", "developer-experience", "typescript", "tooling", "opinion"]
 ---
 
-I've spent the last year pointing AI agents at a 500K+ line Clojure codebase. The parts they nail and the parts they botch have taught me something I didn't expect - the same architectural choices that make code good for humans make it good for agents. Not similar choices. The *same* choices.
+I've spent the last year pointing AI agents at a 500K+ line Clojure codebase.<sup>2</sup> The parts they nail and the parts they botch have taught me something I didn't expect - the same architectural choices that make code good for humans make it good for agents. Not similar choices. The *same* choices.
 
 Three properties matter more than anything else: **explicit**, **typed**, and **predictable**.
 
@@ -56,7 +56,7 @@ Every dependency is a parameter. The return type tells you what you get. There's
 
 **Why it helps agents:** When an AI agent builds a mental model of your codebase, it traces data flow through function signatures. With explicit parameters, the agent knows exactly what inputs are available when it needs to call or modify `getOrders`. With the implicit version, the agent has to grep for `getCurrentUser`, discover it reads from a request context, trace that back to middleware setup - burning context window on detective work instead of actual implementation.
 
-This is why **dependency injection containers** are often worse than just passing arguments. Spring's `@Autowired`, NestJS's module system - they optimize for *writing less code at the call site* at the cost of making dependencies invisible. Every `@Inject()` decorator is a place where an agent (or a new hire) has to stop and ask "where does this come from?" Prefer explicit wiring. It's more typing. It's worth it.
+This is where **dependency injection** shines - when done right. A good DI system makes dependencies explicit in the type signature. You declare what a function needs, and the framework wires it up. The dependency is visible in the code; the *resolution* is automated. That's the right kind of magic - it removes boilerplate without removing information. The anti-pattern isn't DI itself, it's *ambient* dependencies: globals, thread-locals, module-level singletons, anything where you have to leave the file to figure out what's actually being used.<sup>1</sup>
 
 The rule is simple: if you can't understand what a function does by reading its signature, it's not explicit enough.
 
@@ -241,7 +241,7 @@ These three principles have always been good engineering. But AI agents create a
 
 **Agents read more code than any human.** When a human works on a feature, they read maybe 10-20 files. An agent exploring a feature might scan 100+. Inconsistencies that a human wouldn't notice (because they're only looking at one module) are actively harmful to agents because agents pattern-match across the entire codebase. One inconsistent file can poison the agent's model of how your codebase works.
 
-**Agents generate code by analogy.** When an agent writes new code, it's essentially asking "what does similar code in this codebase look like?" If similar code looks different in different places, the agent's output becomes nondeterministic. Sometimes it'll match file A's style, sometimes file B's. Predictable codebases produce predictable agent output.
+**Agents generate code by analogy.**<sup>4</sup> When an agent writes new code, it's essentially asking "what does similar code in this codebase look like?" If similar code looks different in different places, the agent's output becomes nondeterministic. Sometimes it'll match file A's style, sometimes file B's. Predictable codebases produce predictable agent output.
 
 **CLAUDE.md is the bridge.** There's an emerging convention of putting agent instructions in a `CLAUDE.md` file in your repository root. Here's the thing that proves the thesis: these files serve double duty. They're onboarding docs for humans AND system prompts for agents. The fact that the same document works for both audiences isn't a coincidence - it's because the information that helps humans navigate a codebase (conventions, patterns, "here's how we do X") is exactly the information that helps agents. Same content, two audiences.
 
@@ -272,6 +272,16 @@ You could swap individual tools. Drizzle instead of Prisma. Remix instead of Nex
 
 We spent decades arguing about code quality for human reasons - readability, maintainability, team velocity. Now there's a second, equally powerful reason: AI agents are joining your team, and they reward the same properties even more aggressively.
 
-The good news is you don't need a new playbook. Explicit, typed, predictable. It's the same advice it's always been. It just matters more now because the consequences of ignoring it are amplified. A human can muddle through a messy codebase with enough patience and Slack messages to the right people. An agent can't. It has no patience. It has no Slack. It has your code and your types and your conventions, and that's it.
+The good news is you don't need a new playbook. Explicit, typed, predictable. It's the same advice it's always been.<sup>3</sup> It just matters more now because the consequences of ignoring it are amplified. A human can muddle through a messy codebase with enough patience and Slack messages to the right people. An agent can't. It has no patience. It has no Slack. It has your code and your types and your conventions, and that's it.
 
 The best code you can write for an AI agent is the same code your future self would thank you for. That's not a coincidence - it's the whole point.
+
+---
+
+<sup>1</sup> To be clear, I like DI. Effect's `Layer` system is dependency injection. The distinction that matters is whether the dependency is visible at the call site or hidden behind runtime magic. If your DI framework puts the requirement in the type signature - great, that's explicit. If it resolves dependencies by scanning annotations at startup and you need a debugger to figure out what got injected - that's ambient state with extra steps.
+
+<sup>2</sup> Yes, a dynamically typed, untyped, macro-heavy Lisp - the opposite of everything I'm recommending here. And it works. But it works because the team has a super high skill floor. Metabase's backend requires deep Clojure expertise to be productive in, and the hiring bar reflects that. The principles in this post are about reducing that skill floor - making codebases accessible to engineers (and agents) who *don't* have years of context. You can absolutely build great software in dynamic languages. It just requires more from every person who touches the code. As your team grows, that tax compounds.
+
+<sup>3</sup> The Haskell community has been saying this for 20 years, and they're right. The reason these ideas are gaining traction *now* isn't that they're new - it's that AI agents have made the cost of ignoring them viscerally obvious. When an agent flails in your codebase, you can't blame the agent's skill level or tell it to "just ask Sarah." You have to fix the code.
+
+<sup>4</sup> "But shouldn't we optimize for humans, not tools? What if agents get better?" Sure, and agents *will* get better at handling messy code. But "make your code explicit and well-typed so you can write worse code for agents later" is not the counterargument people think it is. These principles make code better for everyone. The agent benefit is a bonus, not the justification.
