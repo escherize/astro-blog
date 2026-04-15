@@ -1,0 +1,113 @@
+---
+layout: ../../layouts/BlogPost.astro
+title: "The Confidence-First Software Lifecycle"
+pubDate: 2026-04-14T00:00:00Z
+description: "AI made code cheap. Trust is the new bottleneck. Here's what the new playbook looks like."
+author: "Bryan"
+tags: ["ai", "software-engineering", "architecture", "verification"]
+---
+import ValidationStack from '../../components/ValidationStack.tsx';
+import ErrorBudgetCalculator from '../../components/ErrorBudgetCalculator.tsx';
+import FCISExplainer from '../../components/FCISExplainer.tsx';
+
+# The Confidence-First Software Lifecycle
+
+AI made writing code 10x cheaper. Trusting that code? Still expensive. Still human.
+
+You can generate a thousand lines in seconds, but someone still has to decide whether it's correct. That part didn't get cheaper. It got harder - there's more code to evaluate.
+
+When code is cheap and trust is expensive, you optimize for **how fast you can gain confidence something works**. Martin Kleppmann put it well:
+
+> Rather than having humans review AI-generated code, I'd much rather have the AI prove to me that the code it has generated is correct.
+
+Not "write faster." **Trust faster.**
+
+---
+
+## Specify before you generate
+
+When generation is free, the specification is the product.
+
+AWS has modeled critical systems with TLA+ since 2011. A TLA+ model of DynamoDB's replication caught a data-loss bug whose shortest error trace was **35 steps** - a bug that survived extensive design reviews, code reviews, and testing. Microsoft found an Xbox 360 bug just by writing the spec, before they even ran the model checker.
+
+The emerging term is "vericoding" - LLM-generated code that's formally verified. Lean 4 is where this is happening. Proof checking is hallucination-proof: a wrong proof gets rejected by the checker. The AI keeps trying until it produces a valid one.
+
+You don't need formal methods to benefit. Human-refined specs cut AI code errors by up to 50%. That's not a sophisticated technique. That's thinking before generating.
+
+---
+
+## Functional core, imperative shell
+
+Pure functions in the center. Side effects at the edges. Gary Bernhardt named it in 2012 but the idea is as old as good architecture.
+
+This pattern matters for AI-generated code because **the architecture becomes the constraint**. A pure core can't have side effects introduced - the compiler enforces that. Each generation task stays small and isolated. One team swapped an entire external service with changes only in the shell. Core logic: untouched.
+
+### FC/IS in practice
+
+"Make it pure" sounds obvious until every interesting decision in your app reads from and writes to a database.
+
+**Separate the decision from the data.** Shell fetches data, calls a pure function, writes the result. The decision logic becomes trivially testable.
+
+**For multi-step workflows** - have the pure core return a list of *intended effects*. The shell interprets them. This is event sourcing, and it's why event sourcing pairs naturally with FC/IS.
+
+Toggle between the two approaches and see what changes:
+
+<FCISExplainer client:visible />
+
+**Accept partial purity.** Extract the hard decisions. Let simple CRUD be CRUD.
+
+---
+
+## The compiler as reviewer
+
+The compiler is the only code reviewer that scales to AI-generation volume.
+
+Rust eliminates ~70% of security vulnerabilities at compile time. Google measured a **1,000x reduction** in memory vulnerability density in Rust vs C/C++. More constraints means fewer valid programs, which means AI is more likely to generate the right one.
+
+Algebraic data types deserve more attention. Instead of `isActive=true, isSuspended=true` (both?), you write `Active | Suspended | Cancelled`. Add a variant, get compile errors everywhere you forgot to handle it.
+
+The theme across all of these: **more constraints = less room to be wrong.**
+
+---
+
+## Verification beyond examples
+
+Unit tests check inputs you anticipated. The interesting bugs are in the inputs you didn't.
+
+**Property-based testing** generates thousands of random inputs and checks invariants. AI-written property tests for 100 popular Python packages found valid bugs at **$9.93 per bug** - including real NumPy issues.
+
+**Mutation testing** exposes coverage that's lying to you. Stryker found code with 100% line coverage and a mutation score near 0% - every line executed but no assertions checked anything meaningful.
+
+These compound. AI writes the property tests, the mutation killers, the fuzz targets. The verification artifacts persist regardless of who wrote the code under test.
+
+---
+
+## Graduate, don't deploy
+
+83% of organizations deploy AI-generated code to production. 59% say it introduces errors at least half the time.
+
+So you graduate code through trust levels: feature flag -> internal users -> canary at 1-5% -> metric analysis -> progressive rollout -> full production. Success rate drops below your threshold? Auto-rollback.
+
+SLOs govern the whole pipeline. Error budget = 100% - SLO target. Budget healthy? Ship fast. Budget burning? Auto-halt.
+
+### How much downtime can you afford?
+
+<ErrorBudgetCalculator client:visible />
+
+---
+
+## The full stack
+
+No single technique is sufficient. Each layer catches different failure modes. Earlier layers are cheaper. Later layers catch what slips through. Toggle them and watch what changes:
+
+<ValidationStack client:visible />
+
+1. **Specify** what correct means before generating
+2. **Constrain** with architecture - pure cores, effects at boundaries
+3. **Type** aggressively - let the compiler catch what it can
+4. **Verify** beyond examples - property tests, mutation testing, fuzzing
+5. **Graduate** deployments - flags, canaries, auto-rollback
+6. **Observe** production - traces, synthetic checks, real user signals
+7. **Govern** with error budgets - the quantitative brake
+
+The engineering role is shifting from writing code to defining correctness and proving it holds. Generation is a commodity. The scarce skill is knowing what to build and proving it's right.
