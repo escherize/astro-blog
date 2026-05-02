@@ -1,8 +1,8 @@
 ---
 layout: ../../layouts/BlogPost.astro
-title: "Goto in Clojure: Why I Built It and Why It's Fun"
+title: "Goto in Clojure: Why I Built It and How It Actually Works"
 pubDate: 2024-11-24T00:00:00Z
-description: "A deep dive into my experimental `goto` macro for Clojure. How it works, why it's cool, and why Dijkstra might still yell at me."
+description: "A `goto` macro for Clojure that uses ex-info exceptions and a trampoline. How the labels become thunks, how the jumps become throws, and why Dijkstra still has a point."
 author: "Bryan"
 image:
   url: "https://docs.astro.build/assets/rose.webp"
@@ -11,139 +11,113 @@ tags: ["clojure", "macros", "goto", "experimental", "control flow"]
 ---
 
 # Goto in Clojure
-[Original post on X](https://x.com/escherize/status/1948930729477644695)
 
-I recently posted an experiment on X: an honest-to-goodness **`goto` in Clojure**.
-People had opinions. As they should. This post explains:
+[github.com/escherize/clj-goto](https://github.com/escherize/clj-goto) · [original X post](https://x.com/escherize/status/1948930729477644695)
 
-- why the experiment is interesting
-- how the macro works
-- what makes it possible in Clojure
-- why "goto considered harmful" still matters, and why I'm playing with it anyway
+I posted an experiment on X: an honest-to-goodness **`goto` in Clojure**. People had opinions. As they should.
 
 ---
 
 ## Why It's Cool
 
-Writing a `goto` in Clojure is interesting because it breaks expectations.
+Writing a `goto` in Clojure breaks expectations. Clojure is functional, immutable by default, built around expressions instead of statements, and based on structured control flow. So introducing something as imperative and low-level as a `goto` feels like welding a manual transmission onto a Tesla. It shouldn't work. Thanks to macros and the homoiconic nature of Lisp, it **does**.
 
-Clojure is:
-
-- functional
-- immutable by default
-- built around expressions instead of statements
-- based on structured control flow
-
-So introducing something as imperative and low-level as a `goto` feels like welding a manual transmission onto a Tesla. It shouldn't work. And yet, thanks to macros and the homoiconic nature of Lisp, it **does**.
-
-It's a good demonstration of:
-
-- **Clojure's macro power**
-- **Expressiveness** (even "taboo" constructs can be modeled)
-- **Playfulness**
-- Understanding *why* certain control-flow patterns are discouraged
+It's a good demonstration of Clojure's expressive power: even "taboo" constructs can be modeled. Mostly it's a chance to play, and to feel out *why* certain control-flow patterns are discouraged.
 
 Read it as "look what Clojure lets us build."
 
 ---
 
-## How It Works (Conceptually)
-
-A `goto` needs two pieces:
-
-1. A **label**, written `(label :start)`
-2. A **jump**, written `(goto :start)`
-
-Clojure doesn't have native goto or labels, but we can emulate it by rewriting the entire block into a **state machine**.
-
-The macro transforms your code into something like:
+## What it looks like to use
 
 ```clojure
-(loop [state :start]
-  (case state
-    :start (recur :middle)
-    :middle (recur :done)
-    :done :finished))
+(require '[clj-goto.core :as goto])
+
+(def n (atom 0))
+
+(goto/block
+  [:label :start]
+  (println "Starting up")
+  (goto :add)
+
+  [:label :add]
+  (swap! n inc)
+  (if (>= @n 5) (goto :end) (goto :add))
+
+  [:label :end]
+  (println "all done!"))
+
+@n
+;; => 5
 ```
 
-There's no actual bytecode jump. Just tail recursion.
-The macro hides that logic and gives you something that *feels* like `goto` at the source level.
-
-Lisp makes this possible because code is data. We can walk the forms, detect labels, rewrite jumps, and build a dispatching loop automatically.
+Two pieces: a `[:label :foo]` marker and a `(goto :foo)` call. The body of `block` is just normal Clojure interleaved with these markers.
 
 ---
 
-## The Macro Side
+## What the macro actually does
 
-The macro generally:
+There's no `loop`/`recur` here. The trick is exceptions for control flow.
 
-1. Scans for `(label :foo)`
-2. Splits the body into labeled sections
-3. Rewrites `(goto :foo)` into `(recur :foo)`
-4. Emits a `loop` + `case` state machine
-5. Expands into pure Clojure, no runtime tricks
-
-Tiny sketch of the idea:
+**Step 1: split the body by label.** The macro walks the body and partitions it into pairs of `[label, body]`, then builds a map of label name to a zero-arg function (a thunk) for the body that follows it:
 
 ```clojure
-(defmacro goto-block [& body]
-  (let [labels (extract-labels body)
-        rewritten (rewrite-gotos body labels)]
-    `(loop [state ~(first labels)]
-       (case state
-         ~@rewritten))))
+{:start (fn start [] (println "Starting up") (goto :add))
+ :add   (fn add   [] (swap! n inc) (if (>= @n 5) (goto :end) (goto :add)))
+ :end   (fn end   [] (println "all done!"))}
 ```
 
-Example usage:
+The body between two labels becomes the body of one thunk. No rewriting of your expressions inside the thunk; whatever you wrote runs as-is when the thunk is called.
+
+**Step 2: replace `goto` with an exception-thrower.** The symbol `goto` in your source is rewritten (via `clojure.walk/postwalk`) to a freshly gensym'd function:
 
 ```clojure
-(goto-block
-  (label :start)
-  (println "Start")
-  (goto :middle)
-
-  (label :middle)
-  (println "Middle")
-  (goto :done)
-
-  (label :done)
-  (println "Done"))
+(fn [label]
+  (throw (ex-info "" {:clj-goto.core/label label})))
 ```
 
-This expands into a structured state machine.
-No bytecode hacks. No JVM trickery. Just macros and recursion.
+So `(goto :end)` literally throws an `ex-info` whose data carries the namespaced keyword `:clj-goto.core/label` pointing at the destination. The label gets smuggled out of the function via the exception.
+
+**Step 3: the engine.** A loop calls the current thunk inside a `try`/`catch`. If the thunk completes normally, return its result. If it throws an `ExceptionInfo` carrying our namespaced label key, recur with that label as the new state and call the next thunk:
+
+```clojure
+(loop [label initial-label]
+  (let [out (try ((get blocks label))
+                 (catch Exception e e))]
+    (if-let [next-label (and (instance? clojure.lang.ExceptionInfo out)
+                             (:clj-goto.core/label (ex-data out)))]
+      (recur next-label)
+      out)))
+```
+
+That's the entire mechanism. Each label segment is a function, `goto` is a non-local exit via exception, the engine is a trampoline that catches and dispatches.
+
+---
+
+## Why exceptions, not `recur`?
+
+The naive `loop`/`recur` version doesn't actually work. `recur` only jumps to the *enclosing* `loop` or `fn`. If a `(goto :end)` is nested inside a `let`, an `if`, or any other form, you can't `recur` out of it from where it appears. You'd have to lift everything to the top of the loop and rewrite the user's code aggressively.
+
+Exceptions don't care about lexical scope. Throwing from inside a `let` inside an `if` inside a `when` works exactly the same as throwing from the top of the thunk. The exception walks up the stack until it hits the engine's `try`. That's the whole reason this implementation is so short.
+
+Using exceptions for control flow is venerable. Common Lisp has `catch`/`throw` doing essentially the same thing, and Scheme's `call/cc` is the more powerful cousin. JVM exceptions are slower than `recur`, but for a goto-block running a few thousand iterations it's fine.
+
+The namespaced keyword (`::label`, which expands to `:clj-goto.core/label`) is what lets the engine ignore *real* exceptions: catch everything, then check the ex-data for our keyword. If it isn't there, the exception was someone else's.
 
 ---
 
 ## But Isn't Goto Considered Harmful?
 
-Yes. Absolutely.
+Yes. Dijkstra's critique applies: unstructured jumps complicate reasoning, control flow becomes invisible, code becomes fragile and hard to maintain.
 
-Dijkstra's classic critique applies:
+That's *why* the experiment is fun. Building a forbidden construct reveals **why** it was forbidden, and shows how much expressive room Clojure's macro system gives you.
 
-- Unstructured jumps complicate reasoning
-- Control flow becomes invisible
-- Code becomes fragile and hard to maintain
-
-That's *why* this experiment is fun. Building a forbidden construct reveals **why** it was forbidden, and shows how powerful Clojure's macro system is.
-
-Clojure gives you excellent structured tools (`loop/recur`, state machines, `core.async`, multimethods).
-This experiment is educational, not a recommendation.
+Clojure already has `loop`/`recur`, multimethods, `core.async`, and protocols for almost any control flow you'd want. This is educational, not a recommendation.
 
 ---
 
 ## Final Thoughts
 
-Macros let you reshape a language in unexpected ways.
-Sometimes that produces elegant abstractions; sometimes it produces cursed but enlightening experiments.
+Macros let you reshape a language in unexpected ways. Sometimes elegant abstractions; sometimes cursed but enlightening experiments. Recreating `goto` in Clojure sits in that sweet spot: technically interesting, conceptually instructive, totally impractical, undeniably fun.
 
-Recreating `goto` in Clojure sits right in that sweet spot:
-
-- technically interesting
-- conceptually instructive
-- totally impractical
-- undeniably fun
-
-If you want more detail or the full macro, check the original thread:
-
-👉 <https://x.com/escherize/status/1948930729477644695>
+[Repo](https://github.com/escherize/clj-goto) · [Original thread](https://x.com/escherize/status/1948930729477644695)

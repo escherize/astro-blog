@@ -735,9 +735,8 @@ const nextPost = currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1]
     .post-content pre::before {
       content: 'CODE';
       position: absolute;
-      top: 0;
-      right: var(--space-4);
-      transform: translateY(-50%);
+      top: var(--space-2);
+      right: var(--space-3);
       font-family: var(--font-display);
       font-size: var(--font-size-xs);
       font-weight: var(--font-weight-bold);
@@ -747,6 +746,7 @@ const nextPost = currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1]
       color: white;
       padding: var(--space-1) var(--space-3);
       border-radius: var(--radius-sm);
+      z-index: 1;
     }
 
     .post-content pre code {
