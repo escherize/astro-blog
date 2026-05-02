@@ -88,10 +88,13 @@ const nextPost = currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1]
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   </noscript>
 
-  <style>
+  <style is:global>
     /* ============================================
        DESIGN TOKENS - Playful Chaos Edition
        Matches BaseLayout.astro for consistency
+       Note: is:global so .post-content child rules
+       (h1, p, img, etc.) reach markdown-rendered tags
+       which don't carry Astro's scope attribute.
        ============================================ */
     :root {
       /* Colors - Warm cream background with ink-like text */

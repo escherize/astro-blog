@@ -32,7 +32,7 @@ Both projects work. They run a two-player hot-seat game in a browser, use htmx t
 
 ![Gleam Chess: warmer dark UI with gold accents, captured pieces shown above and below the board, last-move highlight in yellow, black king in check, move log "1. d4 d5  2. e3 e6  3. Qg4 Qd6  4. Qxg7 Bxg7  5. Bb5+", debug status block underneath](/chess-tradeoffs/gleam_chess.png)
 
-The visual personalities differ. Go reaches for a Lichess-style cool palette and a sidebar. Gleam goes for warm panels, captured-pieces strips above and below the board, last-move and check highlights, and a debug-readout footer. Both render real SAN move logs. Both detect check.
+Both render real [SAN](https://en.wikipedia.org/wiki/Algebraic_notation_(chess)) move logs and highlight the king when in check. The Gleam version adds last-move highlights and captured-pieces strips above and below the board; the Go version puts moves in a sidebar instead. Otherwise the visual languages are nearly identical: dark theme, wood-toned squares, Lichess-ish palette. The agent reached for the same chess-UI conventions in both.
 
 Underneath, they aren't the same product:
 
@@ -126,19 +126,19 @@ That single function is the whole experiment in miniature: Go gets you running f
 
 Cyclomatic complexity ([McCabe 1976](https://ieeexplore.ieee.org/document/1702388/)) is the classic structural measure, but for the imperative-vs-functional axis simpler proxies tell the same story. Mutation count is one of them: Moseley and Marks argue in [*Out of the Tar Pit*](https://curtclifton.net/papers/MoseleyMarks06a.pdf) (2006) that mutable state is the single largest source of accidental complexity in software. The rest is grep-counting.
 
-| Metric | Go | Gleam | What it tells you |
-|---|---|---|---|
-| Functions defined | 43 | 56 | Gleam decomposes work into more, smaller pieces |
-| Type definitions | 13 (all structs) | 8 (7 are sum types, in one file) | Gleam concentrates the data model; Go scatters structs |
-| `for` loops | 26 | 0 | Gleam never iterates; it folds, maps, and recurses |
-| `if` + `switch` | 104 | 0 | Go branches; Gleam dispatches |
-| `case` (pattern match) | 0 | 75 | every Gleam branch is exhaustive by construction |
-| `list.fold` / `map` / `filter` / `flat_map` calls | 0 | 20 | functional iteration |
-| Mutation sites | ~84 | 0 | the headline number |
+| Metric | Go | Gleam |
+|---|---|---|
+| Functions defined | 43 | 56 |
+| Type definitions | 13 | 8 |
+| `for` loops | 26 | 0 |
+| `if` + `switch` | 104 | 0 |
+| `case` (pattern match) | 0 | 75 |
+| `list.fold` / `map` / `filter` / `flat_map` | 0 | 20 |
+| Mutation sites | ~84 | 0 |
 
-Eighty-four mutation sites on one side, zero on the other. The Gleam codebase has *no rebindable variables at all*: every `let` is a one-shot binding, every "update" is a new record built with `Game(..game, selected: None)`, and the state machine is an actor that replaces its state with a fresh value each turn. The Go codebase mutates a `*Game` in place 44 times via struct field assignment and another 14 times via `g.Board[sq] = piece`. Both work. They do not feel the same to extend, debug, or fearlessly copy a snapshot of.
+Read it row by row. Gleam decomposes the work into ~30% more functions; smaller pieces, more named seams. Gleam's eight types live in one file and seven are sum types, so the data model is concentrated and exhaustive; Go's thirteen structs are spread across the codebase. Where Go reaches for `for`, `if`, and `switch`, Gleam reaches for `list.fold`/`map`/`filter` and `case` pattern matching. The branch-vs-dispatch axis is starkest in those zero counts.
 
-The function-count cut is the other interesting one. Roughly the same total LOC, but Gleam splits the work into ~30% more functions: smaller pieces, more named seams, more places where you can read a single function in isolation. Mutation is one source of complexity among several (McCabe captures branching, Halstead captures vocabulary), but it's the source the agents disagreed about most.
+The bottom row is the headline. Eighty-four mutation sites on one side, zero on the other. The Gleam codebase has *no rebindable variables at all*: every `let` is a one-shot binding, every "update" is a new record built with `Game(..game, selected: None)`, and the state machine is an actor that replaces its state with a fresh value each turn. The Go codebase mutates a `*Game` in place 44 times via struct field assignment and another 14 times via `g.Board[sq] = piece`. Both work. They do not feel the same to extend, debug, or fearlessly copy a snapshot of. Mutation is one source of complexity among several (McCabe captures branching, Halstead captures vocabulary), but it's the source the agents disagreed about most.
 
 > *Methodology, for the curious or the skeptical.* Functions: `grep -c "^func "` for Go, `grep -cE "^(pub )?fn "` for Gleam. Loops: `grep -cE "^\s*for "`. Pattern matches: `grep -cE "(^|\s)case "`. Mutations: `grep -cE "(g|s|cp)\.[A-Za-z_]+ *="` plus `\[[^]]+\] *=` plus `\+\+|--` plus `^\s*var `. Floor estimates; multi-line declarations get under-counted. Run them on the public repos to verify.
 
