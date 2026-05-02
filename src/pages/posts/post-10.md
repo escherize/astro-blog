@@ -92,6 +92,20 @@ pub fn is_in_check(board: Board, color: Color) -> Bool {
 
 Twelve lines. Fold over the board, ask each enemy piece if it can reach this square, reuse the same `pseudo_legal_moves` we already wrote for movement. One source of truth for how each piece moves. Adding a new piece type is one new arm in `pseudo_legal_moves` and check detection updates for free.
 
+It also doesn't short-circuit. `dict.fold` walks every entry even after `acc` becomes `True`. The same logic with `list.any` stops at the first attacker:
+
+```gleam
+pub fn is_attacked(board: Board, sq: Square, by_color: Color) -> Bool {
+  board |> dict.to_list |> list.any(fn(entry) {
+    let #(from, piece) = entry
+    piece.color == by_color
+      && list.contains(pseudo_legal_moves(board, from), sq)
+  })
+}
+```
+
+Cleaner and faster. The agent reached for `dict.fold` because that's what shows up most in tutorials, but `list.any` is the right primitive when you want to stop early. And once you have this, `is_in_check` collapses to `is_attacked(board, find_king(board, color), other_color(color))`, which is small enough to inline if you don't want the name.
+
 In **Go**, the same idea is hand-rolled per piece type:
 
 ```go
