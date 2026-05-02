@@ -34,7 +34,7 @@ Both projects work. They run a two-player hot-seat game in a browser, use htmx t
 
 Both render real [SAN](https://en.wikipedia.org/wiki/Algebraic_notation_(chess)) move logs and highlight the king when in check. The Gleam version adds last-move highlights and captured-pieces strips above and below the board; the Go version puts moves in a sidebar. Otherwise the visuals are nearly identical: dark theme, wood-toned squares, [Lichess](https://lichess.org)-ish palette.
 
-Underneath, they aren't the same product:
+Underneath, they aren't the same:
 
 | | Go | Gleam |
 |---|---|---|
@@ -56,7 +56,7 @@ The Go version is more *finished in the small*: more rules covered, more edge ca
 
 The Go agent produced idiomatic Go: a `main.go` with HTTP handlers, a `chess/` subpackage, mutable state behind a mutex, status as a string (`""`, `"check"`, `"checkmate"`, `"stalemate"`), HTML in `html/template` files. Five seconds to `go run .` and you're playing chess. The engine sits in one 649-line file because Go culture tolerates that.
 
-The Gleam agent produced something that *looks* idiomatic from a distance: five files, sum types for everything (`GameStatus { InProgress | Check | Checkmate | Stalemate }`), and an immutable `Game` record updated with `Game(..game, selected: None)` syntax. Up close, the file split is *not* idiomatic: real Gleam projects organize by domain, not by kind, and a dedicated `types` module is actually an anti-pattern.[^1] The agent reached for the kind-based split anyway, presumably because that's what it sees most often in other languages' training data. So the architectural defaults the model picks up are real, but they aren't always the *language community's* defaults.
+The Gleam agent produced five files, sum types for everything (`GameStatus { InProgress | Check | Checkmate | Stalemate }`), and an immutable `Game` record updated with `Game(..game, selected: None)` syntax. The file split is *not* idiomatic: real Gleam projects organize by domain, not by kind, and a dedicated `types` module is actually an anti-pattern.[^1] The agent reached for the kind-based split anyway, presumably because that's what it sees most often in other languages' training data. So the architectural defaults the model picks up are real, but they aren't always the *language community's* defaults.
 
 [^1]: Thanks to LittleLily from the Gleam Discord for catching that.
 
@@ -176,7 +176,7 @@ For human writers, you will (on average) write the language's path of least resi
 
 For agent operators, watch the gap between "median author in the training data" and "median Gleam programmer." Twice in this post the agent reached for something that's common in the broader corpus but isn't what the language community actually writes: a `types` module that real Gleam projects don't have, and `dict.fold` for a search that wants `list.any`. The defaults the model picks up are real, but they're the defaults of *all the code it has ever seen*, projected onto your language. Sometimes that overlaps with idiomatic. Sometimes it doesn't. The output is still a more honest answer to "which language should I use?" than any benchmark, as long as you're honest about which median you're sampling.
 
-## Did it replicate?
+## Replication Crisis?
 
 After publishing, I ran the same two prompts again. Fresh sessions, same model, same harness, empty directories, no other context. Two new chess engines.
 
