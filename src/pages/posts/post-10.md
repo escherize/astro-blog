@@ -14,9 +14,9 @@ tags: ["agents", "go", "gleam", "language-design", "ai-coding"]
 
 I gave the same coding agent two nearly identical prompts in two fresh sessions. Same model (Claude; the version will be wrong by the time you read this), same harness (Claude Code), no system-prompt customization, no follow-up turns. The only thing that varied was the language name.
 
-> make me a chess game, 2 players, with **go** (the programming language) and htmx
+> make me a chess game, 2 players, with <strong style="color: #00ADD8">go</strong> (the programming language) and htmx
 
-> make me a chess game, 2 players, with **gleam** (the programming language) and htmx
+> make me a chess game, 2 players, with <strong style="color: #FFAFF3">gleam</strong> (the programming language) and htmx
 
 What the agent produced is what each language's "path of least resistance" looks like, filtered through one foundation model's training. n is one; treat the *shape* as suggestive, not the specific feature gaps as stable. Both repos are public so you can rerun the grep counts below or fork and iterate.
 
