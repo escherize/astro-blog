@@ -50,7 +50,7 @@ Underneath, they aren't the same product:
 | Last-move highlight | no | yes |
 | Captured pieces panel | no | yes |
 
-The Go version is more *finished in the small*: more rules covered, more edge cases handled, more features wired through to the UI. The Gleam version is more *set up to be extended*: smaller core, cleaner module boundaries, sum-typed everything, no global mutable state. Same prompt, two opposite payoffs.
+The Go version is more *finished in the small*: more rules covered, more edge cases handled, more features wired through to the UI. The Gleam version is more *set up to be extended*: smaller core, cleaner module boundaries, sum-typed everything, no global mutable state.
 
 ## The shape of each codebase
 
@@ -134,9 +134,7 @@ func (g *Game) squareAttacked(sq Square, by Color) bool {
 }
 ```
 
-About 70 lines fully expanded. Specifically faster than the Gleam version because it doesn't generate every enemy piece's full move list just to check one square. But it's also a *second* hand-written description of how each piece moves, parallel to `PseudoLegalMoves`. Add a new piece tomorrow and you must remember to edit both. Tests can pass for a long time before that drift surfaces.
-
-That single function is the whole experiment in miniature: Go gets you running faster and tuned tighter on the hot path; Gleam gets you a single source of truth that costs more lines today and saves them later.
+About 70 lines fully expanded. Faster than the Gleam version because it doesn't generate every enemy piece's full move list just to check one square. But it's a *second* hand-written description of how each piece moves, parallel to `PseudoLegalMoves`. Add a new piece tomorrow and you must remember to edit both; tests can pass for a long time before that drift surfaces.
 
 ## By the numbers
 
@@ -164,25 +162,19 @@ The bottom row is the headline. Eighty-four mutation sites on one side, zero on 
 
 **Mutability buys speed of writing. Immutability buys speed of changing.** Go's "is this move legal?" runs five lines: copy the game struct, mutate the copy, ask if the king is attacked. Gleam's equivalent needed a separate `apply_move_raw` function (so it could be reused inside legality checking without recursing through status computation) and explicit record-update syntax everywhere. The Gleam version has more code, but every state transition is explicit. Pass a `Game` to ten different functions and not one of them can mutate the value behind your back.
 
-**Standard libraries vs hex packages.** Go's stdlib gave the agent `embed`, `html/template`, `net/http`, `sync`, `flag`. Zero dependencies, `go run .` and you're running. Gleam needed `wisp`, `mist`, `gleam_otp`, `gleam_erlang`, `gleam_http`, `gleam_stdlib`. Hex deps and a working BEAM install before the binary runs.
-
-**Concurrency and templating.** The Go agent reached for `sync.Mutex` around a shared `*Game` (one line, no learning curve). The Gleam agent reached for an OTP actor (typed messages, sequential delivery, state never shared). Different shapes for different defaults. Templating is the larger gap: Go's HTML lives in files with auto-escaping; Gleam's HTML lives in 200-line string literals with no escaping (currently safe only because all interpolated values are internally controlled). Any web project in either language hits this immediately.
+**Templating ecosystems lag.** Go's HTML lives in `html/template` files with auto-escaping. Gleam's HTML lives in 200-line string literals with no escaping (currently safe only because all interpolated values are internally controlled). Any web project in either language hits this immediately.
 
 ## Easier to finish vs easier to extend
-
-Pull all of that together and one axis emerges: easier to finish in the small, or easier to keep extending.
 
 Go landed closer to "easier to finish." Mutable struct, hand-rolled fast-path attack detection, stringly-typed status, tight HTTP handlers in one file. More rules covered (en passant, promotion picker, full castling-rights bookkeeping). Adding a feature is touching the right spot in `chess.go` and trusting yourself not to break the parallel attack-detection branch.
 
 Gleam landed closer to "easier to extend." Immutable record, pattern-matched everything, one source of truth per concept. Slower to feature-complete (no en passant, auto-queen on promotion), but the seams are clean. Adding a piece type is a compile-error-driven exercise: the type checker tells you every site that needs to change.
 
-A fair counter: Gleam has less code on the public web than Go does, so part of what we're seeing is "the language with denser training data produces more complete one-shot output." I can't disentangle that from "the language is more imperative-friendly." For an operator handing prompts to agents, both are useful to know.
+If you're scoping a one-week prototype, pick the language that lets you finish in the small. If you're scoping a five-year codebase that twelve people will touch, pick the one that lets you extend without holding your breath.
 
-If you're scoping a one-week prototype, pick the language that lets you finish in the small. If you're scoping a five-year codebase that twelve people will touch, pick the one that lets you extend without holding your breath. The agent didn't pick a side; it just wrote whichever side each language's culture has already chosen.
+For human writers, you will (on average) write the language's path of least resistance. Pick the language whose default failure mode you can live with.
 
-For human writers, the takeaway is the same: you will, on average, write the language's path of least resistance. Pick the language whose default failure mode you can live with.
-
-For agent operators, the agent's output is a high-fidelity sample of "what the median author of language X would write." For "which language should I use?", that's a more honest answer than any benchmark.
+For agent operators, watch the gap between "median author in the training data" and "median Gleam programmer." Twice in this post the agent reached for something that's common in the broader corpus but isn't what the language community actually writes: a `types` module that real Gleam projects don't have, and `dict.fold` for a search that wants `list.any`. The defaults the model picks up are real, but they're the defaults of *all the code it has ever seen*, projected onto your language. Sometimes that overlaps with idiomatic. Sometimes it doesn't. The output is still a more honest answer to "which language should I use?" than any benchmark, as long as you're honest about which median you're sampling.
 
 ## Did it replicate?
 
