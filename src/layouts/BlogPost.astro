@@ -769,14 +769,26 @@ const nextPost = currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1]
       opacity: 0.6;
     }
 
-    /* Tables - Clean & Bold */
+    /* Tables - Clean & Bold. Wrap each one in a horizontally scrolling
+       container on narrow screens so wide tables don't overflow the post. */
     .post-content table {
+      display: block;
       width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
       margin: var(--space-8) 0;
       border-collapse: collapse;
       border: 2px solid var(--color-fg);
       border-radius: var(--radius-md);
-      overflow: hidden;
+    }
+
+    @media (min-width: 720px) {
+      /* On desktop, restore real table layout so columns size to content. */
+      .post-content table {
+        display: table;
+        overflow-x: visible;
+      }
     }
 
     .post-content th {
@@ -789,6 +801,7 @@ const nextPost = currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1]
       font-size: var(--font-size-sm);
       text-transform: uppercase;
       letter-spacing: 0.05em;
+      white-space: nowrap;
     }
 
     .post-content td {
@@ -802,6 +815,14 @@ const nextPost = currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1]
 
     .post-content tr:nth-child(even) {
       background: var(--color-bg-alt);
+    }
+
+    @media (max-width: 720px) {
+      .post-content th,
+      .post-content td {
+        padding: var(--space-3);
+        font-size: var(--font-size-sm);
+      }
     }
 
     /* Images - Dramatic frames, constrained to readable size */
