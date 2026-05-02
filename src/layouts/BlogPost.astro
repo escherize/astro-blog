@@ -804,18 +804,18 @@ const nextPost = currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1]
     /* Images - Dramatic frames, constrained to readable size */
     .post-content img {
       display: block;
-      max-width: min(100%, 560px);
-      max-height: 70vh;
-      width: auto;
+      width: 100%;
+      max-width: 480px;
       height: auto;
-      border-radius: var(--radius-md);
+      max-height: 70vh;
+      object-fit: contain;
       margin: var(--space-8) auto;
       padding: var(--space-3);
       background: var(--color-bg-alt);
       border: 3px solid var(--color-fg);
+      border-radius: var(--radius-md);
       box-shadow: var(--shadow-offset-md);
-      object-fit: contain;
-      aspect-ratio: auto;
+      box-sizing: border-box;
     }
 
     /* ============================================
