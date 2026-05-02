@@ -138,7 +138,7 @@ Cyclomatic complexity ([McCabe 1976](https://ieeexplore.ieee.org/document/170238
 
 A few of those zeros are languages-don't-have-it. Gleam has no `if`, no `switch`, no `for`: every branch is `case`, every iteration is `list.fold`/`list.map` or recursion. Go has no exhaustive pattern matching, and the stdlib doesn't ship `slices.Map`/`Filter`/`Reduce` (Go 1.23 added the `iter` package as a foundation; functional helpers usually still come from third-party libs).
 
-Gleam splits the work into ~30% more functions, each one doing less. Its eight types live in one file and seven are sum types, so the data model is concentrated and exhaustive; Go's thirteen structs are spread across the codebase.
+Gleam splits the work into ~30% more functions, each one doing less. Its eight types live in [one file](https://github.com/escherize/1shot-hotseat-chess-gleam/blob/main/src/chess/types.gleam) and seven are sum types, so the data model is concentrated and exhaustive; Go's thirteen structs are spread across the codebase.
 
 The bottom row is the headline. Eighty-four mutation sites on one side, zero on the other. The Gleam codebase has *no rebindable variables at all*: every `let` is a one-shot binding, every "update" is a new record, and the actor just replaces its state with a fresh value each turn. The Go codebase mutates a `*Game` in place 44 times via struct field assignment and another 14 times via `g.Board[sq] = piece`. Both work. They do not feel the same to extend, debug, or pass around. Mutation is one source of complexity among several (McCabe captures branching, Halstead captures vocabulary), but it's the source the agents disagreed about most.
 
