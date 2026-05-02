@@ -56,7 +56,9 @@ The Go version is more *finished in the small*: more rules covered, more edge ca
 
 The Go agent produced idiomatic Go: a `main.go` with HTTP handlers, a `chess/` subpackage, mutable state behind a mutex, status as a string (`""`, `"check"`, `"checkmate"`, `"stalemate"`), HTML in `html/template` files. Five seconds to `go run .` and you're playing chess. The engine sits in one 649-line file because Go culture tolerates that.
 
-The Gleam agent produced idiomatic Gleam: five files split by concern (`types`, `board`, `moves`, `game_state`, `render`), sum types for everything (`GameStatus { InProgress | Check | Checkmate | Stalemate }`), and an immutable `Game` record updated with `Game(..game, selected: None)` syntax.
+The Gleam agent produced something that *looks* idiomatic from a distance: five files, sum types for everything (`GameStatus { InProgress | Check | Checkmate | Stalemate }`), and an immutable `Game` record updated with `Game(..game, selected: None)` syntax. Up close, the file split is *not* idiomatic: real Gleam projects organize by domain, not by kind, and a dedicated `types` module is actually an anti-pattern.[^1] The agent reached for the kind-based split anyway, presumably because that's what it sees most often in other languages' training data. So the architectural defaults the model picks up are real, but they aren't always the *language community's* defaults.
+
+[^1]: Thanks to LittleLily for catching that.
 
 Gleam tracks state by passing it through an [OTP actor](https://www.erlang.org/doc/system/design_principles.html). Concretely: there's a long-running process that owns the single `Game` value, and every HTTP request sends it a typed message (`Get`, `Click(square)`, `Reset`). The actor processes messages one at a time, computes a new `Game` from the old one, and tells itself "from now on, my state is *this* value." Nothing mutates in place, nothing else can touch the state, and concurrency just isn't a thing because there's only one actor and it processes messages serially. Where Go uses `sync.Mutex` and trusts you to lock, Gleam uses an actor and there's nothing to lock because there's nothing shared.
 
