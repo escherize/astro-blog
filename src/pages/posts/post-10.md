@@ -38,6 +38,7 @@ Underneath, they aren't the same product:
 
 | | Go | Gleam |
 |---|---|---|
+| Total LOC | 1,435 | 1,265 |
 | Files of source | 2 Go + 2 templates + 1 CSS | 6 Gleam files |
 | Largest file | `chess/chess.go` at 649 LOC | `render.gleam` at 437 LOC (mostly inline CSS) |
 | External deps | none (stdlib only) | 6 hex packages |
@@ -48,6 +49,11 @@ Underneath, they aren't the same product:
 | Castling rights | four explicit booleans | `has_moved` flag on every piece |
 | Last-move highlight | no | yes |
 | Captured pieces panel | no | yes |
+
+Both repos are public:
+
+- **[github.com/escherize/1shot-hotseat-chess-go](https://github.com/escherize/1shot-hotseat-chess-go)**
+- **[github.com/escherize/1shot-hotseat-chess-gleam](https://github.com/escherize/1shot-hotseat-chess-gleam)**
 
 The Go version is more *finished in the small*. More rules covered, more edge cases handled, more features wired through to the UI. The Gleam version is more *set up to be extended*. Smaller core, cleaner module boundaries, sum-typed everything, no global mutable state. Same prompt, two opposite payoffs.
 
@@ -121,6 +127,24 @@ func (g *Game) squareAttacked(sq Square, by Color) bool {
 About 70 lines fully expanded. It's specifically faster than the Gleam version because it doesn't generate every enemy piece's full move list just to check one square. But it's also a *second* hand-written description of how each piece moves, parallel to `PseudoLegalMoves`. Add a new piece tomorrow and you must remember to edit both. Tests can pass for a long time before that drift surfaces.
 
 That single function is the whole experiment in miniature: Go gets you running faster and tuned tighter on the hot path; Gleam gets you a single source of truth that costs more lines today and saves them later.
+
+## Imperative vs functional, by the numbers
+
+Cyclomatic complexity (McCabe, 1976) and Halstead complexity are the classic ways to measure code structure, but for the imperative-vs-functional axis there are simpler proxies that show the same story. Moseley and Marks make the case in *[Out of the Tar Pit](http://curtclifton.net/papers/MoseleyMarks06a.pdf)* (2006) that mutable state is the single largest source of accidental complexity in software, so I counted that one explicitly. The rest is grep-counting `for` vs `case`, `if` vs pattern match, function count, type count.
+
+| Metric | Go | Gleam | What it tells you |
+|---|---|---|---|
+| Functions defined | 43 | 56 | Gleam decomposes work into more, smaller pieces |
+| Type definitions | 13 (all structs) | 8 (7 are sum types, in one file) | Gleam concentrates the data model; Go scatters structs |
+| `for` loops | 26 | 0 | Gleam never iterates; it folds, maps, and recurses |
+| `if` + `switch` | 104 | 0 | Go branches; Gleam dispatches |
+| `case` (pattern match) | 0 | 75 | every Gleam branch is exhaustive by construction |
+| `list.fold` / `map` / `filter` / `flat_map` calls | 0 | 20 | functional iteration |
+| Mutation sites (struct field writes, indexed writes, `++`/`--`, `var`) | ~84 | 0 | the headline number |
+
+Eighty-four mutation sites on one side, zero on the other. The Gleam codebase has *no rebindable variables at all*: every `let` is a one-shot binding, every "update" is a new record built with `Game(..game, selected: None)`, and the state machine is an actor that replaces its state with a fresh value each turn. The Go codebase mutates a `*Game` in place 44 times via struct field assignment and another 14 times via `g.Board[sq] = piece`. Both work. They do not feel the same to extend, debug, or fearlessly copy a snapshot of.
+
+The function count cut is the other interesting one. Roughly the same total LOC, but Gleam splits the work into ~30% more functions. Smaller pieces, more named seams, more places where you can read a single function and understand what it does in isolation. That is the same axis the *Tar Pit* paper points at: not less code, but less *coupling between parts of the code*.
 
 ## What the languages did to the same problem
 
