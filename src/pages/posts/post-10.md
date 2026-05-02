@@ -1,6 +1,6 @@
 ---
 layout: ../../layouts/BlogPost.astro
-title: "Same prompt, two languages: an agent builds chess in Go and in Gleam"
+title: "Go and Gleam don't write the same chess game"
 pubDate: 2026-05-01T00:00:00Z
 description: "I gave the same coding agent two near-identical prompts. The only thing that changed was the language name. Here's what came back."
 author: "Bryan"
@@ -10,7 +10,7 @@ image:
 tags: ["agents", "go", "gleam", "language-design", "ai-coding"]
 ---
 
-# Same prompt, two languages
+# Go and Gleam don't write the same chess game
 
 I gave the same coding agent two nearly identical prompts in two fresh sessions. Same model (Claude; the version will be wrong by the time you read this), same harness (Claude Code), no system-prompt customization, no follow-up turns. The only thing that varied was the language name.
 
