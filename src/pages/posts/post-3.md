@@ -36,25 +36,15 @@ From the docs:
 > "Run `./bin/mage` to list your tasks. All of them support `-h` to learn more and show examples."
 > And: "Run `./bin/mage setup-autocomplete` and follow the instructions …"
 
-At scale, this acts less like a toy and more like a developer productivity infrastructure piece.
+At scale, this stops feeling like a script and starts feeling like productivity infrastructure.
 
 ---
 
 ## How It Works (Architecture)
 
-### Entry script: `./bin/mage`
+The entry point is `./bin/mage`, a small shell script that auto-installs Babashka if missing and dispatches to the task system. Tasks themselves live in [bb.edn](https://github.com/metabase/metabase/blob/master/bb.edn#L104) and respect `-h` for help automatically. Running `./bin/mage` with no arguments lists everything available.
 
-### Task definitions: `tasks.clj`
-
-We define tasks in [bb.edn](https://github.com/metabase/metabase/blob/master/bb.edn#L104)
-
-Tasks respect the `-h` flag (help) automatically, and the `./bin/mage` script lists all available tasks when run without arguments.
-
-### Autocomplete alias setup
-
-We wire up shell completion (bash/zsh) so devs can type `mage <tab>` and see tasks
-
-This makes discovering tasks friction-free.
+Shell completion (bash/zsh) gets wired up via `./bin/mage setup-autocomplete`, so `mage <tab>` is enough to find anything.
 
 ---
 
@@ -88,9 +78,8 @@ However, it may be overkill when:
 
 ## Final Thoughts
 
-Mage at Metabase isn’t just "another script." It’s a developer workflow tool built with intention: auto-bootstrap, unified CLI, tab-completion, and consistent UX for tasks we need to use.
-If you’re responsible for tooling in a growing team, you might ask: "What’s the one entrypoint everyone can use? How do I make tasks discoverable?" Mage offers one answer.
+Mage at Metabase is a developer workflow tool built with intention: auto-bootstrap, unified CLI, tab-completion, and consistent UX across local and CI. If you're responsible for tooling in a growing team, the question of "what's the one entrypoint everyone uses?" has to get answered eventually. Mage is one answer.
 
-If you’d like to peek at our `tasks.clj`, alias setup, or how we integrate it into CI pipelines, It's completely open source!
+The `tasks.clj`, alias setup, and CI integration are all open source if you want to crib from them.
 
 

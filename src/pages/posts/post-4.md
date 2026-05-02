@@ -65,7 +65,7 @@ Here's the thing about game development: it's traditionally a mutation fest. You
 
 But what if we didn't mutate anything? What if every frame was a pure function?
 
-That's glick80. I took TIC-80's inherently imperative game loop and wrapped it in Gleam's warm, functional embrace.
+That's glick80. I took TIC-80's imperative game loop and wrapped it in Gleam's warm, functional embrace.
 
 ### How It Works (The Magic Behind the Curtain)
 
@@ -243,7 +243,7 @@ pub fn test_player_moves_right() {
 }
 ```
 
-No mocking frameworks. No setup/teardown. Just functions.
+No mocking frameworks, no setup/teardown, just functions.
 
 ### 2. Time Travel Debugging
 
@@ -269,9 +269,7 @@ No hidden mutations means no spooky action at a distance. When something goes wr
 
 ## The Constraints Are the Point
 
-You might ask: "Why limit yourself to 240×136 pixels AND functional programming?"
-
-Because constraints breed creativity. When you can't throw more pixels at a problem, you learn to make each pixel count. When you can't mutate state, you learn to think in transformations.
+Why limit yourself to 240×136 pixels *and* functional programming? Because constraints breed creativity. When you can't throw more pixels at a problem, you learn to make each pixel count. When you can't mutate state, you learn to think in transformations.
 
 Plus, there's something deeply satisfying about making a game that would run on a calculator using techniques from tomorrow's programming languages.
 
@@ -478,7 +476,7 @@ Glick80 is still evolving. Some ideas brewing:
 
 - **Entity Component System** (but functional)
 - **Particle effects** using persistent data structures
-- **Network multiplayer** leveraging Gleam's actor model
+- **Network multiplayer** using Gleam's actor model
 - **Visual debugger** showing state transformations
 
 The beauty is that Gleam's type system catches our mistakes at compile time, while TIC-80's constraints keep our ambitions in check.

@@ -12,7 +12,7 @@ tags: ["metabase", "clojure", "python", "sqlglot", "graalvm", "sql-parsing"]
 
 # Bringing SQLGlot to Metabase
 
-I recently merged a [fairly large PR](https://github.com/metabase/metabase/pull/68911) into Metabase that fundamentally changes how we parse SQL. The goal: bring [SQLGlot](https://github.com/tobymao/sqlglot), a powerful Python SQL parser with excellent dialect support, into our JVM-based Clojure application. Here's the story of how I did it, the architectural decisions involved, and the tricky bits I ran into along the way.
+I recently merged a [fairly large PR](https://github.com/metabase/metabase/pull/68911) into Metabase that changes how we parse SQL. The goal: bring [SQLGlot](https://github.com/tobymao/sqlglot), a powerful Python SQL parser with excellent dialect support, into our JVM-based Clojure application. Here's the story of how I did it, the architectural decisions involved, and the tricky bits I ran into along the way.
 
 ---
 

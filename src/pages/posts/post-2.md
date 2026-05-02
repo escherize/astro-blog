@@ -29,10 +29,10 @@ Key highlights:
 
 - **Unified representation**: nested directories + file contents captured in one document
 - **Bidirectional**: you can pack (Markdown to file system) or unpack (file system to Markdown)
-- **Minimal dependencies**: leverages Go, standard library, simple semantics
+- **Minimal dependencies**: Go standard library only, simple semantics
 - **Ideal for “content as code” workflows, templating, scaffolding, migrations**
 
-In short: it treats your file tree as first-class Markdown, making manual edits and versioning straightforward.
+It treats your file tree as first-class Markdown, making manual edits and versioning straightforward.
 
 ---
 
@@ -108,13 +108,15 @@ This pattern gives you a **single source of truth** for a file-tree + contents, 
 
 ---
 
-## Why Consider It (and When Not)
+## When To Use It (and When Not)
 
-go-silo is especially useful when you:
+go-silo is useful when you:
 
-- share setups, or scaffolding where file trees + folders matter
+- share setups or scaffolding where file trees and folders matter
 - want versioning of both structure and contents in a readable format
-- want to sketch, slurp up, rebuild or extract file trees programmatically
+- want to sketch, slurp up, rebuild, or extract file trees programmatically
+
+It's overkill when you're managing a single file or a handful of unrelated files; reach for `cat` or `tree` instead.
 
 ---
 

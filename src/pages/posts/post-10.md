@@ -168,6 +168,18 @@ For human writers, the takeaway is the same: you will, on average, write the lan
 
 For agent operators, the agent's output is a high-fidelity sample of "what the median author of language X would write." For "which language should I use?", that's a more honest answer than any benchmark.
 
+## Did it replicate?
+
+After publishing, I ran the same two prompts again. Fresh sessions, same model, same harness, empty directories, no other context. Two new chess engines.
+
+**The Go replication landed in the same shape**: mutable struct behind a `sync.Mutex`, `html/template` files, zero external dependencies, one large engine file. 1,060 LOC vs the original's 1,435 (engine file 636 vs 649). Feature set reproduced almost exactly: en passant, full castling rights, promotion picker UI, check/checkmate/stalemate.
+
+**The Gleam replication kept the actor and the immutability and the string-concat HTML**, but the modular split varied. The replication collapsed into 4 files instead of 6, with `board.gleam` at 730 LOC playing the role that the original split between `moves.gleam` (383 LOC), `types.gleam`, and `board.gleam`. Same defaults underneath, different file boundaries on top.
+
+The most interesting result: the **Gleam replication added en passant and a real promotion picker**, both features the original lacked. So the gaps that looked like "Gleam culture struggles with edge cases" were one-shot stochastic noise, not a structural property. The architectural defaults (actor vs mutex, immutable vs mutable, string-concat vs templates, sum types vs `iota`) are stable across runs. The specific feature coverage is not.
+
+That's the disclaimer from the top of this post, now with data: treat the *shape* as suggestive. Don't anchor on the specific feature gaps.
+
 ## References
 
 - McCabe, T. J. (1976). [A Complexity Measure](https://ieeexplore.ieee.org/document/1702388/). *IEEE Transactions on Software Engineering*. Open PDF: [literateprogramming.com/mccabe.pdf](http://www.literateprogramming.com/mccabe.pdf).
