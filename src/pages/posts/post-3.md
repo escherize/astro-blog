@@ -10,7 +10,7 @@ pubDate: 2024-11-24T00:00:00Z
 tags: ["metabase", "tooling", "babashka", "taskrunner", "developer-experience"]
 ---
 
-At Metabase (110+ employees), I wrote a tool called **Mage** (see [Metabase docs: MAGE – Development Automation](https://www.metabase.com/docs/latest/developers-guide/mage))
+At Metabase (110+ employees), I wrote a tool called **Mage** (see [Metabase docs: MAGE Development Automation](https://www.metabase.com/docs/latest/developers-guide/mage))
 Mage is a **shell-script wrapper + Babashka tasks set** that provides a unified, discoverable, ergonomic task runner for our entire engineering team.
 
 ---
@@ -19,7 +19,7 @@ Mage is a **shell-script wrapper + Babashka tasks set** that provides a unified,
 
 In a mid-sized engineering org you face recurring problems:
 
-- Many scripts scattered ("lint.sh", "docker-up.sh", "ci_build.sh") → inconsistent usage.
+- Many scripts scattered ("lint.sh", "docker-up.sh", "ci_build.sh"), inconsistent usage.
 - Onboarding new devs: what tasks exist? what command should I run?
 - Devs frustrated by "which script do I run now?" or "what flags again?"
 - Duplicate tooling in CI, local setup, and docs.
@@ -65,12 +65,12 @@ Key benefits we’ve observed:
 - **Uniform experience**: Whether you’re on Mac, Windows (WSL), Linux, tasks invoke the same `mage` entrypoint.
 - **Discoverability**: New engineers type `mage <tab>` and instantly see available commands.
 - **Reduced mental overhead**: No need to memorize disparate scripts or flag sets.
-- **CI/Local alignment**: Same tasks power local dev workflows and CI jobs → fewer "works on my machine" scenarios.
+- **CI/Local alignment**: Same tasks power local dev workflows and CI jobs, so fewer "works on my machine" scenarios.
 - **Low barrier to contribution**: Because Babashka uses Clojure for scripting, adding a new task is simple and composable.
 
 ---
 
-## When This Pattern Works — and When Not
+## When This Pattern Works, and When Not
 
 This set up is extremely effective when:
 
@@ -80,7 +80,7 @@ This set up is extremely effective when:
 
 However, it may be overkill when:
 
-- Your project is very small (1–2 engineers) and tasks are minimal.
+- Your project is very small (1-2 engineers) and tasks are minimal.
 - You already have a rich ecosystem of task runners with dev buy-in.
 - Scripts are highly ad-hoc and rarely standardized.
 
@@ -88,7 +88,7 @@ However, it may be overkill when:
 
 ## Final Thoughts
 
-Mage at Metabase isn’t just "another script" — it’s a developer workflow tool built with intention: auto-bootstrap, unified CLI, tab-completion, and consistent UX for tasks we need to use.
+Mage at Metabase isn’t just "another script." It’s a developer workflow tool built with intention: auto-bootstrap, unified CLI, tab-completion, and consistent UX for tasks we need to use.
 If you’re responsible for tooling in a growing team, you might ask: "What’s the one entrypoint everyone can use? How do I make tasks discoverable?" Mage offers one answer.
 
 If you’d like to peek at our `tasks.clj`, alias setup, or how we integrate it into CI pipelines, It's completely open source!

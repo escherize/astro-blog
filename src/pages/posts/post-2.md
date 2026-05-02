@@ -10,7 +10,7 @@ pubDate: 2024-11-24T00:00:00Z
 tags: ["go", "golang", "file-structure", "markdown", "tools"]
 ---
 
-Today I want to showcase my tool **go-silo** — a Go library that treats _file structures and their contents_ as Markdown, making them easy to read, easy to write, and easy to pack/unpack.
+Today I want to showcase my tool **go-silo**: a Go library that treats _file structures and their contents_ as Markdown, making them easy to read, easy to write, and easy to pack/unpack.
 Check it out on GitHub: <https://github.com/escherize/go-silo>
 
 ---
@@ -24,11 +24,11 @@ When managing data that consists of both directories and files (for example conf
 - a **pack/unpack** tool so you can transform this human format into actual file systems and back
 - management of file sets without ad-hoc scripts
 
-go-silo delivers this: you define your structure + content in Markdown, then use the tool to **export** into folders & files, or **import** folders/files back into a Markdown form.
+go-silo delivers this. You define your structure + content in Markdown, then use the tool to **export** into folders & files, or **import** folders/files back into a Markdown form.
 Key highlights:
 
 - **Unified representation**: nested directories + file contents captured in one document
-- **Bidirectional**: you can pack (Markdown → file system) or unpack (file system → Markdown)
+- **Bidirectional**: you can pack (Markdown to file system) or unpack (file system to Markdown)
 - **Minimal dependencies**: leverages Go, standard library, simple semantics
 - **Ideal for “content as code” workflows, templating, scaffolding, migrations**
 

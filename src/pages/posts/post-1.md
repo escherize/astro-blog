@@ -2,7 +2,7 @@
 layout: ../../layouts/BlogPost.astro
 title: "Goto in Clojure: Why I Built It and Why It's Fun"
 pubDate: 2024-11-24T00:00:00Z
-description: "A deep dive into my experimental `goto` macro for Clojure—how it works, why it's cool, and why Dijkstra might still yell at me."
+description: "A deep dive into my experimental `goto` macro for Clojure. How it works, why it's cool, and why Dijkstra might still yell at me."
 author: "Bryan"
 image:
   url: "https://docs.astro.build/assets/rose.webp"
@@ -13,13 +13,13 @@ tags: ["clojure", "macros", "goto", "experimental", "control flow"]
 # Goto in Clojure
 [Original post on X](https://x.com/escherize/status/1948930729477644695)
 
-I recently posted an experiment on X—an honest-to-goodness **`goto` in Clojure**.
+I recently posted an experiment on X: an honest-to-goodness **`goto` in Clojure**.
 People had opinions. As they should. This post explains:
 
 - why the experiment is interesting
 - how the macro works
 - what makes it possible in Clojure
-- why "goto considered harmful" still matters—and why I'm playing with it anyway
+- why "goto considered harmful" still matters, and why I'm playing with it anyway
 
 ---
 
@@ -34,16 +34,16 @@ Clojure is:
 - built around expressions instead of statements
 - based on structured control flow
 
-So introducing something as imperative and low-level as a `goto` feels like welding a manual transmission onto a Tesla. It shouldn't work. And yet—thanks to macros and the homoiconic nature of Lisp—it **does**.
+So introducing something as imperative and low-level as a `goto` feels like welding a manual transmission onto a Tesla. It shouldn't work. And yet, thanks to macros and the homoiconic nature of Lisp, it **does**.
 
-It’s a good demonstration of:
+It's a good demonstration of:
 
-- **Clojure’s macro power**
+- **Clojure's macro power**
 - **Expressiveness** (even "taboo" constructs can be modeled)
 - **Playfulness**
 - Understanding *why* certain control-flow patterns are discouraged
 
-This is less "I want goto" and more "look what Clojure lets us build."
+Read it as "look what Clojure lets us build."
 
 ---
 
@@ -51,8 +51,8 @@ This is less "I want goto" and more "look what Clojure lets us build."
 
 A `goto` needs two pieces:
 
-1. A **label** — `(label :start)`
-2. A **jump** — `(goto :start)`
+1. A **label**, written `(label :start)`
+2. A **jump**, written `(goto :start)`
 
 Clojure doesn't have native goto or labels, but we can emulate it by rewriting the entire block into a **state machine**.
 
@@ -66,7 +66,7 @@ The macro transforms your code into something like:
     :done :finished))
 ```
 
-There’s no actual bytecode jump—just tail recursion.
+There's no actual bytecode jump. Just tail recursion.
 The macro hides that logic and gives you something that *feels* like `goto` at the source level.
 
 Lisp makes this possible because code is data. We can walk the forms, detect labels, rewrite jumps, and build a dispatching loop automatically.
@@ -119,16 +119,16 @@ No bytecode hacks. No JVM trickery. Just macros and recursion.
 
 Yes. Absolutely.
 
-Dijkstra’s classic critique applies:
+Dijkstra's classic critique applies:
 
 - Unstructured jumps complicate reasoning
 - Control flow becomes invisible
 - Code becomes fragile and hard to maintain
 
-That’s *why* this experiment is fun—building a forbidden construct reveals **why** it was forbidden, and shows how powerful Clojure’s macro system is.
+That's *why* this experiment is fun. Building a forbidden construct reveals **why** it was forbidden, and shows how powerful Clojure's macro system is.
 
 Clojure gives you excellent structured tools (`loop/recur`, state machines, `core.async`, multimethods).
-This experiment is educational—not a recommendation.
+This experiment is educational, not a recommendation.
 
 ---
 

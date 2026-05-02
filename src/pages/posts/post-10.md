@@ -14,7 +14,7 @@ tags: ["agents", "go", "gleam", "language-design", "ai-coding"]
 
 I gave the same coding agent two nearly identical prompts in two fresh sessions. The model was the same, the harness was the same, the htmx constraint was the same. The only thing that varied was the language name.
 
-> make me a chess game, 2 players, with **go** and htmx
+> make me a chess game, 2 players, with **go** (the programming language) and htmx
 
 > make me a chess game, 2 players, with **gleam** (the programming language) and htmx
 
@@ -49,7 +49,7 @@ Underneath, they aren't the same product:
 | Last-move highlight | no | yes |
 | Captured pieces panel | no | yes |
 
-The Go version is a more complete chess engine packed into one large file. The Gleam version is a richer player-facing UI built on a smaller, cleaner core split across well-named modules.
+The Go version is more *finished in the small*. More rules covered, more edge cases handled, more features wired through to the UI. The Gleam version is more *set up to be extended*. Smaller core, cleaner module boundaries, sum-typed everything, no global mutable state. Same prompt, two opposite payoffs.
 
 ## The shape of each codebase
 
@@ -59,17 +59,90 @@ The Gleam agent produced idiomatic Gleam. Five files split by concern (`types`, 
 
 The agent reached for what each language's community reaches for. That is the entire experiment.
 
+## "Is this square attacked?", in two flavors
+
+The clearest place to see the tradeoff is check detection. Both engines need to answer "given a board, is square X attacked by side Y?" Both reach for completely different shapes.
+
+In **Gleam**, it looks like this:
+
+```gleam
+pub fn is_attacked(board: Board, sq: Square, by_color: Color) -> Bool {
+  dict.fold(board, False, fn(acc, from, piece) {
+    case acc {
+      True -> True
+      False ->
+        case piece.color == by_color {
+          False -> False
+          True -> list.contains(pseudo_legal_moves(board, from), sq)
+        }
+    }
+  })
+}
+
+pub fn is_in_check(board: Board, color: Color) -> Bool {
+  case find_king(board, color) {
+    None -> False
+    Some(king_sq) -> is_attacked(board, king_sq, types.other_color(color))
+  }
+}
+```
+
+Twelve lines. The whole function is "fold over the board, ask each enemy piece if it can reach this square, reuse the same `pseudo_legal_moves` we already wrote for movement." One source of truth for how each piece moves. Adding a new piece type is one new arm in `pseudo_legal_moves` and check detection updates for free.
+
+In **Go**, the same idea is hand-rolled per piece type:
+
+```go
+func (g *Game) squareAttacked(sq Square, by Color) bool {
+    r, f := sq.Rank(), sq.File()
+
+    // Pawn attacks: a pawn of color `by` sits one rank toward its own side
+    // and captures one file left/right onto `sq`.
+    pawnDir := 1
+    if by == Black { pawnDir = -1 }
+    for _, df := range []int{-1, 1} {
+        pr, pf := r-pawnDir, f+df
+        if pr >= 0 && pr <= 7 && pf >= 0 && pf <= 7 {
+            p := g.Board[Sq(pr, pf)]
+            if p.Type == Pawn && p.Color == by { return true }
+        }
+    }
+    // Knights
+    for _, o := range knightOffsets { /* ... */ }
+    // Sliding: rook/queen
+    for _, d := range rookDirs { /* ... */ }
+    // Sliding: bishop/queen
+    for _, d := range bishopDirs { /* ... */ }
+    // King
+    for _, o := range kingOffsets { /* ... */ }
+    return false
+}
+```
+
+About 70 lines fully expanded. It's specifically faster than the Gleam version because it doesn't generate every enemy piece's full move list just to check one square. But it's also a *second* hand-written description of how each piece moves, parallel to `PseudoLegalMoves`. Add a new piece tomorrow and you must remember to edit both. Tests can pass for a long time before that drift surfaces.
+
+That single function is the whole experiment in miniature: Go gets you running faster and tuned tighter on the hot path; Gleam gets you a single source of truth that costs more lines today and saves them later.
+
 ## What the languages did to the same problem
 
-Type systems push design. Gleam has six piece kinds, two colors, and four game statuses, all expressed as exhaustive sum types with the compiler enforcing that every `case` covers them. Go has the same six piece kinds but represents them as `iota` constants on `int`, and represents game status as a string compared with `==`. A typo in `g.Status == "checmate"` compiles fine in Go. A missing `Checkmate ->` arm in Gleam doesn't. The difference is invisible in v1 and load-bearing during a refactor.
+**Type systems push design.** Gleam has six piece kinds, two colors, and four game statuses, all expressed as exhaustive sum types with the compiler enforcing that every `case` covers them. Go has the same six piece kinds but represents them as `iota` constants on `int`, and represents game status as a string compared with `==`. A typo in `g.Status == "checmate"` compiles fine in Go. A missing `Checkmate ->` arm in Gleam doesn't. The difference is invisible in v1 and load-bearing during a refactor.
 
-Mutability buys speed of writing. Immutability buys speed of changing. Go's "is this move legal?" runs five lines: copy the game struct, mutate the copy, ask if the king is attacked. The agent reached for that immediately. Gleam's equivalent needed a separate `apply_move_raw` function (so it could be reused inside legality checking without recursing through status computation) and explicit record-update syntax everywhere. The Gleam version has more code, but every state transition is visible and aliasing is impossible.
+**Mutability buys speed of writing. Immutability buys speed of changing.** Go's "is this move legal?" runs five lines: copy the game struct, mutate the copy, ask if the king is attacked. The agent reached for that immediately. Gleam's equivalent needed a separate `apply_move_raw` function (so it could be reused inside legality checking without recursing through status computation) and explicit record-update syntax everywhere. The Gleam version has more code, but every state transition is visible and aliasing is impossible.
 
-Standard libraries shape what gets built. Go's stdlib gave the agent `embed`, `html/template`, `net/http`, `sync`, `flag`. Zero dependencies, and the whole thing is `go run .` on any Go install, forever. Gleam needed `wisp`, `mist`, `gleam_otp`, `gleam_erlang`, `gleam_http`, `gleam_stdlib`. The ecosystem is younger; the prompt-to-running-product distance shows it. Go's binary is self-contained; Gleam's needs hex-fetched dependencies and a working BEAM install.
+**Standard libraries shape what gets built.** Go's stdlib gave the agent `embed`, `html/template`, `net/http`, `sync`, `flag`. Zero dependencies, and the whole thing is `go run .` on any Go install, forever. Gleam needed `wisp`, `mist`, `gleam_otp`, `gleam_erlang`, `gleam_http`, `gleam_stdlib`. The ecosystem is younger; the prompt-to-running-product distance shows it. Go's binary is self-contained; Gleam's needs hex-fetched dependencies and a working BEAM install.
 
-For concurrency, the Go agent reached for `sync.Mutex` around a shared `*Game`. One line, zero learning, zero compiler enforcement that you actually locked before touching the game. The Gleam agent reached for an OTP actor: typed `Message` variants, an `actor.call` round-trip per request, state owned by exactly one process. More machinery, no possible race. BEAM languages move you toward correctness-by-construction; Go moves you toward "easy to start, easy to misuse."
+**Concurrency pulled in opposite directions.** The Go agent reached for `sync.Mutex` around a shared `*Game`. One line, zero learning, zero compiler enforcement that you actually locked before touching the game. The Gleam agent reached for an OTP actor: typed `Message` variants, an `actor.call` round-trip per request, state owned by exactly one process. More machinery, no possible race. BEAM languages move you toward correctness-by-construction; Go moves you toward "easy to start, easy to misuse."
 
-The clearest DX gap was templating. Go's HTML lives in `templates/*.html` files with auto-escaping, editor support, and clear separation from logic. Gleam's HTML lives in 200-line string literals inside `render.gleam`, with no escaping (currently safe only because all interpolated values are internally controlled), no syntax highlighting, no template tooling. Any web project in either language hits this gap immediately.
+**The clearest DX gap was templating.** Go's HTML lives in `templates/*.html` files with auto-escaping, editor support, and clear separation from logic. Gleam's HTML lives in 200-line string literals inside `render.gleam`, with no escaping (currently safe only because all interpolated values are internally controlled), no syntax highlighting, no template tooling. Any web project in either language hits this gap immediately.
+
+## Easier to finish vs easier to extend
+
+Pull all of that together and you get one axis the agent's choices line up on: **easier to finish in the small**, or **easier to keep extending**.
+
+Go landed closer to "easier to finish." Mutable struct, hand-rolled fast-path attack detection, stringly-typed status, tight HTTP handlers in one file. Five seconds from `go run .` to a playable game. More rules covered, more polish baked in. Adding a feature is a matter of touching the right spot in `chess.go` and trusting yourself not to break the parallel attack-detection branch.
+
+Gleam landed closer to "easier to extend." Immutable record, pattern-matched everything, one source of truth per concept, every state transition visible. Slower to feature-complete (no en passant, no promotion picker), but the seams are clean. Adding a piece type or a new game-status variant is a compile-error-driven exercise: the type checker tells you every site that needs to change, and you change it.
+
+If you're scoping a one-week prototype: go with the language that lets you finish in the small. If you're scoping a five-year codebase that twelve people will touch: go with the one that lets you extend without holding your breath. The agent didn't pick a side here; it just wrote whichever side each language's culture has already chosen.
 
 ## What this experiment doesn't show
 
@@ -79,16 +152,16 @@ That last part is what the experiment is really about.
 
 The agent reached for whichever architecture was statistically most natural in each language. In Go that meant a working monolith with mutable state, stringly-typed enums, and rules-engine completeness. In Gleam that meant a clean modular split, sum types, immutability, and visibly more attention to player-facing UI flourish than to rules edge cases.
 
-If you write code as a human, this is more useful than benchmarks or syntax taste. You will, on average, write the language's path of least resistance. So pick the language whose default failure mode you can live with: a feature-complete codebase that resists refactoring, or a clean codebase that takes longer to feature-complete.
+If you write code as a human, this is more useful than benchmarks or syntax taste. You will, on average, write the language's path of least resistance. So pick the language whose default failure mode you can live with.
 
 If you operate agents, the framing is different. The agent's output is a high-fidelity sample of "what the median author of language X would write." For "which language should I use?", that's a more honest answer than any benchmark.
 
 ## Appendix: the prompts
 
-The literal first messages of each session, unmodified:
+The literal first messages of each session, with the language name as the only variable:
 
 ```
-make me a chess game, 2 players, with go and htmx
+make me a chess game, 2 players, with go (the programming language) and htmx
 ```
 
 ```

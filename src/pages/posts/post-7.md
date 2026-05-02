@@ -39,7 +39,7 @@ Metabase's backend has natural domain boundaries. The query processor is a 68-st
 
 A single generalist Claude session can navigate any of them, but it pays a context tax every time it switches domains. Subagents eliminate that tax by front-loading domain knowledge into the system prompt.
 
-I used Claude to write the "job descriptions" for each agent — I described the domain and what an expert would know, and Claude helped me flesh out the codebase locations, investigation patterns, caveats, and testing strategies. Each agent ended up being ~150 lines of dense, useful context.
+I used Claude to write the "job descriptions" for each agent. I described the domain and what an expert would know, and Claude helped me flesh out the codebase locations, investigation patterns, caveats, and testing strategies. Each agent ended up being ~150 lines of dense, useful context.
 
 ---
 
@@ -59,7 +59,7 @@ memory: user
 
 The `description` tells Claude *when* to delegate. The `model` picks which Claude model the subagent uses. And `memory: user` gives the agent a persistent directory at `~/.claude/agent-memory/mbql-expert/` where it records learnings across sessions.
 
-The body of the file is the system prompt — the actual domain knowledge. Here's a trimmed look at what the mbql-expert knows:
+The body of the file is the system prompt: the actual domain knowledge. Here's a trimmed look at what the mbql-expert knows:
 
 ```markdown
 You are a senior backend engineer with deep expertise
@@ -72,15 +72,15 @@ and the entire query compilation pipeline.
 You understand the QP's ring-style middleware pipeline
 with its four phases:
 - **Around middleware** (3 layers)
-- **Preprocessing** (44 layers) — source card resolution,
+- **Preprocessing** (44 layers): source card resolution,
   parameter substitution, join resolution, temporal bucketing...
-- **Execution** (8 layers) — caching, permissions, result metadata
-- **Postprocessing** (13 layers) — formatting, timezone conversion...
+- **Execution** (8 layers): caching, permissions, result metadata
+- **Postprocessing** (13 layers): formatting, timezone conversion...
 
 ### Key Codebase Locations
-- `src/metabase/query_processor/` — QP core
-- `src/metabase/driver/sql/` — SQL driver base
-- `modules/drivers/` — database-specific drivers
+- `src/metabase/query_processor/`: QP core
+- `src/metabase/driver/sql/`: SQL driver base
+- `modules/drivers/`: database-specific drivers
 
 ### Important Caveats
 - Middleware ordering matters. Adding middleware in the wrong
@@ -93,7 +93,7 @@ Use `clj-nrepl-eval` to evaluate middleware transformations
 step by step...
 ```
 
-Every agent follows this pattern: domain knowledge → codebase locations → investigation approach → caveats → testing strategies. It's a "here's everything you need to be useful in this corner of the codebase" document.
+Every agent follows the same pattern: domain knowledge, codebase locations, investigation approach, caveats, testing strategies. It's a "here's everything you need to be useful in this corner of the codebase" document.
 
 ---
 
@@ -118,7 +118,7 @@ Every agent follows this pattern: domain knowledge → codebase locations → in
 
 The query processor is the heart of Metabase and the hardest thing to navigate. It's a 68-stage middleware pipeline where a query enters as MBQL, gets rewritten 44 times during preprocessing, compiled to SQL via HoneySQL, executed, and then post-processed through 13 more stages. Oh, and some middleware runs *twice* because later stages can introduce structure that earlier stages need to process again.
 
-The mbql-expert already knows all of this. When I say "trace why this nested query with joins produces wrong results on Redshift," it doesn't start by grepping — it reasons about which middleware stages touch join aliases, checks Redshift-specific driver overrides, and examines the HoneySQL output. That's the difference between a generalist exploring and a specialist investigating.
+The mbql-expert already knows all of this. When I say "trace why this nested query with joins produces wrong results on Redshift," it doesn't start by grepping. It reasons about which middleware stages touch join aliases, checks Redshift-specific driver overrides, and examines the HoneySQL output. That's the difference between a generalist exploring and a specialist investigating.
 
 ---
 
@@ -126,7 +126,7 @@ The mbql-expert already knows all of this. When I say "trace why this nested que
 
 The nice thing is you don't need special syntax. Just reference the agent naturally:
 
-> "Bounce this off the enterprise expert — will this serialization change break round-trip import/export?"
+> "Bounce this off the enterprise expert: will this serialization change break round-trip import/export?"
 
 > "Ask the permissions expert how sandboxing interacts with joined tables."
 
@@ -150,7 +150,7 @@ The pattern works for any large codebase with distinct subsystems. Here's how to
 
 4. **Use it.** Just mention the agent by name in conversation. Or use the `/agents` command to manage them interactively.
 
-You can even have Claude help you write the agents — describe the domain and what an expert would know, and iterate on the system prompt together. That's how I built these.
+You can even have Claude help you write the agents. Describe the domain and what an expert would know, then iterate on the system prompt together. That's how I built these.
 
 ---
 

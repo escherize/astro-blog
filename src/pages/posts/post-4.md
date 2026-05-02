@@ -2,7 +2,7 @@
 layout: ../../layouts/BlogPost.astro
 title: "Glick80: When Functional Purity Meets Retro Gaming"
 author: "Bryan"
-description: "I brought Gleam's type-safe functional programming to the TIC-80 fantasy console. Pure functions, 8-bit graphics, and zero mutations—what could go wrong?"
+description: "I brought Gleam's type-safe functional programming to the TIC-80 fantasy console. Pure functions, 8-bit graphics, and zero mutations. What could go wrong?"
 image:
   url: "https://docs.astro.build/assets/arc.webp"
   alt: "Pixelated game controller with functional programming symbols"
@@ -10,7 +10,7 @@ pubDate: 2024-11-28T00:00:00Z
 tags: ["gleam", "tic-80", "fantasy-console", "functional-programming", "game-dev", "retro"]
 ---
 
-Picture this: You're writing a game where Mario jumps, but Mario can't actually *jump*—he can only return a new Mario who happens to be in a slightly different position. Welcome to **glick80**, where I've brought pure functional programming to the wonderfully constrained world of 8-bit gaming.
+Picture this: You're writing a game where Mario jumps, but Mario can't actually *jump*. He can only return a new Mario who happens to be in a slightly different position. Welcome to **glick80**, where I've brought pure functional programming to the wonderfully constrained world of 8-bit gaming.
 
 <div style="display: flex; justify-content: center; margin: 32px 0;">
   <iframe 
@@ -33,7 +33,7 @@ Picture this: You're writing a game where Mario jumps, but Mario can't actually 
 
 ### TIC-80: The Fantasy Console That Actually Exists
 
-First up: **TIC-80**. Imagine if someone in 1985 designed the perfect 8-bit computer for making games, but it only exists as software you run on your modern machine. That's a fantasy console—a virtual computer with intentional limitations that spark creativity.
+First up: **TIC-80**. Imagine if someone in 1985 designed the perfect 8-bit computer for making games, but it only exists as software you run on your modern machine. That's a fantasy console: a virtual computer with intentional limitations that spark creativity.
 
 TIC-80 gives you:
 - A whopping 240×136 pixels (take that, 4K!)
@@ -42,14 +42,14 @@ TIC-80 gives you:
 - 4-channel chiptune audio
 - Built-in editors for code, sprites, maps, and music
 
-It's like a creative sandbox where constraints are features, not bugs. These limitations force you to be clever—no hiding behind fancy shaders or gigabyte textures. Just you, some pixels, and pure creativity.
+It's like a creative sandbox where constraints are features, not bugs. These limitations force you to be clever. No hiding behind fancy shaders or gigabyte textures. Just you, some pixels, and pure creativity.
 
 ### Gleam: The Language That Makes Erlang Jealous
 
-Now meet **Gleam**—a type-safe functional language that compiles to Erlang (or JavaScript, if that's your thing). Imagine if Rust and Elixir had a baby, and that baby was really into making sure your code never crashes.
+Now meet **Gleam**: a type-safe functional language that compiles to Erlang (or JavaScript, if that's your thing). Imagine if Rust and Elixir had a baby, and that baby was really into making sure your code never crashes.
 
 Gleam features:
-- **No null, no exceptions**—just Results and Options
+- **No null, no exceptions**, just Results and Options
 - **Type inference** so good you'll forget you're using a typed language
 - **Pattern matching** that makes switch statements cry
 - **Immutability by default** (mutation is so 2010)
@@ -61,7 +61,7 @@ It's functional programming without the PhD requirement.
 
 ## The Unholy Marriage: Glick80
 
-Here's the thing about game development: it's traditionally a mutation fest. You have a player at position (x, y), they press right, boom—you mutate x. The screen refreshes, you draw at the new position. Simple.
+Here's the thing about game development: it's traditionally a mutation fest. You have a player at position (x, y), they press right, boom, you mutate x. The screen refreshes, you draw at the new position. Simple.
 
 But what if we didn't mutate anything? What if every frame was a pure function?
 
@@ -127,11 +127,11 @@ btnp(0)                -- Just check button 0
 btnp(0, 30, 6)        -- Check with hold and period parameters
 ```
 
-But Gleam doesn't do optional arguments—it's deliberately simple, no variadic functions, no default parameters. Every function signature is exact.
+But Gleam doesn't do optional arguments. It's deliberately simple, no variadic functions, no default parameters. Every function signature is exact.
 
 I considered a few solutions:
-1. **Option types everywhere**: `btnp(id: Int, hold: Option(Int), period: Option(Int))` — but calling `btnp(0, None, None)` gets old fast
-2. **Record types**: Pass a config object — even worse ergonomics
+1. **Option types everywhere**: `btnp(id: Int, hold: Option(Int), period: Option(Int))`, but calling `btnp(0, None, None)` gets old fast
+2. **Record types**: Pass a config object, even worse ergonomics
 3. **The Goldilocks solution**: Multiple functions!
 
 So I went with paired functions for each variadic TIC-80 function:
@@ -148,7 +148,7 @@ pub fn btnp_full(id: Int, hold: Int, period: Int) -> Bool
 
 Same underlying JavaScript function, different Gleam signatures. You get the simplicity of `btnp(0)` most of the time, with `btnp_full(0, 30, 6)` when you need it. Type safety preserved, ergonomics maintained, everyone's happy.
 
-This pattern repeats throughout the API—simple functions for common cases, `_full` variants for power users. It's more Gleam functions to maintain, but the developer experience is worth it.
+This pattern repeats throughout the API: simple functions for common cases, `_full` variants for power users. It's more Gleam functions to maintain, but the developer experience is worth it.
 
 ### The Development Workflow Magic
 
@@ -168,7 +168,7 @@ Here's another nerdy detail: TIC-80 cartridges are just text files with special 
 [more game assets]
 ```
 
-So I wrote a tiny Node.js script that automatically injects compiled Gleam → JavaScript into existing cartridges:
+So I wrote a tiny Node.js script that automatically injects compiled Gleam-to-JavaScript output into existing cartridges:
 
 ```javascript
 #!/usr/bin/env node
@@ -487,11 +487,11 @@ The beauty is that Gleam's type system catches our mistakes at compile time, whi
 
 ## Final Thoughts: Why Mix Oil and Water?
 
-Functional programming and game development are traditionally like oil and water—they don't mix well. Games are all about mutable state, frame updates, and side effects. Functional programming abhors all three.
+Functional programming and game development are traditionally like oil and water. They don't mix well. Games are all about mutable state, frame updates, and side effects. Functional programming abhors all three.
 
 But sometimes the best ideas come from forcing incompatible things together. Peanut butter and jelly. Jazz and hip-hop. Type safety and pixel art.
 
-Glick80 proves you can have your functional cake and eat it too—even if that cake is only 16 colors and fits in 64KB.
+Glick80 proves you can have your functional cake and eat it too, even if that cake is only 16 colors and fits in 64KB.
 
 So next time someone tells you functional programming isn't practical for game dev, show them a type-safe, purely functional game running at 60 FPS on a fantasy console. Then watch their brain segfault.
 
@@ -500,6 +500,6 @@ Happy hacking! 🎮✨
 ---
 
 *Want to make your own retro games with modern functional programming?*  
-**→ [Get started with glick80](https://github.com/escherize/glick80)**
+**[Get started with glick80](https://github.com/escherize/glick80)**
 
 *Questions? Ideas? Find me on [Twitter](https://x.com/escherize) or check out my [other projects](/about).*

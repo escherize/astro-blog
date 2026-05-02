@@ -13,13 +13,13 @@ I made a puzzle game where you *remove* numbers instead of placing them. Every r
 
 No adding. No moving. Just strategic subtraction.
 
-The catch: every puzzle has exactly one solution. You're not choosing an answer—you're hunting for *the* answer, against the clock.
+The catch: every puzzle has exactly one solution. You're hunting for *the* answer, against the clock.
 
 ---
 
 ## The Balatro Brain Worm
 
-I couldn't stop thinking about Balatro's operator system. Those little modifiers that don't change *what* you're doing—they change *how much you care* about doing it well.
+I couldn't stop thinking about Balatro's operator system. Those little modifiers that don't change *what* you're doing. They change *how much you care* about doing it well.
 
 Crossums has the same hook. Between stages you hit a shop and buy **operators**:
 
@@ -38,7 +38,7 @@ Your **streak multiplier** (up to 3×) rewards consecutive clean solves. But 4+ 
 
 ## Why Single Solutions Matter
 
-Early prototypes allowed multiple valid answers. It felt broken—operators like "bonus for keeping 7s" became pure luck. Did the puzzle happen to need 7s? Who knows!
+Early prototypes allowed multiple valid answers. It felt broken: operators like "bonus for keeping 7s" became pure luck. Did the puzzle happen to need 7s? Who knows!
 
 Single solutions fix this completely. The puzzle is deterministic. The *only* variable is you: how fast, how accurate, how stylish. No RNG excuses. You earned that score or you didn't.
 
@@ -56,6 +56,6 @@ The whole run takes maybe 15 minutes if you're quick. But the scoring system has
 
 <div style="text-align: center; margin: 2rem 0;">
   <a href="/crossums" style="display: inline-block; padding: 1rem 2rem; background: var(--color-accent); color: white; text-decoration: none; font-family: var(--font-display); font-weight: bold; font-size: 1.25rem; border-radius: 8px; border: 2px solid var(--color-fg); box-shadow: 4px 4px 0 var(--color-fg); transition: all 0.15s ease;">
-    Play Crossums →
+    Play Crossums
   </a>
 </div>

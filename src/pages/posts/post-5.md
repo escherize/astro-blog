@@ -12,7 +12,7 @@ tags: ["metabase", "clojure", "python", "sqlglot", "graalvm", "sql-parsing"]
 
 # Bringing SQLGlot to Metabase
 
-I recently merged a [fairly large PR](https://github.com/metabase/metabase/pull/68911) into Metabase that fundamentally changes how we parse SQL. The goal: bring [SQLGlot](https://github.com/tobymao/sqlglot)—a powerful Python SQL parser with excellent dialect support—into our JVM-based Clojure application. Here's the story of how I did it, the architectural decisions involved, and the tricky bits I ran into along the way.
+I recently merged a [fairly large PR](https://github.com/metabase/metabase/pull/68911) into Metabase that fundamentally changes how we parse SQL. The goal: bring [SQLGlot](https://github.com/tobymao/sqlglot), a powerful Python SQL parser with excellent dialect support, into our JVM-based Clojure application. Here's the story of how I did it, the architectural decisions involved, and the tricky bits I ran into along the way.
 
 ---
 
@@ -43,7 +43,7 @@ The key insight is the **swappable backend design**. We created a new `sql-tools
 MB_SQL_TOOLS_PARSER_BACKEND=macaw
 ```
 
-This made the PR low-risk—if anything goes wrong in production, it's a one-liner to roll back.
+This made the PR low-risk: if anything goes wrong in production, it's a one-liner to roll back.
 
 ---
 
@@ -53,12 +53,12 @@ The most satisfying part of this project was writing `sql_tools.py`. One afterno
 
 What started as "let me see if this is even possible" turned into a ~1,500 line Python file that implements:
 
-- **`referenced_tables`** — Extract all tables referenced in a query
-- **`referenced_fields`** — Extract all column references with their source tables
-- **`field_references`** — Macaw-compatible field extraction (the tricky one)
-- **`validate_query`** — Validate SQL against a schema
-- **`replace_names`** — Replace schema/table/column names in SQL
-- **`simple_query`** — Detect if a query is "simple" (no LIMIT, OFFSET, CTEs)
+- **`referenced_tables`**: extract all tables referenced in a query
+- **`referenced_fields`**: extract all column references with their source tables
+- **`field_references`**: Macaw-compatible field extraction (the tricky one)
+- **`validate_query`**: validate SQL against a schema
+- **`replace_names`**: replace schema/table/column names in SQL
+- **`simple_query`**: detect if a query is "simple" (no LIMIT, OFFSET, CTEs)
 
 The core of it is a `FieldReferenceWalker` class that traverses SQLGlot's AST:
 
@@ -83,7 +83,7 @@ class FieldReferenceWalker:
         # ... resolve through source chains
 ```
 
-Once `field_references` worked, the other functions fell into place quickly. The pattern was established—walk the AST, extract what you need, serialize to JSON, return to Clojure.
+Once `field_references` worked, the other functions fell into place quickly. The pattern was established: walk the AST, extract what you need, serialize to JSON, return to Clojure.
 
 ---
 
@@ -140,11 +140,11 @@ JSqlParser (Macaw) says: "Syntax error."
 
 SQLGlot says: "Oh, you probably meant `SELECT 1 AS LIMIT`" and happily parses it.
 
-This isn't a bug in SQLGlot—it's a design choice for error recovery. But it created headaches for our test suite, which had queries in a "gray area" that one parser understood and the other didn't.
+This isn't a bug in SQLGlot. It's a design choice for error recovery. But it created headaches for our test suite, which had queries in a "gray area" that one parser understood and the other didn't.
 
 We had to update test queries to be unambiguously invalid from both parsers' perspectives. The deeper issue is philosophical: for some use cases (like table-level permissions), we want *strict* parsing. Ambiguous queries should fail, not be silently reinterpreted.
 
-This led to discussions about adding "coercion detection"—comparing the original SQL to SQLGlot's regenerated version:
+This led to discussions about adding "coercion detection": comparing the original SQL to SQLGlot's regenerated version.
 
 ```python
 def detect_coercion(sql, dialect):

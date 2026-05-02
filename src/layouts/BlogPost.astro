@@ -801,14 +801,20 @@ const nextPost = currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1]
       background: var(--color-bg-alt);
     }
 
-    /* Images - Dramatic frames */
+    /* Images - Dramatic frames, constrained to readable size */
     .post-content img {
-      max-width: 100%;
+      display: block;
+      max-width: min(100%, 560px);
+      max-height: 70vh;
+      width: auto;
       height: auto;
       border-radius: var(--radius-md);
-      margin: var(--space-8) 0;
+      margin: var(--space-8) auto;
+      padding: var(--space-3);
+      background: var(--color-bg-alt);
       border: 3px solid var(--color-fg);
       box-shadow: var(--shadow-offset-md);
+      object-fit: contain;
       aspect-ratio: auto;
     }
 
