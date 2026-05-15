@@ -1,5 +1,5 @@
-# build output
-dist/
+# build output (Astro's root-level dist only; reveal.js decks ship a dist/ subdir)
+/dist/
 # generated types
 .astro/
 
