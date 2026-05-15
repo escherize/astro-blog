@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <title></title>
+    <link rel="stylesheet" href="dist/reset.css">
+    <link rel="stylesheet" href="dist/reveal.css" />
+    <link rel="stylesheet" href="css/slides-extended.css" />
+    <link rel="stylesheet" href="dist/theme/black.css" id="theme" />
+    <link rel="stylesheet" href="plugin/highlight/zenburn.css" />
+    <link rel="stylesheet" href="plugin/customcontrols/style.css">
+
+
+
+    <script defer src="dist/fontawesome/all.min.js"></script>
+
+    <script type="text/javascript">
+        function pageInIframe() {
+            return (window.location !== window.parent.location);
+        }
+
+        let forgetPop = true;
+        function onPopState(event) {
+            if(forgetPop){
+                forgetPop = false;
+            } else if( pageInIframe()) {
+                parent.postMessage(event.target.location.href, "app://obsidian.md");
+            }
+        }
+        window.onpopstate = onPopState;
+        window.onmessage = event => {
+            if(event.data == "reload"){
+                window.document.location.reload();
+            }
+            forgetPop = true;
+        }
+
+        function fitElements() {
+            const itemsToFit = document.getElementsByClassName('fitText');
+            for (const item in itemsToFit) {
+                if (Object.hasOwnProperty.call(itemsToFit, item)) {
+                    const element = itemsToFit[item];
+                    fitElement(element, 1, 1000);
+                    element.classList.remove('fitText');
+                }
+            }
+        }
+
+        function fitElement(element, start, end) {
+
+            let size = (end + start) / 2;
+            element.style.fontSize = `${size}px`;
+
+            if (Math.abs(start - end) < 1) {
+                while (element.scrollHeight > element.offsetHeight) {
+                    size--;
+                    element.style.fontSize = `${size}px`;
+                }
+                return;
+            }
+
+            if (element.scrollHeight > element.offsetHeight) {
+                fitElement(element, start, size);
+            } else {
+                fitElement(element, size, end);
+            }
+        }
+
+        document.onreadystatechange = () => {
+            fitElements();
+            if (document.readyState === 'complete') {
+                if (pageInIframe() && window.location.href.indexOf("?export") != -1){
+                    parent.postMessage(event.target.location.href, "app://obsidian.md");
+                }
+                if (window.location.href.indexOf("print-pdf") != -1){
+                    let stateCheck = setInterval(() => {
+                        clearInterval(stateCheck);
+                        window.print();
+                    }, 250);
+                }
+            }
+        };
+    </script>
+</head>
+
+<body>
+    <div class="reveal">
+        <div class="slides"><section  data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+<img src="Screenshot 2026-05-13 at 9.34.59 PM.png" alt="" style="object-fit: scale-down">
+
+
+_re-routing table references so AI agents can write to your data warehouse without breaking things_
+
+Graphy Team
+</div>
+
+<aside class="notes"><ul>
+<li>10-min talk. Big idea: Metabase tells itself a small lie so 30+ subsystems don&#39;t need to change.</li>
+<li>Workspaces is customer one. There will be more.</li>
+<li>Read the italic subtitle aloud, then pause. Don&#39;t rush.</li>
+</ul>
+</aside></script></section><section ><section data-separator="?
+---?
+" data-separator-vertical="?
+--?
+" data-separator-notes="note:" data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## Don't leave the user booby traps
+</div></script></section><section data-separator="?
+---?
+" data-separator-vertical="?
+--?
+" data-separator-notes="note:" data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+<img src="Screenshot 2026-05-13 at 4.45.02 PM.png" alt="" style="object-fit: scale-down">
+
+
+> Replit AI, July 2026. Deleted the prod database. No backups.
+</div>
+
+<aside class="notes"><ul>
+<li>Real story. Replit AI deleted prod, no backups. Workspace primitive was created to make this impossible by construction.</li>
+<li>The booby-trap quote is the design philosophy: the system shouldn&#39;t let a confused agent (or human) wreck production. Restricted DB user is the trap-removal mechanism.</li>
+</ul>
+</aside></script></section></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+**Workspaces** gives Claude an isolated schema + a user that can only write into it.
+
+Only that info is used to setup a workspace-child instance with limited permissions.
+<!-- .element: class="fragment" -->
+
+Claude only has those db credentials so it can't write to production.
+<!-- .element: class="fragment" -->
+
+**Table remapping** keeps the rest of Metabase from caring.
+<!-- .element: class="fragment" -->
+</div>
+
+<aside class="notes"><ul>
+<li>Two layers. <ul>
+<li>Restricted DB user = safety. </li>
+<li>Table remapping = consistency.</li>
+</ul>
+</li>
+<li>Common confusion: &quot;isn&#39;t remapping what keeps Claude from nuking?&quot; No — that&#39;s RBAC. Remapping is what keeps the rest of Metabase functional once the warehouse identity moves.</li>
+<li>Click through the three reveals one at a time.</li>
+</ul>
+</aside></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## Table Rewrite for Workspaces 
+
+<img src="Screenshot 2026-05-13 at 9.57.23 PM.png" alt="" style="width: 430px; object-fit: fill">
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## Table Remapping
+lies to the rest of Metabase about where a table really lives, so nothing else has to change
+
+<img src="Screenshot 2026-05-13 at 4.37.15 PM.png" alt="" style="width: 368px; object-fit: fill">
+
+<!-- .element: class="fragment" -->
+</div>
+
+<aside class="notes"><ul>
+<li>This is the slogan. Will repeat (with new clothes) on the sync slide and the Phase 1 slide.</li>
+</ul>
+</aside></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## **Canonical** Table
+the table Metabase thinks exists
+<!-- .element: class="fragment" -->
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## **Target** Table
+the table we actually query
+<!-- .element: class="fragment" -->
+</div>
+
+<aside class="notes"><ul>
+<li>Two words to remember for the rest of the talk.</li>
+<li>Canonical = what cards/dashboards/everyone-else points at. Target = the actual bytes on the warehouse.</li>
+</ul>
+</aside></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+<img src="Screenshot 2026-05-13 at 4.37.15 PM.png" alt="" style="width: 276px; object-fit: fill">
+
+<img src="Screenshot 2026-05-13 at 9.35.46 PM.png" alt="" style="object-fit: scale-down">
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## What is the API?
+
+Remapping rules live in an app-db table.
+
+```edn
+{:db-id 7 ;; postgres (db lives in connection string)
+ :from-db "" :from-schema "public"          :from-table "orders"
+ :to-db ""    :to-schema  "my_other_schema" :to-table "fake_orders"}
+ 
+ {:db-id 8 ;; mysql (has no schemas)
+  :from-db "my_real_database" :from-schema "" :from-table "orders"
+  :to-db "my_other_database"  :to-schema ""   :to-table "fake_orders"}
+```
+</div>
+
+<aside class="notes"><ul>
+<li>One row per substitution. No user, no role, no workspace field — anything that wants identity routing produces this row.</li>
+<li>&quot;&quot; sentinel for &quot;this driver doesn&#39;t emit this level.&quot; Postgres has no top-level db slot, MySQL has no schemas.</li>
+<li>Why &quot;&quot; not NULL? Postgres/MySQL/H2 treat NULL != NULL in unique indexes; &quot;&quot; lets the (db_id, db, schema, table) unique constraint work cross-driver.</li>
+<li>BigQuery fun-fact is the AST-positions punchline. Don&#39;t over-explain; just let it land.</li>
+</ul>
+</aside></script></section><section ><section data-separator="?
+---?
+" data-separator-vertical="?
+--?
+" data-separator-notes="note:" data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+Remapping rules: 
+
+(public, orders) -> (ws_alice, orders)
+<img src="Screenshot 2026-05-14 at 12.02.12 AM.png" alt="" style="width: 517px; object-fit: fill">
+</div>
+
+<aside class="notes"><ul>
+<li>includes here means querying directly from, joined against, or otherwise referenced.</li>
+</ul>
+</aside></script></section><section data-separator="?
+---?
+" data-separator-vertical="?
+--?
+" data-separator-notes="note:" data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## Phase 1
+(swap names early in QP middlewares)
+
+QP middleware reads `:schema`/`:name` off `:metadata/Table` to build joins, aliases, and cache keys.
+<!-- .element: class="fragment" -->
+
+We flip those up front so the rest of the pipeline agrees with the SQL Phase 2 will emit.
+<!-- .element: class="fragment" -->
+</div>
+
+<aside class="notes"><ul>
+<li>Phase 2 alone is enough for safety. Phase 1 exists for <em>pipeline consistency</em>.</li>
+<li>Concrete example: add_implicit_joins reads :name off :metadata/table and uses it as the JOIN alias. Without Phase 1, alias = canonical name but the table ref = target. Internally inconsistent SQL.</li>
+<li>Slogan recurrence: &quot;Same lie, told consistently.&quot;</li>
+<li>Expected pushback: &quot;why bother if Phase 2 is the boundary?&quot; — Answer: middleware reads metadata, so we&#39;d be lying to the SQL but truth-telling the middleware. That&#39;s worse than lying to both.</li>
+</ul>
+</aside></script></section><section data-separator="?
+---?
+" data-separator-vertical="?
+--?
+" data-separator-notes="note:" data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+## Phase 2
+(SQLGlot SQL Rewrite)
+```clojure
+;; Postgres Example, from public -> ws_alice schema for 2 tables
+[{:db-id 7  :from-schema "public"   :from-table "orders"
+            :to-schema   "ws_alice" :to-table   "orders"}
+
+ {:db-id 7  :from-schema "public"   :from-table "customers"
+            :to-schema   "ws_alice" :to-table   "customers"}]
+```
+
+Compiled query
+<!-- .element: class="fragment" -->
+
+```sql
+SELECT o.id, c.email, o.total
+-- public.orders in a comment
+FROM   public.orders o
+JOIN   public.customers c ON c.id = o.customer_id
+WHERE  o.total > 100;
+```
+<!-- .element: class="fragment" -->
+
+Remapped
+<!-- .element: class="fragment" -->
+
+```sql
+SELECT o.id, c.email, o.total
+-- public.orders in a comment
+FROM   ws_alice.orders o
+JOIN   ws_alice.customers c ON c.id = o.customer_id
+WHERE  o.total > 100;
+```
+<!-- .element: class="fragment" -->
+</div>
+
+<aside class="notes"><ul>
+<li>Walk through reveals: 2 rules → compiled query (canonical) → remapped query.</li>
+<li>Point at the comment line in both SQL blocks. The comment text &quot;public.orders&quot; survives unchanged because SQLGlot is AST-aware, not text-replace. That&#39;s the proof-it-isn&#39;t-stupid moment.</li>
+<li>Proof point if asked: SQLGlot parses all 12,511 saved queries in Metabase&#39;s query corpus across 7 dialects with 0 errors.</li>
+<li>Fails closed: if SQLGlot can&#39;t parse, query never executes. No silent fallback to canonical.</li>
+</ul>
+</aside></script></section></section><section ><section data-separator="?
+---?
+" data-separator-vertical="?
+--?
+" data-separator-notes="note:" data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+# What needs remapping for Workspaces?
+
+3 spots.
+<!-- .element: class="fragment" -->
+</div>
+
+<aside class="notes"><ul>
+<li>Verbal punctuation: pause after &quot;3 spots.&quot; Let audience pre-count the answers.</li>
+<li>Press ↓ to drill into each (vertical stack).</li>
+</ul>
+</aside></script></section><section data-separator="?
+---?
+" data-separator-vertical="?
+--?
+" data-separator-notes="note:" data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### 1. `Query Execution`:
+Queries need to read from remapped tables, so we lie by rewriting queries pointing pointing at tables
+
+This automatically works with:
+<!-- .element: class="fragment" -->
+- MBQL
+<!-- .element: class="fragment" -->
+- native queries w/ template tags, table tags, snippets, optional query clauses etc.
+<!-- .element: class="fragment" -->
+- sandboxing
+<!-- .element: class="fragment" -->
+- probably more
+<!-- .element: class="fragment" -->
+</div>
+
+<aside class="notes"><ul>
+<li>The boundary is downstream of every other middleware. Means we get template-tag expansion, snippet inlining, sandbox filters, parameter substitution all <em>for free</em> — by the time Phase 2 runs, the query is a single SQL string.</li>
+<li>&quot;Probably more&quot; is honest — there are surfaces we haven&#39;t audited (writeback, persistence, action DDL). Those are refused on workspace child for now.</li>
+</ul>
+</aside></script></section><section data-separator="?
+---?
+" data-separator-vertical="?
+--?
+" data-separator-notes="note:" data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### 2. `Transform` Runs:
+
+in workspace mode we lie by automatically redirecting the table created by the transform
+</div>
+
+<aside class="notes"><ul>
+<li>Write path. Transform declares target = (canonical_schema, foo). Hook in the executor rewrites to the workspace temp schema AND inserts the remapping row.</li>
+<li>After this, future reads route through Phase 1/2 back to canonical.</li>
+</ul>
+</aside></script></section><section data-separator="?
+---?
+" data-separator-vertical="?
+--?
+" data-separator-notes="note:" data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### 3. `Syncing`:
+
+sync reads from the **target** table, and stores it _as_ the **canonical** table as a `:model/Table` row.
+
+We lie here because `:model/Table` rows are read in 20x more places than the driver boundary is touched.
+<!-- .element: class="fragment" -->
+</div>
+
+<aside class="notes"><ul>
+<li>The design choice slide. Rejected alternative: create a new :model/Table row for every target table. That route breaks Search, Serdes, Permissions, recent_views, picker — every subsystem that assumes one row per warehouse table.</li>
+<li>20x figure is the punchline. State it slow.</li>
+<li>Slogan recurrence (third time): &quot;Lie once, in the right place.&quot; Optional close to the slide if you want to land it verbally.</li>
+</ul>
+</aside></script></section></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### V1 Limitations
+
+**No transitive remapping** A → B, B → C not supported. Not needed for Workspaces.
+<!-- .element: class="fragment" -->
+
+**Bare table references** (select * from orders) in native queries are not remapped
+<!-- .element: class="fragment" -->
+</div>
+
+<aside class="notes"><ul>
+<li>Honest scope. V1 boundary slide.</li>
+<li>Bare-table: native <code>SELECT * FROM orders</code> (no schema) leaks. Needs a future driver primitive: &quot;given a bare name, what schema would the warehouse pick?&quot; (Postgres has to_regclass; others vary.)</li>
+<li>Other things deferred (don&#39;t volunteer unless asked): cache invalidation hook, serdes hooks, deprovision-clears-remappings, session-scoped remappings.</li>
+</ul>
+</aside></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+# Questions
+</div>
+
+<aside class="notes"><ul>
+<li>Likely questions:<ul>
+<li>&quot;What about cross-DB workspaces?&quot; it depends what &quot;DB&quot; means: MySQL flipped its <code>qualified-name-components</code> to populate <code>:db</code> so cross-DB MySQL works. Snowflake/SQL Server/BQ similarly. Postgres/Redshift/CH stay 2-slot. </li>
+<li>&quot;DB Routing × Workspaces?&quot; → Mutually exclusive on the same DB. Phase 2 refuses if a destination DB is bound.</li>
+<li>&quot;Connection impersonation?&quot; → Same: Phase 2 refuses if impersonation is enforced (the impersonated role almost certainly lacks GRANT on the workspace schema).</li>
+</ul>
+</li>
+</ul>
+</aside></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+slide left intentionally blank
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" template="" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 960px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+# Notes:
+
+ canonical <-> target 
+ Canonical - the table that queries would go if there wasn't a remapping
+ Target - the table that remapped queries actually read from
+
+(Q: How are they kept in sync?)
+
+We considered: Should you fake the syncing data on write or on read (upstream or downstream) of the app-db. We chose to let the app-db row be fictious because there are 30x more things in the codebase that read from :model/Table compared to where we need to apply the illusion this way.
+
+
+
+what happens if you delete a table that's 
+
+
+Remapping API
+<img src="Screenshot 2026-05-13 at 9.38.11 PM.png" alt="" style="object-fit: scale-down">
+
+
+
+metabase query corpus: SQLGlot can parse all 12,511 saved queries across 7 dialects with 0 errors
+
+
+Why have a Phase 1?
+- Audit logs will say the proper table name
+- Any QP middlware calling `:schema` or `:table` on `(lib.metadata/table mp id))`
+
+
+Q: do remapping rules get deleted when u delete the transform? maybe
+</div></script></section></div>
+    </div>
+
+    <script src="dist/reveal.js"></script>
+    <script src="plugin/notes/notes.js"></script>
+    <script src="plugin/markdown/markdown.js"></script>
+    <script src="plugin/obsidian-markdown.js"></script>
+    <script src="plugin/highlight/highlight.js"></script>
+
+    <script src="plugin/zoom/zoom.js"></script>
+    <script src="plugin/math/math.js"></script>
+    <script src="plugin/mermaid/mermaid.js"></script>
+    <script src="plugin/chart/chart.umd.js"></script>
+    <script src="plugin/chart/plugin.js"></script>
+    <script src="plugin/customcontrols/plugin.js"></script>
+
+
+    <script>
+        function extend() {
+            const target = {};
+            for (let i = 0; i < arguments.length; i++) {
+                const source = arguments[i];
+                for (const key in source) {
+                    if (source.hasOwnProperty(key)) {
+                        target[key] = source[key];
+                    }
+                }
+            }
+            return target;
+        }
+
+        function isLight(color) {
+            // normalize to rgb(a)
+            const optionEl = document.createElement("option");
+            optionEl.style.color = color;
+            const normalizedColor = optionEl.style.color;
+
+            const [_, c_r, c_g, c_b] = normalizedColor.match(/(\d+), (\d+), (\d+)/);
+
+            const brightness = ((c_r * 299) + (c_g * 587) + (c_b * 114)) / 1000;
+            return brightness > 155;
+        }
+
+        const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--r-background-color').trim();
+
+        if (isLight(bgColor)) {
+            document.body.classList.add('has-light-background');
+        } else {
+            document.body.classList.add('has-dark-background');
+        }
+
+        // default options to init reveal.js
+        const defaultOptions = {
+            controls: true,
+            progress: true,
+            history: true,
+            center: true,
+            transition: 'default', // none/fade/slide/convex/concave/zoom
+            plugins: [
+                ObsidianMarkdown,
+                RevealHighlight,
+                RevealZoom,
+                RevealNotes,
+                RevealMath.KaTeX,
+                RevealMermaid,
+                RevealChart,
+                RevealCustomControls,
+            ],
+            allottedTime: "120",
+
+            katex: {
+                local: 'plugin/math/katex',
+                extensions: ["mhchem"],
+            },
+            markdown: {
+                gfm: true,
+            },
+            mermaid: {
+                theme: isLight(bgColor) ? 'default' : 'dark',
+            },
+            customcontrols: {
+                controls: [
+                ]
+            },
+        };
+
+        if ( pageInIframe() ) {
+            defaultOptions.scrollActivationWidth = 5;
+        }
+
+        // options from URL query string
+        const queryOptions = Reveal().getQueryHash() || {};
+
+        const options = extend(defaultOptions, {"controls":true,"progress":true,"slideNumber":false,"center":true,"transition":"slide","transitionSpeed":"default","width":960,"height":700,"margin":0.04}, queryOptions);
+    </script>
+
+    <script>
+      /**
+       * KaTeX Equation Numbering Note
+       * 
+       * KaTeX maintains a global equation counter for \begin{equation} environments.
+       * When navigating between slides, reveal.js math plugin may re-render math, causing 
+       * equation numbers to change randomly.
+       * 
+       * Note: Regular $$ blocks don't have equation numbers - only \begin{equation} does.
+       * 
+       * If you experience issues with equation numbers changing:
+       * Use manual \tag{} commands: \begin{equation}\tag{1} ... \end{equation}
+       */
+      
+      Reveal.initialize(options);
+    </script>
+    <!-- created with Slides Extended reveal.html template -->
+</body>
+</html>
