@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instance Analytics Sync Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700&family=Noto+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Crimson Pro', Georgia, serif;
+    --font-mono: 'Noto Sans Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #faf8f5;
+    --surface: #ffffff;
+    --surface2: #f3f0eb;
+    --border: rgba(0, 0, 0, 0.08);
+    --border-bright: rgba(0, 0, 0, 0.15);
+    --text: #2c2418;
+    --text-dim: #8a7e6e;
+
+    --phase1: #b45309;
+    --phase1-dim: rgba(180, 83, 9, 0.08);
+    --phase2: #0369a1;
+    --phase2-dim: rgba(3, 105, 161, 0.08);
+    --phase3: #047857;
+    --phase3-dim: rgba(4, 120, 87, 0.08);
+    --runtime: #7c3aed;
+    --runtime-dim: rgba(124, 58, 237, 0.08);
+    --dev: #be185d;
+    --dev-dim: rgba(190, 24, 93, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1612;
+      --surface: #242018;
+      --surface2: #2e2a22;
+      --border: rgba(255, 255, 255, 0.07);
+      --border-bright: rgba(255, 255, 255, 0.14);
+      --text: #e8e0d4;
+      --text-dim: #9a8e7e;
+
+      --phase1: #f59e0b;
+      --phase1-dim: rgba(245, 158, 11, 0.12);
+      --phase2: #38bdf8;
+      --phase2-dim: rgba(56, 189, 248, 0.12);
+      --phase3: #34d399;
+      --phase3-dim: rgba(52, 211, 153, 0.12);
+      --runtime: #c4b5fd;
+      --runtime-dim: rgba(196, 181, 253, 0.12);
+      --dev: #f472b6;
+      --dev-dim: rgba(244, 114, 182, 0.12);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      repeating-linear-gradient(
+        0deg, transparent, transparent 39px,
+        var(--border) 39px, var(--border) 40px
+      ),
+      repeating-linear-gradient(
+        90deg, transparent, transparent 39px,
+        var(--border) 39px, var(--border) 40px
+      );
+    background-size: 40px 40px;
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 48px 24px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.94); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .animate {
+    animation: fadeUp 0.45s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.07s);
+  }
+
+  .animate-scale {
+    animation: fadeScale 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.07s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+    .mermaid-wrap .mermaid { transition: none; }
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    line-height: 1.1;
+    margin-bottom: 8px;
+    text-wrap: balance;
+  }
+
+  .subtitle {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+  }
+
+  .lead {
+    font-size: 20px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    max-width: 640px;
+    margin-bottom: 40px;
+  }
+
+  /* Phase cards */
+  .phase {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 28px 24px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  .phase--hero {
+    border-color: var(--border-bright);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  }
+
+  .phase__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .phase__label::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .phase__title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+
+  .phase__desc {
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+
+  .phase__desc code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--surface2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--text);
+  }
+
+  /* File refs */
+  .file-ref {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 8px;
+    display: inline-block;
+    margin: 2px 2px 2px 0;
+  }
+
+  /* Flow arrow between phases */
+  .flow-arrow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4px 0;
+    color: var(--text-dim);
+  }
+
+  .flow-arrow svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: var(--border-bright);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* Mermaid */
+  .mermaid-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    overflow: auto;
+    margin-bottom: 16px;
+  }
+
+  .mermaid-wrap .mermaid {
+    display: flex;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    transform-origin: top center;
+  }
+
+  .zoom-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 2px;
+    z-index: 10;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+  }
+
+  .zoom-controls button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .zoom-controls button:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .mermaid-wrap {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .mermaid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .mermaid-wrap::-webkit-scrollbar-track { background: transparent; }
+  .mermaid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .mermaid-wrap::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+  .mermaid-wrap.is-zoomed { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+  .mermaid .nodeLabel {
+    font-family: var(--font-body) !important;
+    font-size: 15px !important;
+    color: var(--text) !important;
+  }
+
+  .mermaid .edgeLabel {
+    font-family: var(--font-mono) !important;
+    font-size: 11px !important;
+    color: var(--text-dim) !important;
+    background-color: var(--bg) !important;
+  }
+
+  .mermaid .edgeLabel rect {
+    fill: var(--bg) !important;
+  }
+
+  .mermaid .node rect,
+  .mermaid .node circle,
+  .mermaid .node polygon {
+    stroke-width: 1.5px !important;
+  }
+
+  .mermaid .edge-pattern-solid {
+    stroke-width: 1.5px !important;
+  }
+
+  /* Section headings */
+  .section-heading {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    margin: 48px 0 20px;
+  }
+
+  .section-desc {
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+    max-width: 640px;
+  }
+
+  /* Detail list inside a phase */
+  .step-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .step-list li {
+    font-size: 15px;
+    line-height: 1.7;
+    padding: 4px 0 4px 20px;
+    position: relative;
+    color: var(--text-dim);
+  }
+
+  .step-list li::before {
+    position: absolute;
+    left: 0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+  }
+
+  .step-list--numbered li { counter-increment: step; }
+  .step-list--numbered li::before { content: counter(step) '.'; }
+
+  .step-list li code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--surface2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text);
+  }
+
+  /* Inline pipeline */
+  .mini-pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    margin: 12px 0;
+  }
+
+  .mini-pipeline__step {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .mini-pipeline__arrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    padding: 0 6px;
+  }
+
+  /* Constants table */
+  .constants-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .const-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+
+  .const-card__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .const-card__value {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* Dev workflow callout */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-top: 16px;
+  }
+
+  .callout__title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .callout__desc {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  .callout__desc code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--surface2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text);
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  @media (max-width: 768px) {
+    body { padding: 16px; }
+    h1 { font-size: 28px; }
+    .phase { padding: 20px; }
+    .constants-grid { grid-template-columns: 1fr; }
+    .mermaid-wrap { padding: 16px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1 class="animate" style="--i:0">Instance Analytics Sync</h1>
+  <p class="subtitle animate" style="--i:1">migrations &rarr; yaml loading &rarr; schema sync &rarr; runtime population</p>
+  <p class="lead animate" style="--i:2">
+    How Metabase's Usage Analytics dashboards, SQL views, and field metadata get created, loaded, and kept in sync across three startup phases - plus the dev workflow for editing them.
+  </p>
+
+  <!-- ====== MAIN FLOW DIAGRAM ====== -->
+  <div class="mermaid-wrap animate" style="--i:3">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+    </div>
+    <pre class="mermaid">
+graph TD
+  START["Metabase Startup"] --> ENSURE["ensure-audit-db-installed!"]
+
+  subgraph P1["Phase 1: Migrations"]
+    MIG["Liquibase Migrations"] --> COLS["Add columns to view_log, query_execution"]
+    MIG --> VIEWS["Create/update SQL views"]
+    VIEWS --> PG["postgres-query_log.sql"]
+    VIEWS --> MY["mysql-query_log.sql"]
+    VIEWS --> H2["h2-query_log.sql"]
+  end
+
+  subgraph P2["Phase 2: YAML Loading"]
+    COPY["Copy YAML to plugins dir"] --> CHECKSUM{"Checksum changed?"}
+    CHECKSUM -->|"yes"| ADJUST1["adjust-audit-db-to-source!"]
+    CHECKSUM -->|"no"| SKIP["Skip loading"]
+    ADJUST1 --> LOAD["v2-load-internal!"]
+    LOAD --> INGEST["v2.ingest: read YAML files"]
+    INGEST --> INSERT["v2.load: insert entities"]
+    INSERT --> ADJUST2["adjust-audit-db-to-host!"]
+  end
+
+  subgraph P3["Phase 3: Schema Sync"]
+    SYNC["sync-database! :schema"] --> INTROSPECT["Introspect SQL views"]
+    INTROSPECT --> FIELDS["Create/update Field records"]
+    FIELDS --> TYPES["Normalize types to host DB"]
+  end
+
+  subgraph RT["Runtime"]
+    REQ["HTTP Request"] --> MW["Middleware captures auth, route, client"]
+    MW --> SDK["include-sdk-info"]
+    SDK --> WRITE["Insert to view_log / query_execution"]
+  end
+
+  ENSURE --> P1
+  P1 --> P2
+  P2 --> P3
+  P3 -.-> RT
+    </pre>
+  </div>
+
+  <div class="legend animate" style="--i:4">
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--phase1)"></div> Phase 1: Migrations</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--phase2)"></div> Phase 2: YAML Loading</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--phase3)"></div> Phase 3: Schema Sync</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--runtime)"></div> Runtime</div>
+  </div>
+
+  <!-- ====== PHASE DETAILS ====== -->
+  <h2 class="section-heading animate" style="--i:5">Three Startup Phases</h2>
+  <p class="section-desc animate" style="--i:6">
+    Each phase builds on the previous one. Migrations create the raw DB objects, YAML loading populates the dashboards and cards, and schema sync makes the new columns visible to those cards.
+  </p>
+
+  <!-- Phase 1 -->
+  <div class="phase animate" style="--i:7; border-left: 3px solid var(--phase1);">
+    <div class="phase__label" style="color: var(--phase1);">Phase 1</div>
+    <div class="phase__title">Liquibase Migrations</div>
+    <div class="phase__desc">
+      Migrations add columns to raw tables and create versioned SQL views. Each view has three variants - one per supported DB engine.
+    </div>
+    <ol class="step-list step-list--numbered">
+      <li><code>addColumn</code> changesets add columns to <code>view_log</code> and <code>query_execution</code></li>
+      <li><code>sqlFile</code> changesets create/replace SQL views (e.g. <code>v_query_log</code>)</li>
+      <li>Views are versioned in folders: <code>v1/</code>, <code>v2/</code>, <code>v3/</code>, <code>v4/</code>, <code>v5/</code></li>
+      <li>Computed columns like <code>surface</code> are CASE expressions in the view SQL</li>
+    </ol>
+    <div style="margin-top: 12px;">
+      <span class="file-ref">resources/migrations/061/</span>
+      <span class="file-ref">resources/migrations/instance_analytics_views/</span>
+    </div>
+  </div>
+
+  <div class="flow-arrow animate" style="--i:8">
+    <svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg>
+  </div>
+
+  <!-- Phase 2 -->
+  <div class="phase animate" style="--i:9; border-left: 3px solid var(--phase2);">
+    <div class="phase__label" style="color: var(--phase2);">Phase 2</div>
+    <div class="phase__title">Serialized YAML Loading</div>
+    <div class="phase__desc">
+      On startup, <code>ensure-audit-db-installed!</code> copies YAML content from the jar to the plugins directory, then deserializes it into the app database if the checksum has changed.
+    </div>
+    <div class="mini-pipeline">
+      <span class="mini-pipeline__step">ia-content->plugins</span>
+      <span class="mini-pipeline__arrow">&rarr;</span>
+      <span class="mini-pipeline__step">checksum?</span>
+      <span class="mini-pipeline__arrow">&rarr;</span>
+      <span class="mini-pipeline__step">adjust-to-source!</span>
+      <span class="mini-pipeline__arrow">&rarr;</span>
+      <span class="mini-pipeline__step">v2-load-internal!</span>
+      <span class="mini-pipeline__arrow">&rarr;</span>
+      <span class="mini-pipeline__step">adjust-to-host!</span>
+    </div>
+    <ol class="step-list step-list--numbered">
+      <li><code>v2.ingest/ingest-yaml</code> walks the directory, reads <code>.yaml</code> files into maps with <code>:serdes/meta</code></li>
+      <li><code>v2.load/load-metabase!</code> inserts cards, dashboards, collections into the app DB</li>
+      <li><code>adjust-audit-db-to-host!</code> converts schema types to match the host engine</li>
+    </ol>
+    <div style="margin-top: 12px;">
+      <span class="file-ref">enterprise/audit_app/audit.clj</span>
+      <span class="file-ref">resources/instance_analytics/collections/</span>
+      <span class="file-ref">enterprise/serialization/v2/ingest.clj</span>
+    </div>
+  </div>
+
+  <div class="flow-arrow animate" style="--i:10">
+    <svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg>
+  </div>
+
+  <!-- Phase 3 -->
+  <div class="phase animate" style="--i:11; border-left: 3px solid var(--phase3);">
+    <div class="phase__label" style="color: var(--phase3);">Phase 3</div>
+    <div class="phase__title">Schema Sync</div>
+    <div class="phase__desc">
+      After loading content, runs <code>sync-database! {:scan :schema}</code> on the Internal Metabase Database. This introspects SQL views and creates <code>Field</code> records for every column - including new ones added by migrations.
+    </div>
+    <ol class="step-list step-list--numbered">
+      <li>Introspects all views in the audit database</li>
+      <li>Creates/updates <code>Field</code> records for each column</li>
+      <li>Normalizes types to match the host DB (e.g. postgres <code>timestamptz</code> becomes mysql <code>datetime</code>)</li>
+      <li>Cards can now query the new columns</li>
+    </ol>
+    <div style="margin-top: 12px;">
+      <span class="file-ref">enterprise/audit_app/audit.clj</span>
+    </div>
+  </div>
+
+  <!-- ====== NEW COLUMN FLOW ====== -->
+  <h2 class="section-heading animate" style="--i:12">How a New Column Becomes Visible</h2>
+  <p class="section-desc animate" style="--i:13">
+    Using <code>surface</code> in <code>v_query_log</code> as an example - a computed CASE column over <code>embedding_route</code> and <code>embedding_client</code>.
+  </p>
+
+  <div class="mermaid-wrap animate" style="--i:14">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+    </div>
+    <pre class="mermaid">
+graph LR
+  A["Migration adds<br/>SQL view column"] --> B["Sync discovers<br/>Field record"]
+  B --> C["YAML cards<br/>reference column"]
+  C --> D["Runtime: include-sdk-info<br/>populates raw columns"]
+  D --> E["View computes<br/>surface from raw"]
+    </pre>
+  </div>
+
+  <!-- Phase: Runtime -->
+  <div class="phase animate" style="--i:15; border-left: 3px solid var(--runtime);">
+    <div class="phase__label" style="color: var(--runtime);">Runtime</div>
+    <div class="phase__title">Data Population</div>
+    <div class="phase__desc">
+      At runtime, <code>include-sdk-info</code> in <code>sdk.clj</code> populates the underlying raw columns on every view_log and query_execution insert. The SQL views then compute derived columns like <code>surface</code>.
+    </div>
+    <ol class="step-list step-list--numbered">
+      <li><code>embedding-mw</code> captures route + client from URI/headers</li>
+      <li><code>bind-current-user</code> resolves auth_method from session/API key/route</li>
+      <li><code>include-sdk-info</code> merges all analytics fields into the DB row</li>
+      <li>SQL view CASE expression computes <code>surface</code> from <code>embedding_route</code> + <code>embedding_client</code></li>
+    </ol>
+    <div style="margin-top: 12px;">
+      <span class="file-ref">src/metabase/analytics/sdk.clj</span>
+      <span class="file-ref">src/metabase/server/middleware/session.clj</span>
+    </div>
+  </div>
+
+  <!-- ====== DEV WORKFLOW ====== -->
+  <div class="callout animate" style="--i:16; border-left: 3px solid var(--dev);">
+    <div class="phase__label" style="color: var(--dev);">Development</div>
+    <div class="callout__title">Editing Analytics Content</div>
+    <div class="callout__desc">
+      The YAML files are the source of truth, but you don't edit them by hand. Instead, use the mage workflow to edit dashboards in the Metabase UI and export them back.
+    </div>
+    <div class="mini-pipeline">
+      <span class="mini-pipeline__step" style="background: var(--dev-dim); border-color: var(--dev);">mage analytics:setup</span>
+      <span class="mini-pipeline__arrow">&rarr;</span>
+      <span class="mini-pipeline__step">Edit in Metabase UI</span>
+      <span class="mini-pipeline__arrow">&rarr;</span>
+      <span class="mini-pipeline__step" style="background: var(--dev-dim); border-color: var(--dev);">mage analytics:finalize</span>
+      <span class="mini-pipeline__arrow">&rarr;</span>
+      <span class="mini-pipeline__step">YAML exported</span>
+    </div>
+  </div>
+
+  <!-- ====== CONSTANTS ====== -->
+  <h2 class="section-heading animate" style="--i:17">Key Constants</h2>
+
+  <div class="constants-grid animate-scale" style="--i:18">
+    <div class="const-card">
+      <div class="const-card__label">Audit DB ID</div>
+      <div class="const-card__value">13371337</div>
+    </div>
+    <div class="const-card">
+      <div class="const-card__label">Database Name</div>
+      <div class="const-card__value">Internal Metabase Database</div>
+    </div>
+    <div class="const-card">
+      <div class="const-card__label">Analytics Collection Entity ID</div>
+      <div class="const-card__value">vG58R8k-QddHWA7_47umn</div>
+    </div>
+    <div class="const-card">
+      <div class="const-card__label">Custom Reports Entity ID</div>
+      <div class="const-card__value">okNLSZKdSxaoG58JSQY54</div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    look: 'classic',
+    themeVariables: {
+      primaryColor: isDark ? '#2e2a22' : '#faf8f5',
+      primaryBorderColor: isDark ? '#9a8e7e' : '#8a7e6e',
+      primaryTextColor: isDark ? '#e8e0d4' : '#2c2418',
+      secondaryColor: isDark ? '#1a2636' : '#eff6ff',
+      secondaryBorderColor: isDark ? '#38bdf8' : '#0369a1',
+      secondaryTextColor: isDark ? '#e8e0d4' : '#2c2418',
+      tertiaryColor: isDark ? '#1a2e1a' : '#f0fdf4',
+      tertiaryBorderColor: isDark ? '#34d399' : '#047857',
+      tertiaryTextColor: isDark ? '#e8e0d4' : '#2c2418',
+      lineColor: isDark ? '#9a8e7e' : '#8a7e6e',
+      fontSize: '15px',
+      fontFamily: "'Crimson Pro', Georgia, serif",
+      noteBkgColor: isDark ? '#2e2a22' : '#fef3c7',
+      noteTextColor: isDark ? '#e8e0d4' : '#2c2418',
+      noteBorderColor: isDark ? '#f59e0b' : '#b45309',
+    }
+  });
+</script>
+<script>
+  function updateZoomState(wrap) {
+    var target = wrap.querySelector('.mermaid');
+    var zoom = parseFloat(target.dataset.zoom || '1');
+    wrap.classList.toggle('is-zoomed', zoom > 1);
+  }
+
+  function zoomDiagram(btn, factor) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    var current = parseFloat(target.dataset.zoom || '1');
+    var next = Math.min(Math.max(current * factor, 0.3), 5);
+    target.dataset.zoom = next;
+    target.style.transform = 'scale(' + next + ')';
+    updateZoomState(wrap);
+  }
+
+  function resetZoom(btn) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    target.dataset.zoom = '1';
+    target.style.transform = 'scale(1)';
+    updateZoomState(wrap);
+  }
+
+  document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+    wrap.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      var target = wrap.querySelector('.mermaid');
+      var current = parseFloat(target.dataset.zoom || '1');
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var next = Math.min(Math.max(current * factor, 0.3), 5);
+      target.dataset.zoom = next;
+      target.style.transform = 'scale(' + next + ')';
+      updateZoomState(wrap);
+    }, { passive: false });
+
+    var startX, startY, scrollL, scrollT;
+    wrap.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.zoom-controls')) return;
+      var target = wrap.querySelector('.mermaid');
+      if (parseFloat(target.dataset.zoom || '1') <= 1) return;
+      wrap.classList.add('is-panning');
+      startX = e.clientX;
+      startY = e.clientY;
+      scrollL = wrap.scrollLeft;
+      scrollT = wrap.scrollTop;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!wrap.classList.contains('is-panning')) return;
+      wrap.scrollLeft = scrollL - (e.clientX - startX);
+      wrap.scrollTop = scrollT - (e.clientY - startY);
+    });
+    window.addEventListener('mouseup', function() {
+      wrap.classList.remove('is-panning');
+    });
+  });
+</script>
+
+</body>
+</html>

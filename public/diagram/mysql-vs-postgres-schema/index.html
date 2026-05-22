@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>"Schema" in MySQL vs Postgres — and what Metabase makes of it</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============ THEME — Solarized-inspired editorial ============ */
+  :root {
+    --font-body: 'Lora', Georgia, serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    --font-sans: system-ui, -apple-system, sans-serif;
+
+    /* Solarized light */
+    --bg: #fdf6e3;
+    --surface: #ffffff;
+    --surface2: #faf2dd;
+    --surface-elevated: #ffffff;
+    --border: rgba(101, 123, 131, 0.18);
+    --border-bright: rgba(101, 123, 131, 0.32);
+    --text: #073642;
+    --text-dim: #657b83;
+
+    /* Accents — keep colorblind-friendly distinctions */
+    --pg: #268bd2;          /* solarized blue — Postgres */
+    --pg-dim: rgba(38, 139, 210, 0.10);
+    --my: #b58900;          /* solarized yellow/amber — MySQL */
+    --my-dim: rgba(181, 137, 0, 0.12);
+    --green: #859900;
+    --green-dim: rgba(133, 153, 0, 0.14);
+    --red: #dc322f;
+    --red-dim: rgba(220, 50, 47, 0.12);
+    --magenta: #d33682;
+    --magenta-dim: rgba(211, 54, 130, 0.12);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      /* Solarized dark */
+      --bg: #002b36;
+      --surface: #073642;
+      --surface2: #0a4252;
+      --surface-elevated: #0a4252;
+      --border: rgba(147, 161, 161, 0.18);
+      --border-bright: rgba(147, 161, 161, 0.32);
+      --text: #eee8d5;
+      --text-dim: #93a1a1;
+
+      --pg: #6cb6e0;
+      --pg-dim: rgba(108, 182, 224, 0.14);
+      --my: #d9b440;
+      --my-dim: rgba(217, 180, 64, 0.14);
+      --green: #b3c050;
+      --green-dim: rgba(179, 192, 80, 0.18);
+      --red: #f04945;
+      --red-dim: rgba(240, 73, 69, 0.16);
+      --magenta: #e35a98;
+      --magenta-dim: rgba(227, 90, 152, 0.14);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body, .grid > *, .flex > * { min-width: 0; }
+  body { overflow-wrap: break-word; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 25% 0%, var(--pg-dim) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 100%, var(--my-dim) 0%, transparent 50%);
+    color: var(--text);
+    font-family: var(--font-sans);
+    padding: 48px 32px;
+    min-height: 100vh;
+    line-height: 1.55;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate {
+    animation: fadeUp 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.05s);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  .container { max-width: 1080px; margin: 0 auto; }
+
+  /* ============ HEADER ============ */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--magenta);
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-family: var(--font-body);
+    font-size: 40px;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+    line-height: 1.15;
+    margin-bottom: 12px;
+  }
+  h1 em {
+    font-style: italic;
+    color: var(--magenta);
+    font-weight: 400;
+  }
+  .subtitle {
+    font-family: var(--font-body);
+    font-style: italic;
+    font-size: 17px;
+    color: var(--text-dim);
+    max-width: 720px;
+    margin-bottom: 40px;
+  }
+
+  h2 {
+    font-family: var(--font-body);
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.2px;
+    margin: 48px 0 16px;
+  }
+  h2 .num {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-right: 10px;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  p { margin-bottom: 14px; max-width: 760px; }
+  p code, li code {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    background: var(--surface2);
+    color: var(--text);
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  /* ============ TWO-PANEL CONCEPT DIAGRAM ============ */
+  .concept {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 24px 0 12px;
+  }
+  .concept > * { min-width: 0; }
+  @media (max-width: 768px) {
+    .concept { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  }
+  .panel--pg { border-top: 3px solid var(--pg); }
+  .panel--my { border-top: 3px solid var(--my); }
+
+  .panel__title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel--pg .panel__title { color: var(--pg); }
+  .panel--my .panel__title { color: var(--my); }
+  .panel__title::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .panel__caption {
+    font-family: var(--font-body);
+    font-style: italic;
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+
+  /* Tree rendering — pure CSS box drawing */
+  .tree {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.85;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    color: var(--text);
+  }
+  .tree .lvl1 { color: var(--text); font-weight: 600; }
+  .tree .lvl2-pg { color: var(--pg); }
+  .tree .lvl2-my { color: var(--my); }
+  .tree .lvl3 { color: var(--text-dim); }
+  .tree .note {
+    font-family: var(--font-body);
+    font-style: italic;
+    color: var(--text-dim);
+    font-size: 11px;
+  }
+
+  /* ============ COMPARISON TABLE ============ */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 16px 0 32px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  }
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    line-height: 1.55;
+    font-family: var(--font-sans);
+  }
+  .data-table thead { position: sticky; top: 0; z-index: 2; }
+  .data-table th {
+    background: var(--surface2);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 14px 18px;
+    border-bottom: 2px solid var(--border-bright);
+    white-space: nowrap;
+  }
+  .data-table th.col-pg { color: var(--pg); }
+  .data-table th.col-my { color: var(--my); }
+  .data-table td {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table .lbl {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    width: 220px;
+  }
+  .data-table .lbl small {
+    display: block;
+    font-family: var(--font-body);
+    font-style: italic;
+    font-weight: 400;
+    color: var(--text-dim);
+    font-size: 11px;
+    margin-top: 4px;
+    white-space: normal;
+  }
+  .data-table tbody tr {
+    transition: background 0.15s ease;
+    animation: fadeUp 0.35s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.04s);
+  }
+  .data-table tbody tr:hover { background: var(--surface2); }
+  .data-table code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--surface2);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+  }
+  .data-table small.cell-note {
+    display: block;
+    color: var(--text-dim);
+    font-size: 11px;
+    margin-top: 4px;
+    font-style: italic;
+    font-family: var(--font-body);
+  }
+
+  /* ============ KEY/INSIGHT CALLOUT ============ */
+  .insight {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--magenta);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 24px 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+  .insight__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--magenta);
+    margin-bottom: 8px;
+  }
+  .insight p { margin-bottom: 8px; max-width: none; }
+  .insight p:last-child { margin-bottom: 0; }
+
+  /* ============ WORKSPACES-V2 BLOCK ============ */
+  .ws-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin: 24px 0;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+    position: relative;
+    overflow: hidden;
+  }
+  .ws-block::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--my-dim) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .ws-block > * { position: relative; }
+  .ws-block h2 { margin-top: 0; }
+
+  .ws-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 18px 0 12px;
+  }
+  @media (max-width: 768px) {
+    .ws-grid { grid-template-columns: 1fr; }
+  }
+
+  .ws-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+  }
+  .ws-card__title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  .ws-card__title--bug { color: var(--red); }
+  .ws-card__title--fix { color: var(--green); }
+  .ws-card pre {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.5;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    overflow-x: auto;
+    color: var(--text);
+  }
+  .ws-card pre .added { color: var(--green); }
+  .ws-card pre .removed { color: var(--red); text-decoration: line-through; opacity: 0.7; }
+  .ws-card p { font-size: 13px; line-height: 1.55; color: var(--text-dim); }
+
+  /* ============ FOOTER ============ */
+  .footnote {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+  .footnote a {
+    color: var(--pg);
+    text-decoration: none;
+  }
+  .footnote a:hover { text-decoration: underline; }
+
+  @media (max-width: 768px) {
+    body { padding: 24px 16px; }
+    h1 { font-size: 30px; }
+    .data-table th, .data-table td { padding: 10px 12px; }
+    .data-table .lbl { width: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="animate" style="--i:0">
+    <div class="eyebrow">Concept Note &middot; Workspaces v2</div>
+    <h1>"Schema" means two different things <em>in the same SQL word</em></h1>
+    <p class="subtitle">
+      The same noun behaves like a folder inside a database in Postgres, and like a synonym for "database" itself in MySQL. JDBC reflects that. Metabase's data model collapses it. Workspaces-v2 has to navigate all three at once.
+    </p>
+  </div>
+
+  <h2 class="animate" style="--i:1"><span class="num">01</span>The two trees</h2>
+
+  <p class="animate" style="--i:2">
+    The most direct way to see the difference is to draw the namespace tree each engine produces. In Postgres it has three levels — server, database, schema, table. In MySQL it has two — server, database, table — with the SQL keyword <code>SCHEMA</code> being a <em>synonym</em> for <code>DATABASE</code>, not an extra layer.
+  </p>
+
+  <div class="concept animate" style="--i:3">
+    <div class="panel panel--pg">
+      <div class="panel__title">Postgres</div>
+      <div class="panel__caption">three real levels — schemas live inside databases</div>
+      <div class="tree">
+<span class="lvl1">postgres-server</span>
+├── <span class="lvl2-pg">database  test_data</span>
+│   ├── <span class="lvl3">schema    public</span>
+│   │   ├── orders
+│   │   └── people
+│   └── <span class="lvl3">schema    canonical_xyz</span>
+│       └── orders_summary
+└── <span class="lvl2-pg">database  analytics</span>
+    └── <span class="lvl3">schema    public</span>
+        └── events
+<span class="note">
+  one connection binds to one database; can see all schemas in it.
+</span>
+      </div>
+    </div>
+
+    <div class="panel panel--my">
+      <div class="panel__title">MySQL</div>
+      <div class="panel__caption">two levels — "schema" and "database" are the same thing</div>
+      <div class="tree">
+<span class="lvl1">mysql-server</span>
+├── <span class="lvl2-my">database  test-data</span>          <span class="note">(== schema)</span>
+│   ├── orders
+│   └── people
+├── <span class="lvl2-my">database  analytics</span>          <span class="note">(== schema)</span>
+│   └── events
+└── <span class="lvl2-my">database  mb__isolation_X</span>    <span class="note">(workspace iso DB)</span>
+    └── orders_summary
+<span class="note">
+  CREATE SCHEMA x  ===  CREATE DATABASE x.
+  No extra nesting. Privileges live at the database level.
+</span>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="animate" style="--i:4"><span class="num">02</span>Where it shows up — column by column</h2>
+
+  <p class="animate" style="--i:5">
+    The same word travels through three layers — the SQL grammar, the JDBC driver's metadata API, and Metabase's app-DB schema — and at each layer it lands somewhere different. Reading across a row tells you what to expect at every level for one engine; reading down a column tells you the whole pipeline for one concept.
+  </p>
+
+  <div class="table-wrap animate" style="--i:6">
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="lbl">Layer</th>
+            <th class="col-pg">Postgres</th>
+            <th class="col-my">MySQL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="--i:0">
+            <td class="lbl">SQL keyword <code>SCHEMA</code><small>What does <code>CREATE SCHEMA x</code> do?</small></td>
+            <td>Creates a real schema (a namespace inside the current database). Distinct from <code>CREATE DATABASE</code>.</td>
+            <td>Synonym for <code>CREATE DATABASE x</code>. <small class="cell-note">"<code>SCHEMA</code> is a synonym for <code>DATABASE</code>" — MySQL Reference Manual.</small></td>
+          </tr>
+          <tr style="--i:1">
+            <td class="lbl">Namespace nesting<small>Levels above a table identifier</small></td>
+            <td>Three: <code>db.schema.table</code>. The connection binds to one DB and can address all its schemas.</td>
+            <td>Two: <code>db.table</code>. There is no extra layer between database and table.</td>
+          </tr>
+          <tr style="--i:2">
+            <td class="lbl">JDBC <code>TABLE_CAT</code><small>Catalog field on getTables()</small></td>
+            <td>The database name (e.g. <code>test_data</code>). Mostly informational since one connection = one DB.</td>
+            <td>The database name (e.g. <code>test-data</code>). <strong>This is the only namespace JDBC reports for MySQL.</strong></td>
+          </tr>
+          <tr style="--i:3">
+            <td class="lbl">JDBC <code>TABLE_SCHEM</code><small>Schema field on getTables()</small></td>
+            <td>The Postgres schema (<code>public</code>, <code>canonical_xyz</code>, &hellip;).</td>
+            <td><code>null</code>. Always. <small class="cell-note">MySQL has no schema-distinct-from-database, so this column has nothing to put.</small></td>
+          </tr>
+          <tr style="--i:4">
+            <td class="lbl">Metabase <code>:model/Database</code><small>The app-DB row representing a connection</small></td>
+            <td>One row per Postgres database the user added (e.g. <code>test_data</code>). <code>:details.db = "test_data"</code>.</td>
+            <td>One row per MySQL database the user added (e.g. <code>test-data</code>). <code>:details.db = "test-data"</code>. <strong>Same 1-to-1 shape — it's just that the warehouse "schema" is a database.</strong></td>
+          </tr>
+          <tr style="--i:5">
+            <td class="lbl">Metabase <code>:model/Table.schema</code><small>What sync writes for each Table row</small></td>
+            <td>The Postgres schema name verbatim — <code>"public"</code>, <code>"canonical_xyz"</code>, etc.</td>
+            <td><code>nil</code>. Always. <small class="cell-note">Sync just copies <code>TABLE_SCHEM</code>, which JDBC reports as null for MySQL.</small></td>
+          </tr>
+          <tr style="--i:6">
+            <td class="lbl"><code>qualified-name-components</code><small>How the QP qualifies identifiers</small></td>
+            <td><code>[:schema]</code> &rarr; emits <code>"schema"."table"</code> in compiled SQL.</td>
+            <td><code>[]</code> &rarr; emits a bare <code>`table`</code>. The connection's default DB resolves it.</td>
+          </tr>
+          <tr style="--i:7">
+            <td class="lbl">Cross-namespace queries<small>Can a single statement reference two namespaces?</small></td>
+            <td>Yes within one DB: <code>SELECT * FROM s1.t JOIN s2.t</code>. Across DBs: not without dblink/FDW.</td>
+            <td>Yes across databases: <code>SELECT * FROM db1.t JOIN db2.t</code> works given GRANTs on both.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="insight animate" style="--i:7">
+    <div class="insight__label">The translation</div>
+    <p>
+      In Postgres, the SQL noun <em>schema</em>, the JDBC field <code>TABLE_SCHEM</code>, and the Metabase column <code>:model/Table.schema</code> all carry the same value — a real schema name. The vocabulary is consistent at every layer.
+    </p>
+    <p>
+      In MySQL, the SQL noun <em>schema</em> is a synonym for <em>database</em>; JDBC's <code>TABLE_SCHEM</code> is always <code>null</code> and the database name lives in <code>TABLE_CAT</code> instead; and Metabase's <code>:model/Table.schema</code> ends up <code>nil</code> for every MySQL Table. The same word means three different things — and the actual database-level identifier travels through a different field at each layer.
+    </p>
+  </div>
+
+  <h2 class="animate" style="--i:8"><span class="num">03</span>Why workspaces-v2 cared</h2>
+
+  <div class="ws-block animate" style="--i:9">
+    <h2 style="font-size:20px"><span class="num">&#9888;</span>The MySQL <code>:db</code> override bug</h2>
+
+    <p>
+      Workspace provisioning gives every workspace a private <em>output namespace</em>. On Postgres that's a new schema inside the same DB. On MySQL — because there's no schema layer — it has to be a brand new database (<code>mb__isolation_44490_1933</code>). Same workspace, two completely different physical shapes.
+    </p>
+
+    <p>
+      <code>build-workspace-config</code> merges <code>:database_details</code> over the canonical <code>:details</code> when wiring up the workspace user's connection. Postgres <code>init-workspace-isolation!</code> only puts <code>{:user, :password}</code> there — both safe to override. MySQL was ALSO putting <code>:db isolation-db</code> there, which clobbered the canonical <code>:db</code>. Result: the connection bound to the empty isolation DB. Sync enumerated zero tables. The whole workspace was invisible.
+    </p>
+
+    <div class="ws-grid">
+      <div class="ws-card">
+        <div class="ws-card__title ws-card__title--bug">Before — the bug</div>
+        <p><code>init-workspace-isolation! :mysql</code> returned a <code>:database_details</code> map that overwrote the connection's bound database, severing sync from the canonical input data.</p>
+        <pre>{:schema           db-name
+ :database_details
+   {:user     user
+    :password password
+    <span class="removed">:db       db-name</span>}}</pre>
+      </div>
+      <div class="ws-card">
+        <div class="ws-card__title ws-card__title--fix">After — drop <code>:db</code></div>
+        <p>The workspace user has GRANT SELECT on the canonical DB and ALL on the iso DB. The connection stays bound to the canonical DB; iso writes use fully-qualified <code>db.table</code> references the rewriter prepends.</p>
+        <pre>{:schema           db-name
+ :database_details
+   {:user     user
+    :password password}}</pre>
+      </div>
+    </div>
+
+    <p style="margin-top:16px">
+      The fix mirrors the Postgres shape: <code>:database_details</code> only carries identity (user/password), never location (<code>:db</code>). On Postgres the location was never an issue because schemas live inside one DB. On MySQL the iso location is a different <em>database</em>, but the canonical-vs-iso routing belongs in the rewriter and on the WSD row's <code>:output_schema</code> — not in the connection details, where it would silently break sync.
+    </p>
+  </div>
+
+  <h2 class="animate" style="--i:10"><span class="num">04</span>What this implies in practice</h2>
+
+  <p class="animate" style="--i:11">
+    Three things to keep straight when reading workspaces-v2 code, especially anything that touches sync, remap, or the QP read path:
+  </p>
+
+  <div class="table-wrap animate" style="--i:12">
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="lbl">If you're looking at&hellip;</th>
+            <th>&hellip;here's the MySQL gotcha</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="--i:0">
+            <td class="lbl">A <code>:model/Table</code> lookup with <code>:schema</code></td>
+            <td>On MySQL, every <code>:model/Table.schema</code> is <code>nil</code>. Code that does <code>(t2/select-one :model/Table :schema "public" :name "x")</code> works on Postgres but returns nothing on MySQL. Use a per-driver translation (see <code>table-row-schema-value</code> in the e2e test).</td>
+          </tr>
+          <tr style="--i:1">
+            <td class="lbl">A workspace YAML <code>{schema: prod_db}</code></td>
+            <td>The wire format's <code>:schema</code> slot carries an <em>AST position</em>, not a vocabulary. On MySQL the value in that slot is a database name. The slot is named <code>:schema</code> because that's where the qualifier lands in the compiled SQL — not because MySQL has schemas.</td>
+          </tr>
+          <tr style="--i:2">
+            <td class="lbl">A <code>TableRemapping</code> row</td>
+            <td><code>:from_schema</code> / <code>:to_schema</code> hold the warehouse-namespace name verbatim. On MySQL that's a database name. The QP rewriter uses these to prepend a qualifier to the bare <code>`table`</code> identifier MySQL emits, turning <code>orders</code> into <code>`mb__isolation_X`.orders</code>.</td>
+          </tr>
+          <tr style="--i:3">
+            <td class="lbl">A "no isolation leak" assertion</td>
+            <td>You can't filter <code>(:schema row)</code> to distinguish input-DB rows from iso-DB rows on MySQL — both are <code>nil</code>. Probe the warehouse via <code>information_schema.tables</code> instead, then assert no <code>:model/Table</code> row matches an iso-DB table name.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="footnote animate" style="--i:13">
+    Sources: <a href="https://dev.mysql.com/doc/refman/9.0/en/identifier-qualifiers.html">MySQL Reference Manual &mdash; Identifier Qualifiers</a>
+    &middot; PostgreSQL <em>Schemas</em> chapter &middot; <code>src/metabase/driver/mysql.clj</code>
+    &middot; <code>workspaces.config/database-entry</code>
+  </p>
+
+</div>
+
+</body>
+</html>

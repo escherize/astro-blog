@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How auth_method Gets Tracked — Three Scenarios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Sora', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+    --bg: #fafbfc;
+    --surface: #ffffff;
+    --surface2: #f3f4f6;
+    --border: rgba(0, 0, 0, 0.07);
+    --border-bright: rgba(0, 0, 0, 0.14);
+    --text: #111827;
+    --text-dim: #6b7280;
+    --jwt: #7c3aed;
+    --jwt-dim: rgba(124, 58, 237, 0.08);
+    --apikey: #0891b2;
+    --apikey-dim: rgba(8, 145, 178, 0.08);
+    --guest: #d97706;
+    --guest-dim: rgba(217, 119, 6, 0.08);
+    --mw: #059669;
+    --mw-dim: rgba(5, 150, 105, 0.08);
+    --db: #dc2626;
+    --db-dim: rgba(220, 38, 38, 0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #334155;
+      --border: rgba(255, 255, 255, 0.07);
+      --border-bright: rgba(255, 255, 255, 0.14);
+      --text: #f1f5f9;
+      --text-dim: #94a3b8;
+      --jwt: #a78bfa;
+      --jwt-dim: rgba(167, 139, 250, 0.14);
+      --apikey: #22d3ee;
+      --apikey-dim: rgba(34, 211, 238, 0.12);
+      --guest: #fbbf24;
+      --guest-dim: rgba(251, 191, 36, 0.12);
+      --mw: #34d399;
+      --mw-dim: rgba(52, 211, 153, 0.12);
+      --db: #f87171;
+      --db-dim: rgba(248, 113, 113, 0.1);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(at 20% 10%, var(--jwt-dim) 0%, transparent 50%),
+      radial-gradient(at 50% 50%, var(--apikey-dim) 0%, transparent 50%),
+      radial-gradient(at 80% 90%, var(--guest-dim) 0%, transparent 50%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.94); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .animate { animation: fadeUp 0.45s ease-out both; animation-delay: calc(var(--i, 0) * 0.06s); }
+  .animate-scale { animation: fadeScale 0.4s ease-out both; animation-delay: calc(var(--i, 0) * 0.06s); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  h1 { font-size: 34px; font-weight: 700; letter-spacing: -1px; margin-bottom: 6px; text-wrap: balance; }
+  .subtitle { color: var(--text-dim); font-family: var(--font-mono); font-size: 12px; margin-bottom: 12px; }
+  .intro { font-size: 14px; line-height: 1.7; color: var(--text-dim); margin-bottom: 36px; max-width: 760px; }
+  .intro code { font-family: var(--font-mono); font-size: 12px; background: var(--mw-dim); color: var(--mw); padding: 1px 5px; border-radius: 3px; }
+
+  /* Scenario sections */
+  .scenario { margin-bottom: 48px; }
+  .scenario-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .scenario-num {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 16px;
+    flex-shrink: 0;
+  }
+  .scenario-num--jwt { background: var(--jwt-dim); color: var(--jwt); }
+  .scenario-num--apikey { background: var(--apikey-dim); color: var(--apikey); }
+  .scenario-num--guest { background: var(--guest-dim); color: var(--guest); }
+
+  .scenario-title { font-size: 22px; font-weight: 600; }
+  .scenario-desc { font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 20px; max-width: 700px; }
+
+  /* Step cards */
+  .steps { display: flex; flex-direction: column; gap: 0; }
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    position: relative;
+  }
+  .step + .step-arrow + .step { margin-top: 0; }
+
+  .step-arrow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4px 0;
+    color: var(--border-bright);
+  }
+  .step-arrow svg { width: 18px; height: 18px; fill: none; stroke: var(--border-bright); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .step-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .step-label::before {
+    content: '';
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .step-label--mw { color: var(--mw); }
+  .step-label--jwt { color: var(--jwt); }
+  .step-label--apikey { color: var(--apikey); }
+  .step-label--guest { color: var(--guest); }
+  .step-label--db { color: var(--db); }
+
+  .step-body { font-size: 13px; line-height: 1.7; color: var(--text-dim); }
+  .step-body strong { color: var(--text); font-weight: 500; }
+  .step-body code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--surface2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text);
+  }
+  .step-body a {
+    color: var(--jwt);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s ease;
+  }
+  .step-body a:hover { border-bottom-color: var(--jwt); }
+
+  .result-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid;
+    border-radius: 0 10px 10px 0;
+    padding: 14px 18px;
+    margin-top: 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.8;
+  }
+  .result-box--jwt { border-left-color: var(--jwt); }
+  .result-box--apikey { border-left-color: var(--apikey); }
+  .result-box--guest { border-left-color: var(--guest); }
+
+  .result-key { color: var(--text-dim); }
+  .result-val { color: var(--text); font-weight: 500; }
+  .result-val--jwt { color: var(--jwt); }
+  .result-val--apikey { color: var(--apikey); }
+  .result-val--guest { color: var(--guest); }
+  .result-val--null { color: var(--text-dim); font-style: italic; }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+
+  @media (max-width: 768px) {
+    body { padding: 16px; }
+    h1 { font-size: 22px; }
+    .scenario-title { font-size: 18px; }
+    .step { padding: 12px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1 class="animate" style="--i:0">How auth_method Gets Tracked</h1>
+  <p class="subtitle animate" style="--i:1">PR #71386 &middot; enhance-usage-analytics-for-embedding</p>
+  <p class="intro animate" style="--i:2">
+    Three authentication scenarios, traced from the initial request through the middleware chain
+    to the final <code>auth_method</code> value written to <code>view_log</code> / <code>query_execution</code>.
+    Each step links to the source on the branch.
+  </p>
+
+  <!-- ===================== SCENARIO 1: JWT SSO ===================== -->
+  <section class="scenario">
+    <div class="scenario-header animate" style="--i:3">
+      <div class="scenario-num scenario-num--jwt">1</div>
+      <h2 class="scenario-title">Session Created via JWT SSO</h2>
+    </div>
+    <p class="scenario-desc animate" style="--i:4">
+      A customer's app redirects the user to Metabase's SSO endpoint with a signed JWT token.
+      Metabase validates the token, creates a session linked to the JWT provider, and sets a session cookie.
+      On subsequent requests, the session's auth provider (<code>"jwt"</code>) flows through to <code>auth_method</code>.
+    </p>
+
+    <div class="steps">
+      <!-- Login step -->
+      <div class="step animate" style="--i:5">
+        <div class="step-label step-label--jwt">Login Endpoint</div>
+        <div class="step-body">
+          User hits <strong>GET /auth/sso</strong> with a <code>jwt</code> query param.
+          The SSO route handler dispatches to the JWT integration.
+          <br>
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/enterprise/backend/src/metabase_enterprise/sso/api/sso.clj#L37-L44" target="_blank">sso/api/sso.clj:37-44</a>
+        </div>
+      </div>
+      <div class="step-arrow"><svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg></div>
+
+      <!-- JWT validation -->
+      <div class="step animate" style="--i:6">
+        <div class="step-label step-label--jwt">JWT Validation</div>
+        <div class="step-body">
+          <code>session-data</code> calls <code>auth-identity/login! :provider/jwt</code>, which decodes the token,
+          verifies the signature against the JWT shared secret, and extracts user info (email, groups).
+          <br>
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/enterprise/backend/src/metabase_enterprise/sso/integrations/jwt.clj#L19-L37" target="_blank">sso/integrations/jwt.clj:19-37</a>
+          &rarr;
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/enterprise/backend/src/metabase_enterprise/sso/providers/jwt.clj#L80-L133" target="_blank">providers/jwt.clj:80-133</a>
+        </div>
+      </div>
+      <div class="step-arrow"><svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg></div>
+
+      <!-- Session creation -->
+      <div class="step animate" style="--i:7">
+        <div class="step-label step-label--db">Session + AuthIdentity Created</div>
+        <div class="step-body">
+          <code>create-session-with-auth-tracking!</code> creates an <code>auth_identity</code> row with
+          <code>provider = "jwt"</code> and a <code>core_session</code> row with <code>auth_identity_id</code> FK.
+          A session cookie is set on the response.
+          <br>
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/auth_identity/session.clj#L15-L41" target="_blank">auth_identity/session.clj:15-41</a>
+        </div>
+      </div>
+      <div class="step-arrow"><svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg></div>
+
+      <!-- Subsequent request middleware -->
+      <div class="step animate" style="--i:8">
+        <div class="step-label step-label--mw">Subsequent Request: wrap-current-user-info</div>
+        <div class="step-body">
+          On next request, <code>session-with-id-query</code> JOINs <code>auth_identity</code> to get
+          <code>provider</code> as <code>:auth-provider</code>. <code>merge-current-user-info</code> sets
+          <code>:auth-method</code> on the request to <code>(or (:auth-provider session-info) "session")</code>,
+          which resolves to <strong>"jwt"</strong>.
+          <br>
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/server/middleware/session.clj#L109" target="_blank">session.clj:109</a> (JOIN),
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/server/middleware/session.clj#L242" target="_blank">session.clj:242</a> (auth-method)
+        </div>
+      </div>
+      <div class="step-arrow"><svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg></div>
+
+      <!-- bind-current-user -->
+      <div class="step animate" style="--i:9">
+        <div class="step-label step-label--mw">bind-current-user</div>
+        <div class="step-body">
+          Binds <code>*auth-method*</code> dynamic var to <code>(:auth-method request)</code>, which is <strong>"jwt"</strong>.
+          The <code>or</code> short-circuits - route fallback is never reached.
+          <br>
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/server/middleware/session.clj#L283-L285" target="_blank">session.clj:283-285</a>
+        </div>
+      </div>
+      <div class="step-arrow"><svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg></div>
+
+      <!-- DB write -->
+      <div class="step animate" style="--i:10">
+        <div class="step-label step-label--db">include-sdk-info &rarr; DB</div>
+        <div class="step-body">
+          <code>include-sdk-info</code> reads <code>*auth-method*</code> and writes it to the row's <code>:auth_method</code> column
+          via <code>before-insert</code> hooks on ViewLog and QueryExecution.
+          <br>
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/analytics/sdk.clj#L97" target="_blank">sdk.clj:97</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-box result-box--jwt animate-scale" style="--i:11">
+      <span class="result-key">auth_method:</span> <span class="result-val result-val--jwt">"jwt"</span><br>
+      <span class="result-key">embedding_route:</span> <span class="result-val--null">nil</span><br>
+      <span class="result-key">embedding_client:</span> <span class="result-val--null">nil</span> <span class="result-key">(or SDK header if present)</span>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ===================== SCENARIO 2: API KEY ===================== -->
+  <section class="scenario">
+    <div class="scenario-header animate" style="--i:12">
+      <div class="scenario-num scenario-num--apikey">2</div>
+      <h2 class="scenario-title">API Key in the Header</h2>
+    </div>
+    <p class="scenario-desc animate" style="--i:13">
+      An automated client sends the <code>X-Api-Key</code> header. There's no session -
+      the API key is validated directly on every request by looking up the key prefix and verifying
+      the bcrypt hash.
+    </p>
+
+    <div class="steps">
+      <div class="step animate" style="--i:14">
+        <div class="step-label step-label--mw">Header Extraction</div>
+        <div class="step-body">
+          <code>merge-current-user-info</code> destructures <code>x-api-key</code> from the request headers.
+          No session is found, so it falls through to API key validation.
+          <br>
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/server/middleware/session.clj#L239" target="_blank">session.clj:239</a>
+        </div>
+      </div>
+      <div class="step-arrow"><svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg></div>
+
+      <div class="step animate" style="--i:15">
+        <div class="step-label step-label--apikey">API Key Validation</div>
+        <div class="step-body">
+          <code>current-user-info-for-api-key</code> validates the key format via Malli schema,
+          looks up the user by key prefix (<code>user-data-for-api-key-prefix-query</code>),
+          then verifies the full key against the stored bcrypt hash via <code>matching-api-key?</code>.
+          Timing-safe: uses <code>do-useless-hash</code> on miss to prevent timing attacks.
+          <br>
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/server/middleware/session.clj#L214-L236" target="_blank">session.clj:214-236</a> (validation),
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/server/middleware/session.clj#L207-L212" target="_blank">session.clj:207-212</a> (hash check)
+        </div>
+      </div>
+      <div class="step-arrow"><svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg></div>
+
+      <div class="step animate" style="--i:16">
+        <div class="step-label step-label--mw">auth-method = "api-key"</div>
+        <div class="step-body">
+          <code>merge-current-user-info</code> hits the <code>api-key-info</code> branch and hardcodes
+          <code>auth-method</code> to <strong>"api-key"</strong>.
+          <br>
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/server/middleware/session.clj#L243" target="_blank">session.clj:243</a>
+        </div>
+      </div>
+      <div class="step-arrow"><svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg></div>
+
+      <div class="step animate" style="--i:17">
+        <div class="step-label step-label--mw">bind-current-user</div>
+        <div class="step-body">
+          Binds <code>*auth-method*</code> to <code>"api-key"</code> from <code>(:auth-method request)</code>.
+          Route fallback not reached.
+          <br>
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/server/middleware/session.clj#L283-L285" target="_blank">session.clj:283-285</a>
+        </div>
+      </div>
+      <div class="step-arrow"><svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg></div>
+
+      <div class="step animate" style="--i:18">
+        <div class="step-label step-label--db">include-sdk-info &rarr; DB</div>
+        <div class="step-body">
+          <code>*auth-method*</code> = <code>"api-key"</code> is captured into the DB row.
+          <br>
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/analytics/sdk.clj#L97" target="_blank">sdk.clj:97</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-box result-box--apikey animate-scale" style="--i:19">
+      <span class="result-key">auth_method:</span> <span class="result-val result-val--apikey">"api-key"</span><br>
+      <span class="result-key">embedding_route:</span> <span class="result-val--null">nil</span><br>
+      <span class="result-key">embedding_client:</span> <span class="result-val--null">nil</span> <span class="result-key">(or SDK header if present)</span>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ===================== SCENARIO 3: GUEST EMBED ===================== -->
+  <section class="scenario">
+    <div class="scenario-header animate" style="--i:20">
+      <div class="scenario-num scenario-num--guest">3</div>
+      <h2 class="scenario-title">Signed JWT via /api/embed/* (Guest Embed)</h2>
+    </div>
+    <p class="scenario-desc animate" style="--i:21">
+      An iframe or SDK loads a card/dashboard via <code>/api/embed/card/:token/query</code>.
+      The token is a JWT signed with the <strong>embedding secret key</strong> (completely separate from SSO JWT).
+      No session or API key is involved. The guest-embed JWT is the authorization mechanism -
+      it determines what the client can see and with what filters.
+    </p>
+
+    <div class="steps">
+      <div class="step animate" style="--i:22">
+        <div class="step-label step-label--mw">embedding-mw: Route Detection</div>
+        <div class="step-body">
+          <code>embedding-mw</code> matches the URI prefix <code>/api/embed/</code> against
+          <code>route-surface-mapping</code> and binds <code>*route* = "guest-embed"</code>.
+          Also reads <code>X-Metabase-Client</code> header into <code>*client*</code> (e.g. <code>"embedding-iframe-static"</code>).
+          <br>
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/analytics/sdk.clj#L117-L124" target="_blank">sdk.clj:117-124</a> (mapping),
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/analytics/sdk.clj#L133-L160" target="_blank">sdk.clj:133-160</a> (middleware)
+        </div>
+      </div>
+      <div class="step-arrow"><svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg></div>
+
+      <div class="step animate" style="--i:23">
+        <div class="step-label step-label--guest">Embed JWT Validation (in handler)</div>
+        <div class="step-body">
+          The embed handler calls <code>unsign-and-translate-ids</code>, which calls <code>embedding.jwt/unsign</code>.
+          This verifies the token against the <strong>embedding-secret-key</strong> setting
+          (NOT the SSO JWT secret). Extracts the card/dashboard ID, locked parameters, and unsigned token claims.
+          <br>
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/embedding_rest/api/embed.clj#L61-L65" target="_blank">embed.clj:61-65</a> (unsign call),
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/embedding/jwt.clj#L28-L44" target="_blank">embedding/jwt.clj:28-44</a> (verification)
+        </div>
+      </div>
+      <div class="step-arrow"><svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg></div>
+
+      <div class="step animate" style="--i:24">
+        <div class="step-label step-label--mw">wrap-current-user-info: Nothing Found</div>
+        <div class="step-body">
+          No session cookie, no <code>X-Api-Key</code> header. <code>session-info</code> and <code>api-key-info</code>
+          are both <code>nil</code>. <code>auth-method</code> on the request stays <code>nil</code>.
+          <br>
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/server/middleware/session.clj#L240-L243" target="_blank">session.clj:240-243</a>
+        </div>
+      </div>
+      <div class="step-arrow"><svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg></div>
+
+      <div class="step animate" style="--i:25">
+        <div class="step-label step-label--guest">bind-current-user: Route Fallback</div>
+        <div class="step-body">
+          <code>(:auth-method request)</code> is <code>nil</code>, so the <code>or</code> falls through.
+          <code>({"guest-embed" "guest"} (get-route))</code> maps <code>"guest-embed"</code> to <strong>"guest"</strong>.
+          Binds <code>*auth-method* = "guest"</code>.
+          <br>
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/server/middleware/session.clj#L283-L285" target="_blank">session.clj:283-285</a>
+        </div>
+      </div>
+      <div class="step-arrow"><svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg></div>
+
+      <div class="step animate" style="--i:26">
+        <div class="step-label step-label--db">include-sdk-info &rarr; DB</div>
+        <div class="step-body">
+          All three dynamic vars are captured into the DB row:
+          <code>*auth-method*</code> = <code>"guest"</code>,
+          <code>*route*</code> = <code>"guest-embed"</code>,
+          <code>*client*</code> = whatever the embedding client sent.
+          <br>
+          <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/analytics/sdk.clj#L89-L98" target="_blank">sdk.clj:89-98</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-box result-box--guest animate-scale" style="--i:27">
+      <span class="result-key">auth_method:</span> <span class="result-val result-val--guest">"guest"</span><br>
+      <span class="result-key">embedding_route:</span> <span class="result-val">"guest-embed"</span><br>
+      <span class="result-key">embedding_client:</span> <span class="result-val">"embedding-iframe-static"</span> <span class="result-key">(or other client header)</span>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>

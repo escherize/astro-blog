@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Async Dependency Handlers — Before &amp; After</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Instrument Serif', Georgia, serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #faf9f7;
+    --surface: #ffffff;
+    --surface2: #f3f1ee;
+    --border: rgba(0, 0, 0, 0.08);
+    --border-bright: rgba(0, 0, 0, 0.15);
+    --text: #1c1917;
+    --text-dim: #78716c;
+
+    --sync: #dc2626;
+    --sync-dim: rgba(220, 38, 38, 0.07);
+    --async: #059669;
+    --async-dim: rgba(5, 150, 105, 0.07);
+    --cheap: #2563eb;
+    --cheap-dim: rgba(37, 99, 235, 0.07);
+    --neutral: #78716c;
+    --neutral-dim: rgba(120, 113, 108, 0.07);
+    --accent: #7c3aed;
+    --accent-dim: rgba(124, 58, 237, 0.07);
+
+    --red: #dc2626;
+    --red-dim: rgba(220, 38, 38, 0.08);
+    --green: #059669;
+    --green-dim: rgba(5, 150, 105, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1917;
+      --surface: #292524;
+      --surface2: #3a3530;
+      --border: rgba(255, 255, 255, 0.07);
+      --border-bright: rgba(255, 255, 255, 0.14);
+      --text: #fafaf9;
+      --text-dim: #a8a29e;
+
+      --sync: #f87171;
+      --sync-dim: rgba(248, 113, 113, 0.12);
+      --async: #34d399;
+      --async-dim: rgba(52, 211, 153, 0.12);
+      --cheap: #60a5fa;
+      --cheap-dim: rgba(96, 165, 250, 0.12);
+      --neutral: #a8a29e;
+      --neutral-dim: rgba(168, 162, 158, 0.1);
+      --accent: #c4b5fd;
+      --accent-dim: rgba(196, 181, 253, 0.1);
+
+      --red: #f87171;
+      --red-dim: rgba(248, 113, 113, 0.12);
+      --green: #34d399;
+      --green-dim: rgba(52, 211, 153, 0.12);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(at 30% 0%, var(--accent-dim) 0%, transparent 50%),
+      radial-gradient(at 80% 80%, var(--async-dim) 0%, transparent 40%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 48px 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .animate {
+    animation: fadeUp 0.45s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.07s);
+  }
+  .animate-scale {
+    animation: fadeScale 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.07s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+    .mermaid-wrap .mermaid { transition: none; }
+  }
+
+  .container {
+    max-width: 1060px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 44px;
+    font-weight: 400;
+    letter-spacing: -0.5px;
+    line-height: 1.15;
+    margin-bottom: 8px;
+    text-wrap: balance;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    margin-bottom: 28px;
+  }
+
+  .lead {
+    font-size: 20px;
+    line-height: 1.65;
+    color: var(--text-dim);
+    max-width: 720px;
+    margin-bottom: 40px;
+  }
+
+  .lead em { color: var(--text); font-style: italic; }
+
+  /* === KPI ROW === */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+
+  .kpi-card__value {
+    font-size: 38px;
+    font-weight: 400;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    font-family: var(--font-body);
+  }
+
+  .kpi-card__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-top: 8px;
+  }
+
+  .kpi-card__detail {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  .kpi-card--danger .kpi-card__value { color: var(--sync); }
+  .kpi-card--success .kpi-card__value { color: var(--async); }
+
+  /* === SECTION HEADERS === */
+  h2 {
+    font-size: 30px;
+    font-weight: 400;
+    margin-bottom: 6px;
+  }
+
+  .section-sub {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+    letter-spacing: 0.3px;
+  }
+
+  /* === DIFF PANELS === */
+  .diff-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 48px;
+  }
+
+  .diff-panels > * { min-width: 0; overflow-wrap: break-word; }
+
+  .diff-panel__header {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    padding: 12px 20px;
+  }
+
+  .diff-panel__header--before {
+    background: var(--red-dim);
+    color: var(--red);
+    border-bottom: 2px solid var(--red);
+  }
+
+  .diff-panel__header--after {
+    background: var(--green-dim);
+    color: var(--green);
+    border-bottom: 2px solid var(--green);
+    border-left: 1px solid var(--border);
+  }
+
+  .diff-panel__body {
+    padding: 20px;
+    background: var(--surface);
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-dim);
+  }
+
+  .diff-panel__body:nth-child(4) {
+    border-left: 1px solid var(--border);
+  }
+
+  .diff-panel__body code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  .diff-panel__body .sync-code {
+    background: var(--sync-dim);
+    color: var(--sync);
+  }
+
+  .diff-panel__body .async-code {
+    background: var(--async-dim);
+    color: var(--async);
+  }
+
+  .diff-panel__body .cheap-code {
+    background: var(--cheap-dim);
+    color: var(--cheap);
+  }
+
+  .handler-list {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0 0;
+  }
+
+  .handler-list li {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    padding-left: 0;
+  }
+
+  .handler-list li:last-child { border-bottom: none; }
+
+  .handler-name {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  .handler-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  .handler-cost {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 4px;
+  }
+
+  .cost-cheap { background: var(--cheap-dim); color: var(--cheap); }
+  .cost-moderate { background: var(--neutral-dim); color: var(--neutral); }
+  .cost-expensive { background: var(--sync-dim); color: var(--sync); }
+
+  .status-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-left: 6px;
+  }
+
+  .badge-sync { background: var(--sync-dim); color: var(--sync); }
+  .badge-async { background: var(--async-dim); color: var(--async); }
+
+  /* === MERMAID === */
+  .diagram-section {
+    margin-bottom: 48px;
+  }
+
+  .mermaid-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    overflow: auto;
+    margin-bottom: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .mermaid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .mermaid-wrap::-webkit-scrollbar-track { background: transparent; }
+  .mermaid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .mermaid-wrap::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  .mermaid-wrap .mermaid {
+    display: flex;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    transform-origin: top center;
+  }
+
+  .zoom-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 2px;
+    z-index: 10;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+  }
+
+  .zoom-controls button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .zoom-controls button:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .mermaid-wrap.is-zoomed { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+  .mermaid .nodeLabel {
+    font-family: var(--font-mono) !important;
+    font-size: 13px !important;
+  }
+
+  .mermaid .edgeLabel {
+    font-family: var(--font-mono) !important;
+    font-size: 11px !important;
+  }
+
+  .mermaid .node rect,
+  .mermaid .node circle,
+  .mermaid .node polygon {
+    stroke-width: 1.5px !important;
+  }
+
+  .mermaid .edge-pattern-solid {
+    stroke-width: 1.5px !important;
+  }
+
+  /* === LEGEND === */
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 48px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  /* === CALLOUT === */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--async);
+    border-radius: 0 10px 10px 0;
+    padding: 18px 22px;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text-dim);
+    margin-bottom: 48px;
+  }
+
+  .callout strong { color: var(--text); }
+  .callout code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--async-dim);
+    color: var(--async);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .callout--warn {
+    border-left-color: var(--sync);
+  }
+
+  .callout--warn code {
+    background: var(--sync-dim);
+    color: var(--sync);
+  }
+
+  /* === EXECUTOR BOX === */
+  .executor-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 48px;
+  }
+
+  .executor-card h3 {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+
+  .executor-props {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+  }
+
+  .executor-prop {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+
+  .executor-prop dt {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .executor-prop dd {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .executor-prop dd code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--async-dim);
+    color: var(--async);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* === RESPONSIVE === */
+  @media (max-width: 768px) {
+    body { padding: 20px 16px; }
+    h1 { font-size: 28px; }
+    h2 { font-size: 22px; }
+    .lead { font-size: 17px; }
+    .diff-panels { grid-template-columns: 1fr; }
+    .diff-panel__header--after { border-left: none; border-top: 1px solid var(--border); }
+    .diff-panel__body:nth-child(4) { border-left: none; border-top: 1px solid var(--border); }
+    .mermaid-wrap { padding: 16px 12px; }
+    .kpi-card__value { font-size: 30px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1 class="animate" style="--i:0">Async Dependency Handlers</h1>
+  <p class="subtitle animate" style="--i:1">metabase-enterprise.dependencies &mdash; card save event pipeline</p>
+
+  <p class="lead animate" style="--i:2">
+    When a card is saved, <em>three event handlers</em> fire from <code style="font-family:var(--font-mono);font-size:14px;background:var(--accent-dim);color:var(--accent);padding:1px 6px;border-radius:4px;">publish-event! :event/card-update</code>.
+    Two of them are expensive and were blocking the HTTP response for minutes on large instances.
+    Now they run asynchronously on a dedicated executor thread.
+  </p>
+
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi-card kpi-card--danger animate-scale" style="--i:3">
+      <div class="kpi-card__value">2,075</div>
+      <div class="kpi-card__label">Dependents</div>
+      <div class="kpi-card__detail">on stats.metabase.com</div>
+    </div>
+    <div class="kpi-card kpi-card--danger animate-scale" style="--i:4">
+      <div class="kpi-card__value">Minutes</div>
+      <div class="kpi-card__label">PUT blocked (before)</div>
+      <div class="kpi-card__detail">save succeeds, response hangs</div>
+    </div>
+    <div class="kpi-card kpi-card--success animate-scale" style="--i:5">
+      <div class="kpi-card__value">&lt;50ms</div>
+      <div class="kpi-card__label">PUT response (after)</div>
+      <div class="kpi-card__detail">returns after cheap handler only</div>
+    </div>
+  </div>
+
+  <!-- BEFORE / AFTER -->
+  <h2 class="animate" style="--i:6">The Three Handlers</h2>
+  <p class="section-sub animate" style="--i:7">What fires on :event/card-update, and what changed</p>
+
+  <div class="diff-panels animate" style="--i:8">
+    <div class="diff-panel__header diff-panel__header--before">Before &mdash; all synchronous</div>
+    <div class="diff-panel__header diff-panel__header--after">After &mdash; cheap sync, expensive async</div>
+
+    <div class="diff-panel__body">
+      <p>All three handlers ran inline on the request thread. The PUT response couldn't return until every handler completed:</p>
+      <ol class="handler-list">
+        <li>
+          <span class="handler-name">::card-deps <span class="status-badge badge-sync">sync</span></span>
+          <span class="handler-desc">Recalculate upstream deps for the saved card</span>
+          <span class="handler-cost cost-cheap">O(1) &mdash; cheap</span>
+        </li>
+        <li>
+          <span class="handler-name">::check-card-dependents <span class="status-badge badge-sync">sync</span></span>
+          <span class="handler-desc">Upsert analysis + mark all dependents stale</span>
+          <span class="handler-cost cost-moderate">O(n) dependents &mdash; moderate</span>
+        </li>
+        <li>
+          <span class="handler-name">::update-card-dependents-metadata <span class="status-badge badge-sync">sync</span></span>
+          <span class="handler-desc">Infer metadata for every MBQL dependent card</span>
+          <span class="handler-cost cost-expensive">O(n) &times; query cost &mdash; expensive</span>
+        </li>
+      </ol>
+    </div>
+
+    <div class="diff-panel__body">
+      <p>The cheap handler stays inline. The two expensive ones submit work to a single-threaded executor:</p>
+      <ol class="handler-list">
+        <li>
+          <span class="handler-name">::card-deps <span class="status-badge badge-sync">sync</span></span>
+          <span class="handler-desc">Unchanged &mdash; still inline, still fast</span>
+          <span class="handler-cost cost-cheap">O(1) &mdash; cheap</span>
+        </li>
+        <li>
+          <span class="handler-name">::check-card-dependents <span class="status-badge badge-async">async</span></span>
+          <span class="handler-desc">Wrapped in <code class="async-code">async/submit!</code></span>
+          <span class="handler-cost cost-moderate">runs on executor thread</span>
+        </li>
+        <li>
+          <span class="handler-name">::update-card-dependents-metadata <span class="status-badge badge-async">async</span></span>
+          <span class="handler-desc">Wrapped in <code class="async-code">async/submit!</code></span>
+          <span class="handler-cost cost-expensive">runs on executor thread</span>
+        </li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- SEQUENCE DIAGRAM: BEFORE -->
+  <div class="diagram-section">
+    <h2 class="animate" style="--i:9">Before: Blocking Timeline</h2>
+    <p class="section-sub animate" style="--i:10">PUT /api/card/:id &mdash; response blocked until all handlers complete</p>
+
+    <div class="mermaid-wrap animate" style="--i:11">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+sequenceDiagram
+    participant FE as Frontend
+    participant API as PUT /api/card
+    participant DB as Database
+    participant H1 as card-deps
+    participant H2 as check-card-dependents
+    participant H3 as update-dependents-metadata
+
+    FE->>API: PUT card save
+    API->>DB: UPDATE card row
+    DB-->>API: committed
+
+    Note over API,H3: publish-event! :event/card-update
+
+    API->>H1: inline call
+    H1->>DB: replace-dependencies!
+    DB-->>H1: done
+    H1-->>API: done (fast)
+
+    API->>H2: inline call
+    H2->>DB: upsert-analysis!
+    H2->>DB: mark-dependents-stale! (n rows)
+    DB-->>H2: done
+    H2-->>API: done (moderate)
+
+    API->>H3: inline call
+    loop Each MBQL dependent (n cards)
+        H3->>DB: infer-metadata + update
+    end
+    H3-->>API: done (SLOW)
+
+    Note over API: NOW response can return
+    API-->>FE: 200 OK
+      </pre>
+    </div>
+
+    <div class="callout callout--warn animate" style="--i:12">
+      <strong>The problem.</strong> The save itself commits in milliseconds. But the PUT handler waits for
+      all three event handlers to complete before returning the HTTP response.
+      With 2,075 dependents, <code>::update-card-dependents-metadata</code> takes minutes to infer metadata
+      for each one. The user sees a spinner the entire time.
+    </div>
+  </div>
+
+  <!-- SEQUENCE DIAGRAM: AFTER -->
+  <div class="diagram-section">
+    <h2 class="animate" style="--i:13">After: Non-Blocking Timeline</h2>
+    <p class="section-sub animate" style="--i:14">PUT returns after the cheap handler; expensive work queues in background</p>
+
+    <div class="mermaid-wrap animate" style="--i:15">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+sequenceDiagram
+    participant FE as Frontend
+    participant API as PUT /api/card
+    participant DB as Database
+    participant H1 as card-deps
+    participant EX as Executor Thread
+    participant H2 as check-card-dependents
+    participant H3 as update-dependents-metadata
+
+    FE->>API: PUT card save
+    API->>DB: UPDATE card row
+    DB-->>API: committed
+
+    Note over API,H3: publish-event! :event/card-update
+
+    API->>H1: inline call
+    H1->>DB: replace-dependencies!
+    DB-->>H1: done
+    H1-->>API: done (fast)
+
+    API-)EX: submit! check-card-dependents
+    API-)EX: submit! update-dependents-metadata
+
+    Note over API: Response returns NOW
+    API-->>FE: 200 OK
+
+    Note over EX: Tasks execute serially on background thread
+
+    EX->>H2: execute
+    H2->>DB: upsert-analysis!
+    H2->>DB: mark-dependents-stale!
+    DB-->>H2: done
+    H2-->>EX: done
+
+    EX->>H3: execute
+    loop Each MBQL dependent
+        H3->>DB: infer-metadata + update
+    end
+    H3-->>EX: done
+      </pre>
+    </div>
+  </div>
+
+  <div class="legend animate" style="--i:16">
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--cheap)"></div> Sync (cheap, stays inline)</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--async)"></div> Async (expensive, background)</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--sync)"></div> Blocking wait (eliminated)</div>
+  </div>
+
+  <!-- EXECUTOR DETAILS -->
+  <h2 class="animate" style="--i:17">The Executor</h2>
+  <p class="section-sub animate" style="--i:18">metabase-enterprise.dependencies.async</p>
+
+  <div class="executor-card animate" style="--i:19">
+    <h3>dependency-event-worker</h3>
+    <dl class="executor-props">
+      <div class="executor-prop">
+        <dt>Type</dt>
+        <dd><code>Executors/newSingleThreadExecutor</code></dd>
+      </div>
+      <div class="executor-prop">
+        <dt>Thread Name</dt>
+        <dd><code>dependency-event-worker</code></dd>
+      </div>
+      <div class="executor-prop">
+        <dt>Serialization</dt>
+        <dd>Tasks execute one at a time &mdash; no concurrent writes to dependent cards</dd>
+      </div>
+      <div class="executor-prop">
+        <dt>Binding Capture</dt>
+        <dd><code>bound-fn*</code> captures dynamic bindings (DB connections, user context)</dd>
+      </div>
+      <div class="executor-prop">
+        <dt>Lifecycle</dt>
+        <dd>Daemon thread &mdash; shuts down with the JVM</dd>
+      </div>
+      <div class="executor-prop">
+        <dt>Testability</dt>
+        <dd><code>with-redefs [async/submit! (fn [f] (f))]</code> for synchronous test execution</dd>
+      </div>
+    </dl>
+  </div>
+
+  <div class="callout animate" style="--i:20">
+    <strong>Why single-threaded?</strong> If a user rapidly saves the same model three times,
+    the dependency updates queue up and process in order. No concurrent writes racing to update
+    the same dependent cards. The pattern follows <code>metabase.util.quick-task</code>.
+  </div>
+
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    look: 'classic',
+    themeVariables: {
+      primaryColor: isDark ? '#292524' : '#f5f5f4',
+      primaryBorderColor: isDark ? '#a8a29e' : '#78716c',
+      primaryTextColor: isDark ? '#fafaf9' : '#1c1917',
+      secondaryColor: isDark ? '#3a3530' : '#e7e5e4',
+      secondaryBorderColor: isDark ? '#78716c' : '#a8a29e',
+      secondaryTextColor: isDark ? '#fafaf9' : '#1c1917',
+      lineColor: isDark ? '#78716c' : '#a8a29e',
+      fontSize: '13px',
+      fontFamily: "'JetBrains Mono', monospace",
+      noteBkgColor: isDark ? '#3a3530' : '#fef3c7',
+      noteTextColor: isDark ? '#fafaf9' : '#1c1917',
+      noteBorderColor: isDark ? '#a8a29e' : '#78716c',
+      actorBkg: isDark ? '#292524' : '#f5f5f4',
+      actorBorder: isDark ? '#78716c' : '#a8a29e',
+      actorTextColor: isDark ? '#fafaf9' : '#1c1917',
+      activationBorderColor: isDark ? '#78716c' : '#a8a29e',
+      activationBkgColor: isDark ? '#3a3530' : '#e7e5e4',
+      sequenceNumberColor: isDark ? '#fafaf9' : '#1c1917',
+      signalColor: isDark ? '#a8a29e' : '#78716c',
+      signalTextColor: isDark ? '#fafaf9' : '#1c1917',
+    }
+  });
+</script>
+<script>
+  function updateZoomState(wrap) {
+    var target = wrap.querySelector('.mermaid');
+    var zoom = parseFloat(target.dataset.zoom || '1');
+    wrap.classList.toggle('is-zoomed', zoom > 1);
+  }
+
+  function zoomDiagram(btn, factor) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    var current = parseFloat(target.dataset.zoom || '1');
+    var next = Math.min(Math.max(current * factor, 0.3), 5);
+    target.dataset.zoom = next;
+    target.style.transform = 'scale(' + next + ')';
+    updateZoomState(wrap);
+  }
+
+  function resetZoom(btn) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    target.dataset.zoom = '1';
+    target.style.transform = 'scale(1)';
+    updateZoomState(wrap);
+  }
+
+  document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+    wrap.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      var target = wrap.querySelector('.mermaid');
+      var current = parseFloat(target.dataset.zoom || '1');
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var next = Math.min(Math.max(current * factor, 0.3), 5);
+      target.dataset.zoom = next;
+      target.style.transform = 'scale(' + next + ')';
+      updateZoomState(wrap);
+    }, { passive: false });
+
+    var startX, startY, scrollL, scrollT;
+    wrap.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.zoom-controls')) return;
+      var target = wrap.querySelector('.mermaid');
+      if (parseFloat(target.dataset.zoom || '1') <= 1) return;
+      wrap.classList.add('is-panning');
+      startX = e.clientX;
+      startY = e.clientY;
+      scrollL = wrap.scrollLeft;
+      scrollT = wrap.scrollTop;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!wrap.classList.contains('is-panning')) return;
+      wrap.scrollLeft = scrollL - (e.clientX - startX);
+      wrap.scrollTop = scrollT - (e.clientY - startY);
+    });
+    window.addEventListener('mouseup', function() {
+      wrap.classList.remove('is-panning');
+    });
+  });
+</script>
+
+</body>
+</html>

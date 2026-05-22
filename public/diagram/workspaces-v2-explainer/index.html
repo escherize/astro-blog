@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workspaces V2 — Explainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --font-body: 'Geist Mono', 'SF Mono', Consolas, monospace;
+    --font-display: 'Inter', system-ui, sans-serif;
+    --font-mono: 'Geist Mono', 'SF Mono', Consolas, monospace;
+    --bg: #0a0e14;
+    --surface: #12161e;
+    --surface2: #1a1f2a;
+    --surface-elevated: #222836;
+    --border: rgba(80, 250, 123, 0.08);
+    --border-bright: rgba(80, 250, 123, 0.16);
+    --text: #c8d6e5;
+    --text-dim: #6a7a8a;
+    --text-strong: #e6eef7;
+    --accent: #50fa7b;
+    --accent-dim: rgba(80, 250, 123, 0.08);
+    --accent-glow: rgba(80, 250, 123, 0.18);
+    --code-bg: #060a10;
+    --code-text: #c8d6e5;
+    --warn: #f1fa8c;
+    --info: #8be9fd;
+    --pink: #ff79c6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-body);
+    color: var(--text);
+    background: var(--bg);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .deck {
+    height: 100dvh;
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+  }
+
+  .slide {
+    height: 100dvh;
+    scroll-snap-align: start;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: clamp(36px, 5vh, 64px) clamp(40px, 7vw, 100px);
+    isolation: isolate;
+    opacity: 0;
+    transform: translateY(40px) scale(0.98);
+    transition:
+      opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .slide.visible { opacity: 1; transform: none; }
+
+  .slide:nth-child(odd) {
+    background-image: radial-gradient(ellipse at 18% 82%, var(--accent-glow) 0%, transparent 55%);
+  }
+  .slide:nth-child(even) {
+    background-image: radial-gradient(ellipse at 82% 22%, var(--accent-glow) 0%, transparent 55%);
+  }
+
+  .slide::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+    background-size: 32px 32px;
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .slide > * { position: relative; z-index: 1; }
+
+  .slide .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition:
+      opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .slide.visible .reveal { opacity: 1; transform: none; }
+  .slide.visible .reveal:nth-child(1) { transition-delay: 0.05s; }
+  .slide.visible .reveal:nth-child(2) { transition-delay: 0.15s; }
+  .slide.visible .reveal:nth-child(3) { transition-delay: 0.25s; }
+  .slide.visible .reveal:nth-child(4) { transition-delay: 0.35s; }
+  .slide.visible .reveal:nth-child(5) { transition-delay: 0.45s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slide, .slide .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+  }
+
+  /* ========== Typography ========== */
+  .display {
+    font-family: var(--font-display);
+    font-size: clamp(48px, 8.5vw, 100px);
+    font-weight: 800;
+    letter-spacing: -3px;
+    line-height: 0.95;
+    color: var(--text-strong);
+  }
+
+  .heading {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 4.2vw, 44px);
+    font-weight: 700;
+    letter-spacing: -0.8px;
+    line-height: 1.15;
+    color: var(--text-strong);
+  }
+
+  .heading-mono {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  .body {
+    font-size: clamp(15px, 1.7vw, 19px);
+    line-height: 1.65;
+    color: var(--text);
+  }
+
+  .body-dim { color: var(--text-dim); }
+
+  .label {
+    font-family: var(--font-mono);
+    font-size: clamp(10px, 1.1vw, 13px);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-family: var(--font-mono);
+    font-size: clamp(13px, 1.5vw, 18px);
+    color: var(--text-dim);
+  }
+
+  .accent { color: var(--accent); }
+  .dim { color: var(--text-dim); }
+  .mono { font-family: var(--font-mono); }
+  .strong { color: var(--text-strong); }
+
+  /* ========== Title slide ========== */
+  .slide--title { justify-content: center; align-items: flex-start; }
+
+  .slide--title .pre {
+    font-family: var(--font-mono);
+    font-size: clamp(11px, 1.2vw, 13px);
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: clamp(20px, 3vh, 36px);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .slide--title .pre::before {
+    content: '';
+    width: 40px; height: 1px;
+    background: var(--accent);
+  }
+  .slide--title .display { margin-bottom: clamp(20px, 3vh, 36px); max-width: 18ch; }
+  .slide--title .lede {
+    font-family: var(--font-mono);
+    font-size: clamp(15px, 1.8vw, 20px);
+    color: var(--text-dim);
+    max-width: 60ch;
+    line-height: 1.6;
+  }
+  .slide--title .meta {
+    position: absolute;
+    bottom: clamp(36px, 5vh, 60px);
+    left: clamp(40px, 7vw, 100px);
+    right: clamp(40px, 7vw, 100px);
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    z-index: 2;
+  }
+
+  /* ========== Section divider ========== */
+  .slide--divider .number {
+    font-family: var(--font-mono);
+    font-size: clamp(120px, 22vw, 260px);
+    font-weight: 200;
+    line-height: 0.85;
+    color: var(--accent);
+    opacity: 0.12;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -55%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .slide--divider .num-inline {
+    font-family: var(--font-mono);
+    font-size: clamp(12px, 1.4vw, 15px);
+    color: var(--accent);
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+  }
+
+  /* ========== Quote ========== */
+  .slide--quote {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: clamp(60px, 9vh, 110px) clamp(60px, 11vw, 180px);
+  }
+
+  .slide--quote blockquote {
+    font-family: var(--font-display);
+    font-size: clamp(26px, 3.5vw, 42px);
+    font-weight: 500;
+    line-height: 1.35;
+    margin: 0;
+    color: var(--text-strong);
+    letter-spacing: -0.5px;
+  }
+  .slide--quote blockquote em {
+    color: var(--accent);
+    font-style: normal;
+    font-weight: 600;
+  }
+  .slide--quote cite {
+    font-family: var(--font-mono);
+    font-size: clamp(11px, 1.3vw, 13px);
+    font-style: normal;
+    margin-top: clamp(20px, 3vh, 32px);
+    display: block;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  /* ========== Topology (revised: shorter, content-shaped) ========== */
+  .topology {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: clamp(20px, 3vw, 36px);
+    align-items: stretch;
+    margin-top: clamp(20px, 3vh, 32px);
+  }
+
+  .topology__card {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 10px;
+    padding: clamp(20px, 2.5vh, 28px) clamp(20px, 2.5vw, 28px);
+    display: flex;
+    flex-direction: column;
+    font-family: var(--font-mono);
+  }
+
+  .topology__role {
+    color: var(--accent);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .topology__name {
+    font-size: clamp(20px, 2.4vw, 28px);
+    font-weight: 600;
+    color: var(--text-strong);
+    margin-bottom: clamp(10px, 1.5vh, 14px);
+    letter-spacing: -0.5px;
+  }
+  .topology__desc {
+    font-size: clamp(12px, 1.3vw, 14px);
+    color: var(--text);
+    line-height: 1.55;
+    margin-bottom: clamp(12px, 1.8vh, 18px);
+  }
+  .topology__props {
+    list-style: none;
+    padding: 0;
+    border-top: 1px dashed var(--border);
+    padding-top: clamp(10px, 1.5vh, 14px);
+  }
+  .topology__props li {
+    font-size: clamp(11px, 1.2vw, 13px);
+    color: var(--text-dim);
+    padding: 3px 0;
+  }
+  .topology__props li strong {
+    color: var(--text-strong);
+    font-weight: 600;
+  }
+  .topology__connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    gap: 4px;
+  }
+  .topology__connector svg { width: 60px; height: 60px; }
+
+  /* ========== Lifecycle pipeline (revised: shorter cards) ========== */
+  .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-top: clamp(16px, 2.2vh, 24px);
+    max-height: 50vh;
+  }
+
+  .pipeline__step {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: clamp(14px, 2vh, 22px) clamp(12px, 1.4vw, 18px);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow-wrap: break-word;
+    font-family: var(--font-mono);
+  }
+  .pipeline__num {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 1.5px;
+  }
+  .pipeline__name {
+    font-size: clamp(14px, 1.5vw, 18px);
+    font-weight: 600;
+    margin: clamp(6px, 1vh, 10px) 0;
+    color: var(--text-strong);
+    letter-spacing: -0.3px;
+    line-height: 1.25;
+  }
+  .pipeline__desc {
+    font-size: clamp(11px, 1.15vw, 13px);
+    color: var(--text-dim);
+    line-height: 1.55;
+    flex: 1;
+  }
+  .pipeline__arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 clamp(2px, 0.3vw, 4px);
+    color: var(--accent);
+    flex-shrink: 0;
+    opacity: 0.4;
+  }
+
+  /* ========== Diagram slide ========== */
+  .slide--diagram {
+    padding: clamp(28px, 4vh, 48px) clamp(28px, 4vw, 60px);
+  }
+
+  .mermaid-wrap {
+    flex: 1;
+    min-height: 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(16px, 2vh, 24px);
+    margin-top: clamp(12px, 1.5vh, 20px);
+  }
+  .mermaid-wrap .mermaid {
+    width: 100%;
+    text-align: center;
+  }
+  .mermaid svg {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+  }
+  .slide--diagram .mermaid .nodeLabel { font-size: 13px !important; }
+  .slide--diagram .mermaid .edgeLabel { font-size: 11px !important; }
+
+  /* Two-flowchart side-by-side */
+  .dual-flow {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(16px, 2vw, 24px);
+    margin-top: clamp(12px, 1.5vh, 20px);
+  }
+  .dual-flow__panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    padding: clamp(14px, 2vh, 20px);
+    overflow: hidden;
+  }
+  .dual-flow__title {
+    font-family: var(--font-mono);
+    font-size: clamp(11px, 1.2vw, 13px);
+    color: var(--accent);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: clamp(8px, 1vh, 12px);
+  }
+  .dual-flow__chart {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .dual-flow__chart .mermaid {
+    width: 100%;
+    text-align: center;
+  }
+  .dual-flow__chart .mermaid .nodeLabel { font-size: 12px !important; }
+  .dual-flow__chart .mermaid svg {
+    max-height: 56vh !important;
+  }
+
+  /* ========== Code block ========== */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border-bright);
+    border-radius: 10px;
+    padding: clamp(20px, 2.6vh, 28px) clamp(20px, 2.6vw, 32px);
+    position: relative;
+    font-family: var(--font-mono);
+    font-size: clamp(11px, 1.15vw, 13px);
+    line-height: 1.55;
+    color: var(--code-text);
+    overflow: auto;
+    white-space: pre;
+    tab-size: 2;
+    -moz-tab-size: 2;
+  }
+
+  .code-block__filename {
+    position: absolute;
+    top: -10px;
+    left: 18px;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: var(--accent);
+    color: var(--bg);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+    white-space: nowrap;
+  }
+
+  .c-key { color: var(--info); }
+  .c-str { color: var(--warn); }
+  .c-comm { color: var(--text-dim); font-style: italic; }
+  .c-acc { color: var(--accent); }
+  .c-pink { color: var(--pink); }
+
+  /* ========== Generic split slide (50/50) ========== */
+  .slide--split { padding: 0; }
+  .slide--split .panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100%;
+    width: 100%;
+  }
+  .slide--split .panel {
+    padding: clamp(36px, 5vh, 64px) clamp(28px, 3.5vw, 52px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .slide--split .panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+    background-size: 32px 32px;
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  .slide--split .panel > * { position: relative; }
+  .slide--split .panel--primary { background: var(--surface); }
+  .slide--split .panel--secondary { background: var(--surface2); }
+
+  /* ========== Two-up cards ========== */
+  .twoup {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(20px, 3vw, 32px);
+    margin-top: clamp(20px, 3vh, 32px);
+  }
+  .twoup__card {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 10px;
+    padding: clamp(20px, 2.8vh, 30px) clamp(20px, 2.4vw, 28px);
+    font-family: var(--font-mono);
+  }
+  .twoup__card h3 {
+    font-family: var(--font-mono);
+    font-size: clamp(15px, 1.6vw, 20px);
+    color: var(--text-strong);
+    margin-bottom: clamp(10px, 1.5vh, 14px);
+    letter-spacing: -0.3px;
+  }
+  .twoup__card p {
+    font-size: clamp(12px, 1.3vw, 15px);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .twoup__card .label {
+    margin-bottom: 6px;
+  }
+  .twoup__card ul {
+    list-style: none;
+    padding: 0;
+    margin-top: clamp(12px, 1.6vh, 16px);
+  }
+  .twoup__card li {
+    font-size: clamp(11px, 1.2vw, 13px);
+    color: var(--text-dim);
+    padding: 4px 0 4px 18px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .twoup__card li::before {
+    content: '·';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .twoup__card li strong {
+    color: var(--text-strong);
+    font-weight: 500;
+  }
+
+  /* ========== Bullets ========== */
+  .bullets {
+    list-style: none;
+    padding: 0;
+    margin-top: clamp(16px, 2.4vh, 28px);
+  }
+  .bullets li {
+    padding: 9px 0 9px 24px;
+    position: relative;
+    font-family: var(--font-mono);
+    font-size: clamp(13px, 1.5vw, 16px);
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .bullets li::before {
+    content: '>';
+    position: absolute;
+    left: 0;
+    top: 9px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .bullets li strong {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* ========== Full bleed ========== */
+  .slide--bleed { padding: 0; justify-content: flex-end; color: #ffffff; }
+  .slide--bleed::before { display: none; }
+  .slide__bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    z-index: 0;
+  }
+  .slide__bg--gradient {
+    background:
+      radial-gradient(ellipse at 30% 70%, rgba(80, 250, 123, 0.18) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 30%, rgba(139, 233, 253, 0.12) 0%, transparent 50%),
+      linear-gradient(135deg, #0a0e14 0%, #12161e 100%);
+  }
+  .slide__scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0.2) 100%);
+    z-index: 1;
+  }
+  .slide--bleed .slide__content {
+    position: relative;
+    z-index: 2;
+    padding: clamp(40px, 6vh, 72px) clamp(40px, 7vw, 100px);
+    max-width: 80ch;
+  }
+
+  /* ========== Nav chrome ========== */
+  .deck-progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: var(--accent);
+    z-index: 100;
+    transition: width 0.3s ease;
+    pointer-events: none;
+  }
+  .deck-dots {
+    position: fixed;
+    right: clamp(12px, 2vw, 24px);
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 100;
+    background: color-mix(in srgb, var(--bg) 70%, transparent 30%);
+    padding: 8px;
+    border-radius: 20px;
+    backdrop-filter: blur(4px);
+  }
+  .deck-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    opacity: 0.3;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .deck-dot:hover { opacity: 0.6; }
+  .deck-dot.active {
+    opacity: 1;
+    transform: scale(1.6);
+    background: var(--accent);
+  }
+  .deck-counter {
+    position: fixed;
+    bottom: clamp(12px, 2vh, 24px);
+    right: clamp(12px, 2vw, 24px);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    z-index: 100;
+    background: color-mix(in srgb, var(--bg) 70%, transparent 30%);
+    padding: 6px 12px;
+    border-radius: 4px;
+    backdrop-filter: blur(4px);
+  }
+  .deck-hints {
+    position: fixed;
+    bottom: clamp(12px, 2vh, 24px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    opacity: 0.6;
+    z-index: 100;
+    transition: opacity 0.5s;
+    white-space: nowrap;
+    letter-spacing: 1px;
+  }
+  .deck-hints.faded { opacity: 0; pointer-events: none; }
+
+  @media (max-width: 768px) {
+    .topology { grid-template-columns: 1fr; }
+    .topology__connector { transform: rotate(90deg); padding: 12px 0; }
+    .pipeline { flex-direction: column; }
+    .pipeline__arrow { justify-content: center; padding: 4px 0; transform: rotate(90deg); }
+    .twoup { grid-template-columns: 1fr; }
+    .dual-flow { grid-template-columns: 1fr; }
+    .slide--split .panels { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- ========== 1: Title ========== -->
+  <section class="slide slide--title">
+    <div class="reveal">
+      <div class="pre">workspaces v2 / explainer</div>
+    </div>
+    <h1 class="display reveal">Workspaces<br><span class="accent">V2</span></h1>
+    <p class="lede reveal">A way for an analyst with Claude to build a semantic layer against real production data — without their writes ever showing up in production, and without them having to think about that.</p>
+    <p class="reveal" style="margin-top: clamp(20px, 2.5vh, 32px); font-family: var(--font-mono); font-size: clamp(11px, 1.1vw, 13px); color: var(--text-dim); max-width: 64ch; line-height: 1.6; padding: 12px 16px; border-left: 2px solid var(--accent); background: var(--accent-dim);">
+      <span style="color: var(--accent); font-weight: 600;">Heads up &mdash;</span> this is a fast-moving project. The principles are stable; specific endpoints, file shapes, and emit details shift commit-to-commit. This is a snapshot — verify before you cite.
+    </p>
+    <div class="meta">
+      <span>2026.04.29 &middot; SNAPSHOT</span>
+      <span>FEATURE / WORKSPACES-V2</span>
+    </div>
+  </section>
+
+  <!-- ========== 2: Problem quote ========== -->
+  <section class="slide slide--quote">
+    <blockquote class="reveal">
+      &ldquo;An analyst should be able to build modeling against the <em>real</em> data — and write tables back to the warehouse — and have it feel like <em>any other Metabase</em>. Production never sees their work in progress.&rdquo;
+    </blockquote>
+    <cite class="reveal">— the goal in one sentence</cite>
+  </section>
+
+  <!-- ========== 3: Divider 01 — TOPOLOGY ========== -->
+  <section class="slide slide--divider">
+    <span class="number">01</span>
+    <div class="reveal">
+      <div class="num-inline">CHAPTER 01</div>
+      <h2 class="heading">Two instances. Two roles.</h2>
+      <p class="subtitle" style="margin-top: 14px; max-width: 60ch;">Same Metabase code on both. One is the production-shared instance. The other is the analyst's disposable copy. They do not share state.</p>
+    </div>
+  </section>
+
+  <!-- ========== 4: Topology cards (FIXED: shorter, content-shaped) ========== -->
+  <section class="slide">
+    <div class="reveal">
+      <div class="label">topology</div>
+      <h2 class="heading heading-mono" style="margin-top: 8px;">stats &amp; local</h2>
+      <p class="body body-dim" style="margin-top: 12px; max-width: 78ch;">Two Metabase instances running the same code. The role each plays is determined at boot, by what configuration is present — not by which binary is running.</p>
+    </div>
+    <div class="topology reveal">
+      <div class="topology__card">
+        <div class="topology__role">parent · stats</div>
+        <div class="topology__name">stats</div>
+        <p class="topology__desc">Production-ish, multi-user. Owns the canonical schemas the company queries every day. Where workspace admins (data engineers) provision new workspaces and emit a config.yml that hands the workspace off to an analyst.</p>
+        <ul class="topology__props">
+          <li><strong>Role</strong> &mdash; admin / data engineer</li>
+          <li><strong>State</strong> &mdash; Workspace + WorkspaceDatabase rows in app DB</li>
+          <li><strong>Auth</strong> &mdash; UUID-gated public reads</li>
+        </ul>
+      </div>
+      <div class="topology__connector">
+        <svg viewBox="0 0 60 60" fill="none">
+          <line x1="2" y1="22" x2="56" y2="22" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <polygon points="50,18 60,22 50,26" fill="var(--accent)"/>
+          <line x1="56" y1="40" x2="2" y2="40" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.5"/>
+          <polygon points="10,36 0,40 10,44" fill="var(--accent)" opacity="0.5"/>
+        </svg>
+        <span style="margin-top: 8px;">config.yml</span>
+        <span style="opacity: 0.5;">git pull</span>
+      </div>
+      <div class="topology__card">
+        <div class="topology__role">child · local</div>
+        <div class="topology__name">local</div>
+        <p class="topology__desc">On the analyst's laptop. Single-user. Boots from a config.yml the parent emitted. The analyst (with Claude) builds transforms, dashboards, and cards here. Disposable — restart with a different file means a different workspace.</p>
+        <ul class="topology__props">
+          <li><strong>Role</strong> &mdash; analyst (with Claude)</li>
+          <li><strong>State</strong> &mdash; full app DB (H2) plus an in-process atom for workspace config</li>
+          <li><strong>Auth</strong> &mdash; admin API key bundled in config.yml</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 5: Divider 02 — PROVISIONING ========== -->
+  <section class="slide slide--divider">
+    <span class="number">02</span>
+    <div class="reveal" style="text-align: right; margin-left: auto; max-width: 70%;">
+      <div class="num-inline">CHAPTER 02</div>
+      <h2 class="heading">Provisioning</h2>
+      <p class="subtitle" style="margin-top: 14px;">A workspace is a name. Each database you add to it gets its own isolation schema and warehouse user, minted on demand. A workspace can hold one DB or several.</p>
+    </div>
+  </section>
+
+  <!-- ========== 6: Lifecycle pipeline (FIXED: shorter cards) ========== -->
+  <section class="slide">
+    <div class="reveal">
+      <div class="label">lifecycle</div>
+      <h2 class="heading heading-mono" style="margin-top: 8px;">A workspace can hold many DBs. Each one is provisioned separately.</h2>
+      <p class="body body-dim" style="margin-top: 10px; max-width: 80ch; font-size: clamp(13px, 1.45vw, 16px);">The workspace itself is just a name. You add database/schema combinations to it one at a time, and each add provisions warehouse-side resources synchronously. If a provision fails, the database is left in the unprovisioned state and isn't usable.</p>
+    </div>
+    <div class="pipeline reveal">
+      <div class="pipeline__step">
+        <div class="pipeline__num">01</div>
+        <div class="pipeline__name">Create workspace</div>
+        <div class="pipeline__desc">A name. No databases yet. State: <span class="accent">unprovisioned</span>.</div>
+      </div>
+      <div class="pipeline__arrow">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <div class="pipeline__step">
+        <div class="pipeline__num">02</div>
+        <div class="pipeline__name">Add a DB + input schemas</div>
+        <div class="pipeline__desc">Pick the source database and which of its schemas the analyst can read. A WorkspaceDatabase row is inserted; if provisioning fails it stays in <span class="accent">unprovisioned</span>.</div>
+      </div>
+      <div class="pipeline__arrow">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <div class="pipeline__step">
+        <div class="pipeline__num">03</div>
+        <div class="pipeline__name">Warehouse mint</div>
+        <div class="pipeline__desc">Driver creates an isolation schema (<span class="mono accent">mb__isolation_*</span>) plus a user with read on the input schemas and write on the isolation schema.</div>
+      </div>
+      <div class="pipeline__arrow">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <div class="pipeline__step">
+        <div class="pipeline__num">04</div>
+        <div class="pipeline__name">Repeat for more DBs</div>
+        <div class="pipeline__desc">A workspace can hold multiple DBs. Each adds its own isolation schema + user. Independent failure per DB.</div>
+      </div>
+      <div class="pipeline__arrow">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </div>
+      <div class="pipeline__step">
+        <div class="pipeline__num">05</div>
+        <div class="pipeline__name">Hand off</div>
+        <div class="pipeline__desc">Stats emits config.yml from the workspace. Today's emitter requires every DB to be <span class="accent">:provisioned</span> (else 409). Analyst takes the file to local.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 7: Divider 03 — TABLE REMAPPING ========== -->
+  <section class="slide slide--divider">
+    <span class="number">03</span>
+    <div class="reveal">
+      <div class="num-inline">CHAPTER 03</div>
+      <h2 class="heading">Table remapping</h2>
+      <p class="subtitle" style="margin-top: 14px; max-width: 70ch;">The analyst on local works in their normal way — pointing transforms at canonical names like <span class="mono accent">public.orders_summary</span>. Behind the scenes, every write is rewritten to land in the workspace's isolation schema, and every read is rewritten to find it there.</p>
+    </div>
+  </section>
+
+  <!-- ========== 8: Problem statement ========== -->
+  <section class="slide">
+    <div class="reveal">
+      <div class="label">why this matters</div>
+      <h2 class="heading heading-mono" style="margin-top: 8px;">Two illusions, kept consistent.</h2>
+    </div>
+    <div class="twoup reveal">
+      <div class="twoup__card">
+        <div class="label" style="color: var(--info);">to the analyst</div>
+        <h3>Feels like a normal Metabase.</h3>
+        <p>They author transforms whose target is a canonical name. They build cards and dashboards on top of those tables. They never type "isolation schema" or know one exists. The workspace is invisible.</p>
+      </div>
+      <div class="twoup__card">
+        <div class="label" style="color: var(--pink);">to the warehouse</div>
+        <h3>All writes are isolated.</h3>
+        <p>Every transform write the analyst's local issues against <span class="mono accent">public.orders_summary</span> is rewritten before it reaches the warehouse — it lands in <span class="mono accent">mb__isolation_x.orders_summary</span> instead. Production's <span class="mono accent">public</span> is never touched.</p>
+      </div>
+    </div>
+    <p class="reveal" style="margin-top: clamp(20px, 3vh, 32px); font-family: var(--font-mono); font-size: clamp(13px, 1.45vw, 16px); color: var(--text-dim); max-width: 80ch;">The remapping layer is the bridge. It rewrites <strong style="color:var(--text)">transform targets</strong> on the way out, and <strong style="color:var(--text)">table references in queries</strong> (MBQL and native SQL) on the way in.</p>
+  </section>
+
+  <!-- ========== 9: Two flowcharts side-by-side ========== -->
+  <section class="slide slide--diagram">
+    <div class="reveal">
+      <div class="label">how the rewrite works</div>
+      <h2 class="heading heading-mono" style="margin-top: 8px;">Write path &amp; read path.</h2>
+    </div>
+    <div class="dual-flow reveal">
+      <div class="dual-flow__panel">
+        <div class="dual-flow__title">writes / transforms</div>
+        <div class="dual-flow__chart">
+          <pre class="mermaid">
+flowchart TB
+    A["Analyst's transform target<br/>public.orders_summary"]
+    B{Workspace<br/>active for<br/>this DB?}
+    C["Rewrite target →<br/>mb__isolation_x.orders_summary"]
+    D[Pass through]
+    E[Driver writes to<br/>isolation schema]
+    F[Record TableRemapping row<br/>canonical → isolated]
+    A --> B
+    B -- yes --> C
+    B -- no --> D
+    C --> E
+    E --> F
+          </pre>
+        </div>
+      </div>
+      <div class="dual-flow__panel">
+        <div class="dual-flow__title">reads / mbql + native</div>
+        <div class="dual-flow__chart">
+          <pre class="mermaid">
+flowchart TB
+    A["Card or dashboard query<br/>FROM public.orders_summary"]
+    B[Parse table refs<br/>MBQL: from query<br/>Native: from SQL string]
+    C{Each ref has a<br/>TableRemapping<br/>row?}
+    D["Substitute →<br/>mb__isolation_x.orders_summary"]
+    E[Pass through]
+    F[Driver reads from<br/>the right schema]
+    A --> B
+    B --> C
+    C -- yes --> D
+    C -- no --> E
+    D --> F
+    E --> F
+          </pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 10: Divider 04 — CONFIG.YML ========== -->
+  <section class="slide slide--divider">
+    <span class="number">04</span>
+    <div class="reveal" style="text-align: right; margin-left: auto; max-width: 70%;">
+      <div class="num-inline">CHAPTER 04</div>
+      <h2 class="heading">config.yml</h2>
+      <p class="subtitle" style="margin-top: 14px;">The handoff between stats and local is a single file. Stats produces it. Local consumes it at boot. After that, no live calls between them.</p>
+    </div>
+  </section>
+
+  <!-- ========== 11: config.yml split slide (FIXED) ========== -->
+  <section class="slide slide--split">
+    <div class="panels">
+      <div class="panel panel--primary">
+        <div class="reveal">
+          <div class="label">contract / one file</div>
+          <h2 class="heading heading-mono" style="margin-top: 8px; font-size: clamp(22px, 3vw, 32px);">What's in it.</h2>
+        </div>
+        <p class="body body-dim reveal" style="margin-top: 14px; font-size: clamp(13px, 1.4vw, 16px);">Sections are consumed at boot by the existing Metabase config-file machinery (`metabase-enterprise.advanced-config.file`). The analyst restarts local with a different file when they want a different workspace — there is no "switch workspaces" UI.</p>
+        <ul class="bullets reveal" style="font-size: clamp(12px, 1.3vw, 15px);">
+          <li><strong>databases</strong> — host, credentials, schema-filters (so local only syncs the input schemas)</li>
+          <li><strong>users</strong> — workspace creator's real account, so merge-back attributes content correctly</li>
+          <li><strong>workspace</strong> — name + per-DB <span class="mono accent">input_schemas</span> and <span class="mono accent">output_schema</span></li>
+        </ul>
+        <p class="body body-dim reveal" style="margin-top: 12px; font-size: clamp(11px, 1.15vw, 13px);">The config-file system also supports <span class="mono">api-keys</span> and <span class="mono">settings</span> sections (e.g. for an admin API key or remote-sync URL). Today the parent's emitter produces only the three sections above; api-keys and settings are emitted out-of-band or set via env.</p>
+      </div>
+      <div class="panel panel--secondary" style="overflow: auto; padding: clamp(36px, 5vh, 56px) clamp(28px, 3vw, 40px);">
+<div class="code-block reveal" style="font-size: clamp(10px, 1.05vw, 12.5px); line-height: 1.5;"><span class="code-block__filename">config.yml &mdash; emitted by parent</span>
+<span class="c-key">version</span>: <span class="c-acc">1</span>
+<span class="c-key">config</span>:
+  <span class="c-key">databases</span>:
+    - <span class="c-key">name</span>: <span class="c-str">testing</span>
+      <span class="c-key">engine</span>: <span class="c-str">postgres</span>
+      <span class="c-key">details</span>:
+        <span class="c-key">user</span>: <span class="c-str">mb__isolation_a34_117</span>
+        <span class="c-key">password</span>: <span class="c-str">[redacted]</span>
+        <span class="c-key">schema-filters-type</span>: <span class="c-str">inclusion</span>
+        <span class="c-key">schema-filters-patterns</span>: <span class="c-str">github_raw</span>
+
+  <span class="c-key">users</span>:
+    - <span class="c-key">first_name</span>: <span class="c-str">Dan</span>
+      <span class="c-key">email</span>: <span class="c-str">dan@metabase.com</span>
+      <span class="c-key">password</span>: <span class="c-str">{{env MB_WORKSPACE_USER_PASSWORD}}</span>
+      <span class="c-key">is_superuser</span>: <span class="c-acc">true</span>
+
+  <span class="c-key">workspace</span>:
+    <span class="c-key">name</span>: <span class="c-str">github</span>
+    <span class="c-key">databases</span>:
+      <span class="c-key">testing</span>:
+        <span class="c-key">input_schemas</span>: [<span class="c-str">github_raw</span>]
+        <span class="c-key">output_schema</span>: <span class="c-str">mb__isolation_a34_117</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 12: Atom on local — clearer ========== -->
+  <section class="slide">
+    <div class="reveal">
+      <div class="label">child-side state</div>
+      <h2 class="heading heading-mono" style="margin-top: 8px;">App DB + a small atom for workspace config.</h2>
+    </div>
+    <p class="body reveal" style="margin-top: 14px; max-width: 82ch; font-size: clamp(14px, 1.55vw, 18px);">Local is still a regular Metabase instance. It has a normal app database (H2 by default) where it stores users, transforms, cards, dashboards, sync metadata — everything Metabase normally stores. <strong class="strong">The atom is a small, separate piece of state</strong> that holds <span class="strong">only</span> the workspace's identity and per-DB input/output schemas, parsed once from <span class="mono accent">config.yml</span> at boot.</p>
+    <div class="twoup reveal" style="margin-top: clamp(20px, 3vh, 28px);">
+      <div class="twoup__card">
+        <div class="label">app DB (normal)</div>
+        <h3 style="font-size: clamp(13px, 1.5vw, 17px);">Where Metabase always puts things.</h3>
+        <ul>
+          <li>Users, sessions, permissions</li>
+          <li>Transforms (canonical-named)</li>
+          <li>Cards, dashboards, collections</li>
+          <li>Sync metadata, table rows</li>
+          <li><strong>TableRemapping</strong> rows (canonical → isolated)</li>
+        </ul>
+      </div>
+      <div class="twoup__card">
+        <div class="label">in-process atom</div>
+        <h3 style="font-size: clamp(13px, 1.5vw, 17px);">workspace identity, in memory.</h3>
+        <ul>
+          <li>Workspace name</li>
+          <li>Per-DB <span class="mono accent">input_schemas</span> + <span class="mono accent">output_schema</span> keyed by database id</li>
+          <li>Populated at boot by the <span class="mono">:workspace</span> section loader</li>
+          <li><strong>Cleared on restart</strong> — re-read each boot</li>
+          <li>Drives <span class="mono">db-workspace-schema</span>, the gate for write redirection</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 13: Auth — simplified ========== -->
+  <section class="slide">
+    <div class="reveal">
+      <div class="label">auth model</div>
+      <h2 class="heading heading-mono" style="margin-top: 8px;">UUID for parent reads. API key on local.</h2>
+      <p class="body body-dim reveal" style="margin-top: 12px; max-width: 80ch;">Two surfaces, two threat models. Each picks the auth that fits.</p>
+    </div>
+    <div class="twoup reveal" style="margin-top: clamp(20px, 3vh, 28px);">
+      <div class="twoup__card" style="border-top: 3px solid var(--info);">
+        <div class="label" style="color: var(--info);">parent · stats</div>
+        <h3>Child uses a sharing key to read from parent.</h3>
+        <p>Admin enables sharing on a workspace via <span class="mono accent">POST /workspace-manager/:id/sharing-key</span> — stats mints a UUID. The analyst (or Claude) hits unauthenticated URLs scoped by it:</p>
+        <ul style="margin-top: 12px;">
+          <li><span class="mono accent">/workspace-sharing/&lt;key&gt;/config/yaml</span></li>
+          <li><span class="mono accent">/workspace-sharing/&lt;key&gt;/metadata</span></li>
+        </ul>
+        <p style="margin-top: 14px; font-size: clamp(11px, 1.2vw, 13px); color: var(--text-dim);">No login. No header. Possessing the key is the auth. Admin rotates (POST again) or removes (DELETE) to revoke.</p>
+      </div>
+      <div class="twoup__card" style="border-top: 3px solid var(--pink);">
+        <div class="label" style="color: var(--pink);">child · local</div>
+        <h3>Local has its own admin credentials.</h3>
+        <p>The config.yml the parent emits provisions an admin user (the workspace creator, password from <span class="mono">{{env MB_WORKSPACE_USER_PASSWORD}}</span>) at boot. Claude drives local via superuser-gated endpoints — for example <span class="mono accent">POST /api/ee/workspace-instance/sync</span> to pull git changes after writing YAMLs.</p>
+        <p style="margin-top: 14px; font-size: clamp(11px, 1.2vw, 13px); color: var(--text-dim);">A separate <span class="mono">MB_WORKSPACE_API_KEY</span> env var is the channel for the developer-instance admin key — explicitly distinct from the parent's sharing key.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 14: Claude skill flow ========== -->
+  <section class="slide slide--diagram">
+    <div class="reveal">
+      <div class="label">claude / metabase-workspace skill</div>
+      <h2 class="heading heading-mono" style="margin-top: 8px;">From UUID to working build loop.</h2>
+    </div>
+    <div class="mermaid-wrap reveal">
+      <pre class="mermaid">
+flowchart LR
+    U[Analyst with sharing key] --> S[claude skill]
+    S --> A[Fetch config.yml from<br/>workspace-sharing URL]
+    A --> B[Fetch metadata<br/>from same surface]
+    B --> C[Boot local Metabase<br/>with config.yml]
+    C --> D[Initial git pull<br/>via remote-sync]
+    D --> E[Analyst:<br/>'create the<br/>semantic layer']
+    E --> F[Claude writes<br/>transform YAMLs<br/>to git repo]
+    F --> G[Claude calls POST<br/>/workspace-instance/sync]
+    G --> H[Local materializes<br/>+ runs transforms]
+    H --> I[Analyst views,<br/>iterates, commits]
+      </pre>
+    </div>
+  </section>
+
+  <!-- ========== 15: Full bleed — the payoff ========== -->
+  <section class="slide slide--bleed">
+    <div class="slide__bg slide__bg--gradient"></div>
+    <div class="slide__scrim"></div>
+    <div class="slide__content reveal">
+      <div style="font-family: var(--font-mono); font-size: 12px; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 24px;">The payoff</div>
+      <h2 style="font-family: var(--font-display); font-size: clamp(34px, 5.5vw, 64px); color: white; max-width: 22ch; line-height: 1.05; font-weight: 700; letter-spacing: -1px;">Canonical-named transforms <em style="color: var(--accent); font-style: normal;">survive the round-trip</em>.</h2>
+      <p style="margin-top: clamp(20px, 3vh, 32px); color: rgba(255,255,255,0.85); max-width: 72ch; font-family: var(--font-mono); font-size: clamp(13px, 1.55vw, 17px); line-height: 1.65;">The analyst writes <span class="mono accent">public.orders_summary</span>. Local rewrites the warehouse target to isolation, but the transform definition still says <span class="mono accent">public.orders_summary</span>. The serialized YAML in git still says <span class="mono accent">public.orders_summary</span>. Merge to main. Stats pulls. Stats's transforms run against stats's <span class="mono accent">public</span>. The modeling layer activates &mdash; with no rewriting, no schema-pinning, nothing for the human to fix up.</p>
+    </div>
+  </section>
+
+  <!-- ========== 16: Closing ========== -->
+  <section class="slide slide--quote">
+    <blockquote class="reveal">
+      A workspace is <em>a name plus some isolation schemas</em>. The handoff is <em>one file</em>. The build loop is <em>analyst + Claude + git</em>. The merge is <em>free</em>.
+    </blockquote>
+    <cite class="reveal">— what we're building</cite>
+  </section>
+
+  <!-- ========== 17: Verification (fact-check appendix) ========== -->
+  <section class="slide" style="padding: clamp(36px, 5vh, 64px) clamp(40px, 7vw, 100px); justify-content: flex-start;">
+    <div class="reveal" style="margin-top: clamp(24px, 4vh, 48px);">
+      <div class="label">verification appendix</div>
+      <h2 class="heading heading-mono" style="margin-top: 8px;">Fact-checked against the branch.</h2>
+      <p class="body body-dim" style="margin-top: 10px; max-width: 80ch; font-size: clamp(13px, 1.4vw, 16px);">Branch <span class="mono accent">feature/workspaces-v2</span> at commit <span class="mono accent">d9374fa6f96</span> (2026-04-29). Each verifiable claim in this deck was checked against the source.</p>
+    </div>
+    <div class="twoup reveal" style="margin-top: clamp(20px, 2.8vh, 28px); grid-template-columns: 2fr 3fr;">
+      <div class="twoup__card">
+        <div class="label">summary</div>
+        <h3 style="font-size: clamp(13px, 1.4vw, 16px);">21 claims checked</h3>
+        <ul>
+          <li><strong style="color:var(--accent)">Confirmed</strong>: 14</li>
+          <li><strong style="color:var(--warn)">Corrected</strong>: 7</li>
+          <li><strong style="color:var(--info)">Notes</strong>: design-intent items called out</li>
+        </ul>
+        <p style="margin-top: 12px; font-size: clamp(10px, 1.1vw, 12px); color: var(--text-dim); line-height: 1.55;">Confirmed claims include: route names, sharing-key model, atom shape, write-redirect via <span class="mono">resolve-transform-target</span>, two-phase QP middleware (preprocess MBQL + execute SQL via SQLGlot), and that transforms persist with canonical targets.</p>
+      </div>
+      <div class="twoup__card">
+        <div class="label">corrections made</div>
+        <ul style="margin-top: 4px;">
+          <li><strong>config.yml sections</strong> — emitter produces databases / users / workspace today; api-keys + settings are loadable but not currently emitted</li>
+          <li><strong>YAML example</strong> — removed api-keys + settings blocks; added the real <span class="mono">{{env MB_WORKSPACE_USER_PASSWORD}}</span> placeholder</li>
+          <li><strong>Atom shape</strong> — holds <span class="mono">:name</span> + <span class="mono">:databases</span> only, not a UUID</li>
+          <li><strong>Auth on local</strong> — child uses superuser session; <span class="mono">MB_WORKSPACE_API_KEY</span> env var is the channel for the dev-instance admin key, not a config.yml api-keys entry</li>
+          <li><strong>Sharing key lifecycle</strong> — admin must POST to mint; not automatic on workspace create</li>
+          <li><strong>Sync trigger</strong> — Claude calls <span class="mono">POST /api/ee/workspace-instance/sync</span> (workspace-aware), not bare <span class="mono">/remote-sync/import</span></li>
+          <li><strong>Add-DB failure</strong> — WorkspaceDatabase row stays as <span class="mono">:unprovisioned</span>; not strictly "not added"</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      darkMode: true,
+      background: '#12161e',
+      primaryColor: '#1a1f2a',
+      primaryTextColor: '#c8d6e5',
+      primaryBorderColor: '#50fa7b',
+      lineColor: '#50fa7b',
+      secondaryColor: '#222836',
+      tertiaryColor: '#0a0e14',
+      mainBkg: '#1a1f2a',
+      secondBkg: '#222836',
+      nodeBorder: '#50fa7b',
+      defaultLinkColor: '#50fa7b',
+      titleColor: '#c8d6e5',
+      edgeLabelBackground: '#0a0e14',
+      nodeTextColor: '#c8d6e5',
+      fontFamily: 'Geist Mono, SF Mono, monospace',
+    },
+    flowchart: { curve: 'basis', padding: 12, nodeSpacing: 32, rankSpacing: 38, useMaxWidth: true }
+  });
+
+  function autoFit() {
+    document.querySelectorAll('.mermaid svg').forEach(function(svg) {
+      svg.removeAttribute('height');
+      svg.style.width = '100%';
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+    });
+  }
+
+  class SlideEngine {
+    constructor() {
+      this.deck = document.querySelector('.deck');
+      this.slides = [...document.querySelectorAll('.slide')];
+      this.current = 0;
+      this.total = this.slides.length;
+      this.buildChrome();
+      this.bindEvents();
+      this.observe();
+      this.update();
+    }
+    buildChrome() {
+      var bar = document.createElement('div'); bar.className = 'deck-progress'; document.body.appendChild(bar); this.bar = bar;
+      var dots = document.createElement('div'); dots.className = 'deck-dots';
+      var self = this;
+      this.slides.forEach(function(_, i) {
+        var d = document.createElement('button');
+        d.className = 'deck-dot';
+        d.onclick = function() { self.goTo(i); };
+        dots.appendChild(d);
+      });
+      document.body.appendChild(dots);
+      this.dots = [].slice.call(dots.children);
+      var ctr = document.createElement('div'); ctr.className = 'deck-counter'; document.body.appendChild(ctr); this.counter = ctr;
+      var hints = document.createElement('div'); hints.className = 'deck-hints'; hints.textContent = '← → / scroll / swipe'; document.body.appendChild(hints); this.hints = hints;
+      this.hintTimer = setTimeout(function() { hints.classList.add('faded'); }, 4000);
+    }
+    bindEvents() {
+      var self = this;
+      document.addEventListener('keydown', function(e) {
+        if (e.target.closest('.mermaid-wrap, input, textarea')) return;
+        if (['ArrowDown', 'ArrowRight', ' ', 'PageDown'].includes(e.key)) { e.preventDefault(); self.next(); }
+        else if (['ArrowUp', 'ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); self.prev(); }
+        else if (e.key === 'Home') { e.preventDefault(); self.goTo(0); }
+        else if (e.key === 'End') { e.preventDefault(); self.goTo(self.total - 1); }
+        self.fadeHints();
+      });
+      var touchY;
+      this.deck.addEventListener('touchstart', function(e) { touchY = e.touches[0].clientY; }, { passive: true });
+      this.deck.addEventListener('touchend', function(e) {
+        var dy = touchY - e.changedTouches[0].clientY;
+        if (Math.abs(dy) > 50) { dy > 0 ? self.next() : self.prev(); }
+      });
+    }
+    observe() {
+      var self = this;
+      var obs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            self.current = self.slides.indexOf(entry.target);
+            self.update();
+          }
+        });
+      }, { threshold: 0.5 });
+      this.slides.forEach(function(s) { obs.observe(s); });
+    }
+    goTo(i) { this.slides[Math.max(0, Math.min(i, this.total - 1))].scrollIntoView({ behavior: 'smooth' }); }
+    next() { if (this.current < this.total - 1) this.goTo(this.current + 1); }
+    prev() { if (this.current > 0) this.goTo(this.current - 1); }
+    update() {
+      this.bar.style.width = ((this.current + 1) / this.total * 100) + '%';
+      var self = this;
+      this.dots.forEach(function(d, i) { d.classList.toggle('active', i === self.current); });
+      this.counter.textContent = String(this.current + 1).padStart(2, '0') + ' / ' + String(this.total).padStart(2, '0');
+    }
+    fadeHints() { clearTimeout(this.hintTimer); this.hints.classList.add('faded'); }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() { autoFit(); new SlideEngine(); }, 500);
+  });
+</script>
+</body>
+</html>

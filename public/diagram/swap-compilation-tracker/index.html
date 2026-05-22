@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Source Replacement — Compilation Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============ THEME — Neon dashboard (dark-first) ============ */
+  :root {
+    --font-body: 'Sora', system-ui, sans-serif;
+    --font-mono: 'Geist Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #0a0e17;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --surface-elevated: #1e293b;
+    --border: rgba(255, 255, 255, 0.06);
+    --border-bright: rgba(255, 255, 255, 0.12);
+    --text: #e2e8f0;
+    --text-dim: #64748b;
+
+    --cyan: #22d3ee;
+    --cyan-dim: rgba(34, 211, 238, 0.10);
+    --green: #4ade80;
+    --green-dim: rgba(74, 222, 128, 0.10);
+    --amber: #fbbf24;
+    --amber-dim: rgba(251, 191, 36, 0.10);
+    --red: #f87171;
+    --red-dim: rgba(248, 113, 113, 0.10);
+    --purple: #a78bfa;
+    --purple-dim: rgba(167, 139, 250, 0.10);
+    --pink: #f472b6;
+    --pink-dim: rgba(244, 114, 182, 0.10);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface2: #f1f5f9;
+      --surface-elevated: #ffffff;
+      --border: rgba(0, 0, 0, 0.07);
+      --border-bright: rgba(0, 0, 0, 0.14);
+      --text: #0f172a;
+      --text-dim: #64748b;
+      --cyan: #0891b2;
+      --cyan-dim: rgba(8, 145, 178, 0.08);
+      --green: #16a34a;
+      --green-dim: rgba(22, 163, 74, 0.08);
+      --amber: #d97706;
+      --amber-dim: rgba(217, 119, 6, 0.08);
+      --red: #dc2626;
+      --red-dim: rgba(220, 38, 38, 0.08);
+      --purple: #7c3aed;
+      --purple-dim: rgba(124, 58, 237, 0.08);
+      --pink: #db2777;
+      --pink-dim: rgba(219, 39, 119, 0.08);
+    }
+  }
+
+  /* ============ RESET ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 30% 0%, var(--cyan-dim) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 80%, var(--purple-dim) 0%, transparent 40%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  /* ============ NAV LAYOUT ============ */
+  .wrap {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 170px 1fr;
+    gap: 0 40px;
+  }
+  .main { min-width: 0; }
+
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    padding: 14px 0;
+    grid-row: 1 / -1;
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+  }
+  .toc::-webkit-scrollbar { width: 3px; }
+  .toc::-webkit-scrollbar-thumb { background: var(--surface-elevated); border-radius: 2px; }
+
+  .toc-title {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    padding: 0 0 10px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .toc a {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 4px 8px;
+    border-radius: 5px;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+    line-height: 1.4;
+    margin-bottom: 1px;
+  }
+  .toc a:hover { color: var(--text); background: var(--surface2); }
+  .toc a.active { color: var(--text); border-left-color: var(--cyan); }
+
+  @media (max-width: 1000px) {
+    .wrap { grid-template-columns: 1fr; padding-top: 0; }
+    body { padding-top: 0; }
+    .toc {
+      position: sticky; top: 0; z-index: 200;
+      max-height: none; display: flex; gap: 4px; align-items: center;
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      background: var(--bg); border-bottom: 1px solid var(--border);
+      padding: 10px 0; margin: 0 -40px; padding-left: 40px; padding-right: 40px;
+      grid-row: auto;
+    }
+    .toc::-webkit-scrollbar { display: none; }
+    .toc-title { display: none; }
+    .toc a {
+      white-space: nowrap; flex-shrink: 0; border-left: none;
+      border-bottom: 2px solid transparent; border-radius: 4px 4px 0 0;
+      padding: 6px 10px; font-size: 10px;
+    }
+    .toc a.active { border-left: none; border-bottom-color: var(--cyan); background: var(--surface); }
+    .main { padding-top: 20px; }
+    .sec-head { scroll-margin-top: 52px; }
+  }
+
+  /* ============ ANIMATIONS ============ */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .anim { animation: fadeUp 0.4s ease-out both; animation-delay: calc(var(--i, 0) * 0.06s); }
+  .anim-scale { animation: fadeScale 0.35s ease-out both; animation-delay: calc(var(--i, 0) * 0.06s); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* ============ TYPOGRAPHY ============ */
+  h1 {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    margin-bottom: 6px;
+    text-wrap: balance;
+  }
+  h1 span { color: var(--cyan); }
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-bottom: 40px;
+    font-family: var(--font-mono);
+  }
+
+  /* ============ SECTION HEADS ============ */
+  .sec-head {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 8px 0;
+    margin-top: 48px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sec-head .dot {
+    width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+  }
+
+  /* ============ CARDS ============ */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .card--elevated {
+    background: var(--surface-elevated);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  }
+  .card--hero {
+    background: color-mix(in srgb, var(--surface) 92%, var(--cyan) 8%);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+    border-color: color-mix(in srgb, var(--border) 50%, var(--cyan) 50%);
+    padding: 28px 32px;
+  }
+  .card-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-label .dot {
+    width: 6px; height: 6px; border-radius: 50%; display: inline-block;
+  }
+
+  /* ============ FLOW ARROW ============ */
+  .flow-arrow {
+    display: flex; justify-content: center; align-items: center;
+    gap: 8px; color: var(--text-dim); font-family: var(--font-mono);
+    font-size: 11px; padding: 4px 0; margin: 8px 0;
+  }
+  .flow-arrow svg {
+    width: 18px; height: 18px; fill: none;
+    stroke: var(--border-bright); stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* ============ KPI ROW ============ */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    text-align: center;
+  }
+  .kpi-val {
+    font-size: 28px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -1px;
+    line-height: 1.1;
+  }
+  .kpi-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+
+  /* ============ TIMELINE ============ */
+  .timeline {
+    position: relative;
+    padding-left: 32px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 11px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--cyan), var(--amber), var(--green));
+    border-radius: 1px;
+  }
+  .tl-node {
+    position: relative;
+    margin-bottom: 28px;
+  }
+  .tl-node:last-child { margin-bottom: 0; }
+  .tl-dot {
+    position: absolute;
+    left: -32px;
+    top: 4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+  }
+  .tl-node .card { margin-bottom: 0; }
+  .tl-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    margin-top: 8px;
+  }
+
+  /* ============ SCENARIO TABLE ============ */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 1.5; }
+  .data-table thead { position: sticky; top: 0; z-index: 2; }
+  .data-table th {
+    background: var(--surface-elevated);
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim);
+    text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--border-bright);
+    white-space: nowrap;
+  }
+  .data-table td {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    vertical-align: middle; color: var(--text);
+  }
+  .data-table tbody tr:nth-child(even) { background: var(--surface2); }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table code {
+    font-family: var(--font-mono); font-size: 11px;
+    background: var(--cyan-dim); color: var(--cyan);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    padding: 3px 8px; border-radius: 5px; white-space: nowrap;
+  }
+  .pill--ok { background: var(--green-dim); color: var(--green); }
+  .pill--fail { background: var(--red-dim); color: var(--red); }
+  .pill--skip { background: var(--amber-dim); color: var(--amber); }
+  .pill--new { background: var(--purple-dim); color: var(--purple); }
+
+  /* ============ DATA FLOW DIAGRAM ============ */
+  .df-container {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0;
+    align-items: stretch;
+    margin-bottom: 16px;
+  }
+  .df-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .df-box h3 {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .df-bridge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .df-bridge-arrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .df-bridge-arrow svg {
+    width: 28px; height: 16px; fill: none;
+    stroke: var(--border-bright); stroke-width: 1.5;
+    stroke-linecap: round;
+  }
+
+  /* ============ CODE BLOCK ============ */
+  .code-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--text-dim);
+    margin: 12px 0;
+  }
+  .code-block .kw { color: var(--purple); }
+  .code-block .fn { color: var(--cyan); }
+  .code-block .str { color: var(--green); }
+  .code-block .cmt { color: var(--text-dim); opacity: 0.6; }
+  .code-block .sym { color: var(--amber); }
+
+  /* ============ INNER LISTS ============ */
+  .node-list {
+    list-style: none; font-size: 12px; line-height: 1.8;
+  }
+  .node-list li { padding-left: 14px; position: relative; }
+  .node-list li::before {
+    content: '›'; color: var(--text-dim); font-weight: 600;
+    position: absolute; left: 0;
+  }
+
+  /* ============ TWO-COL ============ */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .two-col > * { min-width: 0; }
+
+  /* ============ THREE-COL ============ */
+  .three-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin: 12px 0;
+  }
+  .three-col > * { min-width: 0; }
+
+  /* ============ CALLOUT ============ */
+  .callout {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    margin: 12px 0;
+  }
+  .callout strong { color: var(--text); }
+  .callout code {
+    font-family: var(--font-mono); font-size: 11px;
+    background: var(--cyan-dim); color: var(--cyan);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  p { font-size: 13px; line-height: 1.7; color: var(--text-dim); margin-bottom: 12px; }
+  p code {
+    font-family: var(--font-mono); font-size: 11px;
+    background: var(--cyan-dim); color: var(--cyan);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  @media (max-width: 768px) {
+    body { padding: 20px; }
+    .two-col, .three-col, .df-container { grid-template-columns: 1fr; }
+    .df-bridge { flex-direction: row; padding: 12px 0; }
+    .kpi-row { grid-template-columns: 1fr 1fr; }
+    .timeline { padding-left: 28px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<nav class="toc" id="toc">
+  <div class="toc-title">Sections</div>
+  <a href="#s1">Three-Phase Flow</a>
+  <a href="#s2">Regression Detection</a>
+  <a href="#s3">Data Flow</a>
+  <a href="#s4">EDN Report</a>
+  <a href="#s5">Analyzing Results</a>
+  <a href="#s6">REPL Recipes</a>
+</nav>
+
+<div class="main">
+
+<h1 style="--i:0" class="anim">Source Replacement <span>Compilation Tracker</span></h1>
+<p class="subtitle anim" style="--i:1">In-situ regression detection across upgrade and swap phases</p>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION 1: THREE-PHASE FLOW                           -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<div id="s1" class="sec-head anim" style="--i:2; color: var(--cyan);">
+  <span class="dot" style="background: var(--cyan);"></span>
+  1 — Three-Phase Compilation Flow
+</div>
+
+<p class="anim" style="--i:3">
+  The tracker instruments <code>run-swap*</code> at three checkpoints. At each one, every card dependent
+  is compiled to detect regressions introduced by that specific phase.
+</p>
+
+<div class="timeline anim" style="--i:4">
+
+  <!-- Checkpoint 0 -->
+  <div class="tl-node">
+    <div class="tl-dot" style="border-color: var(--cyan); background: var(--cyan-dim); color: var(--cyan);">0</div>
+    <div class="card card--elevated">
+      <div class="card-label" style="color: var(--cyan);">
+        <span class="dot" style="background: var(--cyan);"></span>
+        Checkpoint: Before Upgrade
+      </div>
+      <p>Compile all card dependents. This is the <strong style="color:var(--text)">baseline</strong> — any card that fails here is a pre-existing issue and will be ignored.</p>
+      <div class="code-block"><span class="cmt">;; runner.clj — before phase 1 loop</span>
+(<span class="kw">when</span> <span class="sym">*compilation-tracker*</span>
+  (<span class="sym">*compilation-tracker*</span> <span class="sym">:before-upgrade</span> card-entities))</div>
+    </div>
+  </div>
+
+  <!-- Phase 1 -->
+  <div class="tl-node">
+    <div class="tl-dot" style="border-color: var(--amber); background: var(--amber-dim); color: var(--amber);">1</div>
+    <div class="card" style="border-color: var(--amber-dim);">
+      <div class="card-label" style="color: var(--amber);">
+        <span class="dot" style="background: var(--amber);"></span>
+        Phase 1: Upgrade Field Refs
+      </div>
+      <p>Runs <code>field-refs/upgrade!</code> on every entity. Converts ID-based field refs to name-based refs.</p>
+      <ul class="node-list">
+        <li><code>card-upgrade-field-refs!</code> — dataset_query + viz settings</li>
+        <li><code>dashboard-upgrade-field-refs!</code> — parameter mappings + column settings</li>
+        <li><code>transform/segment/measure-upgrade-field-refs!</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Checkpoint 1 -->
+  <div class="tl-node">
+    <div class="tl-dot" style="border-color: var(--amber); background: var(--amber-dim); color: var(--amber);">&#x2713;</div>
+    <div class="card card--elevated">
+      <div class="card-label" style="color: var(--amber);">
+        <span class="dot" style="background: var(--amber);"></span>
+        Checkpoint: After Upgrade
+      </div>
+      <p>Compile all cards again. Diff against baseline: any card that <strong style="color:var(--text)">compiled before but fails now</strong> is an <strong style="color: var(--red);">upgrade regression</strong>.</p>
+      <div class="code-block"><span class="cmt">;; runner.clj — after phase 1 loop, before phase 2</span>
+(<span class="kw">when</span> <span class="sym">*compilation-tracker*</span>
+  (<span class="sym">*compilation-tracker*</span> <span class="sym">:after-upgrade</span> card-entities))</div>
+    </div>
+  </div>
+
+  <!-- Phase 2 -->
+  <div class="tl-node">
+    <div class="tl-dot" style="border-color: var(--green); background: var(--green-dim); color: var(--green);">2</div>
+    <div class="card" style="border-color: var(--green-dim);">
+      <div class="card-label" style="color: var(--green);">
+        <span class="dot" style="background: var(--green);"></span>
+        Phase 2: Swap Sources
+      </div>
+      <p>Runs <code>source-swap/do-swap!</code> on every entity. Rewrites source-table/source-card references and remaps all field refs.</p>
+      <ul class="node-list">
+        <li><code>card-swap!</code> — dataset_query + table_id + dashcard viz</li>
+        <li><code>swap.mbql/swap-mbql-stages</code> + <code>swap.native/update-native-stages</code></li>
+        <li><code>dashboard-swap!</code> — parameter mappings + column settings</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Checkpoint 2 -->
+  <div class="tl-node">
+    <div class="tl-dot" style="border-color: var(--green); background: var(--green-dim); color: var(--green);">&#x2713;</div>
+    <div class="card card--elevated">
+      <div class="card-label" style="color: var(--green);">
+        <span class="dot" style="background: var(--green);"></span>
+        Checkpoint: After Swap
+      </div>
+      <p>Compile all cards a final time. Diff against post-upgrade: any card that <strong style="color:var(--text)">compiled after upgrade but fails now</strong> is a <strong style="color: var(--red);">swap regression</strong>.</p>
+      <div class="code-block"><span class="cmt">;; runner.clj — after phase 2 loop</span>
+(<span class="kw">when</span> <span class="sym">*compilation-tracker*</span>
+  (<span class="sym">*compilation-tracker*</span> <span class="sym">:after-swap</span> card-entities))</div>
+    </div>
+  </div>
+
+</div><!-- /timeline -->
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION 2: REGRESSION DETECTION                       -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<div id="s2" class="sec-head anim" style="--i:5; color: var(--amber);">
+  <span class="dot" style="background: var(--amber);"></span>
+  2 — Regression Detection Logic
+</div>
+
+<p class="anim" style="--i:6">
+  A card's compilation status is tracked across all three checkpoints. Only <strong style="color:var(--text)">transitions from compilable to non-compilable</strong> are captured as regressions.
+</p>
+
+<div class="table-wrap anim" style="--i:7">
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Scenario</th>
+          <th>Before Upgrade</th>
+          <th>After Upgrade</th>
+          <th>After Swap</th>
+          <th>Classification</th>
+          <th>Captured?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Happy path</strong></td>
+          <td><span class="pill pill--ok">compiles</span></td>
+          <td><span class="pill pill--ok">compiles</span></td>
+          <td><span class="pill pill--ok">compiles</span></td>
+          <td style="color:var(--text-dim)">No regression</td>
+          <td><span class="pill pill--skip">no output</span></td>
+        </tr>
+        <tr>
+          <td><strong>Upgrade broke it</strong></td>
+          <td><span class="pill pill--ok">compiles</span></td>
+          <td><span class="pill pill--fail">FAILS</span></td>
+          <td><span class="pill pill--fail">FAILS</span></td>
+          <td style="color:var(--red); font-weight:600;">Upgrade regression</td>
+          <td><span class="pill pill--new">:regressions :upgrade</span></td>
+        </tr>
+        <tr>
+          <td><strong>Swap broke it</strong></td>
+          <td><span class="pill pill--ok">compiles</span></td>
+          <td><span class="pill pill--ok">compiles</span></td>
+          <td><span class="pill pill--fail">FAILS</span></td>
+          <td style="color:var(--red); font-weight:600;">Swap regression</td>
+          <td><span class="pill pill--new">:regressions :swap</span></td>
+        </tr>
+        <tr>
+          <td><strong>Pre-existing failure</strong></td>
+          <td><span class="pill pill--fail">FAILS</span></td>
+          <td><span class="pill pill--fail">FAILS</span></td>
+          <td><span class="pill pill--fail">FAILS</span></td>
+          <td style="color:var(--text-dim)">Not our problem</td>
+          <td><span class="pill pill--skip">ignored</span></td>
+        </tr>
+        <tr>
+          <td><strong>Swap fixed it</strong></td>
+          <td><span class="pill pill--fail">FAILS</span></td>
+          <td><span class="pill pill--fail">FAILS</span></td>
+          <td><span class="pill pill--ok">compiles</span></td>
+          <td style="color:var(--green)">Bonus fix</td>
+          <td><span class="pill pill--skip">not tracked</span></td>
+        </tr>
+        <tr>
+          <td><strong>Upgrade broke, swap fixed</strong></td>
+          <td><span class="pill pill--ok">compiles</span></td>
+          <td><span class="pill pill--fail">FAILS</span></td>
+          <td><span class="pill pill--ok">compiles</span></td>
+          <td style="color:var(--amber)">Upgrade regression (self-healed)</td>
+          <td><span class="pill pill--new">:regressions :upgrade</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="callout anim" style="--i:8">
+  <strong>Key insight:</strong> The after-upgrade checkpoint diffs against before-upgrade. The after-swap checkpoint diffs against after-upgrade (not baseline). This means each regression is attributed to <em>exactly one phase</em>.
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION 3: DATA FLOW                                  -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<div id="s3" class="sec-head anim" style="--i:9; color: var(--purple);">
+  <span class="dot" style="background: var(--purple);"></span>
+  3 — Data Flow: Dynamic Var Bridge
+</div>
+
+<p class="anim" style="--i:10">
+  <code>swap_verify.clj</code> (dev) creates the tracker and binds it; <code>runner.clj</code> (enterprise) calls it at checkpoints. The dynamic var <code>*compilation-tracker*</code> is the bridge between them.
+</p>
+
+<div class="df-container anim" style="--i:11">
+
+  <div class="df-box" style="border-color: var(--purple-dim);">
+    <h3 style="color: var(--purple);">
+      <span class="dot" style="background: var(--purple); width:6px; height:6px; border-radius:50%; display:inline-block;"></span>
+      swap_verify.clj <span style="color: var(--text-dim); font-weight: 400;">(dev)</span>
+    </h3>
+    <ul class="node-list">
+      <li>Creates <code>results-atom</code></li>
+      <li>Creates <code>tracker-fn</code> (callback)</li>
+      <li>Binds <code>*compilation-tracker*</code></li>
+      <li>Calls <code>runner/run-swap</code></li>
+      <li>Reads <code>@results-atom</code> after return</li>
+      <li>Writes EDN report file</li>
+    </ul>
+  </div>
+
+  <div class="df-bridge">
+    <div class="df-bridge-arrow">
+      bind
+      <svg viewBox="0 0 28 16"><path d="M2 8 L22 8 M18 4 L22 8 L18 12"/></svg>
+    </div>
+    <div style="font-family: var(--font-mono); font-size: 10px; color: var(--amber); text-align: center; padding: 6px 0;">
+      *compilation-<br>tracker*
+    </div>
+    <div class="df-bridge-arrow">
+      <svg viewBox="0 0 28 16"><path d="M26 8 L6 8 M10 4 L6 8 L10 12"/></svg>
+      calls
+    </div>
+  </div>
+
+  <div class="df-box" style="border-color: var(--cyan-dim);">
+    <h3 style="color: var(--cyan);">
+      <span class="dot" style="background: var(--cyan); width:6px; height:6px; border-radius:50%; display:inline-block;"></span>
+      runner.clj <span style="color: var(--text-dim); font-weight: 400;">(enterprise)</span>
+    </h3>
+    <ul class="node-list">
+      <li>Checks <code>(when *compilation-tracker* ...)</code></li>
+      <li>Calls at <code>:before-upgrade</code></li>
+      <li>Runs Phase 1 (upgrade)</li>
+      <li>Calls at <code>:after-upgrade</code></li>
+      <li>Runs Phase 2 (swap)</li>
+      <li>Calls at <code>:after-swap</code></li>
+    </ul>
+  </div>
+
+</div>
+
+<div class="code-block anim" style="--i:12"><span class="cmt">;; swap_verify.clj — the binding site</span>
+(<span class="kw">let</span> [[tracker-fn results] (<span class="fn">make-compilation-tracker</span>)]
+  (<span class="kw">binding</span> [runner/<span class="sym">*compilation-tracker*</span> tracker-fn]
+    (runner/<span class="fn">run-swap</span> old-source new-source))
+  <span class="cmt">;; @results now contains all regression data</span>
+  (<span class="fn">spit</span> filename (<span class="fn">pr-str</span> <span class="sym">@results</span>)))</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION 4: EDN REPORT                                 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<div id="s4" class="sec-head anim" style="--i:13; color: var(--green);">
+  <span class="dot" style="background: var(--green);"></span>
+  4 — EDN Report Structure
+</div>
+
+<p class="anim" style="--i:14">
+  Output file: <code>swap_report_&lt;card-id&gt;_&lt;sha&gt;_&lt;date&gt;.edn</code>. The filename encodes what was tested, on which commit, and when — making it easy to compare across runs.
+</p>
+
+<div class="two-col anim" style="--i:15">
+
+  <div class="card" style="border-color: var(--red-dim);">
+    <div class="card-label" style="color: var(--red);">
+      <span class="dot" style="background: var(--red);"></span>
+      :regressions — what broke
+    </div>
+    <div class="code-block" style="font-size: 11px;"><span class="sym">{:regressions</span>
+ <span class="sym">{:upgrade</span>
+  [<span class="sym">{:card-id</span> <span class="str">789</span>
+    <span class="sym">:card-name</span> <span class="str">"Revenue by Month"</span>
+    <span class="sym">:error</span>
+    <span class="sym">{:message</span> <span class="str">"No matching clause :expression"</span>
+     <span class="sym">:ex-data</span> <span class="sym">{:clause</span> [<span class="sym">:expression</span> ...]}
+     <span class="sym">:stacktrace</span> [<span class="str">"at clojure.core..."</span>
+                  <span class="str">"at metabase.lib..."</span>
+                  ...]}}]
+  <span class="sym">:swap</span>
+  [<span class="sym">{:card-id</span> <span class="str">123</span>
+    <span class="sym">:card-name</span> <span class="str">"Orders Dashboard"</span>
+    <span class="sym">:error</span>
+    <span class="sym">{:message</span> <span class="str">"Invalid source-card"</span>
+     ...}}]}}</div>
+  </div>
+
+  <div class="card" style="border-color: var(--green-dim);">
+    <div class="card-label" style="color: var(--green);">
+      <span class="dot" style="background: var(--green);"></span>
+      :stats — the scoreboard
+    </div>
+    <div class="code-block" style="font-size: 11px;"><span class="sym">{:stats</span>
+ <span class="sym">{:before-upgrade</span>
+  <span class="sym">{:compilable</span> <span class="str">45</span>
+   <span class="sym">:failing</span>    <span class="str">3</span>}
+  <span class="sym">:after-upgrade</span>
+  <span class="sym">{:compilable</span> <span class="str">44</span>
+   <span class="sym">:failing</span>    <span class="str">4</span>}
+  <span class="sym">:after-swap</span>
+  <span class="sym">{:compilable</span> <span class="str">42</span>
+   <span class="sym">:failing</span>    <span class="str">6</span>}}
+ <span class="sym">:elapsed-ms</span> <span class="str">12340</span>
+ <span class="sym">:old-source</span> [<span class="sym">:card</span> <span class="str">46</span>]
+ <span class="sym">:new-source</span> [<span class="sym">:card</span> <span class="str">999</span>]}</div>
+    <div class="callout" style="margin-top: 12px; border-left-color: var(--green);">
+      <strong>Stats tell the story at a glance.</strong> If <code>:compilable</code> drops between checkpoints, that phase introduced regressions. If it stays flat, that phase is clean.
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION 5: ANALYZING RESULTS                          -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<div id="s5" class="sec-head anim" style="--i:16; color: var(--pink);">
+  <span class="dot" style="background: var(--pink);"></span>
+  5 — Analyzing Results
+</div>
+
+<div class="three-col anim" style="--i:17">
+
+  <div class="card card--elevated">
+    <div class="card-label" style="color: var(--red);">
+      <span class="dot" style="background: var(--red);"></span>
+      Correctness
+    </div>
+    <p style="font-size: 12px;">
+      <strong style="color: var(--text);">Goal: zero regressions.</strong><br>
+      Group regressions by <code>:message</code> to find error buckets.
+      Each bucket is a distinct bug class to fix.
+    </p>
+    <div class="code-block" style="font-size: 10px;"><span class="cmt">;; find error buckets</span>
+(<span class="fn">frequencies</span>
+ (<span class="fn">map</span> #(<span class="fn">get-in</span> % [<span class="sym">:error</span> <span class="sym">:message</span>])
+      (<span class="fn">concat</span>
+       (<span class="sym">:upgrade</span> regressions)
+       (<span class="sym">:swap</span> regressions))))</div>
+    <p style="font-size: 11px; margin-top: 8px;">
+      Output: <code>{"No matching clause" 8, "Invalid base type" 5, ...}</code>
+    </p>
+  </div>
+
+  <div class="card card--elevated">
+    <div class="card-label" style="color: var(--amber);">
+      <span class="dot" style="background: var(--amber);"></span>
+      Performance
+    </div>
+    <p style="font-size: 12px;">
+      <strong style="color: var(--text);">Track <code>:elapsed-ms</code> across commits.</strong><br>
+      The SHA is in the filename — diff performance between commits to catch slowdowns.
+    </p>
+    <div class="code-block" style="font-size: 10px;"><span class="cmt">;; compare runs across SHAs</span>
+(<span class="kw">def</span> runs
+ (<span class="fn">map</span> #(<span class="fn">clojure.edn/read-string</span>
+        (<span class="fn">slurp</span> %))
+      (<span class="fn">glob</span> <span class="str">"swap_report_46_*.edn"</span>)))
+
+(<span class="fn">map</span> (<span class="fn">juxt</span> <span class="sym">:sha</span> <span class="sym">:elapsed-ms</span>)
+     runs)</div>
+  </div>
+
+  <div class="card card--elevated">
+    <div class="card-label" style="color: var(--green);">
+      <span class="dot" style="background: var(--green);"></span>
+      Progress
+    </div>
+    <p style="font-size: 12px;">
+      <strong style="color: var(--text);">Track compilable count over time.</strong><br>
+      As you fix bugs, <code>:compilable</code> in <code>:after-swap</code> should trend upward.
+    </p>
+    <div class="code-block" style="font-size: 10px;"><span class="cmt">;; trend: compilable after swap</span>
+(<span class="fn">map</span> (<span class="fn">juxt</span>
+      <span class="sym">:sha</span>
+      #(<span class="fn">get-in</span> % [<span class="sym">:stats</span>
+                   <span class="sym">:after-swap</span>
+                   <span class="sym">:compilable</span>]))
+     runs)
+<span class="cmt">;; => [["abc123" 42]</span>
+<span class="cmt">;;     ["def456" 44]</span>
+<span class="cmt">;;     ["ghi789" 48]]</span></div>
+  </div>
+
+</div>
+
+<div class="callout anim" style="--i:18; border-left-color: var(--pink);">
+  <strong>Phase attribution matters.</strong> If most regressions are in <code>:upgrade</code>, the problem is in <code>field-refs/upgrade!</code> — likely bad field ref resolution or missing expression metadata. If they're in <code>:swap</code>, the problem is in <code>source-swap/do-swap!</code> — likely bad source/field mapping or native SQL rewriting.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION 6: REPL RECIPES                               -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<div id="s6" class="sec-head anim" style="--i:19; color: var(--cyan);">
+  <span class="dot" style="background: var(--cyan);"></span>
+  6 — REPL Recipes
+</div>
+
+<div class="two-col anim" style="--i:20">
+
+  <div class="card">
+    <div class="card-label" style="color: var(--cyan);">
+      <span class="dot" style="background: var(--cyan);"></span>
+      Single model test
+    </div>
+    <div class="code-block" style="font-size: 11px;"><span class="cmt">;; Run against one model (auto-clone)</span>
+(<span class="fn">sv/run-verified-swap!</span> [<span class="sym">:card</span> <span class="str">46</span>])
+
+<span class="cmt">;; → prints only regressions (if any)</span>
+<span class="cmt">;; → writes swap_report_46_abc123_20260302.edn</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label" style="color: var(--amber);">
+      <span class="dot" style="background: var(--amber);"></span>
+      Batch bench
+    </div>
+    <div class="code-block" style="font-size: 11px;"><span class="cmt">;; Run across many models</span>
+(<span class="fn">sv/run-swap-bench</span>
+ [<span class="str">6736</span> <span class="str">16995</span> <span class="str">4872</span> <span class="str">12339</span>])
+
+<span class="cmt">;; → one report file per model</span>
+<span class="cmt">;; → aggregate summary printed</span></div>
+  </div>
+
+</div>
+
+<div class="two-col anim" style="--i:21">
+
+  <div class="card">
+    <div class="card-label" style="color: var(--green);">
+      <span class="dot" style="background: var(--green);"></span>
+      Aggregate error buckets
+    </div>
+    <div class="code-block" style="font-size: 11px;"><span class="cmt">;; Load all reports, bucket errors</span>
+(<span class="kw">def</span> reports
+ (<span class="fn">map</span> #(<span class="fn">clojure.edn/read-string</span>
+        (<span class="fn">slurp</span> %))
+      (<span class="fn">file-seq-matching</span>
+       <span class="str">"swap_report_*.edn"</span>)))
+
+(<span class="kw">def</span> all-errors
+ (<span class="fn">mapcat</span>
+  #(<span class="fn">concat</span> (<span class="fn">get-in</span> % [<span class="sym">:regressions</span> <span class="sym">:upgrade</span>])
+          (<span class="fn">get-in</span> % [<span class="sym">:regressions</span> <span class="sym">:swap</span>]))
+  reports))
+
+(<span class="fn">frequencies</span>
+ (<span class="fn">map</span> #(<span class="fn">get-in</span> % [<span class="sym">:error</span> <span class="sym">:message</span>])
+      all-errors))</div>
+  </div>
+
+  <div class="card">
+    <div class="card-label" style="color: var(--purple);">
+      <span class="dot" style="background: var(--purple);"></span>
+      Phase-specific investigation
+    </div>
+    <div class="code-block" style="font-size: 11px;"><span class="cmt">;; Which cards break ONLY during swap?</span>
+(<span class="kw">def</span> report
+ (<span class="fn">clojure.edn/read-string</span>
+  (<span class="fn">slurp</span> <span class="str">"swap_report_46_abc_20260302.edn"</span>)))
+
+<span class="cmt">;; Swap regressions with full stacktraces</span>
+(<span class="fn">doseq</span> [{<span class="sym">:keys</span> [card-id card-name error]}
+       (<span class="fn">get-in</span> report [<span class="sym">:regressions</span> <span class="sym">:swap</span>])]
+  (<span class="fn">println</span> card-id card-name)
+  (<span class="fn">println</span> (<span class="sym">:message</span> error))
+  (<span class="fn">doseq</span> [line (<span class="sym">:stacktrace</span> error)]
+    (<span class="fn">println</span> <span class="str">"  "</span> line))
+  (<span class="fn">println</span>))</div>
+  </div>
+
+</div>
+
+<div class="card card--hero anim" style="--i:22; margin-top: 16px;">
+  <div class="card-label" style="color: var(--cyan);">
+    <span class="dot" style="background: var(--cyan);"></span>
+    Decision framework
+  </div>
+  <div class="three-col" style="margin: 0;">
+    <div>
+      <p style="font-size: 12px; margin-bottom: 4px;"><strong style="color: var(--red);">Most regressions in :upgrade?</strong></p>
+      <p style="font-size: 11px;">Fix <code>field-refs/upgrade!</code> — field resolution, expression metadata, viz settings conversion.</p>
+    </div>
+    <div>
+      <p style="font-size: 12px; margin-bottom: 4px;"><strong style="color: var(--red);">Most regressions in :swap?</strong></p>
+      <p style="font-size: 11px;">Fix <code>source-swap/do-swap!</code> — source mapping, field ID remapping, native SQL rewriting.</p>
+    </div>
+    <div>
+      <p style="font-size: 12px; margin-bottom: 4px;"><strong style="color: var(--green);">Zero regressions?</strong></p>
+      <p style="font-size: 11px;">Ship it. The swap is safe for this model and all its dependents.</p>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /wrap -->
+
+<script>
+(function() {
+  const toc = document.getElementById('toc');
+  const links = toc.querySelectorAll('a');
+  const sections = [];
+  links.forEach(link => {
+    const id = link.getAttribute('href').slice(1);
+    const el = document.getElementById(id);
+    if (el) sections.push({ id, el, link });
+  });
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const match = sections.find(s => s.el === entry.target);
+        if (match) {
+          match.link.classList.add('active');
+          if (window.innerWidth <= 1000) {
+            match.link.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          }
+        }
+      }
+    });
+  }, { rootMargin: '-10% 0px -80% 0px' });
+  sections.forEach(s => observer.observe(s.el));
+  links.forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      const id = link.getAttribute('href').slice(1);
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        history.replaceState(null, '', '#' + id);
+      }
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

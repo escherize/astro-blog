@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 2 Refactor — lib-be Source Swap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Instrument Sans', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #fefdfb;
+    --surface: #ffffff;
+    --surface2: #f6f4f0;
+    --surface-elevated: #fffef9;
+    --border: rgba(0, 0, 0, 0.07);
+    --border-bright: rgba(0, 0, 0, 0.14);
+    --text: #1c1917;
+    --text-dim: #78716c;
+
+    --old: #b91c1c;
+    --old-dim: rgba(185, 28, 28, 0.06);
+    --new: #15803d;
+    --new-dim: rgba(21, 128, 61, 0.06);
+    --accent: #7c3aed;
+    --accent-dim: rgba(124, 58, 237, 0.06);
+    --blue: #1d4ed8;
+    --blue-dim: rgba(29, 78, 216, 0.06);
+    --amber: #b45309;
+    --amber-dim: rgba(180, 83, 9, 0.06);
+    --teal: #0f766e;
+    --teal-dim: rgba(15, 118, 110, 0.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #171412;
+      --surface: #1f1b18;
+      --surface2: #292421;
+      --surface-elevated: #302a26;
+      --border: rgba(255, 255, 255, 0.07);
+      --border-bright: rgba(255, 255, 255, 0.14);
+      --text: #f5f0eb;
+      --text-dim: #a8a29e;
+
+      --old: #fca5a5;
+      --old-dim: rgba(252, 165, 165, 0.1);
+      --new: #86efac;
+      --new-dim: rgba(134, 239, 172, 0.1);
+      --accent: #c4b5fd;
+      --accent-dim: rgba(196, 181, 253, 0.1);
+      --blue: #93c5fd;
+      --blue-dim: rgba(147, 197, 253, 0.1);
+      --amber: #fcd34d;
+      --amber-dim: rgba(252, 211, 77, 0.1);
+      --teal: #5eead4;
+      --teal-dim: rgba(94, 234, 212, 0.1);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 15% 0%, var(--accent-dim) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 90%, var(--new-dim) 0%, transparent 40%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .anim { animation: fadeUp 0.4s ease-out both; animation-delay: calc(var(--i, 0) * 0.06s); }
+  .anim-scale { animation: fadeScale 0.35s ease-out both; animation-delay: calc(var(--i, 0) * 0.06s); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  h1 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    margin-bottom: 6px;
+    text-wrap: balance;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+
+  .intro {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    margin-bottom: 36px;
+    max-width: 760px;
+  }
+
+  .intro code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* KPI row */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px;
+    margin-bottom: 36px;
+  }
+
+  .kpi-card {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+
+  .kpi-card__value {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .kpi-card__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+
+  /* Section heading */
+  .section-heading {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    margin-top: 40px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-heading .tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* Before/After diff panels */
+  .diff-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .diff-panels > * { min-width: 0; overflow-wrap: break-word; }
+
+  .diff-panel__header {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 10px 16px;
+  }
+
+  .diff-panel__header--before {
+    background: var(--old-dim);
+    color: var(--old);
+    border-bottom: 2px solid var(--old);
+  }
+
+  .diff-panel__header--after {
+    background: var(--new-dim);
+    color: var(--new);
+    border-bottom: 2px solid var(--new);
+  }
+
+  .diff-panel__body {
+    padding: 20px;
+    background: var(--surface);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  .diff-panel__body code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .diff-panel__body .fn {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+
+  .diff-panel__body .struck {
+    text-decoration: line-through;
+    color: var(--old);
+    opacity: 0.7;
+  }
+
+  .diff-panel__body .highlight {
+    background: var(--new-dim);
+    border-radius: 3px;
+    padding: 0 3px;
+    font-weight: 500;
+  }
+
+  .diff-panel__body ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .diff-panel__body li {
+    padding: 4px 0 4px 16px;
+    position: relative;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .diff-panel__body li::before {
+    content: '›';
+    position: absolute;
+    left: 0;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+
+  /* Card sections */
+  .section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .section-card--hero {
+    background: var(--surface-elevated);
+    border-color: color-mix(in srgb, var(--border) 50%, var(--accent) 50%);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  }
+
+  .section-card__label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-card__label .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  /* Flow arrows */
+  .flow-arrow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 4px 0;
+  }
+
+  .flow-arrow svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: var(--border-bright);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* Mermaid */
+  .mermaid-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    overflow: auto;
+    margin-bottom: 24px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .mermaid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .mermaid-wrap::-webkit-scrollbar-track { background: transparent; }
+  .mermaid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .mermaid-wrap::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  .mermaid-wrap .mermaid {
+    display: flex;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    transform-origin: top center;
+  }
+
+  .zoom-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 2px;
+    z-index: 10;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+  }
+
+  .zoom-controls button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .zoom-controls button:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .mermaid-wrap.is-zoomed { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+  .mermaid .nodeLabel {
+    font-family: var(--font-body) !important;
+    font-size: 14px !important;
+  }
+  .mermaid .edgeLabel {
+    font-family: var(--font-mono) !important;
+    font-size: 12px !important;
+  }
+  .mermaid .node rect,
+  .mermaid .node circle,
+  .mermaid .node polygon {
+    stroke-width: 1.5px !important;
+  }
+
+  /* File change cards */
+  .file-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .file-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+
+  .file-card__name {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    word-break: break-all;
+  }
+
+  .file-card__desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  .file-card__badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+
+  .file-card__badge--changed { background: var(--blue-dim); color: var(--blue); }
+  .file-card__badge--deleted { background: var(--old-dim); color: var(--old); }
+  .file-card__badge--new { background: var(--new-dim); color: var(--new); }
+
+  /* Callout */
+  .callout {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--teal);
+    border-radius: 0 8px 8px 0;
+    padding: 16px 20px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+
+  .callout strong { color: var(--text); font-weight: 600; }
+
+  .callout code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--teal-dim);
+    color: var(--teal);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    body { padding: 20px; }
+    h1 { font-size: 24px; }
+    .diff-panels { grid-template-columns: 1fr; }
+    .file-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1 class="anim" style="--i:0">Phase 2 Refactor</h1>
+  <p class="subtitle anim" style="--i:1">source replacement &rarr; lib-be source-swap APIs</p>
+
+  <p class="intro anim" style="--i:2">
+    Phase 2 of source replacement (the actual source swap for direct dependents) previously used
+    a hand-rolled <code>field_ref_update.cljc</code> for MBQL swapping and custom field-ref matching
+    in <code>viz.clj</code>. This refactor replaces both with three focused <code>lib-be.source-swap</code>
+    functions, deletes 140 lines of field-ref-update code, and adds coverage for second-level dashboard
+    dependents.
+  </p>
+
+  <!-- KPI row -->
+  <div class="kpi-row">
+    <div class="kpi-card anim-scale" style="--i:3">
+      <div class="kpi-card__value" style="color:var(--old)">-140</div>
+      <div class="kpi-card__label">Lines Deleted</div>
+    </div>
+    <div class="kpi-card anim-scale" style="--i:4">
+      <div class="kpi-card__value" style="color:var(--new)">3</div>
+      <div class="kpi-card__label">lib-be APIs used</div>
+    </div>
+    <div class="kpi-card anim-scale" style="--i:5">
+      <div class="kpi-card__value" style="color:var(--accent)">6</div>
+      <div class="kpi-card__label">Files Changed</div>
+    </div>
+    <div class="kpi-card anim-scale" style="--i:6">
+      <div class="kpi-card__value" style="color:var(--teal)">1</div>
+      <div class="kpi-card__label">New Capability</div>
+    </div>
+  </div>
+
+  <!-- SECTION: Old Flow -->
+  <h2 class="section-heading anim" style="--i:7">
+    Old Phase 2 Flow
+    <span class="tag" style="background:var(--old-dim);color:var(--old)">before</span>
+  </h2>
+
+  <div class="mermaid-wrap anim" style="--i:8">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+    </div>
+    <pre class="mermaid">
+      graph TD
+        R["runner.clj<br/><i>run-swap</i>"]
+        DU["direct-usages"]
+        R --> DU
+
+        DU --> CS["card-swap!"]
+        DU --> TS["transform-swap!"]
+        DU --> SS["segment-swap!"]
+        DU --> MS["measure-swap!"]
+
+        CS --> UQ1["update-query"]
+        TS --> UQ2["update-query"]
+        SS --> UQ3["update-query"]
+        MS --> UQ4["update-query"]
+
+        UQ1 --> FRU["field_ref_update.cljc<br/><b>update-field-refs</b><br/><i>rebuilds field-id-mapping<br/>on every call</i>"]
+        UQ2 --> FRU
+        UQ3 --> FRU
+        UQ4 --> FRU
+
+        CS --> VIZ["swap/viz.clj"]
+        VIZ --> UTI["ultimate-table-id<br/><i>resolve card to table</i>"]
+        VIZ --> QS["query-source<br/><i>build query from ref</i>"]
+        VIZ --> SFR["swap-field-ref<br/><i>match columns by name</i>"]
+        VIZ --> SPM["swap-parameter-mappings"]
+        VIZ --> SCS["swap-column-settings"]
+
+        style FRU fill:#fef2f2,stroke:#b91c1c,color:#1c1917
+        style VIZ fill:#fef2f2,stroke:#b91c1c,color:#1c1917
+        style UTI fill:#fef2f2,stroke:#b91c1c,color:#1c1917
+        style QS fill:#fef2f2,stroke:#b91c1c,color:#1c1917
+        style SFR fill:#fef2f2,stroke:#b91c1c,color:#1c1917
+    </pre>
+  </div>
+
+  <div class="callout anim" style="--i:8">
+    <strong>Problems with the old flow:</strong> The field-id-mapping was rebuilt inside
+    <code>field_ref_update/update-field-refs</code> on every query swap. The viz layer needed
+    its own metadata provider, field lookups, and column-by-name matching. No coverage for
+    second-level dashboard dependents.
+  </div>
+
+  <!-- SECTION: Before vs After per file -->
+  <h2 class="section-heading anim" style="--i:9">
+    What Changed in Each Layer
+    <span class="tag" style="background:var(--blue-dim);color:var(--blue)">diff</span>
+  </h2>
+
+  <!-- mbql.clj -->
+  <div class="diff-panels anim" style="--i:10">
+    <div class="diff-panel__header diff-panel__header--before">swap/mbql.clj &mdash; Before</div>
+    <div class="diff-panel__header diff-panel__header--after">swap/mbql.clj &mdash; After</div>
+    <div class="diff-panel__body">
+      <div class="fn struck">field-ref-update/update-field-refs</div>
+      <ul>
+        <li>Internally rebuilt field-id-mapping on every call</li>
+        <li>Handled source-table/source-card swapping inline</li>
+        <li>Walked all stage clauses with its own walker</li>
+      </ul>
+    </div>
+    <div class="diff-panel__body">
+      <div class="fn"><span class="highlight">lib-be/swap-source-in-query</span></div>
+      <ul>
+        <li>Receives pre-built <code>field-id-mapping</code></li>
+        <li>Takes <code>{:type :table :id N}</code> source maps</li>
+        <li>One function call, no internal rebuilding</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- viz.clj -->
+  <div class="diff-panels anim" style="--i:11">
+    <div class="diff-panel__header diff-panel__header--before">swap/viz.clj &mdash; Before</div>
+    <div class="diff-panel__header diff-panel__header--after">swap/viz.clj &mdash; After</div>
+    <div class="diff-panel__body">
+      <ul>
+        <li><span class="struck">ultimate-table-id</span> &mdash; resolve card to table</li>
+        <li><span class="struck">query-source</span> &mdash; build query from source ref</li>
+        <li><span class="struck">swap-field-ref</span> &mdash; match columns by name</li>
+        <li><span class="struck">swap-legacy-target / swap-target</span></li>
+        <li>Required metadata provider, field lookups, column matching</li>
+      </ul>
+    </div>
+    <div class="diff-panel__body">
+      <ul>
+        <li><span class="highlight">swap-source-in-parameter-target</span> for param mappings</li>
+        <li>Same function for column_settings dimensions</li>
+        <li>No metadata provider needed &mdash; just field-id-mapping</li>
+        <li><span class="highlight">New:</span> <code>dashboard-update-field-refs!</code> for second-level dashboards</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- source_swap.clj -->
+  <div class="diff-panels anim" style="--i:12">
+    <div class="diff-panel__header diff-panel__header--before">source_swap.clj &mdash; Before</div>
+    <div class="diff-panel__header diff-panel__header--after">source_swap.clj &mdash; After</div>
+    <div class="diff-panel__body">
+      <ul>
+        <li><code>do-swap!(entity, old-source, new-source)</code></li>
+        <li>No field-id-mapping parameter</li>
+        <li>Mapping rebuilt inside each call path</li>
+        <li>Source refs as <code>[:table 1]</code> tuples everywhere</li>
+      </ul>
+    </div>
+    <div class="diff-panel__body">
+      <ul>
+        <li><code>do-swap!(entity, old-source, new-source, <span class="highlight">field-id-mapping</span>)</code></li>
+        <li>Mapping threaded from runner through all swap fns</li>
+        <li><span class="highlight">source-ref-&gt;source-map</span> converts at the boundary</li>
+        <li>Internal code still uses tuples; conversion only at lib-be boundary</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SECTION: New Phase 2 Flow -->
+  <h2 class="section-heading anim" style="--i:13">
+    New Phase 2 Flow
+    <span class="tag" style="background:var(--new-dim);color:var(--new)">after</span>
+  </h2>
+
+  <div class="mermaid-wrap anim" style="--i:14">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+    </div>
+    <pre class="mermaid">
+      graph TD
+        R["runner.clj"]
+        M["build-field-id-mapping<br/><i>built once from old source</i>"]
+        D["direct-usages"]
+        R --> M
+        R --> D
+
+        D --> C["card-swap!"]
+        D --> T["transform-swap!"]
+        D --> S["segment-swap!"]
+        D --> ME["measure-swap!"]
+
+        C --> UQ["update-query<br/><i>swap-source-in-query</i>"]
+        C --> DV["dashboard-card-update-field-refs!<br/><i>swap-source-in-parameter-target</i>"]
+
+        T --> UQ
+        S --> UQ
+        ME --> UQ
+
+        R --> SL["Phase 2b: second-level dashboards"]
+        SL --> SLD["dashboard-update-field-refs!<br/><i>all dashcards in dashboard</i>"]
+
+        style M fill:#f0fdf4,stroke:#15803d,color:#1c1917
+        style SL fill:#eff6ff,stroke:#1d4ed8,color:#1c1917
+        style SLD fill:#eff6ff,stroke:#1d4ed8,color:#1c1917
+    </pre>
+  </div>
+
+  <!-- SECTION: Second-Level Dashboards -->
+  <h2 class="section-heading anim" style="--i:15">
+    Second-Level Dashboard Problem
+    <span class="tag" style="background:var(--amber-dim);color:var(--amber)">new</span>
+  </h2>
+
+  <div class="callout anim" style="--i:16">
+    <strong>The scenario:</strong> Table T is the old source. Card A depends on Table T.
+    Dashboard D contains Card A with a filter parameter mapped to <code>[:field {} field-from-T]</code>.
+    Dashboard D is <em>not</em> a direct dependent of Table T &mdash; it's a direct dependent of
+    Card A. When Card A's source is swapped, D's parameter targets still point at old field IDs.
+  </div>
+
+  <div class="mermaid-wrap anim" style="--i:17">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+    </div>
+    <pre class="mermaid">
+      graph LR
+        TBL["Table T<br/><i>old source</i>"]
+        TBL2["Table T'<br/><i>new source</i>"]
+        CARD["Card A<br/><i>:source-table T</i>"]
+        DASH["Dashboard D<br/><i>contains Card A</i>"]
+        PM["parameter_mappings<br/><i>[:field {} field-from-T]</i>"]
+
+        TBL -->|"direct dep"| CARD
+        CARD -->|"contains"| DASH
+        DASH --> PM
+
+        TBL -.->|"swap to"| TBL2
+
+        PM -.->|"needs update to<br/>[:field {} field-from-T']"| PM
+
+        style TBL fill:#fef2f2,stroke:#b91c1c,color:#1c1917
+        style TBL2 fill:#f0fdf4,stroke:#15803d,color:#1c1917
+        style PM fill:#fefce8,stroke:#b45309,color:#1c1917
+        style DASH fill:#eff6ff,stroke:#1d4ed8,color:#1c1917
+    </pre>
+  </div>
+
+  <!-- SECTION: Files Changed -->
+  <h2 class="section-heading anim" style="--i:18">
+    Files Changed
+    <span class="tag" style="background:var(--teal-dim);color:var(--teal)">files</span>
+  </h2>
+
+  <div class="file-grid">
+    <div class="file-card anim" style="--i:19">
+      <span class="file-card__badge file-card__badge--changed">changed</span>
+      <div class="file-card__name">swap/mbql.clj</div>
+      <div class="file-card__desc">Delegates to <code style="font-family:var(--font-mono);font-size:11px;background:var(--accent-dim);color:var(--accent);padding:1px 5px;border-radius:3px">lib-be/swap-source-in-query</code></div>
+    </div>
+    <div class="file-card anim" style="--i:20">
+      <span class="file-card__badge file-card__badge--changed">changed</span>
+      <div class="file-card__name">source_swap.clj</div>
+      <div class="file-card__desc">Threads field-id-mapping, adds source-ref conversion</div>
+    </div>
+    <div class="file-card anim" style="--i:21">
+      <span class="file-card__badge file-card__badge--changed">changed</span>
+      <div class="file-card__name">swap/viz.clj</div>
+      <div class="file-card__desc">Uses <code style="font-family:var(--font-mono);font-size:11px;background:var(--accent-dim);color:var(--accent);padding:1px 5px;border-radius:3px">swap-source-in-parameter-target</code>, adds dashboard-level fn</div>
+    </div>
+    <div class="file-card anim" style="--i:22">
+      <span class="file-card__badge file-card__badge--new">new fn</span>
+      <div class="file-card__name">usages.clj</div>
+      <div class="file-card__desc">Added <code style="font-family:var(--font-mono);font-size:11px;background:var(--accent-dim);color:var(--accent);padding:1px 5px;border-radius:3px">second-level-dashboard-ids</code></div>
+    </div>
+    <div class="file-card anim" style="--i:23">
+      <span class="file-card__badge file-card__badge--changed">changed</span>
+      <div class="file-card__name">runner.clj</div>
+      <div class="file-card__desc">Builds mapping once, adds phase 2b for second-level dashboards</div>
+    </div>
+    <div class="file-card anim" style="--i:24">
+      <span class="file-card__badge file-card__badge--deleted">deleted</span>
+      <div class="file-card__name">field_ref_update.cljc</div>
+      <div class="file-card__desc">140 lines removed &mdash; fully replaced by lib-be</div>
+    </div>
+  </div>
+
+  <!-- Key insight callout -->
+  <div class="callout anim" style="--i:25">
+    <strong>Why this matters:</strong> The field-id-mapping is now built <em>once</em> in the runner
+    and threaded through the entire phase 2 pipeline. Previously, <code>field_ref_update</code>
+    rebuilt it on every query swap. The <code>build-swap-field-id-mapping</code> function only returns
+    a mapping for table&rarr;table and table&rarr;card swaps (nil for card&rarr;card), which naturally
+    gates the second-level dashboard processing.
+  </div>
+
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    look: 'handDrawn',
+    themeVariables: {
+      primaryColor: isDark ? '#292421' : '#f8f7f5',
+      primaryBorderColor: isDark ? '#c4b5fd' : '#7c3aed',
+      primaryTextColor: isDark ? '#f5f0eb' : '#1c1917',
+      secondaryColor: isDark ? '#1a2e1a' : '#f0fdf4',
+      secondaryBorderColor: isDark ? '#86efac' : '#15803d',
+      secondaryTextColor: isDark ? '#f5f0eb' : '#1c1917',
+      tertiaryColor: isDark ? '#2e2618' : '#fffbeb',
+      tertiaryBorderColor: isDark ? '#fcd34d' : '#b45309',
+      tertiaryTextColor: isDark ? '#f5f0eb' : '#1c1917',
+      lineColor: isDark ? '#a8a29e' : '#78716c',
+      fontSize: '14px',
+      fontFamily: "'Instrument Sans', system-ui, sans-serif",
+    }
+  });
+</script>
+<script>
+  function updateZoomState(wrap) {
+    var target = wrap.querySelector('.mermaid');
+    var zoom = parseFloat(target.dataset.zoom || '1');
+    wrap.classList.toggle('is-zoomed', zoom > 1);
+  }
+
+  function zoomDiagram(btn, factor) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    var current = parseFloat(target.dataset.zoom || '1');
+    var next = Math.min(Math.max(current * factor, 0.3), 5);
+    target.dataset.zoom = next;
+    target.style.transform = 'scale(' + next + ')';
+    updateZoomState(wrap);
+  }
+
+  function resetZoom(btn) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    target.dataset.zoom = '1';
+    target.style.transform = 'scale(1)';
+    updateZoomState(wrap);
+  }
+
+  document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+    wrap.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      var target = wrap.querySelector('.mermaid');
+      var current = parseFloat(target.dataset.zoom || '1');
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var next = Math.min(Math.max(current * factor, 0.3), 5);
+      target.dataset.zoom = next;
+      target.style.transform = 'scale(' + next + ')';
+      updateZoomState(wrap);
+    }, { passive: false });
+
+    var startX, startY, scrollL, scrollT;
+    wrap.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.zoom-controls')) return;
+      var target = wrap.querySelector('.mermaid');
+      if (parseFloat(target.dataset.zoom || '1') <= 1) return;
+      wrap.classList.add('is-panning');
+      startX = e.clientX;
+      startY = e.clientY;
+      scrollL = wrap.scrollLeft;
+      scrollT = wrap.scrollTop;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!wrap.classList.contains('is-panning')) return;
+      wrap.scrollLeft = scrollL - (e.clientX - startX);
+      wrap.scrollTop = scrollT - (e.clientY - startY);
+    });
+    window.addEventListener('mouseup', function() {
+      wrap.classList.remove('is-panning');
+    });
+  });
+</script>
+
+</body>
+</html>

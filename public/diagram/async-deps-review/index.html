@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>High-Severity Issues — ghy-3211-async Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Noto+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============ THEME — dark-first, blueprint feel ============ */
+  :root {
+    --font-body: 'Crimson Pro', Georgia, serif;
+    --font-mono: 'Noto Sans Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #0c0e14;
+    --surface: #13161f;
+    --surface2: #1a1e2a;
+    --surface-elevated: #1f2433;
+    --border: rgba(255, 255, 255, 0.06);
+    --border-bright: rgba(255, 255, 255, 0.12);
+    --text: #e2e4ea;
+    --text-dim: #8890a4;
+
+    --red: #f87171;
+    --red-dim: rgba(248, 113, 113, 0.12);
+    --red-strong: #ef4444;
+    --orange: #fbbf24;
+    --orange-dim: rgba(251, 191, 36, 0.10);
+    --green: #4ade80;
+    --green-dim: rgba(74, 222, 128, 0.10);
+    --accent: #60a5fa;
+    --accent-dim: rgba(96, 165, 250, 0.10);
+    --purple: #c4b5fd;
+    --purple-dim: rgba(196, 181, 253, 0.10);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f8f9fb;
+      --surface: #ffffff;
+      --surface2: #f0f2f5;
+      --surface-elevated: #ffffff;
+      --border: rgba(0, 0, 0, 0.07);
+      --border-bright: rgba(0, 0, 0, 0.14);
+      --text: #1a1d27;
+      --text-dim: #6b7280;
+
+      --red: #dc2626;
+      --red-dim: rgba(220, 38, 38, 0.07);
+      --red-strong: #b91c1c;
+      --orange: #d97706;
+      --orange-dim: rgba(217, 119, 6, 0.07);
+      --green: #16a34a;
+      --green-dim: rgba(22, 163, 74, 0.07);
+      --accent: #2563eb;
+      --accent-dim: rgba(37, 99, 235, 0.07);
+      --purple: #7c3aed;
+      --purple-dim: rgba(124, 58, 237, 0.07);
+    }
+  }
+
+  /* ============ RESET + BASE ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 30% 0%, var(--red-dim) 0%, transparent 45%),
+      radial-gradient(ellipse at 80% 80%, var(--accent-dim) 0%, transparent 40%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  /* ============ ANIMATION ============ */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate {
+    animation: fadeUp 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.06s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* ============ LAYOUT ============ */
+  .container {
+    max-width: 1020px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+    text-wrap: balance;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    margin-bottom: 32px;
+  }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  /* ============ SEVERITY BADGE ============ */
+  .severity {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .severity::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .severity--high {
+    background: var(--red-dim);
+    color: var(--red);
+  }
+
+  .severity--medium {
+    background: var(--orange-dim);
+    color: var(--orange);
+  }
+
+  /* ============ ISSUE CARD ============ */
+  .issue {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 28px;
+    overflow: hidden;
+  }
+
+  .issue__header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .issue__number {
+    font-family: var(--font-mono);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--red);
+    line-height: 1;
+    min-width: 36px;
+  }
+
+  .issue__title-block {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .issue__title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .issue__location {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .issue__body {
+    padding: 20px 24px;
+  }
+
+  .issue__body > * + * {
+    margin-top: 16px;
+  }
+
+  .issue__desc {
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--text);
+  }
+
+  .issue__desc code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ============ CODE BLOCK ============ */
+  .code-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .code-block .comment {
+    color: var(--text-dim);
+  }
+
+  .code-block .highlight-bad {
+    background: var(--red-dim);
+    display: inline;
+    padding: 1px 3px;
+    border-radius: 3px;
+  }
+
+  .code-block .highlight-good {
+    background: var(--green-dim);
+    display: inline;
+    padding: 1px 3px;
+    border-radius: 3px;
+  }
+
+  /* ============ SEQUENCE DIAGRAM (CSS) ============ */
+  .seq-diagram {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 16px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .seq-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+  }
+
+  .seq-grid {
+    display: grid;
+    grid-template-columns: 100px 1fr 100px;
+    gap: 0;
+    min-width: 500px;
+  }
+
+  .seq-actor {
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+
+  .seq-lifeline {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 100px 1fr 100px;
+    position: relative;
+    min-height: 28px;
+  }
+
+  .seq-lifeline::before,
+  .seq-lifeline::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    border-left: 1px dashed var(--border-bright);
+  }
+
+  .seq-lifeline::before { left: 50px; }
+  .seq-lifeline::after { right: 50px; }
+
+  .seq-msg {
+    grid-column: 2;
+    display: flex;
+    align-items: center;
+    padding: 6px 0;
+    position: relative;
+  }
+
+  .seq-msg-line {
+    flex: 1;
+    height: 1px;
+    position: relative;
+  }
+
+  .seq-msg-line--right {
+    background: var(--text-dim);
+  }
+
+  .seq-msg-line--right::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: -4px;
+    border: 4px solid transparent;
+    border-left: 6px solid var(--text-dim);
+  }
+
+  .seq-msg-label {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text);
+    white-space: nowrap;
+    background: var(--surface2);
+    padding: 0 4px;
+  }
+
+  .seq-msg-label--bad {
+    color: var(--red);
+    font-weight: 600;
+  }
+
+  .seq-msg-label--good {
+    color: var(--green);
+  }
+
+  .seq-event {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 4px 0;
+    color: var(--text-dim);
+    position: relative;
+  }
+
+  .seq-event::before,
+  .seq-event::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    border-left: 1px dashed var(--border-bright);
+  }
+
+  .seq-event::before { left: 50px; }
+  .seq-event::after { right: 50px; }
+
+  .seq-boom {
+    background: var(--red-dim);
+    color: var(--red);
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 6px;
+    display: inline-block;
+    border: 1px solid color-mix(in srgb, var(--red) 30%, transparent);
+  }
+
+  /* ============ TIMELINE ============ */
+  .timeline {
+    position: relative;
+    padding-left: 30px;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 11px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: var(--border-bright);
+    border-radius: 1px;
+  }
+
+  .tl-step {
+    position: relative;
+    padding: 0 0 18px 0;
+  }
+
+  .tl-step:last-child { padding-bottom: 0; }
+
+  .tl-dot {
+    position: absolute;
+    left: -25px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--border-bright);
+    background: var(--surface2);
+  }
+
+  .tl-dot--ok { border-color: var(--green); background: var(--green-dim); }
+  .tl-dot--bad { border-color: var(--red); background: var(--red-dim); }
+  .tl-dot--warn { border-color: var(--orange); background: var(--orange-dim); }
+
+  .tl-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.6;
+  }
+
+  .tl-label em {
+    font-style: normal;
+    color: var(--text-dim);
+    font-size: 11px;
+  }
+
+  /* ============ FIX SECTION ============ */
+  .fix-section {
+    border-top: 1px solid var(--border);
+    padding: 18px 24px;
+    background: color-mix(in srgb, var(--green-dim) 40%, var(--surface));
+  }
+
+  .fix-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--green);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .fix-label::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
+  /* ============ TABLE ============ */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .data-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .data-table th {
+    background: var(--surface2);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--border-bright);
+    white-space: nowrap;
+  }
+
+  .data-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  .data-table tbody tr:last-child td { border-bottom: none; }
+
+  .data-table tbody tr:nth-child(even) {
+    background: var(--accent-dim);
+  }
+
+  .data-table tbody tr {
+    transition: background 0.15s ease;
+  }
+
+  .data-table tbody tr:hover {
+    background: var(--border);
+  }
+
+  .data-table code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+
+  .status::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .status--pass {
+    background: var(--green-dim);
+    color: var(--green);
+  }
+
+  .status--fail {
+    background: var(--red-dim);
+    color: var(--red);
+  }
+
+  /* ============ VS PANELS ============ */
+  .vs-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .vs-panels > * { min-width: 0; overflow-wrap: break-word; }
+
+  .vs-header {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 10px 16px;
+  }
+
+  .vs-header--bad {
+    background: var(--red-dim);
+    color: var(--red);
+    border-bottom: 2px solid var(--red);
+  }
+
+  .vs-header--good {
+    background: var(--green-dim);
+    color: var(--green);
+    border-bottom: 2px solid var(--green);
+  }
+
+  .vs-body {
+    padding: 14px 16px;
+    background: var(--surface);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  @media (max-width: 768px) {
+    body { padding: 16px; }
+    h1 { font-size: 24px; }
+    .issue__header { flex-direction: column; gap: 8px; }
+    .seq-grid { min-width: 400px; }
+    .vs-panels { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1 class="animate" style="--i:0">High-Severity Code Review Issues</h1>
+  <p class="subtitle animate" style="--i:1">ghy-3211-async &mdash; async dependency analysis &mdash; 3 critical findings</p>
+
+  <!-- ==================== ISSUE 1 ==================== -->
+  <div class="issue animate" style="--i:2">
+    <div class="issue__header">
+      <div class="issue__number">1</div>
+      <div class="issue__title-block">
+        <div class="issue__title">TOCTOU Race in <code style="font-family:var(--font-mono);font-size:14px;color:var(--accent)">mark-stale!</code></div>
+        <div class="issue__location">dependency_status.clj:20-42 &mdash; <span class="severity severity--high">High</span></div>
+      </div>
+    </div>
+    <div class="issue__body">
+      <p class="issue__desc">
+        The function uses a <strong>select-then-insert</strong> pattern: it queries existing IDs, then inserts any that are missing.
+        Between the SELECT and INSERT, another thread can insert the same ID, causing a <strong>unique constraint violation</strong>.
+        This is a classic Time-of-Check-to-Time-of-Use (TOCTOU) bug.
+      </p>
+
+      <h3>The Vulnerable Code</h3>
+      <div class="code-block"><span class="comment">;; dependency_status.clj:20-42</span>
+(defn mark-stale! [entity-type entity-ids]
+  (doseq [batch (partition-all mark-stale-batch-size entity-ids)]
+    (let [<span class="highlight-bad">existing-ids (t2/select-fn-set :entity_id  ;; Step 1: CHECK</span>
+                    <span class="highlight-bad">:model/DependencyStatus</span>
+                    <span class="highlight-bad">:entity_type entity-type</span>
+                    <span class="highlight-bad">:entity_id [:in batch])</span>]
+      (when (seq existing-ids)
+        (t2/update! ...))
+      (let [new-ids (remove existing-ids batch)]
+        (when (seq new-ids)
+          <span class="highlight-bad">(t2/insert! :model/DependencyStatus  ;; Step 2: USE</span>
+            <span class="highlight-bad">(mapv ... new-ids)))))))</span>  <span class="comment">;; Another thread</span>
+                                         <span class="comment">;; may have inserted</span>
+                                         <span class="comment">;; between steps!</span></div>
+
+      <h3>How The Race Happens</h3>
+      <p class="issue__desc" style="margin-bottom:12px">
+        Two concurrent event handlers fire for the same entity (e.g., a card is created and immediately updated).
+        Both call <code>mark-stale!</code> with the same entity ID.
+      </p>
+
+      <div class="timeline">
+        <div class="tl-step">
+          <div class="tl-dot tl-dot--ok"></div>
+          <div class="tl-label">
+            <strong style="color:var(--accent)">Thread A</strong> &mdash; SELECT existing IDs
+            <em>&#8594; id 5 not found in dependency_status</em>
+          </div>
+        </div>
+        <div class="tl-step">
+          <div class="tl-dot tl-dot--ok"></div>
+          <div class="tl-label">
+            <strong style="color:var(--purple)">Thread B</strong> &mdash; SELECT existing IDs
+            <em>&#8594; id 5 not found (same snapshot, no lock)</em>
+          </div>
+        </div>
+        <div class="tl-step">
+          <div class="tl-dot tl-dot--ok"></div>
+          <div class="tl-label">
+            <strong style="color:var(--accent)">Thread A</strong> &mdash; INSERT id 5
+            <em>&#8594; success</em>
+          </div>
+        </div>
+        <div class="tl-step">
+          <div class="tl-dot tl-dot--bad"></div>
+          <div class="tl-label">
+            <strong style="color:var(--purple)">Thread B</strong> &mdash; INSERT id 5
+            <em style="color:var(--red);font-weight:600">&#8594; UNIQUE CONSTRAINT VIOLATION</em>
+          </div>
+        </div>
+      </div>
+
+      <h3>Why It Matters</h3>
+      <p class="issue__desc">
+        The exception propagates to <code>mark-stale-and-trigger!</code> which catches it and logs an error.
+        But the entity is <strong>not marked stale</strong> and the backfill job is <strong>not triggered</strong>.
+        The dependency graph for that entity silently becomes stale until the next modification.
+      </p>
+    </div>
+
+    <div class="fix-section">
+      <div class="fix-label">Recommended Fix</div>
+      <p class="issue__desc" style="margin-bottom:10px">Use an upsert (INSERT ON CONFLICT) or catch the constraint violation. The upsert approach is cleanest:</p>
+      <div class="code-block"><span class="comment">;; Replace the select-then-insert with a single upsert per batch.</span>
+<span class="comment">;; Toucan2 doesn't have native upsert, so use raw SQL:</span>
+(defn mark-stale! [entity-type entity-ids]
+  (doseq [batch (partition-all mark-stale-batch-size entity-ids)]
+    <span class="highlight-good">(t2/query {:insert-into :dependency_status</span>
+              <span class="highlight-good">:values (mapv (fn [id]</span>
+                             <span class="highlight-good">{:entity_type (name entity-type)</span>
+                              <span class="highlight-good">:entity_id id</span>
+                              <span class="highlight-good">:dependency_analysis_version 0</span>
+                              <span class="highlight-good">:stale true}) batch)</span>
+              <span class="highlight-good">:on-conflict [:entity_type :entity_id]</span>
+              <span class="highlight-good">:do-update-set {:stale true}})))</span>
+
+<span class="comment">;; Alternative: catch constraint violation and treat as no-op</span>
+<span class="comment">;; (the row already exists with stale=true from the other thread)</span></div>
+    </div>
+  </div>
+
+  <!-- ==================== ISSUE 2 ==================== -->
+  <div class="issue animate" style="--i:4">
+    <div class="issue__header">
+      <div class="issue__number">2</div>
+      <div class="issue__title-block">
+        <div class="issue__title">Same TOCTOU Race in <code style="font-family:var(--font-mono);font-size:14px;color:var(--accent)">upsert-status!</code></div>
+        <div class="issue__location">dependency_status.clj:44-57 &mdash; <span class="severity severity--high">High</span></div>
+      </div>
+    </div>
+    <div class="issue__body">
+      <p class="issue__desc">
+        Identical pattern &mdash; select-one to check if a row exists, then branch into UPDATE or INSERT.
+        Two concurrent completions for the same entity would both take the INSERT path.
+      </p>
+
+      <h3>The Vulnerable Code</h3>
+      <div class="code-block"><span class="comment">;; dependency_status.clj:44-57</span>
+(defn upsert-status! [entity-type entity-id]
+  (let [update {:dependency_analysis_version current-version
+                :stale false}
+        <span class="highlight-bad">existing-id (t2/select-one-fn :id  ;; CHECK</span>
+                      <span class="highlight-bad">:model/DependencyStatus</span>
+                      <span class="highlight-bad">:entity_type entity-type</span>
+                      <span class="highlight-bad">:entity_id entity-id)]</span>
+    (if existing-id
+      (t2/update! :model/DependencyStatus existing-id update)
+      <span class="highlight-bad">(t2/insert! :model/DependencyStatus  ;; USE &mdash; race!</span>
+        <span class="highlight-bad">(assoc update :entity_type entity-type</span>
+                     <span class="highlight-bad">:entity_id entity-id)))))</span></div>
+
+      <h3>Why It's Less Likely (But Still a Bug)</h3>
+      <p class="issue__desc">
+        The backfill job uses <code>@DisallowConcurrentExecution</code>, so two instances of the job won't run simultaneously.
+        However, <code>upsert-status!</code> is a <strong>public function</strong> &mdash; it could be called from other code paths,
+        and even within a single job run, concurrent event handlers calling <code>mark-stale!</code> can create the row
+        that <code>upsert-status!</code> is about to insert.
+      </p>
+    </div>
+
+    <div class="fix-section">
+      <div class="fix-label">Recommended Fix</div>
+      <p class="issue__desc" style="margin-bottom:10px">Same approach &mdash; use INSERT ON CONFLICT DO UPDATE:</p>
+      <div class="code-block">(defn upsert-status! [entity-type entity-id]
+  <span class="highlight-good">(t2/query {:insert-into :dependency_status</span>
+            <span class="highlight-good">:values [{:entity_type (name entity-type)</span>
+                      <span class="highlight-good">:entity_id entity-id</span>
+                      <span class="highlight-good">:dependency_analysis_version current-version</span>
+                      <span class="highlight-good">:stale false}]</span>
+            <span class="highlight-good">:on-conflict [:entity_type :entity_id]</span>
+            <span class="highlight-good">:do-update-set {:dependency_analysis_version current-version</span>
+                           <span class="highlight-good">:stale false}}))</span></div>
+    </div>
+  </div>
+
+  <!-- ==================== ISSUE 3 ==================== -->
+  <div class="issue animate" style="--i:6">
+    <div class="issue__header">
+      <div class="issue__number">3</div>
+      <div class="issue__title-block">
+        <div class="issue__title">Missing Feature Gate on <code style="font-family:var(--font-mono);font-size:14px;color:var(--accent)">::segment-delete</code></div>
+        <div class="issue__location">events.clj:169-171 &mdash; <span class="severity severity--high">High</span></div>
+      </div>
+    </div>
+    <div class="issue__body">
+      <p class="issue__desc">
+        Every delete handler is guarded by <code>(when (premium-features/has-feature? :dependencies) ...)</code>
+        except <code>::segment-delete</code>. This means segment deletes will attempt to delete from the
+        <code>dependency</code> table on <strong>all editions</strong>, including OSS where the table doesn't exist.
+      </p>
+
+      <h3>Side-by-Side Comparison</h3>
+      <div class="vs-panels" style="margin-bottom:16px">
+        <div class="vs-header vs-header--bad">Segment (missing guard)</div>
+        <div class="vs-header vs-header--good">Card (correct)</div>
+        <div class="vs-body"><span class="comment">;; events.clj:169-171</span>
+(defmethod events/publish-event!
+  ::segment-delete
+  [_ {:keys [object]}]
+  <span class="highlight-bad">;; NO GUARD!</span>
+  (t2/delete! :model/Dependency
+    :from_entity_type :segment
+    :from_entity_id (:id object)))</div>
+        <div class="vs-body"><span class="comment">;; events.clj:43-46</span>
+(defmethod events/publish-event!
+  ::card-delete
+  [_ {:keys [object]}]
+  <span class="highlight-good">(when (premium-features/</span>
+         <span class="highlight-good">has-feature? :dependencies)</span>
+    (t2/delete! :model/Dependency
+      :from_entity_type :card
+      :from_entity_id (:id object))))</div>
+      </div>
+
+      <h3>All Delete Handlers &mdash; Feature Gate Audit</h3>
+      <div class="table-wrap">
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Entity Type</th>
+                <th>Event</th>
+                <th>Line</th>
+                <th>Feature Gate</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Card</td><td><code>::card-delete</code></td><td>43</td><td><span class="status status--pass">Present</span></td></tr>
+              <tr><td>Snippet</td><td><code>::snippet-delete</code></td><td>61</td><td><span class="status status--pass">Present</span></td></tr>
+              <tr><td>Transform</td><td><code>::transform-delete</code></td><td>79</td><td><span class="status status--pass">Present</span></td></tr>
+              <tr><td>Dashboard</td><td><code>::dashboard-delete</code></td><td>115</td><td><span class="status status--pass">Present</span></td></tr>
+              <tr><td>Document</td><td><code>::document-delete</code></td><td>133</td><td><span class="status status--pass">Present</span></td></tr>
+              <tr><td>Sandbox</td><td><code>::sandbox-delete</code></td><td>151</td><td><span class="status status--pass">Present</span></td></tr>
+              <tr><td style="font-weight:700;color:var(--red)">Segment</td><td><code>::segment-delete</code></td><td>169</td><td><span class="status status--fail">Missing</span></td></tr>
+              <tr><td>Measure</td><td><code>::measure-delete</code></td><td>189</td><td><span class="status status--pass">Present</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="fix-section">
+      <div class="fix-label">Recommended Fix</div>
+      <p class="issue__desc" style="margin-bottom:10px">Add the same guard as every other handler:</p>
+      <div class="code-block">(methodical/defmethod events/publish-event! ::segment-delete
+  [_ {:keys [object]}]
+  <span class="highlight-good">(when (premium-features/has-feature? :dependencies)</span>
+    (t2/delete! :model/Dependency
+      :from_entity_type :segment
+      :from_entity_id (:id object))<span class="highlight-good">)</span>)</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

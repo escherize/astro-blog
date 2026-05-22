@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Metabase git-sync — How it works</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  /* ============ THEME — blueprint / technical drawing ============ */
+  :root {
+    --font-heading: 'Fraunces', Georgia, serif;
+    --font-body: 'Fraunces', Georgia, serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #0c1726;
+    --bg-grid: rgba(96, 165, 250, 0.04);
+    --surface: #142036;
+    --surface2: #1b2c47;
+    --surface-elevated: #1f3554;
+    --border: rgba(148, 197, 255, 0.10);
+    --border-bright: rgba(148, 197, 255, 0.22);
+
+    --text: #eaf2ff;
+    --text-dim: #8aa4c8;
+    --text-faint: #5a7298;
+
+    --cyan: #5eead4;
+    --cyan-dim: rgba(94, 234, 212, 0.12);
+    --coral: #fb7185;
+    --coral-dim: rgba(251, 113, 133, 0.12);
+    --amber: #fbbf24;
+    --amber-dim: rgba(251, 191, 36, 0.12);
+    --indigo: #818cf8;
+    --indigo-dim: rgba(129, 140, 248, 0.14);
+    --jade: #6ee7b7;
+    --jade-dim: rgba(110, 231, 183, 0.12);
+    --rose: #f0abfc;
+    --rose-dim: rgba(240, 171, 252, 0.12);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f7fafc;
+      --bg-grid: rgba(15, 23, 42, 0.03);
+      --surface: #ffffff;
+      --surface2: #f0f5fa;
+      --surface-elevated: #fdfeff;
+      --border: rgba(15, 23, 42, 0.10);
+      --border-bright: rgba(15, 23, 42, 0.20);
+
+      --text: #0f172a;
+      --text-dim: #475569;
+      --text-faint: #8395ad;
+
+      --cyan: #0d9488;
+      --cyan-dim: rgba(13, 148, 136, 0.10);
+      --coral: #e11d48;
+      --coral-dim: rgba(225, 29, 72, 0.10);
+      --amber: #b45309;
+      --amber-dim: rgba(180, 83, 9, 0.10);
+      --indigo: #4338ca;
+      --indigo-dim: rgba(67, 56, 202, 0.10);
+      --jade: #047857;
+      --jade-dim: rgba(4, 120, 87, 0.10);
+      --rose: #a21caf;
+      --rose-dim: rgba(162, 28, 175, 0.10);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px),
+      radial-gradient(ellipse 800px 600px at 15% 0%, var(--cyan-dim) 0%, transparent 50%),
+      radial-gradient(ellipse 600px 600px at 85% 100%, var(--indigo-dim) 0%, transparent 50%);
+    background-size: 32px 32px, 32px 32px, 100% 100%, 100% 100%;
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 56px 40px 80px;
+    min-height: 100vh;
+    line-height: 1.55;
+  }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  .section, .flow-arrow, .mermaid-wrap, h2, .lead, .legend { animation: fadeUp 0.5s ease-out both; animation-delay: calc(var(--i, 0) * 0.05s); }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; transition-duration: 0.01ms !important; } }
+
+  /* ============ TYPOGRAPHY ============ */
+  .container { max-width: 1180px; margin: 0 auto; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--cyan);
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-family: var(--font-heading);
+    font-size: 56px;
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    line-height: 1.05;
+    margin-bottom: 18px;
+    text-wrap: balance;
+  }
+
+  h1 em { font-style: italic; color: var(--cyan); font-weight: 500; }
+
+  .lead {
+    font-size: 19px;
+    color: var(--text-dim);
+    max-width: 760px;
+    margin-bottom: 56px;
+    line-height: 1.6;
+  }
+
+  h2 {
+    font-family: var(--font-heading);
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin: 80px 0 24px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    text-wrap: balance;
+  }
+
+  h2 .num {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--cyan);
+    margin-right: 14px;
+    letter-spacing: 0;
+    vertical-align: middle;
+  }
+
+  h3 {
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.2px;
+  }
+
+  p { margin-bottom: 14px; }
+  p code, li code, td code { font-family: var(--font-mono); font-size: 0.88em; background: var(--cyan-dim); color: var(--cyan); padding: 1px 6px; border-radius: 4px; }
+
+  /* ============ SECTION CARDS ============ */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 32px;
+    margin-bottom: 18px;
+    position: relative;
+  }
+
+  .section--hero {
+    background: var(--surface-elevated);
+    border-color: color-mix(in srgb, var(--border) 50%, var(--cyan) 50%);
+    box-shadow: 0 8px 40px -12px rgba(94, 234, 212, 0.18);
+  }
+
+  .section--recessed {
+    background: var(--surface2);
+    box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.20);
+    border-color: transparent;
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.8px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-label .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+  .section--cyan { border-color: var(--cyan-dim); }
+  .section--cyan .section-label { color: var(--cyan); }
+  .section--cyan .section-label .dot { background: var(--cyan); }
+  .section--coral { border-color: var(--coral-dim); }
+  .section--coral .section-label { color: var(--coral); }
+  .section--coral .section-label .dot { background: var(--coral); }
+  .section--amber { border-color: var(--amber-dim); }
+  .section--amber .section-label { color: var(--amber); }
+  .section--amber .section-label .dot { background: var(--amber); }
+  .section--indigo { border-color: var(--indigo-dim); }
+  .section--indigo .section-label { color: var(--indigo); }
+  .section--indigo .section-label .dot { background: var(--indigo); }
+  .section--jade { border-color: var(--jade-dim); }
+  .section--jade .section-label { color: var(--jade); }
+  .section--jade .section-label .dot { background: var(--jade); }
+  .section--rose { border-color: var(--rose-dim); }
+  .section--rose .section-label { color: var(--rose); }
+  .section--rose .section-label .dot { background: var(--rose); }
+
+  /* ============ TWO-COLUMN GRID ============ */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+
+  /* ============ INNER CARD ============ */
+  .card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    min-width: 0;
+  }
+
+  .card .label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 1.3px;
+    margin-bottom: 6px;
+  }
+
+  .card .name {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cyan);
+    margin-bottom: 8px;
+    word-break: break-word;
+  }
+
+  .card .desc {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.55;
+  }
+
+  .card .desc small { color: var(--text-dim); display: block; margin-top: 6px; font-size: 12px; }
+
+  /* ============ FLOW ARROW ============ */
+  .flow-arrow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 4px 0;
+    margin: 6px 0;
+  }
+
+  .flow-arrow svg { width: 18px; height: 18px; fill: none; stroke: var(--text-faint); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ============ LIST ============ */
+  ul.node-list { list-style: none; font-size: 14px; line-height: 1.7; }
+  ul.node-list li { padding-left: 16px; position: relative; margin-bottom: 4px; }
+  ul.node-list li::before { content: '›'; color: var(--cyan); font-weight: 600; position: absolute; left: 0; }
+
+  ol.numbered { list-style: none; counter-reset: step; font-size: 14.5px; line-height: 1.6; }
+  ol.numbered li { padding-left: 36px; position: relative; margin-bottom: 14px; counter-increment: step; }
+  ol.numbered li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: -2px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--cyan-dim);
+    color: var(--cyan);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid color-mix(in srgb, var(--cyan-dim) 50%, var(--cyan) 30%);
+  }
+
+  /* ============ TABLE ============ */
+  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  thead { background: var(--surface2); }
+  th { text-align: left; padding: 12px 14px; font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--cyan); border-bottom: 1px solid var(--border); }
+  td { padding: 12px 14px; vertical-align: top; border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  td code { word-break: break-word; }
+  td .secondary { color: var(--text-dim); font-size: 12.5px; display: block; margin-top: 4px; }
+
+  /* ============ CALLOUT ============ */
+  .callout {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 22px;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    margin: 18px 0;
+  }
+  .callout strong { color: var(--text); font-weight: 600; }
+  .callout--coral { border-left-color: var(--coral); }
+  .callout--amber { border-left-color: var(--amber); }
+
+  /* ============ MERMAID ============ */
+  .mermaid-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin: 18px 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mermaid-wrap .zoom-controls {
+    position: absolute; top: 12px; right: 12px;
+    display: flex; gap: 4px; z-index: 5;
+  }
+  .zoom-controls button {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .zoom-controls button:hover { color: var(--cyan); border-color: var(--cyan); }
+
+  .mermaid-scroll {
+    overflow: auto;
+    cursor: grab;
+    max-height: 720px;
+  }
+  .mermaid-scroll:active { cursor: grabbing; }
+  .mermaid-scroll .mermaid { transform-origin: top left; transition: transform 0.1s; }
+
+  /* ============ CODE BLOCK ============ */
+  pre.code {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text);
+    margin: 14px 0;
+  }
+  pre.code .comment { color: var(--text-faint); }
+  pre.code .key { color: var(--cyan); }
+  pre.code .str { color: var(--jade); }
+  pre.code .kw { color: var(--coral); }
+
+  /* ============ KPI ROW ============ */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 24px 0 28px; }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    min-width: 0;
+  }
+  .kpi .label { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-faint); margin-bottom: 6px; }
+  .kpi .value { font-family: var(--font-heading); font-size: 28px; font-weight: 700; color: var(--cyan); letter-spacing: -0.5px; line-height: 1.1; margin-bottom: 4px; }
+  .kpi .desc { font-size: 12.5px; color: var(--text-dim); line-height: 1.4; }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 900px) {
+    body { padding: 32px 20px 48px; }
+    h1 { font-size: 38px; }
+    .lead { font-size: 17px; margin-bottom: 36px; }
+    h2 { font-size: 24px; margin-top: 48px; }
+    .two-col, .three-col, .kpis { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="eyebrow">metabase enterprise · remote-sync</div>
+  <h1>How does <em>git-sync</em> actually work?</h1>
+  <p class="lead">
+    A walkthrough of <code>metabase-enterprise.remote-sync.*</code> — pulling content
+    from a git repo, pushing changes back, what gets synced, how authentication is
+    wired, and the moving pieces (settings, scheduling, the Source protocol, locks,
+    conflict detection) that hold it together.
+  </p>
+
+  <!-- KPI row -->
+  <div class="kpis">
+    <div class="kpi" style="--i:0">
+      <div class="label">Backend</div>
+      <div class="value">JGit</div>
+      <div class="desc">Pure-Java git client. No system <code>git</code> required.</div>
+    </div>
+    <div class="kpi" style="--i:1">
+      <div class="label">Cache</div>
+      <div class="value">~/tmp</div>
+      <div class="desc">Bare clones, keyed by SHA-1 of (url + token).</div>
+    </div>
+    <div class="kpi" style="--i:2">
+      <div class="label">Default mode</div>
+      <div class="value">read-only</div>
+      <div class="desc">Pull every 5 min. <code>read-write</code> opt-in to push.</div>
+    </div>
+    <div class="kpi" style="--i:3">
+      <div class="label">Auth</div>
+      <div class="value">PAT</div>
+      <div class="desc">Personal-access-token over HTTPS. SSH not supported.</div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       1. THE SOURCE PROTOCOL
+       ===================================================================== -->
+  <h2><span class="num">01</span>The <em>Source</em> protocol</h2>
+
+  <p>
+    Everything starts at <code>source/protocol.clj</code>. Two protocols define the
+    contract; <code>git.clj</code> is the only implementation today, but the
+    abstraction leaves room for others (S3, file URL, &hellip;).
+  </p>
+
+  <div class="two-col">
+    <div class="section section--cyan" style="--i:0">
+      <div class="section-label"><span class="dot"></span> Source</div>
+      <p style="margin-bottom:12px;color:var(--text-dim)">A handle on a remote repository.</p>
+      <ul class="node-list">
+        <li><code>(branches source)</code> — list remote branches</li>
+        <li><code>(default-branch source)</code> — query <code>HEAD</code> on the remote</li>
+        <li><code>(create-branch source name base)</code> — branch + push</li>
+        <li><code>(snapshot source)</code> — fetch and pin a commit SHA</li>
+      </ul>
+    </div>
+    <div class="section section--coral" style="--i:1">
+      <div class="section-label"><span class="dot"></span> SourceSnapshot</div>
+      <p style="margin-bottom:12px;color:var(--text-dim)">A pinned point-in-time view (a specific git SHA).</p>
+      <ul class="node-list">
+        <li><code>(list-files snapshot)</code> — every path in the tree</li>
+        <li><code>(read-file snapshot path)</code> — UTF-8 string or nil</li>
+        <li><code>(write-files! snapshot msg files)</code> — commit + push</li>
+        <li><code>(version snapshot)</code> — the pinned SHA</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Snapshots are atomic.</strong> Once you have a snapshot, the SHA never
+    changes — even if the remote moves. Reads are consistent across calls. Writes go
+    against the live branch ref, but the snapshot's SHA stays as the parent for the
+    new commit.
+  </div>
+
+  <!-- =====================================================================
+       2. PULLING — read flow
+       ===================================================================== -->
+  <h2><span class="num">02</span>Pulling — the read flow</h2>
+
+  <p>
+    A read sequence starts when something asks for a snapshot. The cache layer in
+    <code>get-jgit</code> means most calls don't actually hit the network.
+  </p>
+
+  <div class="mermaid-wrap" style="--i:0">
+    <div class="zoom-controls">
+      <button onclick="zoomOut(this)" title="Zoom out">−</button>
+      <button onclick="zoomReset(this)" title="Reset">⌂</button>
+      <button onclick="zoomIn(this)" title="Zoom in">+</button>
+    </div>
+    <div class="mermaid-scroll">
+      <div class="mermaid">
+sequenceDiagram
+  autonumber
+  participant API as API / Scheduler
+  participant Source as GitSource<br/>(source.clj)
+  participant Cache as jgit atom<br/>(in-memory)
+  participant FS as Bare repo<br/>(java.io.tmpdir)
+  participant Remote as Remote git<br/>(GitHub/GitLab/&hellip;)
+
+  API->>Source: source-from-settings
+  Source->>Cache: (get-jgit path args)
+  alt cached path hit
+    Cache-->>Source: existing JGit handle
+  else first call this process
+    Cache->>FS: open or clone bare repo
+    alt repo dir exists
+      FS-->>Cache: Git/open + ensure-origin-configured!
+    else missing
+      FS->>Remote: git clone --bare (with PAT)
+      Remote-->>FS: refs + objects
+      FS-->>Cache: Git instance
+    end
+    Cache-->>Source: JGit handle
+  end
+
+  API->>Source: (snapshot source)
+  Source->>Remote: fetch! (origin)
+  Remote-->>Source: updated refs
+  Source->>Source: commit-sha branch
+  Source-->>API: GitSnapshot (git, SHA, branch)
+
+  API->>Source: list-files / read-file
+  Source-->>API: paths + content (via local objects)
+      </div>
+    </div>
+  </div>
+
+  <div class="three-col">
+    <div class="section section--cyan" style="--i:0">
+      <div class="section-label"><span class="dot"></span> repo-path</div>
+      <p style="font-size:14px;color:var(--text-dim);margin-bottom:8px">
+        Where the bare clone lives on disk.
+      </p>
+      <pre class="code" style="margin:0"><span class="comment">;; in source/git.clj</span>
+(io/file
+  (System/getProperty
+   <span class="str">"java.io.tmpdir"</span>)
+  <span class="str">"metabase-git"</span>
+  (-&gt; (str/join <span class="str">":"</span>
+        [remote-url token])
+      buddy-hash/sha1
+      codecs/bytes-&gt;hex))</pre>
+    </div>
+    <div class="section section--coral" style="--i:1">
+      <div class="section-label"><span class="dot"></span> Stale-cache recovery</div>
+      <p style="font-size:14px;color:var(--text-dim);margin-bottom:8px">
+        Force-push on the remote can leave a commit our local cache references but
+        no longer fetches.
+      </p>
+      <ul class="node-list" style="font-size:13.5px">
+        <li><code>snapshot</code> wraps <code>snapshot*</code> in try/catch</li>
+        <li>On <code>"Missing commit"</code>: clear cached repo</li>
+        <li>Re-clone, retry once</li>
+        <li>Errors that aren't stale-cache propagate</li>
+      </ul>
+    </div>
+    <div class="section section--amber" style="--i:2">
+      <div class="section-label"><span class="dot"></span> Isolated config</div>
+      <p style="font-size:14px;color:var(--text-dim);margin-bottom:8px">
+        On startup, <code>init.clj</code> swaps JGit's <code>SystemReader</code> for
+        one that ignores <code>~/.gitconfig</code> and <code>/etc/gitconfig</code>.
+      </p>
+      <p style="font-size:13.5px;color:var(--text-dim)">
+        Stops Metabase from inheriting unrelated git config from the host.
+      </p>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       3. PUSHING — write flow
+       ===================================================================== -->
+  <h2><span class="num">03</span>Pushing — the write flow</h2>
+
+  <p>
+    Writes don't use a working tree. JGit assembles a fresh tree object in-memory
+    from the file specs you hand to <code>write-files!</code>, creates a commit,
+    advances the local branch ref, and pushes. <strong>The bare repo never has a
+    checkout.</strong>
+  </p>
+
+  <div class="mermaid-wrap" style="--i:0">
+    <div class="zoom-controls">
+      <button onclick="zoomOut(this)" title="Zoom out">−</button>
+      <button onclick="zoomReset(this)" title="Reset">⌂</button>
+      <button onclick="zoomIn(this)" title="Zoom in">+</button>
+    </div>
+    <div class="mermaid-scroll">
+      <div class="mermaid">
+sequenceDiagram
+  autonumber
+  participant Caller as impl/export!
+  participant Snap as GitSnapshot
+  participant ObjDB as JGit ObjectDatabase<br/>(bare repo)
+  participant Remote as Remote git
+
+  Caller->>Snap: write-files!(message, [{path, content}, ...])
+  Snap->>Snap: build write-paths set
+  Snap->>ObjDB: open ObjectInserter
+
+  loop for each {path, content}
+    Snap->>ObjDB: insert blob (UTF-8 bytes)
+    Snap->>Snap: add DirCacheEntry → builder
+  end
+
+  Note over Snap,ObjDB: Walk the parent tree.<br/>Copy entries that are<br/>OUTSIDE managed-dirs<br/>and not being overwritten.<br/>Drop everything else.
+
+  Snap->>ObjDB: writeTree(index)
+  Snap->>ObjDB: insert CommitBuilder<br/>(author=Metabase Library)
+  Snap->>Snap: updateRef(branch, new-commit-id)
+  Snap->>Remote: push refs/heads/&lt;branch&gt;
+  alt all updates OK or UP_TO_DATE
+    Remote-->>Snap: ack
+    Snap-->>Caller: new commit SHA
+  else any RemoteRefUpdate failure
+    Remote-->>Snap: rejection
+    Snap--xCaller: ex-info :failures
+  end
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout--amber">
+    <strong>Managed directories.</strong> The <code>GitSource</code> is constructed
+    with a set of <code>managed-dirs</code> (top-level path segments). On write,
+    files in managed dirs that aren't in the new write set are <em>dropped</em> —
+    that's how stale renames/deletions clean up automatically. Files in any other
+    top-level directory are preserved verbatim. The set comes from
+    <code>serialization/legal-top-level-paths</code> — collections, databases,
+    actions, snippets, transforms, &hellip;.
+  </div>
+
+  <div class="callout callout--coral">
+    <strong>No working tree.</strong> Look at <code>write-files!</code>: there's no
+    <code>git checkout</code> anywhere. The commit is built straight from blob
+    inserts and a synthesized <code>DirCache</code>. Saves time and disk; means the
+    bare repo is the only on-disk artifact.
+  </div>
+
+  <!-- =====================================================================
+       4. WHAT GETS SYNCED
+       ===================================================================== -->
+  <h2><span class="num">04</span>What gets synced</h2>
+
+  <p>
+    The git Source is content-agnostic — it just shuttles files. The actual content
+    is Metabase's serialization v2 format (YAML files with stable entity IDs). Two
+    layers live on top of the protocol:
+  </p>
+
+  <div class="two-col">
+    <div class="section section--indigo" style="--i:0">
+      <div class="section-label"><span class="dot"></span> source.clj</div>
+      <h3>Adapter to serialization</h3>
+      <p style="color:var(--text-dim);margin-top:8px">
+        <code>store!</code> takes a stream of serialized entities, turns each into
+        a <code>{path, content}</code> file spec where <code>content</code> is YAML
+        from <code>serialization-deep-sort</code>, and hands them off to
+        <code>write-files!</code>.
+      </p>
+      <p style="color:var(--text-dim);margin-top:8px">
+        <code>WrappingSnapshot</code> wraps any snapshot with regex path filters —
+        used to scope reads/writes to the legal top-level dirs.
+      </p>
+    </div>
+    <div class="section section--jade" style="--i:1">
+      <div class="section-label"><span class="dot"></span> impl.clj</div>
+      <h3>The orchestrator</h3>
+      <p style="color:var(--text-dim);margin-top:8px">
+        <code>import!</code> &amp; <code>export!</code> — top-level entry points
+        called by the API and the scheduler. Handle conflict detection, version
+        tracking, transform-detection auto-toggle, the
+        <code>RemoteSyncObject</code> table, async tasks, and recovery.
+      </p>
+      <p style="color:var(--text-dim);margin-top:8px">
+        Also where the <code>has-remote-changes?</code> cache lives — a 60-second
+        TTL on git SHAs so the UI can poll cheaply.
+      </p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:32px;font-size:18px">Tracked entities</h3>
+  <div class="table-wrap" style="margin-top:14px">
+    <table>
+      <thead>
+        <tr><th>Entity</th><th>Storage path</th><th>Tracked in</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>Collection</code><span class="secondary">marked <em>remote-synced</em></span></td><td><code>collections/&lt;eid&gt;/&lt;eid&gt;.yaml</code></td><td><code>RemoteSyncObject</code></td></tr>
+        <tr><td><code>Card</code> · <code>Dashboard</code></td><td><code>collections/&lt;eid&gt;/&lt;child-eid&gt;.yaml</code></td><td><code>RemoteSyncObject</code></td></tr>
+        <tr><td><code>NativeQuerySnippet</code><span class="secondary">only when Library is remote-synced</span></td><td><code>snippets/&lt;eid&gt;.yaml</code></td><td><code>RemoteSyncObject</code></td></tr>
+        <tr><td><code>Transform</code> · <code>TransformTag</code> · <code>TransformJob</code> · <code>PythonLibrary</code><span class="secondary">all-or-nothing under <code>remote-sync-transforms</code></span></td><td><code>transforms/&lt;eid&gt;.yaml</code></td><td><code>RemoteSyncObject</code></td></tr>
+        <tr><td><code>Database</code> · <code>Field</code> setting overlays</td><td><code>databases/&lt;name&gt;/&hellip;.yaml</code></td><td><em>(read-only on import)</em></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <strong>Two-direction tracking.</strong> <code>RemoteSyncObject</code> rows mark
+    "this local entity is mirrored in git." Their <code>:status</code> column flips
+    to <code>"dirty"</code> via events when the entity changes locally. Export
+    flips them back to <code>"synced"</code>. The <code>is-dirty</code> endpoint
+    queries the table — that's the FE's "you have unpushed changes" badge.
+  </div>
+
+  <!-- =====================================================================
+       5. SETTINGS
+       ===================================================================== -->
+  <h2><span class="num">05</span>Settings — where the wiring lives</h2>
+
+  <p>
+    All of git-sync's behavior is gated on these settings. They can be set via
+    the admin UI or via env vars (most have <code>:can-read-from-env? true</code>).
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Setting</th><th>Default</th><th>Effect</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>remote-sync-url</code></td><td>—</td><td>The HTTPS git URL. Setting this <em>is</em> what enables sync (<code>remote-sync-enabled</code> is a derived getter).</td></tr>
+        <tr><td><code>remote-sync-token</code><span class="secondary">sensitive · obfuscated · encrypted</span></td><td>—</td><td>PAT used as <code>x-access-token</code> password. Bitbucket gets <code>x-token-auth</code> via dispatch.</td></tr>
+        <tr><td><code>remote-sync-branch</code></td><td>repo's default</td><td>Branch this instance reads from / writes to. Auto-filled from <code>HEAD</code> on first config.</td></tr>
+        <tr><td><code>remote-sync-type</code></td><td><code>:read-only</code></td><td>Either <code>:read-only</code> (pull only) or <code>:read-write</code> (allows export).</td></tr>
+        <tr><td><code>remote-sync-auto-import</code></td><td><code>false</code></td><td>Read-only mode: poll the remote on a schedule. Has no effect in read-write.</td></tr>
+        <tr><td><code>remote-sync-auto-import-rate</code></td><td><code>5</code> min</td><td>Poll interval. Drives the Quartz trigger in <code>task/import.clj</code>.</td></tr>
+        <tr><td><code>remote-sync-task-time-limit-ms</code></td><td><code>5</code> min</td><td>Per-task ceiling. <code>diehard/with-timeout</code> wraps async tasks at <code>10×</code> this.</td></tr>
+        <tr><td><code>remote-sync-transforms</code><span class="secondary">all-or-nothing</span></td><td><code>false</code></td><td>Include transforms/jobs/tags/python-libs in the sync set. <code>:on-change</code> hook auto-tracks them as a unit.</td></tr>
+        <tr><td><code>remote-sync-check-changes-cache-ttl-seconds</code></td><td><code>60</code></td><td>How long the in-memory <code>has-remote-changes?</code> result lives.</td></tr>
+        <tr><td><code>remote-sync-allow</code><span class="secondary">internal</span></td><td>—</td><td>Set to <code>overwrite-unpublished</code> to let startup clobber local dirty changes.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <strong>The "is sync enabled" rule.</strong>
+    <code>remote-sync-enabled</code> is computed as <code>(some? remote-sync-url)</code>. There's no
+    explicit boolean. So setting the URL alone turns sync on; clearing it (or
+    leaving it blank) turns it off. <code>check-and-update-remote-settings!</code>
+    in <code>settings.clj</code> handles the obfuscated-token-on-update dance and
+    runs <code>check-git-settings!</code> (a real connection) before persisting.
+  </div>
+
+  <!-- =====================================================================
+       6. AUTHENTICATION
+       ===================================================================== -->
+  <h2><span class="num">06</span>Authentication</h2>
+
+  <p>
+    Auth is HTTPS + a personal access token, with provider-specific username
+    conventions. There's a <code>credentials-provider</code> multimethod that
+    dispatches on the URL host. SSH is not supported; <code>check-git-settings!</code>
+    explicitly rejects anything that isn't <code>http</code>, <code>https</code>, or
+    <code>file://</code>.
+  </p>
+
+  <div class="three-col">
+    <div class="section section--cyan" style="--i:0">
+      <div class="section-label"><span class="dot"></span> Default (GitHub, GitLab)</div>
+      <pre class="code" style="margin:0"><span class="comment">;; defmethod :default</span>
+(UsernamePasswordCredentialsProvider.
+  <span class="str">"x-access-token"</span>
+  token)</pre>
+      <p style="margin-top:10px;color:var(--text-dim);font-size:13.5px">
+        GitHub convention: token-as-password with the literal username
+        <code>x-access-token</code>. GitLab accepts any non-empty username, so this
+        works there too.
+      </p>
+    </div>
+    <div class="section section--coral" style="--i:1">
+      <div class="section-label"><span class="dot"></span> bitbucket.org</div>
+      <pre class="code" style="margin:0"><span class="comment">;; defmethod :bitbucket.org</span>
+(when token
+  (UsernamePasswordCredentialsProvider.
+    <span class="str">"x-token-auth"</span>
+    token))</pre>
+      <p style="margin-top:10px;color:var(--text-dim);font-size:13.5px">
+        Bitbucket's app-password convention. <code>nil</code> if no token, since
+        public Bitbucket repos work without auth.
+      </p>
+    </div>
+    <div class="section section--amber" style="--i:2">
+      <div class="section-label"><span class="dot"></span> Adding a provider</div>
+      <p style="color:var(--text-dim);font-size:13.5px;margin-bottom:8px">
+        Add a <code>(defmethod credentials-provider :host.example.com [_url token] ...)</code>.
+        Dispatch is on the URL's host, lower-cased.
+      </p>
+      <p style="color:var(--text-dim);font-size:13.5px">
+        For self-hosted GitLab/Gitea/etc., the default impl already works.
+      </p>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       7. SCHEDULING & ORCHESTRATION
+       ===================================================================== -->
+  <h2><span class="num">07</span>Scheduling, locks &amp; tasks</h2>
+
+  <p>
+    Imports and exports are async. Each runs as a virtual thread under a
+    <code>diehard/with-timeout</code>, after acquiring a cluster-wide lock so two
+    Metabase nodes can't sync the same git repo simultaneously.
+  </p>
+
+  <div class="mermaid-wrap" style="--i:0">
+    <div class="zoom-controls">
+      <button onclick="zoomOut(this)" title="Zoom out">−</button>
+      <button onclick="zoomReset(this)" title="Reset">⌂</button>
+      <button onclick="zoomIn(this)" title="Zoom in">+</button>
+    </div>
+    <div class="mermaid-scroll">
+      <div class="mermaid">
+flowchart LR
+  classDef trig fill:#1f3554,stroke:#5eead4,color:#eaf2ff,stroke-width:1.5px
+  classDef lock fill:#1f3554,stroke:#fb7185,color:#eaf2ff,stroke-width:1.5px
+  classDef task fill:#1f3554,stroke:#818cf8,color:#eaf2ff,stroke-width:1.5px
+  classDef io   fill:#1f3554,stroke:#fbbf24,color:#eaf2ff,stroke-width:1.5px
+  classDef db   fill:#1f3554,stroke:#6ee7b7,color:#eaf2ff,stroke-width:1.5px
+
+  Q["Quartz: AutoImport<br/><i>every 5 min</i>"]:::trig
+  AP["POST /api/ee/remote-sync/import<br/>POST /export"]:::trig
+  SU["Startup (init.clj)"]:::trig
+
+  CL["create-task-with-lock!<br/><i>cluster-lock</i>"]:::lock
+  RT["RemoteSyncTask row<br/>(running)"]:::db
+
+  IM["import! / export!<br/><i>virtual thread</i>"]:::task
+  TIME["with-timeout<br/>10× task limit"]:::task
+
+  SRC["source-from-settings<br/>→ snapshot"]:::io
+  GIT[("Remote git")]:::io
+
+  RES["handle-task-result!"]:::task
+  CHK["RemoteSyncObject<br/>statuses"]:::db
+  CACHE["invalidate-remote-changes-cache!"]:::db
+
+  Q --> CL
+  AP --> CL
+  SU --> CL
+  CL -.->|already running| RT
+  CL --> RT
+  RT --> IM
+  IM --> TIME
+  TIME --> SRC
+  SRC <--> GIT
+  TIME --> RES
+  RES --> CHK
+  RES --> CACHE
+      </div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="section section--cyan" style="--i:0">
+      <div class="section-label"><span class="dot"></span> auto-import (read-only)</div>
+      <p style="color:var(--text-dim)">
+        <code>task/import.clj</code> registers a Quartz job that fires every
+        <code>remote-sync-auto-import-rate</code> minutes (default 5). It does the
+        cheap <code>has-remote-changes?</code> SHA comparison first, only kicks off
+        a real import if the SHA moved.
+      </p>
+    </div>
+    <div class="section section--coral" style="--i:1">
+      <div class="section-label"><span class="dot"></span> manual operations (any mode)</div>
+      <p style="color:var(--text-dim)">
+        The HTTP endpoints (<code>POST /import</code>, <code>POST /export</code>) go
+        through <code>async-import!</code> / <code>async-export!</code> in
+        <code>impl.clj</code>. Same lock, same task model — they just don't depend
+        on the scheduler.
+      </p>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       8. CONFLICT DETECTION
+       ===================================================================== -->
+  <h2><span class="num">08</span>Conflict detection</h2>
+
+  <p>
+    Git-sync has its own conflict semantics on top of git's. Conflicts here aren't
+    merge conflicts — they're <em>"would this import discard local changes the user
+    didn't intend to lose?"</em>
+  </p>
+
+  <ol class="numbered" style="margin-top:16px">
+    <li>
+      <strong>Dirty local changes (export-time).</strong> If the local
+      <code>RemoteSyncObject</code> table has <code>"dirty"</code> rows and someone
+      tries to import, <code>async-import!</code> throws unless <code>force?</code>
+      is true. Same on export when the remote moved since the last sync.
+    </li>
+    <li>
+      <strong>Library conflict (first-import).</strong> Local instance has its own
+      Library collection that isn't yet remote-synced, but the import contains a
+      Library. Refuses without <code>force?</code> on first import (subsequent imports treat the Library as already-managed).
+    </li>
+    <li>
+      <strong>Feature-disabled conflicts.</strong> Import contains
+      <code>Transform</code> entities but <code>remote-sync-transforms</code> is
+      off. <code>impl.clj</code> auto-flips the setting on (and back off if the
+      remote stops carrying transforms) — the conflict only fires for non-import
+      <em>flag-driven</em> mismatches.
+    </li>
+    <li>
+      <strong>Snippets without Library.</strong> Import contains
+      <code>NativeQuerySnippet</code> entries but the local Library isn't
+      remote-synced. Snippets need the Library marked first.
+    </li>
+    <li>
+      <strong>Namespace-collection conflicts.</strong> Special-namespace collections
+      (transforms, &hellip;) with entity_ids that conflict with what's locally present
+      under a different namespace.
+    </li>
+    <li>
+      <strong>Stale-cache "Missing commit".</strong> The remote was force-pushed and
+      our cached repo references a now-orphaned SHA. Auto-recovers via
+      <code>clear-cached-repo!</code> + retry.
+    </li>
+  </ol>
+
+  <!-- =====================================================================
+       9. STARTUP
+       ===================================================================== -->
+  <h2><span class="num">09</span>Startup behavior</h2>
+
+  <p>
+    <code>init.clj</code> runs as a <code>def-startup-logic!</code> hook. It's
+    where the JGit isolated <code>SystemReader</code> swap happens, plus the
+    boot-time reconciliation between settings and local state.
+  </p>
+
+  <div class="two-col">
+    <div class="section section--jade" style="--i:0">
+      <div class="section-label"><span class="dot"></span> sync enabled</div>
+      <ul class="node-list">
+        <li>If <code>:read-only</code> &amp; no branch set: <strong>throw</strong></li>
+        <li>If <code>:read-only</code> &amp; dirty local changes: throw <em>unless</em> <code>MB_REMOTE_SYNC_ALLOW=overwrite-unpublished</code></li>
+        <li>If no remote-synced collection exists: kick off an initial async import</li>
+      </ul>
+    </div>
+    <div class="section section--rose" style="--i:1">
+      <div class="section-label"><span class="dot"></span> sync disabled</div>
+      <ul class="node-list">
+        <li>If a remote-synced collection still exists: clear its sync flag</li>
+        <li>Local data stays; just stops being managed by git-sync</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout callout--amber">
+    <strong>Why the throw on dirty + read-only.</strong> Read-only mode means "the
+    remote is the truth." If local changes exist that the remote doesn't reflect,
+    a silent import would discard them. The startup contract is "fail loudly so
+    the operator notices, give them the escape hatch via env var."
+  </div>
+
+  <!-- =====================================================================
+       10. THE BIG PICTURE
+       ===================================================================== -->
+  <h2><span class="num">10</span>The whole picture</h2>
+
+  <p>
+    Putting all the moving pieces in one diagram:
+  </p>
+
+  <div class="mermaid-wrap" style="--i:0">
+    <div class="zoom-controls">
+      <button onclick="zoomOut(this)" title="Zoom out">−</button>
+      <button onclick="zoomReset(this)" title="Reset">⌂</button>
+      <button onclick="zoomIn(this)" title="Zoom in">+</button>
+    </div>
+    <div class="mermaid-scroll">
+      <div class="mermaid">
+flowchart TB
+  classDef ext fill:#1f3554,stroke:#fbbf24,color:#eaf2ff,stroke-width:1.5px
+  classDef api fill:#1f3554,stroke:#5eead4,color:#eaf2ff,stroke-width:1.5px
+  classDef impl fill:#1f3554,stroke:#818cf8,color:#eaf2ff,stroke-width:1.5px
+  classDef src fill:#1f3554,stroke:#fb7185,color:#eaf2ff,stroke-width:1.5px
+  classDef store fill:#1f3554,stroke:#6ee7b7,color:#eaf2ff,stroke-width:1.5px
+  classDef set fill:#1f3554,stroke:#f0abfc,color:#eaf2ff,stroke-width:1.5px
+
+  subgraph SETT["Settings (settings.clj)"]
+    direction LR
+    URL["remote-sync-url"]:::set
+    BR["remote-sync-branch"]:::set
+    TOK["remote-sync-token"]:::set
+    TYPE["remote-sync-type<br/>:read-only / :read-write"]:::set
+    AI["remote-sync-auto-import"]:::set
+    TX["remote-sync-transforms"]:::set
+  end
+
+  subgraph TRIG["Triggers"]
+    HTTP["HTTP API<br/>api.clj"]:::api
+    SCH["Quartz AutoImport<br/>task/import.clj"]:::api
+    BOOT["Startup<br/>init.clj"]:::api
+  end
+
+  subgraph ORCH["Orchestration (impl.clj)"]
+    direction TB
+    AI2["async-import!"]:::impl
+    AE["async-export!"]:::impl
+    LOCK["create-task-with-lock!"]:::impl
+    HRC["has-remote-changes?<br/><i>+ 60s cache</i>"]:::impl
+    HND["handle-task-result!"]:::impl
+  end
+
+  subgraph SOURCE["Source layer"]
+    direction TB
+    SC["source.clj<br/>store! / source-from-settings"]:::src
+    GIT["source/git.clj<br/>JGit ops"]:::src
+    PROTO["source/protocol.clj<br/>Source · SourceSnapshot"]:::src
+    INGEST["source/ingestable.clj<br/>serdes adapter"]:::src
+  end
+
+  subgraph DB["App DB"]
+    direction LR
+    RST["RemoteSyncTask"]:::store
+    RSO["RemoteSyncObject"]:::store
+  end
+
+  GH[("Remote git host<br/>GitHub · GitLab · Bitbucket · &hellip;")]:::ext
+  CACHE[("~/tmp/metabase-git/&lt;sha1&gt;<br/>bare clones")]:::ext
+
+  HTTP --> AI2 & AE
+  SCH --> HRC
+  HRC -->|"SHA changed"| AI2
+  BOOT --> AI2
+
+  AI2 --> LOCK
+  AE --> LOCK
+  LOCK --> RST
+
+  AI2 --> SC
+  AE --> SC
+  SC --> GIT
+  GIT --> PROTO
+  SC --> INGEST
+
+  GIT <--> CACHE
+  CACHE <--> GH
+
+  AI2 -.-> HND
+  AE -.-> HND
+  HND --> RST
+  HND --> RSO
+
+  SETT --> SC
+  SETT --> AI2
+  SETT --> AE
+  SETT --> SCH
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       11. APPENDIX
+       ===================================================================== -->
+  <h2><span class="num">11</span>Quick reference</h2>
+
+  <div class="three-col">
+    <div class="section section--cyan" style="--i:0">
+      <div class="section-label"><span class="dot"></span> File map</div>
+      <ul class="node-list" style="font-size:13px">
+        <li><code>core.clj</code> — public defenterprise surface</li>
+        <li><code>api.clj</code> — HTTP endpoints</li>
+        <li><code>impl.clj</code> — orchestration, conflicts, locks</li>
+        <li><code>settings.clj</code> — all defsetting + validation</li>
+        <li><code>init.clj</code> — startup hook + JGit isolation</li>
+        <li><code>events.clj</code> — RSO dirty-tracking events</li>
+        <li><code>source.clj</code> — adapter to serialization</li>
+        <li><code>source/protocol.clj</code> — defprotocol contracts</li>
+        <li><code>source/git.clj</code> — JGit implementation</li>
+        <li><code>source/ingestable.clj</code> — serdes streaming wrapper</li>
+        <li><code>spec.clj</code> — model→sync mapping</li>
+        <li><code>schema.clj</code> — API request/response shapes</li>
+        <li><code>task/import.clj</code> — Quartz auto-import job</li>
+        <li><code>task/table_cleanup.clj</code> — periodic cleanup</li>
+        <li><code>models/remote_sync_task.clj</code> — task state model</li>
+        <li><code>models/remote_sync_object.clj</code> — tracked-entity model</li>
+      </ul>
+    </div>
+    <div class="section section--indigo" style="--i:1">
+      <div class="section-label"><span class="dot"></span> HTTP endpoints</div>
+      <ul class="node-list" style="font-size:13px">
+        <li><code>POST /import</code> — pull from remote</li>
+        <li><code>POST /export</code> — push (read-write only)</li>
+        <li><code>GET /is-dirty</code> — any local unpushed?</li>
+        <li><code>GET /dirty</code> — list dirty entities</li>
+        <li><code>GET /has-remote-changes</code> — cached SHA check</li>
+        <li><code>GET /current-task</code> — active sync state</li>
+        <li><code>POST /current-task/cancel</code> — abort running task</li>
+        <li><code>GET /branches</code> — list remote branches</li>
+        <li><code>POST /create-branch</code> — branch + push</li>
+      </ul>
+    </div>
+    <div class="section section--jade" style="--i:2">
+      <div class="section-label"><span class="dot"></span> Things that surprised me</div>
+      <ul class="node-list" style="font-size:13px">
+        <li>Bare clone, no working tree — writes go through JGit's ObjectInserter.</li>
+        <li>Cache key is <code>SHA-1(url + ":" + token)</code> — token rotation = fresh clone.</li>
+        <li><code>remote-sync-enabled</code> isn't a setting; it's <code>(some? url)</code>.</li>
+        <li>Author is hard-coded <code>"Metabase Library &lt;library@metabase.com&gt;"</code>.</li>
+        <li>SystemReader swap on startup so JGit ignores host gitconfig.</li>
+        <li><code>managed-dirs</code> determines what gets cleaned up on write — files outside are preserved.</li>
+        <li>Stale-cache recovery is automatic on <code>"Missing commit"</code>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top:32px;font-style:italic">
+    Source studied: <code>enterprise/backend/src/metabase_enterprise/remote_sync/</code>
+    on <code>feature/workspaces-v2</code>. Branch tip <code>3723af295a0</code> at
+    time of writing.
+  </div>
+
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      darkMode: true,
+      background: '#142036',
+      primaryColor: '#1f3554',
+      primaryTextColor: '#eaf2ff',
+      primaryBorderColor: '#5eead4',
+      lineColor: '#8aa4c8',
+      secondaryColor: '#1b2c47',
+      tertiaryColor: '#142036',
+      fontFamily: 'JetBrains Mono, monospace',
+      fontSize: '13px',
+      noteBkgColor: '#2a3f5f',
+      noteTextColor: '#eaf2ff',
+      noteBorderColor: '#5eead4',
+      actorBkg: '#1f3554',
+      actorBorder: '#5eead4',
+      actorTextColor: '#eaf2ff',
+      actorLineColor: '#8aa4c8',
+      signalColor: '#eaf2ff',
+      signalTextColor: '#eaf2ff',
+      labelBoxBkgColor: '#1f3554',
+      labelBoxBorderColor: '#5eead4',
+      labelTextColor: '#eaf2ff',
+      sequenceNumberColor: '#0c1726'
+    },
+    sequence: { useMaxWidth: false, mirrorActors: false, messageFontSize: 12 },
+    flowchart: { useMaxWidth: false, htmlLabels: true, curve: 'basis' }
+  });
+
+  // light-mode mermaid theme override
+  if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      themeVariables: {
+        background: '#ffffff',
+        primaryColor: '#f0f5fa',
+        primaryTextColor: '#0f172a',
+        primaryBorderColor: '#0d9488',
+        lineColor: '#475569',
+        secondaryColor: '#e2e8f0',
+        tertiaryColor: '#ffffff',
+        fontFamily: 'JetBrains Mono, monospace',
+        fontSize: '13px'
+      },
+      sequence: { useMaxWidth: false, mirrorActors: false },
+      flowchart: { useMaxWidth: false, htmlLabels: true, curve: 'basis' }
+    });
+  }
+
+  // ============== ZOOM CONTROLS ==============
+  function getScrollEl(btn) { return btn.closest('.mermaid-wrap').querySelector('.mermaid-scroll'); }
+  function getMermaidEl(btn) { return getScrollEl(btn).querySelector('.mermaid'); }
+  function getZoom(el) { return parseFloat(el.dataset.zoom || '1'); }
+  function setZoom(el, z) { el.dataset.zoom = z; el.style.transform = `scale(${z})`; }
+  function zoomIn(btn) { const m = getMermaidEl(btn); setZoom(m, Math.min(getZoom(m) + 0.2, 3)); }
+  function zoomOut(btn) { const m = getMermaidEl(btn); setZoom(m, Math.max(getZoom(m) - 0.2, 0.4)); }
+  function zoomReset(btn) { const m = getMermaidEl(btn); setZoom(m, 1); getScrollEl(btn).scrollTo(0,0); }
+
+  // ctrl/cmd-scroll zoom + click-drag pan on each scroll container
+  document.querySelectorAll('.mermaid-scroll').forEach(scroller => {
+    const m = scroller.querySelector('.mermaid');
+    scroller.addEventListener('wheel', e => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.1 : -0.1;
+      setZoom(m, Math.max(0.4, Math.min(3, getZoom(m) + delta)));
+    }, { passive: false });
+
+    let panning = false, lastX = 0, lastY = 0;
+    scroller.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      panning = true; lastX = e.clientX; lastY = e.clientY;
+      scroller.style.cursor = 'grabbing';
+    });
+    window.addEventListener('mousemove', e => {
+      if (!panning) return;
+      scroller.scrollLeft -= (e.clientX - lastX);
+      scroller.scrollTop  -= (e.clientY - lastY);
+      lastX = e.clientX; lastY = e.clientY;
+    });
+    window.addEventListener('mouseup', () => {
+      if (!panning) return;
+      panning = false; scroller.style.cursor = '';
+    });
+  });
+</script>
+
+</body>
+</html>

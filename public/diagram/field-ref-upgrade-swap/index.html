@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Field Ref Upgrade + Source Swap — Unified Operation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Sora', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+
+    /* Blueprint aesthetic — light-first */
+    --bg: #f4f7fb;
+    --surface: #ffffff;
+    --surface2: #edf2f9;
+    --border: rgba(0, 0, 0, 0.08);
+    --border-bright: rgba(0, 0, 0, 0.15);
+    --text: #1e293b;
+    --text-dim: #64748b;
+
+    --accent: #2563eb;
+    --accent-dim: rgba(37, 99, 235, 0.08);
+    --green: #059669;
+    --green-dim: rgba(5, 150, 105, 0.08);
+    --red: #dc2626;
+    --red-dim: rgba(220, 38, 38, 0.08);
+    --amber: #d97706;
+    --amber-dim: rgba(217, 119, 6, 0.08);
+    --purple: #7c3aed;
+    --purple-dim: rgba(124, 58, 237, 0.08);
+
+    --model: #7c3aed;
+    --model-dim: rgba(124, 58, 237, 0.08);
+    --table: #0891b2;
+    --table-dim: rgba(8, 145, 178, 0.08);
+    --question: #2563eb;
+    --question-dim: rgba(37, 99, 235, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #334155;
+      --border: rgba(255, 255, 255, 0.07);
+      --border-bright: rgba(255, 255, 255, 0.14);
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+
+      --accent: #60a5fa;
+      --accent-dim: rgba(96, 165, 250, 0.12);
+      --green: #34d399;
+      --green-dim: rgba(52, 211, 153, 0.12);
+      --red: #f87171;
+      --red-dim: rgba(248, 113, 113, 0.12);
+      --amber: #fbbf24;
+      --amber-dim: rgba(251, 191, 36, 0.12);
+      --purple: #a78bfa;
+      --purple-dim: rgba(167, 139, 250, 0.12);
+
+      --model: #a78bfa;
+      --model-dim: rgba(167, 139, 250, 0.12);
+      --table: #22d3ee;
+      --table-dim: rgba(34, 211, 238, 0.12);
+      --question: #60a5fa;
+      --question-dim: rgba(96, 165, 250, 0.12);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .animate {
+    animation: fadeUp 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.06s);
+  }
+  .animate-scale {
+    animation: fadeScale 0.35s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.06s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+    .mermaid-wrap .mermaid { transition: none; }
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    margin-bottom: 6px;
+    text-wrap: balance;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    margin-bottom: 32px;
+  }
+
+  h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h2 .step-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 3px 9px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  h2 .step-num.problem { background: var(--red-dim); color: var(--red); }
+  h2 .step-num.solution { background: var(--green-dim); color: var(--green); }
+  h2 .step-num.matrix { background: var(--purple-dim); color: var(--purple); }
+
+  .description {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+    max-width: 700px;
+  }
+
+  .description code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .section { margin-bottom: 40px; }
+
+  /* Mermaid */
+  .mermaid-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    overflow: auto;
+    margin-bottom: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .mermaid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .mermaid-wrap::-webkit-scrollbar-track { background: transparent; }
+  .mermaid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .mermaid-wrap::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  .mermaid-wrap .mermaid {
+    display: flex;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    transform-origin: top center;
+  }
+
+  .zoom-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 2px;
+    z-index: 10;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+  }
+
+  .zoom-controls button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .zoom-controls button:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .mermaid-wrap.is-zoomed { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+  .mermaid .nodeLabel {
+    font-family: var(--font-body) !important;
+    font-size: 14px !important;
+  }
+  .mermaid .edgeLabel {
+    font-family: var(--font-mono) !important;
+    font-size: 12px !important;
+    color: var(--text-dim) !important;
+    background-color: var(--surface) !important;
+  }
+  .mermaid .edgeLabel rect { fill: var(--surface) !important; }
+  .mermaid .node rect,
+  .mermaid .node circle,
+  .mermaid .node polygon { stroke-width: 1.5px !important; }
+  .mermaid .edge-pattern-solid { stroke-width: 1.5px !important; }
+
+  /* Table */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .data-table thead { position: sticky; top: 0; z-index: 2; }
+  .data-table th {
+    background: var(--surface2);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--border-bright);
+    white-space: nowrap;
+  }
+  .data-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    color: var(--text);
+  }
+  .data-table tbody tr:nth-child(even) { background: var(--accent-dim); }
+  .data-table tbody tr { transition: background 0.15s ease; }
+  .data-table tbody tr:hover { background: var(--border); }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .tag-model { background: var(--model-dim); color: var(--model); }
+  .tag-table { background: var(--table-dim); color: var(--table); }
+  .tag-name { background: var(--purple-dim); color: var(--purple); }
+  .tag-id { background: var(--amber-dim); color: var(--amber); }
+
+  .arrow-cell {
+    font-family: var(--font-mono);
+    font-size: 16px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .status-same { background: var(--green-dim); color: var(--green); }
+  .status-change { background: var(--amber-dim); color: var(--amber); }
+
+  /* Callout */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    margin-top: 24px;
+  }
+  .callout strong { color: var(--text); }
+  .callout code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* Side-by-side diagrams */
+  .diagram-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .diagram-pair > * { min-width: 0; }
+
+  @media (max-width: 768px) {
+    body { padding: 16px; }
+    h1 { font-size: 22px; }
+    .mermaid-wrap { padding: 16px 12px; }
+    .diagram-pair { grid-template-columns: 1fr; }
+  }
+
+  .diagram-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .diagram-label::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .diagram-label.label-problem { color: var(--red); }
+  .diagram-label.label-solution { color: var(--green); }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1 class="animate" style="--i:0">Field Ref Upgrade + Source Swap</h1>
+  <p class="subtitle animate" style="--i:1">why they must be a single, source-aware operation</p>
+
+  <!-- Section 1: The Problem -->
+  <div class="section">
+    <h2 class="animate" style="--i:2"><span class="step-num problem">PROBLEM</span> Separate upgrade then swap breaks refs</h2>
+    <p class="description animate" style="--i:3">
+      If we upgrade field refs first (making them name-based for Model B), then swap Model B for Table C,
+      Question A ends up with <code>[:field "PRICE" ...]</code> pointing at a table &mdash; but tables expect
+      ID-based refs like <code>[:field 42 ...]</code>. The refs are now in the wrong format.
+    </p>
+
+    <div class="mermaid-wrap animate" style="--i:4">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+        graph LR
+          subgraph step1 [" Step 1: Upgrade "]
+            A1["Question A<br/>[:field 42 ...]"]
+            B1["Model B"]
+            A1 -->|"source"| B1
+            A1x["Question A<br/>[:field #quot;PRICE#quot; ...]"]:::upgraded
+            B1x["Model B"]
+            A1x -->|"source"| B1x
+            A1 -.->|"upgrade refs"| A1x
+          end
+
+          subgraph step2 [" Step 2: Swap "]
+            A2["Question A<br/>[:field #quot;PRICE#quot; ...]"]:::upgraded
+            C2["Table C"]:::tableNode
+            A2 -->|"source"| C2
+            A2 -.-|"WRONG FORMAT"| warn["name-based refs<br/>pointing at table"]:::errorNode
+          end
+
+          step1 --> step2
+
+          classDef upgraded fill:#7c3aed22,stroke:#7c3aed,stroke-width:2px
+          classDef tableNode fill:#0891b222,stroke:#0891b2,stroke-width:2px
+          classDef errorNode fill:#dc262622,stroke:#dc2626,stroke-width:2px,stroke-dasharray:5 5
+      </pre>
+    </div>
+  </div>
+
+  <!-- Section 2: The Solution -->
+  <div class="section">
+    <h2 class="animate" style="--i:6"><span class="step-num solution">SOLUTION</span> Normalize twice: before and after swap</h2>
+    <p class="description animate" style="--i:7">
+      Alexander's insight: the "upgrade" function is really a <strong>normalize-to-what-the-source-expects</strong>
+      function. Models expect name-based refs. Tables expect ID-based refs. Run it twice &mdash; once with the old
+      source, once after setting the new source &mdash; and refs always end up correct.
+    </p>
+
+    <div class="mermaid-wrap animate" style="--i:8">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+        graph TD
+          start["Question A<br/>[:field 42 ...]<br/>source: Model B"]
+
+          subgraph phase1 ["Phase 1: Normalize for old source"]
+            norm1["normalize_refs(Question A, Model B)"]
+            result1["Question A<br/>[:field #quot;PRICE#quot; ...]<br/>source: Model B"]:::modelState
+          end
+
+          subgraph swap ["Swap source"]
+            doswap["Set source = Table C"]
+            mid["Question A<br/>[:field #quot;PRICE#quot; ...]<br/>source: Table C"]:::midState
+          end
+
+          subgraph phase2 ["Phase 2: Normalize for new source"]
+            norm2["normalize_refs(Question A, Table C)"]
+            result2["Question A<br/>[:field 42 ...]<br/>source: Table C"]:::tableState
+          end
+
+          start --> norm1
+          norm1 --> result1
+          result1 --> doswap
+          doswap --> mid
+          mid --> norm2
+          norm2 --> result2
+
+          classDef modelState fill:#7c3aed22,stroke:#7c3aed,stroke-width:2px
+          classDef tableState fill:#0891b222,stroke:#0891b2,stroke-width:2px
+          classDef midState fill:#d9770622,stroke:#d97706,stroke-width:2px,stroke-dasharray:5 5
+      </pre>
+    </div>
+  </div>
+
+  <!-- Section 3: Swap Matrix -->
+  <div class="section">
+    <h2 class="animate" style="--i:10"><span class="step-num matrix">MATRIX</span> All swap scenarios</h2>
+    <p class="description animate" style="--i:11">
+      The normalize function handles every source type combination. The ref format always matches whatever the new source expects.
+    </p>
+
+    <div class="table-wrap animate" style="--i:12">
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Old Source</th>
+              <th>New Source</th>
+              <th>After Phase 1</th>
+              <th></th>
+              <th>After Phase 2</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="tag tag-model">Model</span></td>
+              <td><span class="tag tag-model">Model</span></td>
+              <td><code>[:field "PRICE" ...]</code></td>
+              <td class="arrow-cell">&rarr;</td>
+              <td><code>[:field "PRICE" ...]</code></td>
+              <td><span class="status status-same">Stays name-based</span></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-model">Model</span></td>
+              <td><span class="tag tag-table">Table</span></td>
+              <td><code>[:field "PRICE" ...]</code></td>
+              <td class="arrow-cell">&rarr;</td>
+              <td><code>[:field 42 ...]</code></td>
+              <td><span class="status status-change">Downgrade to ID</span></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-table">Table</span></td>
+              <td><span class="tag tag-model">Model</span></td>
+              <td><code>[:field 42 ...]</code></td>
+              <td class="arrow-cell">&rarr;</td>
+              <td><code>[:field "PRICE" ...]</code></td>
+              <td><span class="status status-change">Upgrade to name</span></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-table">Table</span></td>
+              <td><span class="tag tag-table">Table</span></td>
+              <td><code>[:field 42 ...]</code></td>
+              <td class="arrow-cell">&rarr;</td>
+              <td><code>[:field 99 ...]</code></td>
+              <td><span class="status status-same">Stays ID-based</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout animate" style="--i:14">
+    <strong>The insight:</strong> "Upgrade" is a misnomer &mdash; it's really <code>normalize_refs(query, source)</code>.
+    It resolves refs to whatever format the given source expects. By running it twice (old source, then new source),
+    the swap operation becomes a single unified function that handles all four source type combinations correctly.
+    Field ref format is always an emergent property of the source type, never an independent concern.
+  </div>
+
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  mermaid.registerLayoutLoaders(elkLayouts);
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    look: 'handDrawn',
+    layout: 'elk',
+    themeVariables: {
+      primaryColor: isDark ? '#1e293b' : '#f1f5f9',
+      primaryBorderColor: isDark ? '#60a5fa' : '#2563eb',
+      primaryTextColor: isDark ? '#e2e8f0' : '#1e293b',
+      secondaryColor: isDark ? '#1e293b' : '#f8fafc',
+      secondaryBorderColor: isDark ? '#94a3b8' : '#64748b',
+      secondaryTextColor: isDark ? '#e2e8f0' : '#1e293b',
+      tertiaryColor: isDark ? '#1e293b' : '#fefce8',
+      tertiaryBorderColor: isDark ? '#fbbf24' : '#d97706',
+      tertiaryTextColor: isDark ? '#e2e8f0' : '#1e293b',
+      lineColor: isDark ? '#64748b' : '#94a3b8',
+      fontSize: '14px',
+      fontFamily: "'Sora', system-ui, sans-serif",
+      noteBkgColor: isDark ? '#1e293b' : '#fefce8',
+      noteTextColor: isDark ? '#e2e8f0' : '#1e293b',
+      noteBorderColor: isDark ? '#fbbf24' : '#d97706',
+    }
+  });
+</script>
+<script>
+  function updateZoomState(wrap) {
+    var target = wrap.querySelector('.mermaid');
+    var zoom = parseFloat(target.dataset.zoom || '1');
+    wrap.classList.toggle('is-zoomed', zoom > 1);
+  }
+
+  function zoomDiagram(btn, factor) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    var current = parseFloat(target.dataset.zoom || '1');
+    var next = Math.min(Math.max(current * factor, 0.3), 5);
+    target.dataset.zoom = next;
+    target.style.transform = 'scale(' + next + ')';
+    updateZoomState(wrap);
+  }
+
+  function resetZoom(btn) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    target.dataset.zoom = '1';
+    target.style.transform = 'scale(1)';
+    updateZoomState(wrap);
+  }
+
+  document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+    wrap.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      var target = wrap.querySelector('.mermaid');
+      var current = parseFloat(target.dataset.zoom || '1');
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var next = Math.min(Math.max(current * factor, 0.3), 5);
+      target.dataset.zoom = next;
+      target.style.transform = 'scale(' + next + ')';
+      updateZoomState(wrap);
+    }, { passive: false });
+
+    var startX, startY, scrollL, scrollT;
+    wrap.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.zoom-controls')) return;
+      var target = wrap.querySelector('.mermaid');
+      if (parseFloat(target.dataset.zoom || '1') <= 1) return;
+      wrap.classList.add('is-panning');
+      startX = e.clientX;
+      startY = e.clientY;
+      scrollL = wrap.scrollLeft;
+      scrollT = wrap.scrollTop;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!wrap.classList.contains('is-panning')) return;
+      wrap.scrollLeft = scrollL - (e.clientX - startX);
+      wrap.scrollTop = scrollT - (e.clientY - startY);
+    });
+    window.addEventListener('mouseup', function() {
+      wrap.classList.remove('is-panning');
+    });
+  });
+</script>
+
+</body>
+</html>

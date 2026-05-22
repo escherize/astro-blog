@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workspaces V2 — A long-form explainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============ Theme: Editorial — deep navy + warm gold ============ */
+  :root {
+    --font-body: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #0f1729;
+    --bg-soft: #131c33;
+    --surface: #162040;
+    --surface-2: #1d2b52;
+    --surface-elevated: #243362;
+
+    --border: rgba(212, 167, 58, 0.08);
+    --border-bright: rgba(212, 167, 58, 0.18);
+
+    --text: #e8e4d8;
+    --text-strong: #f5f0e3;
+    --text-dim: #9a9484;
+    --text-muted: #7a7468;
+
+    --accent: #d4a73a;        /* warm gold */
+    --accent-soft: #b8902e;
+    --accent-dim: rgba(212, 167, 58, 0.08);
+
+    --info: #88b4d6;          /* dusty blue */
+    --info-dim: rgba(136, 180, 214, 0.08);
+    --plum: #c08b9f;          /* desaturated rose */
+    --plum-dim: rgba(192, 139, 159, 0.08);
+    --sage: #97a98c;          /* desaturated sage */
+    --sage-dim: rgba(151, 169, 140, 0.08);
+
+    --code-bg: #0a1020;
+    --code-text: #d4d0c4;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #faf8f2;
+      --bg-soft: #f5f1e6;
+      --surface: #ffffff;
+      --surface-2: #f5f0e6;
+      --surface-elevated: #fffdf5;
+      --border: rgba(40, 30, 20, 0.08);
+      --border-bright: rgba(40, 30, 20, 0.18);
+      --text: #1a1814;
+      --text-strong: #0a0908;
+      --text-dim: #6a6353;
+      --text-muted: #8a8170;
+      --accent: #b8860b;
+      --accent-soft: #8a6608;
+      --accent-dim: rgba(184, 134, 11, 0.06);
+      --info: #2c5a8a;
+      --info-dim: rgba(44, 90, 138, 0.07);
+      --plum: #7a3548;
+      --plum-dim: rgba(122, 53, 72, 0.07);
+      --sage: #4a6b3a;
+      --sage-dim: rgba(74, 107, 58, 0.07);
+      --code-bg: #2a2520;
+      --code-text: #e8e4d8;
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 8% 4%, var(--accent-dim) 0%, transparent 55%),
+      radial-gradient(ellipse at 92% 96%, var(--plum-dim) 0%, transparent 50%);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: var(--font-body);
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ============ Layout ============ */
+  .page {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: clamp(60px, 8vh, 120px) clamp(28px, 5vw, 80px) clamp(60px, 8vh, 100px);
+  }
+
+  /* ============ Animation ============ */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  section, .block {
+    animation: fadeUp 0.5s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.04s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* ============ Typography ============ */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .eyebrow::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-family: var(--font-body);
+    font-size: clamp(48px, 8vw, 88px);
+    font-weight: 400;
+    line-height: 1.0;
+    letter-spacing: -2px;
+    color: var(--text-strong);
+    margin-bottom: clamp(20px, 2.5vh, 28px);
+    text-wrap: balance;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  h2 {
+    font-family: var(--font-body);
+    font-size: clamp(34px, 4.5vw, 52px);
+    font-weight: 400;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+    color: var(--text-strong);
+    margin-top: clamp(60px, 8vh, 100px);
+    margin-bottom: clamp(14px, 2vh, 22px);
+    text-wrap: balance;
+  }
+
+  h2 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  h3 {
+    font-family: var(--font-body);
+    font-size: clamp(22px, 2.6vw, 30px);
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--text-strong);
+    margin-top: clamp(36px, 5vh, 56px);
+    margin-bottom: clamp(10px, 1.5vh, 16px);
+    text-wrap: balance;
+    font-style: italic;
+  }
+
+  p {
+    font-size: clamp(17px, 1.7vw, 21px);
+    line-height: 1.65;
+    color: var(--text);
+    margin-bottom: clamp(16px, 2vh, 22px);
+    text-wrap: pretty;
+  }
+
+  p strong {
+    color: var(--text-strong);
+    font-weight: 600;
+  }
+
+  p em {
+    color: var(--accent);
+    font-style: italic;
+  }
+
+  .lede {
+    font-size: clamp(20px, 2vw, 26px);
+    line-height: 1.55;
+    color: var(--text-dim);
+    font-style: italic;
+    margin-bottom: clamp(36px, 5vh, 56px);
+    max-width: 64ch;
+    text-wrap: balance;
+  }
+
+  .meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-top: clamp(36px, 5vh, 56px);
+    padding-top: clamp(20px, 2.5vh, 28px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  /* ============ Pull quote ============ */
+  .pull-quote {
+    margin: clamp(36px, 5vh, 56px) 0;
+    padding: clamp(28px, 4vh, 40px) 0;
+    border-top: 1px solid var(--border-bright);
+    border-bottom: 1px solid var(--border-bright);
+    text-align: center;
+  }
+
+  .pull-quote blockquote {
+    font-size: clamp(24px, 3vw, 36px);
+    font-style: italic;
+    line-height: 1.3;
+    color: var(--text-strong);
+    max-width: 32ch;
+    margin: 0 auto;
+    text-wrap: balance;
+  }
+
+  .pull-quote blockquote em {
+    color: var(--accent);
+    font-style: normal;
+    font-weight: 500;
+  }
+
+  .pull-quote cite {
+    display: block;
+    margin-top: clamp(16px, 2vh, 22px);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-style: normal;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* ============ Inline mono ============ */
+  .mono, code, pre {
+    font-family: var(--font-mono);
+  }
+
+  p code, li code, td code {
+    font-size: 0.85em;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  /* ============ Cards ============ */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 8px;
+    padding: clamp(20px, 2.5vh, 28px) clamp(20px, 2.5vw, 32px);
+    margin: clamp(20px, 3vh, 28px) 0;
+  }
+
+  .card--accent { border-left: 3px solid var(--accent); }
+  .card--info { border-left: 3px solid var(--info); }
+  .card--plum { border-left: 3px solid var(--plum); }
+  .card--sage { border-left: 3px solid var(--sage); }
+
+  .card-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .card-title {
+    font-family: var(--font-body);
+    font-size: clamp(20px, 2vw, 24px);
+    font-weight: 500;
+    font-style: italic;
+    line-height: 1.25;
+    color: var(--text-strong);
+    margin-bottom: 12px;
+  }
+
+  .card p {
+    font-size: clamp(15px, 1.5vw, 17px);
+    line-height: 1.55;
+    color: var(--text);
+  }
+
+  .card p:last-child { margin-bottom: 0; }
+
+  /* ============ Two-up grid ============ */
+  .twoup {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(16px, 2vw, 24px);
+    margin: clamp(24px, 3vh, 32px) 0;
+  }
+
+  @media (max-width: 720px) {
+    .twoup { grid-template-columns: 1fr; }
+  }
+
+  /* ============ Labeled list (definition-list style) ============ */
+  dl {
+    margin: clamp(20px, 3vh, 28px) 0;
+    border-top: 1px solid var(--border);
+  }
+
+  dl > div {
+    display: grid;
+    grid-template-columns: minmax(120px, 1.2fr) 4fr;
+    gap: clamp(16px, 2.5vw, 32px);
+    padding: clamp(14px, 1.8vh, 20px) 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  dt {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    align-self: start;
+    padding-top: 4px;
+  }
+
+  dd {
+    font-size: clamp(15px, 1.55vw, 18px);
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  dd strong { color: var(--text-strong); font-weight: 600; }
+
+  /* ============ Step list ============ */
+  ol.steps {
+    counter-reset: step;
+    list-style: none;
+    margin: clamp(24px, 3vh, 32px) 0;
+    padding: 0;
+  }
+
+  ol.steps > li {
+    counter-increment: step;
+    position: relative;
+    padding-left: clamp(56px, 7vw, 80px);
+    margin-bottom: clamp(20px, 2.5vh, 28px);
+    font-size: clamp(16px, 1.6vw, 19px);
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  ol.steps > li::before {
+    content: counter(step, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: -2px;
+    font-family: var(--font-mono);
+    font-size: clamp(28px, 3vw, 36px);
+    font-weight: 300;
+    color: var(--accent);
+    line-height: 1;
+    opacity: 0.7;
+  }
+
+  ol.steps > li strong {
+    display: block;
+    color: var(--text-strong);
+    font-style: italic;
+    font-family: var(--font-body);
+    font-size: clamp(20px, 2vw, 24px);
+    font-weight: 500;
+    margin-bottom: 6px;
+    line-height: 1.25;
+  }
+
+  /* ============ Code blocks ============ */
+  pre.code-block {
+    background: var(--code-bg);
+    color: var(--code-text);
+    border: 1px solid var(--border-bright);
+    border-radius: 8px;
+    padding: clamp(20px, 2.5vh, 28px) clamp(20px, 2.5vw, 28px);
+    overflow-x: auto;
+    font-size: clamp(12px, 1.2vw, 14px);
+    line-height: 1.65;
+    margin: clamp(20px, 3vh, 28px) 0;
+    position: relative;
+    white-space: pre;
+    tab-size: 2;
+  }
+
+  pre.code-block .filename {
+    position: absolute;
+    top: -10px;
+    left: 18px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 4px;
+    background: var(--accent);
+    color: var(--bg);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  .c-key { color: var(--info); }
+  .c-str { color: #e3c468; }
+  .c-comm { color: var(--text-muted); font-style: italic; }
+  .c-acc { color: var(--accent); }
+  .c-pink { color: var(--plum); }
+
+  /* ============ Diagram shell — proper Mermaid container ============ */
+  .diagram-shell {
+    margin: clamp(28px, 3.5vh, 40px) 0;
+    border: 1px solid var(--border-bright);
+    border-radius: 10px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  .diagram-shell__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .diagram-shell__caption {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .mermaid-wrap {
+    position: relative;
+    height: clamp(320px, 50vh, 540px);
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .zoom-controls {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 4px;
+    z-index: 5;
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 6px;
+    padding: 4px;
+  }
+
+  .zoom-controls button {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .zoom-controls button:hover { background: var(--accent-dim); color: var(--accent); }
+
+  .mermaid-viewport {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mermaid-viewport:active { cursor: grabbing; }
+
+  .mermaid-canvas {
+    transform-origin: 0 0;
+    transition: transform 0.2s ease;
+  }
+
+  .mermaid svg {
+    max-width: none !important;
+    height: auto !important;
+  }
+
+  .mermaid .nodeLabel { font-size: 14px !important; font-family: var(--font-mono) !important; }
+  .mermaid .edgeLabel { font-size: 12px !important; font-family: var(--font-mono) !important; background: var(--surface) !important; }
+
+  /* ============ Status row ============ */
+  .status-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: clamp(20px, 3vh, 28px) 0;
+  }
+
+  .status-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 16px;
+    padding: clamp(12px, 1.8vh, 16px) clamp(14px, 1.8vw, 20px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    align-items: center;
+    font-family: var(--font-mono);
+  }
+
+  .status-row__badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+
+  .status-row__badge--ok { color: var(--accent); background: var(--accent-dim); border: 1px solid var(--border-bright); }
+  .status-row__badge--note { color: var(--info); background: var(--info-dim); border: 1px solid var(--border); }
+  .status-row__badge--warn { color: var(--plum); background: var(--plum-dim); border: 1px solid var(--border); }
+
+  .status-row__text { font-size: clamp(13px, 1.3vw, 15px); color: var(--text); line-height: 1.5; font-family: var(--font-body); }
+  .status-row__ref { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; }
+
+  /* ============ Footnote ============ */
+  .footnote {
+    background: var(--bg-soft);
+    border-left: 3px solid var(--text-muted);
+    padding: clamp(16px, 2vh, 22px) clamp(20px, 2.5vw, 28px);
+    margin: clamp(24px, 3vh, 32px) 0;
+    font-size: clamp(13px, 1.4vw, 16px);
+    line-height: 1.6;
+    color: var(--text-dim);
+    border-radius: 0 6px 6px 0;
+  }
+
+  .footnote strong { color: var(--text-strong); font-weight: 600; }
+
+  /* ============ Topology illustration (custom, no Mermaid) ============ */
+  .topo {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: clamp(20px, 3vw, 36px);
+    align-items: stretch;
+    margin: clamp(28px, 4vh, 40px) 0;
+  }
+
+  .topo__node {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 8px;
+    padding: clamp(20px, 2.5vh, 28px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .topo__role {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  .topo__name {
+    font-size: clamp(28px, 3.6vw, 40px);
+    font-style: italic;
+    color: var(--text-strong);
+    line-height: 1.0;
+    margin-bottom: clamp(12px, 1.8vh, 18px);
+    letter-spacing: -1px;
+  }
+
+  .topo__desc {
+    font-size: clamp(14px, 1.4vw, 17px);
+    line-height: 1.55;
+    color: var(--text);
+    margin-bottom: clamp(14px, 2vh, 18px);
+  }
+
+  .topo__props {
+    list-style: none;
+    padding-top: clamp(10px, 1.5vh, 14px);
+    border-top: 1px dashed var(--border-bright);
+    margin-top: auto;
+    font-family: var(--font-mono);
+  }
+
+  .topo__props li {
+    font-size: 12px;
+    color: var(--text-dim);
+    padding: 4px 0;
+  }
+
+  .topo__props li strong {
+    color: var(--text-strong);
+    font-weight: 600;
+  }
+
+  .topo__connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    gap: 6px;
+  }
+
+  .topo__connector svg { width: 56px; height: 56px; }
+
+  @media (max-width: 720px) {
+    .topo { grid-template-columns: 1fr; }
+    .topo__connector { transform: rotate(90deg); padding: 10px 0; }
+  }
+
+  /* ============ Verification footer ============ */
+  .verification {
+    margin-top: clamp(60px, 8vh, 100px);
+    padding: clamp(24px, 3vh, 32px) clamp(24px, 3vw, 36px);
+    background: var(--bg-soft);
+    border: 1px solid var(--border-bright);
+    border-radius: 8px;
+  }
+
+  .verification h2 {
+    margin-top: 0;
+    font-size: clamp(22px, 2.4vw, 28px);
+    font-style: italic;
+  }
+
+  .verification p {
+    font-size: clamp(14px, 1.4vw, 16px);
+    color: var(--text-dim);
+  }
+
+  .verification .small {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    letter-spacing: 0.5px;
+  }
+</style>
+</head>
+<body>
+<main class="page">
+
+  <!-- =================================================================== -->
+  <header style="--i: 0;">
+    <div class="eyebrow">Workspaces V2 / Internal Explainer</div>
+    <h1>What we're <em>building</em>, and how it's used.</h1>
+    <p class="lede">A safe way for an analyst with Claude to build a semantic layer against real production data — without their writes ever showing up in production, and without them having to think about that.</p>
+    <p style="font-family: var(--font-mono); font-size: clamp(12px, 1.25vw, 14px); color: var(--text-dim); max-width: 64ch; line-height: 1.6; padding: 14px 18px; border-left: 2px solid var(--accent); background: var(--accent-dim); margin-top: clamp(20px, 2.5vh, 28px); border-radius: 0 4px 4px 0;">
+      <span style="color: var(--accent); font-weight: 600;">Heads up &mdash;</span> this is a fast-moving project. The principles are stable; specific endpoints, file shapes, and emit details shift commit-to-commit. This page is a snapshot — verify against the branch before citing details.
+    </p>
+  </header>
+
+  <!-- =================================================================== -->
+  <div class="pull-quote" style="--i: 1;">
+    <blockquote>
+      An analyst should be able to build modeling against the <em>real</em> data &mdash; and write tables back to the warehouse &mdash; and have it feel like <em>any other Metabase</em>.
+    </blockquote>
+    <cite>The goal in one sentence</cite>
+  </div>
+
+  <!-- =================================================================== -->
+  <section style="--i: 2;">
+    <h2>The setup. <em>Two instances. Two roles.</em></h2>
+    <p>Workspaces V2 runs across two Metabase instances built from the same code. Which role each plays is decided at boot, by what configuration is present — not by which binary is running. Stats is the production-shared instance the company queries every day. Local is a copy on the analyst's laptop.</p>
+
+    <div class="topo">
+      <div class="topo__node">
+        <div class="topo__role">Parent · Stats</div>
+        <div class="topo__name">stats</div>
+        <p class="topo__desc">Production-ish, multi-user. Owns the canonical schemas. Where workspace admins (data engineers) provision new workspaces and emit a <code>config.yml</code> that hands the workspace off to an analyst.</p>
+        <ul class="topo__props">
+          <li><strong>Role</strong> &mdash; admin / data engineer</li>
+          <li><strong>State</strong> &mdash; Workspace + WorkspaceDatabase rows in app DB</li>
+          <li><strong>Auth</strong> &mdash; sharing-key public reads</li>
+        </ul>
+      </div>
+      <div class="topo__connector">
+        <svg viewBox="0 0 60 60" fill="none">
+          <line x1="2" y1="22" x2="56" y2="22" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <polygon points="50,18 60,22 50,26" fill="var(--accent)"/>
+          <line x1="56" y1="40" x2="2" y2="40" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.55"/>
+          <polygon points="10,36 0,40 10,44" fill="var(--accent)" opacity="0.55"/>
+        </svg>
+        <span>config.yml</span>
+        <span style="opacity: 0.55;">git pull</span>
+      </div>
+      <div class="topo__node">
+        <div class="topo__role">Child · Local</div>
+        <div class="topo__name">local</div>
+        <p class="topo__desc">On the analyst's laptop. Single-user. Boots from a <code>config.yml</code> the parent emitted. The analyst (with Claude) builds transforms, dashboards, and cards here. Disposable — restart with a different file means a different workspace.</p>
+        <ul class="topo__props">
+          <li><strong>Role</strong> &mdash; analyst (with Claude)</li>
+          <li><strong>State</strong> &mdash; full app DB (H2) plus an in-process atom for workspace config</li>
+          <li><strong>Auth</strong> &mdash; superuser session for the bundled workspace user</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================================================================== -->
+  <section style="--i: 3;">
+    <h2>Provisioning. <em>A workspace is a name. Each database in it is a fresh isolation schema.</em></h2>
+
+    <p>The workspace itself is just a name. Admin adds database/schema combinations to it, one at a time, and each <code>add</code> provisions warehouse-side resources synchronously. A workspace can hold one DB or several. Per-DB independent failure: if provisioning a database fails, the WorkspaceDatabase row stays in <code>:unprovisioned</code> state and the database isn't usable from the workspace.</p>
+
+    <ol class="steps">
+      <li>
+        <strong>Create workspace</strong>
+        A name. No databases yet. Initial state: <code>unprovisioned</code>.
+      </li>
+      <li>
+        <strong>Add a database, with input schemas</strong>
+        Pick a source database and which of its schemas the analyst can read. A WorkspaceDatabase row is inserted; provisioning runs synchronously next.
+      </li>
+      <li>
+        <strong>The warehouse mints isolation</strong>
+        The driver creates an isolation schema (<code>mb__isolation_*</code>) plus a workspace user with read access on the input schemas and write access on the new isolation schema. The output schema name is recorded on the WorkspaceDatabase row.
+      </li>
+      <li>
+        <strong>Repeat for additional databases</strong>
+        A workspace can hold multiple DBs. Each provisions its own isolation schema and user. Failures don't cascade — one DB succeeding and another failing is a normal mid-state.
+      </li>
+      <li>
+        <strong>Open the door for handoff</strong>
+        Admin enables sharing on the workspace by minting a sharing key (a UUID). Anyone with the key can fetch <code>config.yml</code> and DB metadata from the parent without authenticating.
+      </li>
+    </ol>
+
+    <div class="footnote" style="--i: 4;">
+      <p><strong>The all-or-nothing emit.</strong> Today the parent's <code>config.yml</code> emitter throws <code>409</code> if any of the workspace's databases is non-provisioned. So in practice, "the file describes only successful DBs" is enforced at emit time, not by filtering.</p>
+    </div>
+  </section>
+
+  <!-- =================================================================== -->
+  <section style="--i: 5;">
+    <h2>Table remapping. <em>Two illusions, kept consistent.</em></h2>
+
+    <p>The point of table remapping isn't to surface a new concept to the analyst. It's the opposite: the analyst works in their normal way — pointing transforms at canonical names like <code>public.orders_summary</code>, building cards on top — and the remapping layer keeps that working without ever touching production's <code>public</code>.</p>
+
+    <div class="twoup" style="--i: 6;">
+      <div class="card card--info">
+        <div class="card-eyebrow" style="color: var(--info);">To the analyst</div>
+        <div class="card-title">Feels like a normal Metabase.</div>
+        <p>They author transforms whose target is a canonical name. They build cards and dashboards on top of those tables. They never type "isolation schema" or know one exists. The workspace is invisible.</p>
+      </div>
+      <div class="card card--plum">
+        <div class="card-eyebrow" style="color: var(--plum);">To the warehouse</div>
+        <div class="card-title">All writes are isolated.</div>
+        <p>Every transform write the analyst issues against <code>public.orders_summary</code> is rewritten before it reaches the warehouse — it lands in <code>mb__isolation_x.orders_summary</code> instead. Production's <code>public</code> is never touched.</p>
+      </div>
+    </div>
+
+    <p>The remapping layer is the bridge. <strong>It rewrites transform targets on the way out, and table references in queries on the way in</strong> — covering both MBQL queries and native SQL.</p>
+
+    <h3>Writes &mdash; the transform path</h3>
+    <p>When the analyst runs a transform whose target is <code>(public, orders_summary)</code> on a workspaced child, the dispatch wrapper calls <code>resolve-transform-target</code> before per-type execution. If <code>db-workspace-schema</code> returns a non-nil output schema for that database, the hook (a) records a <code>TableRemapping</code> row mapping canonical to isolated, then (b) returns the target with its <code>:schema</code> rewritten to the isolation schema. The transform's persisted definition <em>still says canonical</em> — only the in-flight execution is rewritten. That's what makes the merge-back property work.</p>
+
+    <h3>Reads &mdash; the query path, in two phases</h3>
+    <p>The QP middleware does the read-side rewrite in two phases because there's no single point in the pipeline where both structured query data and fully-resolved SQL exist together. <strong>Phase 1</strong> runs in preprocessing: it walks the cached metadata provider, finds each <code>:metadata/table</code> whose <code>(:schema, :name)</code> matches a remapping, and mutates the table metadata in place. Downstream HoneySQL reads the rewritten values and emits workspace identifiers directly.</p>
+    <p><strong>Phase 2</strong> runs at execute time, on the fully-resolved SQL string — after snippets, card refs, parameters, and MBQL compilation have all run. It parses the SQL via SQLGlot (in GraalPy), walks the AST, rewrites every table reference to its workspace counterpart, and re-emits. This is the authoritative rewriter — it covers both MBQL-origin queries and native SQL queries the analyst wrote by hand. <strong>It fails closed:</strong> on parse failure, the query never reaches the warehouse. Better a loud error than a silent leak to production.</p>
+
+    <div class="diagram-shell" style="--i: 7;">
+      <div class="diagram-shell__header">
+        <span class="diagram-shell__caption">Write &amp; Read paths</span>
+        <span>Two flows, one rewrite system</span>
+      </div>
+      <div class="mermaid-wrap" data-mermaid-id="rewrite">
+        <div class="zoom-controls">
+          <button onclick="ve.zoom('rewrite', 1.2)" title="Zoom in">+</button>
+          <button onclick="ve.zoom('rewrite', 0.8)" title="Zoom out">&minus;</button>
+          <button onclick="ve.reset('rewrite')" title="Reset">&#8634;</button>
+          <button onclick="ve.expand('rewrite')" title="Open in new tab">&#x26F6;</button>
+        </div>
+        <div class="mermaid-viewport">
+          <div class="mermaid-canvas">
+            <pre class="mermaid">
+flowchart TD
+    subgraph WRITE["Writes — transform path"]
+      W1["Transform target<br/>public.orders_summary"]
+      W2{"Workspace active<br/>for this DB?"}
+      W3["Rewrite :schema →<br/>mb__isolation_x"]
+      W4["Pass through"]
+      W5["Driver writes to<br/>isolation schema"]
+      W6["Record TableRemapping row<br/>canonical → isolated"]
+      W1 --> W2
+      W2 -- yes --> W3
+      W2 -- no --> W4
+      W3 --> W6
+      W6 --> W5
+      W4 --> W5
+    end
+
+    subgraph READ["Reads — query path"]
+      R1["Query<br/>FROM public.orders_summary"]
+      R2["Phase 1: preprocess<br/>mutate table metadata"]
+      R3["MBQL → HoneySQL → SQL"]
+      R4["Phase 2: SQLGlot AST<br/>rewrite all table refs"]
+      R5["Driver reads from<br/>the rewritten table"]
+      R1 --> R2 --> R3 --> R4 --> R5
+    end
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footnote" style="--i: 8;">
+      <p><strong>Status note.</strong> The rewrite is end-to-end-tested across drivers. As of 2026-04-29, MySQL and Snowflake have known remapping bugs being worked through; Postgres / Redshift / SQL Server / ClickHouse / H2 are passing. The cross-driver test harness now provisions a real second schema per driver (no longer a no-op).</p>
+    </div>
+  </section>
+
+  <!-- =================================================================== -->
+  <section style="--i: 9;">
+    <h2>The handoff. <em>One file.</em></h2>
+
+    <p>Stats hands a workspace off to local through a single file: <code>config.yml</code>. The file is consumed at boot by the existing Metabase config-file machinery (the same one that's been around since 0.45). After that initial read, <strong>there are no live calls between stats and local</strong>. A different file at boot means a different workspace; the only way to "switch workspaces" on local is to restart with a different config.</p>
+
+    <h3>What the parent emits today</h3>
+    <p>The <code>config.yml</code> the parent's emitter produces has three sections, each consumed by an existing section handler:</p>
+
+    <dl>
+      <div>
+        <dt>databases</dt>
+        <dd>One entry per workspace database, with the workspace user's credentials, host, and <code>schema-filters-patterns</code> set so local only syncs the input schemas (not the entire warehouse).</dd>
+      </div>
+      <div>
+        <dt>users</dt>
+        <dd>The workspace creator's real account (their email + name). This matters for merge-back: when the analyst's content gets exported back to stats via git, it's attributed to a real user, not a synthetic <code>workspace@workspace.local</code>.</dd>
+      </div>
+      <div>
+        <dt>workspace</dt>
+        <dd>The name plus per-DB <code>input_schemas</code> (read-only) and <code>output_schema</code> (write target). This is what populates the in-process atom on local at boot.</dd>
+      </div>
+    </dl>
+
+    <p>The config-file system also supports <code>api-keys</code> and <code>settings</code> sections, but the workspace emitter doesn't currently produce them — the developer-instance admin key is delivered separately via the <code>MB_WORKSPACE_API_KEY</code> env var, and remote-sync settings are configured by Claude during local setup.</p>
+
+    <pre class="code-block" style="--i: 10;"><span class="filename">config.yml &mdash; emitted by parent</span><span class="c-key">version</span>: <span class="c-acc">1</span>
+<span class="c-key">config</span>:
+  <span class="c-key">databases</span>:
+    - <span class="c-key">name</span>: <span class="c-str">testing</span>
+      <span class="c-key">engine</span>: <span class="c-str">postgres</span>
+      <span class="c-key">details</span>:
+        <span class="c-key">user</span>: <span class="c-str">mb__isolation_a34_117</span>
+        <span class="c-key">password</span>: <span class="c-str">[redacted]</span>
+        <span class="c-key">schema-filters-type</span>: <span class="c-str">inclusion</span>
+        <span class="c-key">schema-filters-patterns</span>: <span class="c-str">github_raw</span>
+
+  <span class="c-key">users</span>:
+    - <span class="c-key">first_name</span>: <span class="c-str">Dan</span>
+      <span class="c-key">email</span>: <span class="c-str">dan@metabase.com</span>
+      <span class="c-key">password</span>: <span class="c-str">password</span>     <span class="c-comm"># static default; analyst can change after boot</span>
+      <span class="c-key">is_superuser</span>: <span class="c-acc">true</span>
+
+  <span class="c-key">workspace</span>:
+    <span class="c-key">name</span>: <span class="c-str">github</span>
+    <span class="c-key">databases</span>:
+      <span class="c-key">testing</span>:
+        <span class="c-key">input_schemas</span>: [<span class="c-str">github_raw</span>]
+        <span class="c-key">output_schema</span>: <span class="c-str">mb__isolation_a34_117</span></pre>
+
+    <div class="footnote" style="--i: 11;">
+      <p><strong>About the default password.</strong> A few options were considered (env-var template, hardcoded value, pulling an access token). The team converged on a static default value — the local instance is throwaway, so something hardcoded like <code>password</code> is reasonable, with the expectation that an analyst who wants to harden it can change it after first boot. The earlier <code>{{env MB_WORKSPACE_USER_PASSWORD}}</code> template is being replaced with this.</p>
+    </div>
+  </section>
+
+  <!-- =================================================================== -->
+  <section style="--i: 12;">
+    <h2>State on local. <em>App DB plus a small atom.</em></h2>
+
+    <p>Local is still a regular Metabase instance. It has a normal app database (H2 by default) where it stores all the things Metabase normally stores: users, sessions, transforms, cards, dashboards, sync metadata, table rows. The <strong>atom is a small, separate piece of state</strong> that holds <em>only</em> the workspace's identity and per-DB input/output schemas — parsed once from <code>config.yml</code> at boot.</p>
+
+    <div class="twoup">
+      <div class="card card--accent">
+        <div class="card-eyebrow">App DB (the usual)</div>
+        <div class="card-title">Where Metabase always puts things.</div>
+        <p style="margin-top: 8px; font-family: var(--font-mono); font-size: 13px; line-height: 1.7; color: var(--text);">
+          Users, sessions, permissions<br>
+          Transforms (canonical-named)<br>
+          Cards, dashboards, collections<br>
+          Sync metadata, table rows<br>
+          <strong style="color: var(--accent);">TableRemapping</strong> rows (canonical → isolated)
+        </p>
+      </div>
+      <div class="card card--sage">
+        <div class="card-eyebrow" style="color: var(--sage);">In-process atom</div>
+        <div class="card-title">Workspace identity, in memory.</div>
+        <p style="margin-top: 8px; font-family: var(--font-mono); font-size: 13px; line-height: 1.7; color: var(--text);">
+          Workspace name<br>
+          Per-DB <code>input_schemas</code> + <code>output_schema</code>, keyed by database id<br>
+          Populated at boot by the <code>:workspace</code> section loader<br>
+          Cleared on restart — re-read each boot<br>
+          Drives <code>db-workspace-schema</code>, the gate for write redirection
+        </p>
+      </div>
+    </div>
+
+    <p>The split is intentional. Manager-side state on stats lives in <code>:model/Workspace</code> + <code>:model/WorkspaceDatabase</code> rows; local-side state lives only in this atom. <strong>They never share storage</strong> — by construction. On a single dev box that runs both roles, manager rows can't leak into the instance endpoints, because the endpoints don't read from those rows.</p>
+  </section>
+
+  <!-- =================================================================== -->
+  <section style="--i: 13;">
+    <h2>Auth. <em>Asymmetric, by design.</em></h2>
+
+    <p>Each surface picks the auth model that matches its threat surface. The two are intentionally distinct: parent's keys are never reused on the child, and vice versa.</p>
+
+    <div class="twoup">
+      <div class="card card--info">
+        <div class="card-eyebrow" style="color: var(--info);">Parent · Stats</div>
+        <div class="card-title">Sharing key.</div>
+        <p>Admin enables sharing on a workspace by calling <code>POST /workspace-manager/:id/sharing-key</code>; stats mints a UUID. Anyone with the key can hit two unauthenticated read endpoints scoped by it:</p>
+        <p style="font-family: var(--font-mono); font-size: 13px; margin-top: 12px;">
+          <code>/workspace-sharing/&lt;key&gt;/config/yaml</code><br><br>
+          <code>/workspace-sharing/&lt;key&gt;/metadata</code>
+        </p>
+        <p style="margin-top: 14px;">No login. No header. Possessing the key <em>is</em> the auth. Admin rotates (POST again, new key replaces old) or removes (DELETE) to revoke.</p>
+      </div>
+      <div class="card card--plum">
+        <div class="card-eyebrow" style="color: var(--plum);">Child · Local</div>
+        <div class="card-title">Superuser session.</div>
+        <p>The <code>config.yml</code> the parent emits provisions a superuser at boot — the workspace creator's email plus a static default password (<code>password</code>) the analyst can change. Claude drives local through superuser-gated endpoints, including <code>POST /api/ee/workspace-instance/sync</code> to pull git changes after writing transform YAMLs.</p>
+        <p style="margin-top: 14px;">A separate <code>MB_WORKSPACE_API_KEY</code> env var is the channel for a developer-instance admin key — explicitly distinct from the parent's sharing key.</p>
+      </div>
+    </div>
+
+    <div class="footnote" style="--i: 14;">
+      <p><strong>Open: future evolution.</strong> A v2 might drop child-side auth entirely (single-user disposable instances arguably don't need it), or use the main instance to OAuth into the child instance. For now, superuser session on the bundled user is the simplest thing that works without a new auth class.</p>
+    </div>
+  </section>
+
+  <!-- =================================================================== -->
+  <section style="--i: 15;">
+    <h2>The Claude loop. <em>From key to running build loop.</em></h2>
+
+    <p>The analyst's experience is intentionally one-step: they run a Claude skill (<code>metabase-workspace</code>) with the sharing key, and a few minutes later they have a running local Metabase, the workspace's metadata loaded, git sync configured, and Claude ready to take build instructions.</p>
+
+    <ol class="steps">
+      <li>
+        <strong>Fetch the workspace artifacts</strong>
+        Claude downloads <code>config.yml</code> from the parent's <code>/workspace-sharing/&lt;key&gt;/config/yaml</code> URL and the metadata from <code>/metadata</code>. No authentication required — the key is the capability.
+      </li>
+      <li>
+        <strong>Boot local Metabase</strong>
+        Claude starts a Metabase instance with <code>MB_CONFIG_FILE_PATH</code> pointed at the downloaded file. The boot loader reads the three sections (databases, users, workspace) and populates the app DB and the atom.
+      </li>
+      <li>
+        <strong>Configure remote-sync</strong>
+        Claude wires up the git repo (<code>remote-sync-url</code>, branch, token) so the local instance can pull semantic-layer YAMLs from a repository the team controls.
+      </li>
+      <li>
+        <strong>Initial git pull</strong>
+        Local pulls existing transforms/cards/dashboards from the repo into its app DB. The analyst now has a populated workspace.
+      </li>
+      <li>
+        <strong>The build loop begins</strong>
+        Analyst tells Claude what to build. Claude writes transform YAMLs to the git repo, then calls <code>POST /api/ee/workspace-instance/sync</code> on local to pull and apply them. Local executes the new transforms — table remapping kicks in transparently — and the analyst sees results.
+      </li>
+      <li>
+        <strong>Iterate, then commit</strong>
+        Analyst reviews, asks for tweaks, commits the YAMLs to the repo. When happy, they merge to <code>main</code>.
+      </li>
+    </ol>
+  </section>
+
+  <!-- =================================================================== -->
+  <section style="--i: 16;">
+    <h2>The payoff. <em>Canonical-named transforms survive the round-trip.</em></h2>
+
+    <p>Throughout the build loop, the analyst writes <code>public.orders_summary</code>. Local rewrites the warehouse target to the isolation schema for execution — but the transform's <em>persisted definition</em>, in the app DB and in the YAMLs the analyst commits, still says <code>public.orders_summary</code>. Canonical names all the way down.</p>
+
+    <p>When the analyst merges to main and stats pulls those YAMLs, stats's transforms run against stats's <code>public</code> — its real production schema. The modeling layer activates. <strong>No rewriting, no schema-pinning, no human cleanup.</strong> The same transform definition that ran on the analyst's isolation schema runs on production, against the same canonical names, and produces the canonical tables it always promised to produce.</p>
+
+    <div class="pull-quote" style="margin-top: clamp(36px, 5vh, 56px);">
+      <blockquote>
+        A workspace is <em>a name plus some isolation schemas</em>. The handoff is <em>one file</em>. The build loop is <em>analyst + Claude + git</em>. The merge is <em>free</em>.
+      </blockquote>
+      <cite>What we're building, in four beats</cite>
+    </div>
+  </section>
+
+  <!-- =================================================================== -->
+  <section style="--i: 17;">
+    <h2>Status, today.</h2>
+
+    <p>Where each piece of the system stands as of 2026-04-29 on the <code>feature/workspaces-v2</code> branch (commit <code>d9374fa6f96</code>).</p>
+
+    <div class="status-list">
+      <div class="status-row">
+        <span class="status-row__badge status-row__badge--ok">live</span>
+        <span class="status-row__text">Manager API: workspace CRUD + per-DB add/update/remove, sharing-key set/rotate/delete</span>
+        <span class="status-row__ref">/workspace-manager</span>
+      </div>
+      <div class="status-row">
+        <span class="status-row__badge status-row__badge--ok">live</span>
+        <span class="status-row__text">Sharing API: unauthenticated config.yml + metadata reads via UUID</span>
+        <span class="status-row__ref">/workspace-sharing</span>
+      </div>
+      <div class="status-row">
+        <span class="status-row__badge status-row__badge--ok">live</span>
+        <span class="status-row__text">Instance API: <code>/current</code>, <code>/remappings</code>, and the new <code>/sync</code> trigger</span>
+        <span class="status-row__ref">/workspace-instance</span>
+      </div>
+      <div class="status-row">
+        <span class="status-row__badge status-row__badge--ok">live</span>
+        <span class="status-row__text">QP middleware: two-phase rewrite (preprocess MBQL + execute SQL via SQLGlot)</span>
+        <span class="status-row__ref">middleware.clj</span>
+      </div>
+      <div class="status-row">
+        <span class="status-row__badge status-row__badge--note">note</span>
+        <span class="status-row__text">config.yml emitter produces databases / users / workspace; api-keys + settings come via env vars</span>
+        <span class="status-row__ref">config.clj</span>
+      </div>
+      <div class="status-row">
+        <span class="status-row__badge status-row__badge--warn">in flight</span>
+        <span class="status-row__text">MySQL and Snowflake remapping have known bugs; other drivers green</span>
+        <span class="status-row__ref">cross_driver_test</span>
+      </div>
+      <div class="status-row">
+        <span class="status-row__badge status-row__badge--note">filed</span>
+        <span class="status-row__text">Don't sync mb_isolation_* schemas on parent instances</span>
+        <span class="status-row__ref">GHY-3489</span>
+      </div>
+      <div class="status-row">
+        <span class="status-row__badge status-row__badge--note">filed</span>
+        <span class="status-row__text">Import must succeed when assets reference tables that don't yet exist</span>
+        <span class="status-row__ref">GHY-3492</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================================================================== -->
+  <div class="verification" style="--i: 18;">
+    <h2>Provenance.</h2>
+    <p>This page reflects the state of <code>feature/workspaces-v2</code> at commit <code>d9374fa6f96</code> as of 2026-04-29 evening, including the auth-model thread converged on Slack the same evening (default-password decision, future-OAuth direction). Forward-looking statements about emit shape and v2 evolution are flagged with footnotes; everything else is verified against current code.</p>
+    <p class="small">Companion deck (presentation form) at <code>~/.agent/diagrams/workspaces-v2-explainer.html</code></p>
+  </div>
+
+  <div class="meta" style="--i: 19;">
+    <span>Workspaces V2 / Internal Explainer</span>
+    <span>2026.04.29</span>
+  </div>
+</main>
+
+<!-- =================================================================== -->
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+
+  const isDark = matchMedia('(prefers-color-scheme: dark)').matches ||
+                 !matchMedia('(prefers-color-scheme: light)').matches;
+
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    themeVariables: {
+      darkMode: isDark,
+      background: isDark ? '#162040' : '#ffffff',
+      primaryColor: isDark ? '#1d2b52' : '#fff9ee',
+      primaryTextColor: isDark ? '#e8e4d8' : '#1a1814',
+      primaryBorderColor: '#d4a73a',
+      lineColor: '#d4a73a',
+      secondaryColor: isDark ? '#243362' : '#f5f0e6',
+      tertiaryColor: isDark ? '#0f1729' : '#faf8f2',
+      mainBkg: isDark ? '#1d2b52' : '#fff9ee',
+      secondBkg: isDark ? '#243362' : '#f5f0e6',
+      nodeBorder: '#d4a73a',
+      defaultLinkColor: '#d4a73a',
+      titleColor: isDark ? '#e8e4d8' : '#1a1814',
+      edgeLabelBackground: isDark ? '#162040' : '#ffffff',
+      nodeTextColor: isDark ? '#e8e4d8' : '#1a1814',
+      clusterBkg: isDark ? '#0f1729' : '#fffdf5',
+      clusterBorder: 'rgba(212, 167, 58, 0.3)',
+      fontFamily: 'JetBrains Mono, SF Mono, monospace',
+    },
+    flowchart: { curve: 'basis', padding: 14, nodeSpacing: 36, rankSpacing: 44, useMaxWidth: false }
+  });
+
+  await mermaid.run({ querySelector: '.mermaid' });
+
+  /* Zoom + pan engine */
+  const zoomState = new WeakMap();
+
+  function getCanvas(id) {
+    const wrap = document.querySelector(`[data-mermaid-id="${id}"]`);
+    return wrap?.querySelector('.mermaid-canvas');
+  }
+
+  function applyTransform(canvas) {
+    const s = zoomState.get(canvas) || { z: 1, x: 0, y: 0 };
+    canvas.style.transform = `translate(${s.x}px, ${s.y}px) scale(${s.z})`;
+  }
+
+  function fitToContainer(id) {
+    const canvas = getCanvas(id);
+    if (!canvas) return;
+    const wrap = canvas.closest('.mermaid-wrap');
+    const viewport = canvas.parentElement;
+    const svg = canvas.querySelector('svg');
+    if (!svg || !wrap) return;
+    const vpW = viewport.clientWidth;
+    const vpH = viewport.clientHeight;
+    const sW = svg.getBBox?.().width || svg.clientWidth || 800;
+    const sH = svg.getBBox?.().height || svg.clientHeight || 600;
+    const z = Math.min(vpW / sW, vpH / sH) * 0.92;
+    const x = (vpW - sW * z) / 2;
+    const y = (vpH - sH * z) / 2;
+    zoomState.set(canvas, { z, x, y });
+    applyTransform(canvas);
+  }
+
+  window.ve = {
+    zoom(id, factor) {
+      const c = getCanvas(id);
+      if (!c) return;
+      const s = zoomState.get(c) || { z: 1, x: 0, y: 0 };
+      const nz = Math.max(0.3, Math.min(4, s.z * factor));
+      const wrap = c.parentElement;
+      const cx = wrap.clientWidth / 2;
+      const cy = wrap.clientHeight / 2;
+      const ratio = nz / s.z;
+      zoomState.set(c, {
+        z: nz,
+        x: cx - (cx - s.x) * ratio,
+        y: cy - (cy - s.y) * ratio,
+      });
+      applyTransform(c);
+    },
+    reset(id) { fitToContainer(id); },
+    expand(id) {
+      const c = getCanvas(id);
+      const svg = c?.querySelector('svg');
+      if (!svg) return;
+      const blob = new Blob([svg.outerHTML], { type: 'image/svg+xml' });
+      window.open(URL.createObjectURL(blob), '_blank');
+    },
+  };
+
+  /* Initial fit + drag */
+  document.querySelectorAll('.mermaid-wrap').forEach(wrap => {
+    const id = wrap.dataset.mermaidId;
+    setTimeout(() => fitToContainer(id), 60);
+
+    let dragging = false;
+    let startX = 0, startY = 0, baseX = 0, baseY = 0;
+    const viewport = wrap.querySelector('.mermaid-viewport');
+    const canvas = wrap.querySelector('.mermaid-canvas');
+
+    viewport.addEventListener('mousedown', e => {
+      if (e.target.closest('button')) return;
+      dragging = true;
+      const s = zoomState.get(canvas) || { z: 1, x: 0, y: 0 };
+      startX = e.clientX; startY = e.clientY;
+      baseX = s.x; baseY = s.y;
+      canvas.style.transition = 'none';
+    });
+    window.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      const s = zoomState.get(canvas) || { z: 1, x: 0, y: 0 };
+      zoomState.set(canvas, { ...s, x: baseX + (e.clientX - startX), y: baseY + (e.clientY - startY) });
+      applyTransform(canvas);
+    });
+    window.addEventListener('mouseup', () => {
+      dragging = false;
+      canvas.style.transition = '';
+    });
+
+    /* Scroll-to-zoom inside the diagram */
+    viewport.addEventListener('wheel', e => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.1 : 0.9;
+      window.ve.zoom(id, factor);
+    }, { passive: false });
+  });
+
+  /* Refit on viewport resize */
+  window.addEventListener('resize', () => {
+    document.querySelectorAll('.mermaid-wrap').forEach(w => fitToContainer(w.dataset.mermaidId));
+  });
+</script>
+</body>
+</html>

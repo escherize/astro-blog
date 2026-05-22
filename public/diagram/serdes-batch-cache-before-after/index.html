@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Serdes Export - Before &amp; After Batch Cache</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Noto+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Crimson Pro', Georgia, serif;
+    --font-mono: 'Noto Sans Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #faf8f5;
+    --surface: #ffffff;
+    --surface2: #f3f0eb;
+    --border: rgba(0, 0, 0, 0.08);
+    --border-bright: rgba(0, 0, 0, 0.15);
+    --text: #2c2420;
+    --text-dim: #8a7e74;
+
+    --before: #b91c1c;
+    --before-dim: rgba(185, 28, 28, 0.07);
+    --after: #15803d;
+    --after-dim: rgba(21, 128, 61, 0.07);
+    --accent: #7c3aed;
+    --accent-dim: rgba(124, 58, 237, 0.07);
+    --cache: #0369a1;
+    --cache-dim: rgba(3, 105, 161, 0.07);
+    --db: #b45309;
+    --db-dim: rgba(180, 83, 9, 0.07);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1614;
+      --surface: #252019;
+      --surface2: #332c24;
+      --border: rgba(255, 255, 255, 0.07);
+      --border-bright: rgba(255, 255, 255, 0.14);
+      --text: #e8e0d6;
+      --text-dim: #9a8e82;
+
+      --before: #fca5a5;
+      --before-dim: rgba(252, 165, 165, 0.10);
+      --after: #86efac;
+      --after-dim: rgba(134, 239, 172, 0.10);
+      --accent: #c4b5fd;
+      --accent-dim: rgba(196, 181, 253, 0.10);
+      --cache: #7dd3fc;
+      --cache-dim: rgba(125, 211, 252, 0.10);
+      --db: #fbbf24;
+      --db-dim: rgba(251, 191, 36, 0.10);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(at 30% 10%, var(--before-dim) 0%, transparent 50%),
+      radial-gradient(at 70% 10%, var(--after-dim) 0%, transparent 50%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate {
+    animation: fadeUp 0.45s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.07s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+    .mermaid-wrap .mermaid { transition: none; }
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-bottom: 6px;
+    text-wrap: balance;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    margin-bottom: 32px;
+    letter-spacing: 0.5px;
+  }
+
+  .description {
+    font-size: 18px;
+    line-height: 1.65;
+    color: var(--text-dim);
+    margin-bottom: 28px;
+    max-width: 750px;
+  }
+
+  .description code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  h2 {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    margin-top: 40px;
+    letter-spacing: -0.5px;
+  }
+
+  h2 .tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    vertical-align: middle;
+    margin-left: 8px;
+    letter-spacing: 0.5px;
+  }
+
+  .tag--before { background: var(--before-dim); color: var(--before); }
+  .tag--after { background: var(--after-dim); color: var(--after); }
+
+  .section-desc {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    max-width: 700px;
+  }
+
+  .section-desc code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ============ KPI ============ */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 36px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+
+  .kpi-card__value {
+    font-family: var(--font-mono);
+    font-size: 30px;
+    font-weight: 600;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .kpi-card__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+
+  .kpi-card__value--bad { color: var(--before); }
+  .kpi-card__value--good { color: var(--after); }
+
+  /* ============ MERMAID ============ */
+  .mermaid-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 20px;
+    overflow: auto;
+    margin-bottom: 20px;
+  }
+
+  .mermaid-wrap .mermaid {
+    display: flex;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    transform-origin: top center;
+  }
+
+  .zoom-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 2px;
+    z-index: 10;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+  }
+
+  .zoom-controls button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .zoom-controls button:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .mermaid-wrap { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  .mermaid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .mermaid-wrap::-webkit-scrollbar-track { background: transparent; }
+  .mermaid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .mermaid-wrap::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+  .mermaid-wrap.is-zoomed { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+  /* ============ MERMAID OVERRIDES ============ */
+  .mermaid .nodeLabel { color: var(--text) !important; font-family: var(--font-body) !important; font-size: 15px !important; }
+  .mermaid .edgeLabel { color: var(--text-dim) !important; background-color: var(--surface) !important; font-family: var(--font-mono) !important; font-size: 11px !important; }
+  .mermaid .edgeLabel rect { fill: var(--surface) !important; }
+  .mermaid .node rect, .mermaid .node circle, .mermaid .node polygon { stroke-width: 1.5px !important; }
+  .mermaid .edge-pattern-solid { stroke-width: 1.5px !important; }
+
+  .mermaid .messageText { font-family: var(--font-mono) !important; font-size: 12px !important; }
+  .mermaid .actor { stroke-width: 1.5px !important; }
+  .mermaid text.actor-label { font-family: var(--font-mono) !important; font-size: 13px !important; font-weight: 600 !important; }
+  .mermaid .activation0, .mermaid .activation1, .mermaid .activation2 { stroke-width: 1px !important; }
+  .mermaid .loopText { font-family: var(--font-mono) !important; font-size: 11px !important; }
+  .mermaid .loopLine { stroke-width: 1px !important; }
+  .mermaid .labelBox { stroke-width: 1px !important; }
+  .mermaid .noteText { font-family: var(--font-mono) !important; font-size: 11px !important; }
+
+  /* ============ CALLOUT ============ */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    margin-top: 8px;
+    margin-bottom: 32px;
+  }
+
+  .callout strong { color: var(--text); }
+
+  .callout code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .callout--before { border-left-color: var(--before); }
+  .callout--after { border-left-color: var(--after); }
+
+  /* ============ COMPARISON ============ */
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 32px;
+  }
+
+  .comparison > * { min-width: 0; overflow-wrap: break-word; }
+
+  @media (max-width: 768px) {
+    body { padding: 16px; }
+    h1 { font-size: 28px; }
+    .comparison { grid-template-columns: 1fr; }
+    .mermaid-wrap { padding: 16px 12px; }
+    .kpi-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1 class="animate" style="--i:0">Serdes Export: Before &amp; After</h1>
+  <p class="subtitle animate" style="--i:1">GHY-3385 / batch cache for *export-field-fk* and *export-table-fk*</p>
+
+  <p class="description animate" style="--i:2">
+    Every card carries <code>result_metadata</code> - a JSON array describing every column.
+    During export, each column triggers individual DB queries to resolve field hierarchies,
+    table names, and database names. The batch cache replaces this with preloading -
+    on first miss, load the entire table's fields and FK-connected tables in one go.
+  </p>
+
+  <div class="kpi-row animate" style="--i:3">
+    <div class="kpi-card">
+      <div class="kpi-card__value kpi-card__value--bad">~25k</div>
+      <div class="kpi-card__label">DB Queries (Before)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__value kpi-card__value--good">~500</div>
+      <div class="kpi-card__label">DB Queries (After)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__value">500</div>
+      <div class="kpi-card__label">Cards Exported</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card__value">15 avg</div>
+      <div class="kpi-card__label">Columns per Card</div>
+    </div>
+  </div>
+
+  <!-- ==================== BEFORE ==================== -->
+
+  <h2 class="animate" style="--i:4">Before <span class="tag tag--before">CURRENT</span></h2>
+  <p class="section-desc animate" style="--i:5">
+    Each column in <code>result_metadata</code> triggers 3-4 individual DB queries.
+    The <code>with-cache</code> macro memoizes by exact ID, but each unique field still causes
+    a fresh recursive CTE. No spatial locality - no awareness that fields on the same table
+    will be needed next.
+  </p>
+
+  <div class="mermaid-wrap animate" style="--i:6">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+    </div>
+    <pre class="mermaid">
+sequenceDiagram
+    participant E as extract-one
+    participant RM as export-result-metadata
+    participant EF as *export-field-fk*
+    participant FH as field-hierarchy
+    participant ET as *export-table-fk*
+    participant DB as Application DB
+
+    E->>RM: card.result_metadata
+
+    loop For each column (N times)
+        RM->>EF: column :id (field_id)
+        EF->>FH: field_id
+        FH->>DB: Recursive CTE query
+        DB-->>FH: [field, parent, ...]
+        FH-->>EF: field chain
+        EF->>ET: table_id
+        ET->>DB: SELECT table
+        DB-->>ET: table row
+        ET->>DB: SELECT database
+        DB-->>ET: db row
+        ET-->>EF: [db, schema, table]
+        EF-->>RM: [db, schema, table, field]
+
+        RM->>EF: column :fk_target_field_id
+        EF->>FH: fk_field_id
+        FH->>DB: Recursive CTE query
+        DB-->>FH: [field, parent, ...]
+        FH-->>EF: field chain
+        EF->>ET: table_id
+        ET->>DB: SELECT table
+        DB-->>ET: table row
+        ET->>DB: SELECT database
+        DB-->>ET: db row
+        ET-->>EF: [db, schema, table]
+        EF-->>RM: [db, schema, table, fk_field]
+
+        RM->>ET: column :table_id
+        ET->>DB: SELECT table
+        DB-->>ET: table row
+        ET->>DB: SELECT database
+        DB-->>ET: db row
+        ET-->>RM: [db, schema, table]
+    end
+
+    Note over DB: ~50 DB queries per card<br/>~25,000 total for 500 cards
+    </pre>
+  </div>
+
+  <div class="callout callout--before animate" style="--i:7">
+    <strong>The memoize cache helps, but not much.</strong>
+    Different cards reference different fields, so cache hit rate is low on the first pass through each table's fields.
+    The recursive CTE is the expensive part - and it runs once per unique field ID, sequentially.
+  </div>
+
+  <!-- ==================== AFTER ==================== -->
+
+  <h2 class="animate" style="--i:8">After <span class="tag tag--after">BATCH CACHE</span></h2>
+  <p class="section-desc animate" style="--i:9">
+    On first cache miss, <code>batch-load-fields</code> loads the requested field's hierarchy
+    plus all fields from the same table and FK-connected tables. Subsequent columns from the
+    same table are instant cache hits. The batch cache sits between the export functions and
+    the DB - the export API is unchanged.
+  </p>
+
+  <div class="mermaid-wrap animate" style="--i:10">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+    </div>
+    <pre class="mermaid">
+sequenceDiagram
+    participant E as extract-one
+    participant RM as export-result-metadata
+    participant EF as *export-field-fk*
+    participant FC as Field Cache
+    participant TC as Table Cache
+    participant DC as DB Cache
+    participant DB as Application DB
+
+    E->>RM: card.result_metadata
+
+    rect rgba(21, 128, 61, 0.05)
+    Note over FC,DB: First column triggers batch preload
+    RM->>EF: column :id (field_42)
+    EF->>FC: lookup field_42
+    FC-->>FC: MISS
+    FC->>DB: batch-load-fields: CTE + same table + FK tables
+    DB-->>FC: {field_42: ..., field_43: ..., field_44: ..., ...}
+    FC-->>EF: field_42 data
+    EF->>TC: lookup table_7
+    TC-->>TC: MISS
+    TC->>DB: batch-load-tables: table_7 + FK-connected tables
+    DB-->>TC: {table_7: ..., table_8: ..., table_12: ...}
+    TC-->>EF: table_7 data
+    EF->>DC: lookup db_1
+    DC-->>DC: MISS
+    DC->>DB: batch-load-databases: db_1 + others
+    DB-->>DC: {db_1: ..., db_2: ...}
+    DC-->>EF: db_1 data
+    EF-->>RM: [db, schema, table, field]
+    end
+
+    rect rgba(21, 128, 61, 0.12)
+    Note over FC,DB: Remaining columns are cache hits
+    loop For each remaining column
+        RM->>EF: column :id (field_43)
+        EF->>FC: lookup field_43
+        FC-->>EF: HIT
+        EF->>TC: lookup table_7
+        TC-->>EF: HIT
+        EF->>DC: lookup db_1
+        DC-->>EF: HIT
+        EF-->>RM: [db, schema, table, field]
+
+        RM->>EF: column :fk_target_field_id
+        EF->>FC: lookup fk_field
+        FC-->>EF: HIT (preloaded via FK tables)
+        EF->>TC: lookup fk_table
+        TC-->>EF: HIT (preloaded via FK tables)
+        EF-->>RM: [db, schema, table, fk_field]
+
+        RM->>EF: column :table_id
+        EF->>TC: lookup table
+        TC-->>EF: HIT
+        EF-->>RM: [db, schema, table]
+    end
+    end
+
+    Note over DB: ~3 DB queries for first column<br/>~0 for remaining columns on same table
+    </pre>
+  </div>
+
+  <div class="callout callout--after animate" style="--i:11">
+    <strong>Spatial locality pays off.</strong>
+    Cards on the same database share table and DB cache entries. Cards querying the same table
+    share field cache entries. FK-connected tables are preloaded because <code>result_metadata</code>
+    frequently contains FK target fields. The cache evicts old entries beyond 50k to cap memory.
+  </div>
+
+  <!-- ==================== SIDE BY SIDE ==================== -->
+
+  <div class="comparison animate" style="--i:12">
+    <div>
+      <h2>Cache Miss Pattern <span class="tag tag--before">BEFORE</span></h2>
+      <div class="mermaid-wrap" style="margin-top: 12px;">
+        <div class="zoom-controls">
+          <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+          <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+          <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+        </div>
+        <pre class="mermaid">
+sequenceDiagram
+    participant C as Memoize Cache
+    participant DB as Application DB
+
+    Note over C: Card 1, col 1 (field_42)
+    C-->>C: MISS
+    C->>DB: CTE for field_42
+    DB-->>C: cache field_42
+
+    Note over C: Card 1, col 2 (field_43)
+    C-->>C: MISS
+    C->>DB: CTE for field_43
+    DB-->>C: cache field_43
+
+    Note over C: Card 1, col 3 (field_44)
+    C-->>C: MISS
+    C->>DB: CTE for field_44
+    DB-->>C: cache field_44
+
+    Note over C: Card 2, col 1 (field_43)
+    C-->>C: HIT (lucky repeat)
+
+    Note over C: Card 2, col 2 (field_55)
+    C-->>C: MISS
+    C->>DB: CTE for field_55
+    DB-->>C: cache field_55
+
+    Note over C,DB: 1 query per unique field
+        </pre>
+      </div>
+    </div>
+
+    <div>
+      <h2>Cache Miss Pattern <span class="tag tag--after">AFTER</span></h2>
+      <div class="mermaid-wrap" style="margin-top: 12px;">
+        <div class="zoom-controls">
+          <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+          <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+          <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+        </div>
+        <pre class="mermaid">
+sequenceDiagram
+    participant C as Batch Cache
+    participant DB as Application DB
+
+    Note over C: Card 1, col 1 (field_42)
+    C-->>C: MISS
+    C->>DB: CTE for field_42 hierarchy
+    C->>DB: All fields on table_7 + FK tables
+    DB-->>C: cache field_42..field_99
+
+    Note over C: Card 1, col 2 (field_43)
+    C-->>C: HIT (same table)
+
+    Note over C: Card 1, col 3 (field_44)
+    C-->>C: HIT (same table)
+
+    Note over C: Card 2, col 1 (field_43)
+    C-->>C: HIT (already cached)
+
+    Note over C: Card 2, col 2 (field_55)
+    C-->>C: HIT (FK table preloaded)
+
+    Note over C,DB: 1 batch per new table
+        </pre>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    look: 'classic',
+    themeVariables: {
+      primaryColor: isDark ? '#332c24' : '#f3f0eb',
+      primaryBorderColor: isDark ? '#9a8e82' : '#8a7e74',
+      primaryTextColor: isDark ? '#e8e0d6' : '#2c2420',
+      secondaryColor: isDark ? '#1e293b' : '#f0f9ff',
+      secondaryBorderColor: isDark ? '#7dd3fc' : '#0369a1',
+      secondaryTextColor: isDark ? '#e8e0d6' : '#2c2420',
+      tertiaryColor: isDark ? '#1c1917' : '#fef3c7',
+      tertiaryBorderColor: isDark ? '#fbbf24' : '#b45309',
+      tertiaryTextColor: isDark ? '#e8e0d6' : '#2c2420',
+      lineColor: isDark ? '#9a8e82' : '#8a7e74',
+      fontSize: '14px',
+      fontFamily: "'Crimson Pro', Georgia, serif",
+      noteBkgColor: isDark ? '#332c24' : '#fefce8',
+      noteTextColor: isDark ? '#e8e0d6' : '#2c2420',
+      noteBorderColor: isDark ? '#fbbf24' : '#b45309',
+      actorBkg: isDark ? '#252019' : '#ffffff',
+      actorBorder: isDark ? '#9a8e82' : '#8a7e74',
+      actorTextColor: isDark ? '#e8e0d6' : '#2c2420',
+      activationBkgColor: isDark ? '#332c24' : '#f3f0eb',
+      activationBorderColor: isDark ? '#9a8e82' : '#8a7e74',
+      signalColor: isDark ? '#9a8e82' : '#8a7e74',
+      signalTextColor: isDark ? '#e8e0d6' : '#2c2420',
+      sequenceNumberColor: isDark ? '#e8e0d6' : '#2c2420',
+      loopTextColor: isDark ? '#9a8e82' : '#8a7e74',
+    }
+  });
+</script>
+<script>
+  function updateZoomState(wrap) {
+    var target = wrap.querySelector('.mermaid');
+    var zoom = parseFloat(target.dataset.zoom || '1');
+    wrap.classList.toggle('is-zoomed', zoom > 1);
+  }
+
+  function zoomDiagram(btn, factor) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    var current = parseFloat(target.dataset.zoom || '1');
+    var next = Math.min(Math.max(current * factor, 0.3), 5);
+    target.dataset.zoom = next;
+    target.style.transform = 'scale(' + next + ')';
+    updateZoomState(wrap);
+  }
+
+  function resetZoom(btn) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    target.dataset.zoom = '1';
+    target.style.transform = 'scale(1)';
+    updateZoomState(wrap);
+  }
+
+  document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+    wrap.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      var target = wrap.querySelector('.mermaid');
+      var current = parseFloat(target.dataset.zoom || '1');
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var next = Math.min(Math.max(current * factor, 0.3), 5);
+      target.dataset.zoom = next;
+      target.style.transform = 'scale(' + next + ')';
+      updateZoomState(wrap);
+    }, { passive: false });
+
+    var startX, startY, scrollL, scrollT;
+    wrap.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.zoom-controls')) return;
+      var target = wrap.querySelector('.mermaid');
+      if (parseFloat(target.dataset.zoom || '1') <= 1) return;
+      wrap.classList.add('is-panning');
+      startX = e.clientX;
+      startY = e.clientY;
+      scrollL = wrap.scrollLeft;
+      scrollT = wrap.scrollTop;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!wrap.classList.contains('is-panning')) return;
+      wrap.scrollLeft = scrollL - (e.clientX - startX);
+      wrap.scrollTop = scrollT - (e.clientY - startY);
+    });
+    window.addEventListener('mouseup', function() {
+      wrap.classList.remove('is-panning');
+    });
+  });
+</script>
+
+</body>
+</html>

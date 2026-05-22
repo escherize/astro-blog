@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics Value Capture Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Space Grotesk', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface2: #edf0f5;
+    --border: rgba(0, 0, 0, 0.08);
+    --border-bright: rgba(0, 0, 0, 0.16);
+    --text: #1a2332;
+    --text-dim: #6b7d93;
+
+    --blue: #2563eb;
+    --blue-dim: rgba(37, 99, 235, 0.08);
+    --green: #059669;
+    --green-dim: rgba(5, 150, 105, 0.08);
+    --amber: #d97706;
+    --amber-dim: rgba(217, 119, 6, 0.08);
+    --purple: #7c3aed;
+    --purple-dim: rgba(124, 58, 237, 0.08);
+    --red: #dc2626;
+    --red-dim: rgba(220, 38, 38, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #334155;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-bright: rgba(255, 255, 255, 0.16);
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+
+      --blue: #60a5fa;
+      --blue-dim: rgba(96, 165, 250, 0.12);
+      --green: #34d399;
+      --green-dim: rgba(52, 211, 153, 0.12);
+      --amber: #fbbf24;
+      --amber-dim: rgba(251, 191, 36, 0.12);
+      --purple: #c4b5fd;
+      --purple-dim: rgba(196, 181, 253, 0.12);
+      --red: #f87171;
+      --red-dim: rgba(248, 113, 113, 0.12);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate {
+    animation: fadeUp 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.06s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+    .mermaid-wrap .mermaid { transition: none; }
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+    text-wrap: balance;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+
+  .description {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    margin-bottom: 28px;
+    max-width: 780px;
+  }
+
+  .description code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--blue-dim);
+    color: var(--blue);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .description a {
+    color: var(--blue);
+    text-decoration: none;
+    border-bottom: 1px solid var(--blue-dim);
+  }
+
+  .description a:hover {
+    border-bottom-color: var(--blue);
+  }
+
+  /* ============ MERMAID CONTAINER ============ */
+  .mermaid-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    overflow: auto;
+    margin-bottom: 24px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .mermaid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .mermaid-wrap::-webkit-scrollbar-track { background: transparent; }
+  .mermaid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .mermaid-wrap::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  .mermaid-wrap .mermaid {
+    display: flex;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    transform-origin: top center;
+  }
+
+  .zoom-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 2px;
+    z-index: 10;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+  }
+
+  .zoom-controls button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .zoom-controls button:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .mermaid-wrap.is-zoomed { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+  /* ============ MERMAID SVG OVERRIDES ============ */
+  .mermaid .nodeLabel {
+    font-family: var(--font-body) !important;
+    font-size: 14px !important;
+  }
+
+  .mermaid .edgeLabel {
+    font-family: var(--font-mono) !important;
+    font-size: 11px !important;
+  }
+
+  .mermaid .node rect,
+  .mermaid .node circle,
+  .mermaid .node polygon {
+    stroke-width: 1.5px !important;
+  }
+
+  .mermaid .edge-pattern-solid {
+    stroke-width: 1.5px !important;
+  }
+
+  /* ============ SECTION TITLE ============ */
+  .section-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    padding-left: 16px;
+    position: relative;
+  }
+
+  .section-title::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .section-title.blue::before { background: var(--blue); }
+  .section-title.green::before { background: var(--green); }
+  .section-title.amber::before { background: var(--amber); }
+
+  /* ============ LEGEND ============ */
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  /* ============ CALLOUT ============ */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    margin-top: 16px;
+  }
+
+  .callout strong { color: var(--text); }
+
+  .callout code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--blue-dim);
+    color: var(--blue);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .callout a {
+    color: var(--blue);
+    text-decoration: none;
+    border-bottom: 1px solid var(--blue-dim);
+  }
+
+  .callout a:hover {
+    border-bottom-color: var(--blue);
+  }
+
+  /* ============ SOURCE FILES ============ */
+  .source-files {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .source-file {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+  }
+
+  .source-file__path {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--blue);
+    margin-bottom: 4px;
+    word-break: break-all;
+  }
+
+  .source-file__path a {
+    color: var(--blue);
+    text-decoration: none;
+  }
+
+  .source-file__path a:hover {
+    text-decoration: underline;
+  }
+
+  .source-file__desc {
+    color: var(--text-dim);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 768px) {
+    body { padding: 16px; }
+    h1 { font-size: 22px; }
+    .mermaid-wrap { padding: 16px 12px; }
+    .source-files { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1 class="animate" style="--i:0">Analytics Value Capture Flow</h1>
+  <p class="subtitle animate" style="--i:1">embedding-mw &rarr; wrap-current-user-info &rarr; bind-current-user &rarr; include-sdk-info</p>
+
+  <p class="description animate" style="--i:2">
+    Three independent values - <code>embedding_route</code>, <code>embedding_client</code>, and <code>auth_method</code> -
+    are captured at different points in the Ring middleware chain and stored on every <code>view_log</code> and
+    <code>query_execution</code> row. A fourth value, <code>surface</code>, is computed downstream in SQL views
+    from <code>embedding_route</code> and <code>embedding_client</code>.
+  </p>
+
+  <!-- DIAGRAM 1: Main middleware pipeline -->
+  <p class="section-title blue animate" style="--i:3">Middleware Pipeline</p>
+
+  <div class="mermaid-wrap animate" style="--i:4">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+    </div>
+    <pre class="mermaid">
+      graph TD
+        REQ["HTTP Request arrives"]:::entry
+
+        subgraph MW1["<b>embedding-mw</b> &mdash; sdk.clj:133"]
+          direction TB
+          URI{"URI prefix?"}:::decision
+          URI -->|"/api/public/"| R_PUB["*route* = public"]:::route
+          URI -->|"/api/embed/ or /api/preview-embed/"| R_GUEST["*route* = guest-embed"]:::route
+          URI -->|"/api/metabot/"| R_META["*route* = metabot"]:::route
+          URI -->|"/api/agent/"| R_AGENT["*route* = agent-api"]:::route
+          URI -->|"other /api/*"| R_NIL["*route* = nil"]:::route
+
+          HDR{"X-Metabase-Client header?"}:::decision
+          HDR -->|"present"| C_SET["*client* = header value"]:::client
+          HDR -->|"absent"| C_NIL["*client* = nil"]:::client
+        end
+
+        subgraph MW2["<b>wrap-current-user-info</b> &mdash; session.clj:252"]
+          direction TB
+          SESS{"Session cookie or<br/>X-Metabase-Session?"}:::decision
+          SESS -->|"yes"| LOOKUP["Look up session + JOIN auth_identity"]:::process
+          LOOKUP --> PROV["auth-method = provider<br/>(password, jwt, saml, ldap...)"]:::auth
+          SESS -->|"no"| APIKEY{"X-Api-Key header?"}:::decision
+          APIKEY -->|"yes"| AK_AUTH["auth-method = api-key"]:::auth
+          APIKEY -->|"no"| NO_AUTH["auth-method = nil<br/>(no traditional auth)"]:::auth
+        end
+
+        subgraph MW3["<b>bind-current-user</b> &mdash; session.clj:269"]
+          direction TB
+          HAS_AUTH{"auth-method set?"}:::decision
+          HAS_AUTH -->|"yes (password, jwt, api-key...)"| BIND_DIRECT["*auth-method* = auth-method"]:::auth
+          HAS_AUTH -->|"no"| FALLBACK{"*route* value?"}:::decision
+          FALLBACK -->|"guest-embed"| BIND_GUEST["*auth-method* = guest"]:::auth
+          FALLBACK -->|"public"| BIND_PUB["*auth-method* = public"]:::auth
+          FALLBACK -->|"metabot"| BIND_META["*auth-method* = metabot"]:::auth
+          FALLBACK -->|"agent-api"| BIND_AGENT["*auth-method* = agent-api"]:::auth
+          FALLBACK -->|"nil"| BIND_NIL["*auth-method* = nil"]:::auth
+        end
+
+        subgraph HANDLER["<b>Request Handler</b>"]
+          direction TB
+          EXEC["Handler creates ViewLog<br/>or QueryExecution row"]:::process
+        end
+
+        subgraph HOOK["<b>include-sdk-info</b> &mdash; sdk.clj:89"]
+          direction TB
+          COPY["Copy dynamic vars into DB row:<br/>embedding_route = *route*<br/>embedding_client = *client*<br/>auth_method = *auth-method*"]:::storage
+        end
+
+        subgraph VIEW["<b>SQL View Layer</b> &mdash; v5/*.sql"]
+          direction TB
+          SURFACE["surface = CASE<br/>COALESCE(route, client)<br/>guest-embed -> guest-embedding<br/>public -> public-sharing<br/>embedding-sdk-* -> sdk<br/>embedding-iframe -> iframe<br/>nil -> internal"]:::view
+        end
+
+        REQ --> MW1
+        MW1 --> MW2
+        MW2 --> MW3
+        MW3 --> HANDLER
+        HANDLER --> HOOK
+        HOOK --> VIEW
+
+        classDef entry fill:#e0e7ff,stroke:#4f46e5,color:#1e1b4b
+        classDef decision fill:#fef3c7,stroke:#d97706,color:#78350f
+        classDef route fill:#dbeafe,stroke:#2563eb,color:#1e3a5f
+        classDef client fill:#d1fae5,stroke:#059669,color:#064e3b
+        classDef auth fill:#ede9fe,stroke:#7c3aed,color:#3b0764
+        classDef process fill:#f1f5f9,stroke:#64748b,color:#1e293b
+        classDef storage fill:#fce7f3,stroke:#db2777,color:#831843
+        classDef view fill:#ecfdf5,stroke:#059669,color:#064e3b
+    </pre>
+  </div>
+
+  <div class="legend animate" style="--i:5">
+    <div class="legend-item"><div class="legend-swatch" style="background:#2563eb"></div> embedding_route</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#059669"></div> embedding_client</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#7c3aed"></div> auth_method</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#d97706"></div> Decision point</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#db2777"></div> DB write</div>
+  </div>
+
+  <!-- CALLOUT -->
+  <div class="callout animate" style="--i:6">
+    <strong>Route fallback in bind-current-user.</strong> When no session or API key authenticates the request,
+    <code>auth_method</code> falls back to the route surface. The map <code>{"guest-embed" "guest"}</code>
+    renames the route value so <code>auth_method</code> reads <code>"guest"</code> rather than duplicating
+    <code>embedding_route</code>'s <code>"guest-embed"</code>. Other routes (<code>"public"</code>,
+    <code>"metabot"</code>, <code>"agent-api"</code>) pass through unchanged.
+  </div>
+
+  <!-- SOURCE FILES -->
+  <p class="section-title green animate" style="--i:7">Source Files</p>
+
+  <div class="source-files animate" style="--i:8">
+    <div class="source-file">
+      <div class="source-file__path">
+        <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/analytics/sdk.clj#L133-L160" target="_blank">sdk.clj:133-160</a>
+      </div>
+      <div class="source-file__desc"><code>embedding-mw</code> - reads URI prefix and X-Metabase-Client header, binds <code>*route*</code> and <code>*client*</code> dynamic vars</div>
+    </div>
+    <div class="source-file">
+      <div class="source-file__path">
+        <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/server/middleware/session.clj#L238-L250" target="_blank">session.clj:238-250</a>
+      </div>
+      <div class="source-file__desc"><code>merge-current-user-info</code> - resolves <code>:auth-method</code> from session provider or API key</div>
+    </div>
+    <div class="source-file">
+      <div class="source-file__path">
+        <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/server/middleware/session.clj#L269-L287" target="_blank">session.clj:269-287</a>
+      </div>
+      <div class="source-file__desc"><code>bind-current-user</code> - binds <code>*auth-method*</code> with route fallback for anonymous requests</div>
+    </div>
+    <div class="source-file">
+      <div class="source-file__path">
+        <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/analytics/sdk.clj#L89-L98" target="_blank">sdk.clj:89-98</a>
+      </div>
+      <div class="source-file__desc"><code>include-sdk-info</code> - copies <code>*client*</code>, <code>*route*</code>, <code>*auth-method*</code> into the DB row via <code>before-insert</code></div>
+    </div>
+    <div class="source-file">
+      <div class="source-file__path">
+        <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/resources/migrations/instance_analytics_views/query_log/v5/postgres-query_log.sql#L30-L56" target="_blank">postgres-query_log.sql:30-56</a>
+      </div>
+      <div class="source-file__desc">SQL view computing <code>surface</code> from <code>COALESCE(embedding_route, embedding_client)</code></div>
+    </div>
+    <div class="source-file">
+      <div class="source-file__path">
+        <a href="https://github.com/metabase/metabase/blob/enhance-usage-analytics-for-embedding/src/metabase/server/middleware/session.clj#L100-L143" target="_blank">session.clj:100-143</a>
+      </div>
+      <div class="source-file__desc"><code>session-with-id-query</code> - JOINs <code>auth_identity.provider</code> as <code>:auth-provider</code> for session-based auth method</div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    look: 'classic',
+    themeVariables: {
+      primaryColor: isDark ? '#1e293b' : '#f1f5f9',
+      primaryBorderColor: isDark ? '#94a3b8' : '#64748b',
+      primaryTextColor: isDark ? '#e2e8f0' : '#1e293b',
+      secondaryColor: isDark ? '#1e1b4b' : '#ede9fe',
+      secondaryBorderColor: isDark ? '#c4b5fd' : '#7c3aed',
+      secondaryTextColor: isDark ? '#e2e8f0' : '#1e293b',
+      tertiaryColor: isDark ? '#2e2618' : '#fffbeb',
+      tertiaryBorderColor: isDark ? '#fbbf24' : '#d97706',
+      tertiaryTextColor: isDark ? '#e2e8f0' : '#1e293b',
+      lineColor: isDark ? '#64748b' : '#94a3b8',
+      fontSize: '14px',
+      fontFamily: "'Space Grotesk', system-ui, sans-serif",
+      noteBkgColor: isDark ? '#1e293b' : '#f8fafc',
+      noteTextColor: isDark ? '#e2e8f0' : '#1e293b',
+      noteBorderColor: isDark ? '#475569' : '#cbd5e1',
+    }
+  });
+</script>
+<script>
+  function updateZoomState(wrap) {
+    var target = wrap.querySelector('.mermaid');
+    var zoom = parseFloat(target.dataset.zoom || '1');
+    wrap.classList.toggle('is-zoomed', zoom > 1);
+  }
+
+  function zoomDiagram(btn, factor) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    var current = parseFloat(target.dataset.zoom || '1');
+    var next = Math.min(Math.max(current * factor, 0.3), 5);
+    target.dataset.zoom = next;
+    target.style.transform = 'scale(' + next + ')';
+    updateZoomState(wrap);
+  }
+
+  function resetZoom(btn) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    target.dataset.zoom = '1';
+    target.style.transform = 'scale(1)';
+    updateZoomState(wrap);
+  }
+
+  document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+    wrap.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      var target = wrap.querySelector('.mermaid');
+      var current = parseFloat(target.dataset.zoom || '1');
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var next = Math.min(Math.max(current * factor, 0.3), 5);
+      target.dataset.zoom = next;
+      target.style.transform = 'scale(' + next + ')';
+      updateZoomState(wrap);
+    }, { passive: false });
+
+    var startX, startY, scrollL, scrollT;
+    wrap.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.zoom-controls')) return;
+      var target = wrap.querySelector('.mermaid');
+      if (parseFloat(target.dataset.zoom || '1') <= 1) return;
+      wrap.classList.add('is-panning');
+      startX = e.clientX;
+      startY = e.clientY;
+      scrollL = wrap.scrollLeft;
+      scrollT = wrap.scrollTop;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!wrap.classList.contains('is-panning')) return;
+      wrap.scrollLeft = scrollL - (e.clientX - startX);
+      wrap.scrollTop = scrollT - (e.clientY - startY);
+    });
+    window.addEventListener('mouseup', function() {
+      wrap.classList.remove('is-panning');
+    });
+  });
+</script>
+
+</body>
+</html>

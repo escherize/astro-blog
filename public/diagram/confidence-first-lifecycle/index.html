@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Confidence-First Software Lifecycle — Diagrams</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============ THEME — Warm Brutalist ============ */
+  :root {
+    --font-body: 'Space Grotesk', system-ui, sans-serif;
+    --font-mono: 'Source Code Pro', 'SF Mono', Consolas, monospace;
+
+    --bg: #faf8f5;
+    --surface: #ffffff;
+    --surface2: #f5f0e8;
+    --border: rgba(26, 26, 26, 0.12);
+    --border-bright: rgba(26, 26, 26, 0.25);
+    --text: #1a1a1a;
+    --text-dim: #6b6b6b;
+
+    --orange: #e85d04;
+    --orange-dim: rgba(232, 93, 4, 0.1);
+    --orange-bright: #ff6b0a;
+    --purple: #8338ec;
+    --purple-dim: rgba(131, 56, 236, 0.1);
+    --purple-bright: #9d5bff;
+    --green: #059669;
+    --green-dim: rgba(5, 150, 105, 0.1);
+    --red: #dc2626;
+    --red-dim: rgba(220, 38, 38, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1917;
+      --surface: #292524;
+      --surface2: #3a3530;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-bright: rgba(255, 255, 255, 0.18);
+      --text: #fafaf9;
+      --text-dim: #a8a29e;
+
+      --orange: #fb923c;
+      --orange-dim: rgba(251, 146, 60, 0.15);
+      --orange-bright: #fdba74;
+      --purple: #a78bfa;
+      --purple-dim: rgba(167, 139, 250, 0.15);
+      --purple-bright: #c4b5fd;
+      --green: #34d399;
+      --green-dim: rgba(52, 211, 153, 0.12);
+      --red: #f87171;
+      --red-dim: rgba(248, 113, 113, 0.12);
+    }
+  }
+
+  /* ============ RESET + BASE ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(at 15% 10%, var(--orange-dim) 0%, transparent 50%),
+      radial-gradient(at 85% 30%, var(--purple-dim) 0%, transparent 50%),
+      radial-gradient(at 50% 80%, var(--orange-dim) 0%, transparent 40%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 48px 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  /* ============ ANIMATION ============ */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .animate {
+    animation: fadeUp 0.5s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.07s);
+  }
+  .animate-scale {
+    animation: fadeScale 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.07s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* ============ LAYOUT ============ */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .page-title {
+    font-size: clamp(36px, 5vw, 52px);
+    font-weight: 700;
+    letter-spacing: -2px;
+    line-height: 1.05;
+    margin-bottom: 8px;
+  }
+
+  .page-title .accent { color: var(--orange); }
+  .page-title .pop { color: var(--purple); }
+
+  .subtitle {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 48px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .subtitle::after {
+    content: '';
+    flex: 1;
+    height: 2px;
+    background: linear-gradient(90deg, var(--orange), var(--purple), transparent);
+    border-radius: 1px;
+  }
+
+  /* ============ SECTION DIVIDERS ============ */
+  .section {
+    margin-bottom: 64px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .section-number {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--bg);
+    background: var(--orange);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 3px 3px 0 var(--text);
+  }
+
+  .section-number.purple { background: var(--purple); }
+
+  .section-title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -1px;
+  }
+
+  .section-desc {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+    max-width: 700px;
+  }
+
+  /* ============ DIAGRAM 1: VALIDATION STACK ============ */
+  .stack-container {
+    position: relative;
+    display: flex;
+    gap: 32px;
+    align-items: stretch;
+  }
+
+  .stack-labels {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+    flex-shrink: 0;
+    width: 100px;
+  }
+
+  .stack-label-arrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    writing-mode: vertical-lr;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    color: var(--text-dim);
+  }
+
+  .stack-label-arrow.trust { color: var(--green); }
+  .stack-label-arrow.cost { color: var(--red); }
+
+  .stack-layers {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .stack-layer {
+    background: var(--surface);
+    border: 2px solid var(--border-bright);
+    border-radius: 10px;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stack-layer:hover {
+    transform: translateX(6px);
+    box-shadow: 4px 4px 0 var(--text);
+    border-color: var(--text);
+  }
+
+  .stack-layer::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+  }
+
+  .stack-layer:nth-child(1)::before { background: #059669; }
+  .stack-layer:nth-child(2)::before { background: #0891b2; }
+  .stack-layer:nth-child(3)::before { background: var(--purple); }
+  .stack-layer:nth-child(4)::before { background: var(--orange); }
+  .stack-layer:nth-child(5)::before { background: #d97706; }
+  .stack-layer:nth-child(6)::before { background: #dc2626; }
+  .stack-layer:nth-child(7)::before { background: #1a1a1a; }
+
+  .layer-num {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-dim);
+    opacity: 0.4;
+    flex-shrink: 0;
+    width: 32px;
+  }
+
+  .layer-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .layer-name {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 2px;
+  }
+
+  .layer-tools {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .layer-catches {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .catches-spec { background: var(--green-dim); color: var(--green); }
+  .catches-arch { background: rgba(8, 145, 178, 0.1); color: #0891b2; }
+  .catches-type { background: var(--purple-dim); color: var(--purple); }
+  .catches-logic { background: var(--orange-dim); color: var(--orange); }
+  .catches-deploy { background: rgba(217, 119, 6, 0.1); color: #d97706; }
+  .catches-prod { background: var(--red-dim); color: var(--red); }
+  .catches-biz { background: rgba(26, 26, 26, 0.08); color: var(--text); }
+
+  @media (max-width: 768px) {
+    .stack-container { flex-direction: column; gap: 16px; }
+    .stack-labels { flex-direction: row; writing-mode: horizontal-tb; width: auto; padding: 0; }
+    .stack-label-arrow { writing-mode: horizontal-tb; transform: none; }
+  }
+
+  /* ============ DIAGRAM 2: MERMAID PIPELINE ============ */
+  .mermaid-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 2px solid var(--border-bright);
+    border-radius: 12px;
+    padding: 32px 24px;
+    overflow: auto;
+    box-shadow: 6px 6px 0 var(--border-bright);
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .mermaid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .mermaid-wrap::-webkit-scrollbar-track { background: transparent; }
+  .mermaid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .mermaid-wrap .mermaid {
+    display: flex;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    transform-origin: top center;
+  }
+
+  .zoom-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 2px;
+    z-index: 10;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+  }
+
+  .zoom-controls button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .zoom-controls button:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .mermaid-wrap.is-zoomed { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+  .mermaid .nodeLabel {
+    font-family: 'Space Grotesk', system-ui, sans-serif !important;
+    font-size: 15px !important;
+  }
+  .mermaid .edgeLabel {
+    font-family: 'Source Code Pro', monospace !important;
+    font-size: 12px !important;
+  }
+  .mermaid .node rect,
+  .mermaid .node circle,
+  .mermaid .node polygon {
+    stroke-width: 2px !important;
+  }
+
+  /* ============ DIAGRAM 3: COMPARISON ============ */
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .comparison > * { min-width: 0; overflow-wrap: break-word; }
+
+  @media (max-width: 768px) {
+    .comparison { grid-template-columns: 1fr; }
+  }
+
+  .compare-panel {
+    background: var(--surface);
+    border: 2px solid var(--border-bright);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .compare-panel:hover {
+    transform: translateY(-3px);
+    box-shadow: 6px 6px 0 var(--text);
+  }
+
+  .compare-header {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .compare-header.traditional {
+    background: var(--surface2);
+    color: var(--text-dim);
+    border-bottom: 3px solid var(--border-bright);
+  }
+
+  .compare-header.confidence {
+    background: linear-gradient(135deg, var(--orange-dim), var(--purple-dim));
+    color: var(--text);
+    border-bottom: 3px solid var(--orange);
+  }
+
+  .compare-body {
+    padding: 24px;
+  }
+
+  .compare-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .compare-step {
+    padding: 12px 0 12px 42px;
+    position: relative;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .compare-step:last-child { border-bottom: none; }
+
+  .step-num {
+    position: absolute;
+    left: 0;
+    top: 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .traditional .step-num {
+    background: var(--surface2);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+
+  .confidence .step-num {
+    background: var(--orange);
+    color: var(--bg);
+    box-shadow: 2px 2px 0 var(--text);
+  }
+
+  .confidence .step-num.purple-num {
+    background: var(--purple);
+  }
+
+  .step-name {
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+
+  .step-detail {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .effort-bar-wrap {
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .effort-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .effort-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.8s ease;
+  }
+
+  .effort-fill.low { width: 20%; background: var(--green); }
+  .effort-fill.med { width: 50%; background: var(--orange); }
+  .effort-fill.high { width: 85%; background: var(--red); }
+  .effort-fill.very-high { width: 95%; background: var(--purple); }
+
+  .effort-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    width: 60px;
+    text-align: right;
+  }
+
+  /* ============ KEY INSIGHT BOX ============ */
+  .insight-box {
+    background: linear-gradient(135deg, var(--orange-dim), var(--purple-dim));
+    border: 2px solid var(--orange);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-top: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .insight-box::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    width: 80px;
+    height: 80px;
+    background: var(--orange);
+    opacity: 0.1;
+    border-radius: 50%;
+  }
+
+  .insight-box .label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--orange);
+    margin-bottom: 8px;
+  }
+
+  .insight-box p {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .insight-box strong { color: var(--orange); }
+  .insight-box em { color: var(--purple); }
+
+  /* ============ LEGEND ============ */
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  /* ============ FLOW ARROW (between sections) ============ */
+  .flow-divider {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0;
+    color: var(--text-dim);
+    opacity: 0.4;
+    font-size: 24px;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 768px) {
+    body { padding: 20px 16px; }
+    .page-title { font-size: 28px; letter-spacing: -1px; }
+    .section-title { font-size: 22px; }
+    .stack-layer { padding: 12px 16px; }
+    .layer-catches { display: none; }
+    .mermaid-wrap { padding: 16px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- ============ PAGE HEADER ============ -->
+  <h1 class="page-title animate" style="--i:0">
+    The <span class="accent">Confidence-First</span><br>
+    Software <span class="pop">Lifecycle</span>
+  </h1>
+  <p class="subtitle animate" style="--i:1">Visual Guide</p>
+
+  <!-- ============ DIAGRAM 1: VALIDATION STACK ============ -->
+  <div class="section">
+    <div class="section-header animate" style="--i:2">
+      <div class="section-number">01</div>
+      <h2 class="section-title">The 7-Layer Validation Stack</h2>
+    </div>
+    <p class="section-desc animate" style="--i:3">
+      Each layer catches a different class of failure. Earlier layers are cheaper to fix but catch fewer bugs. Later layers are expensive but catch what slips through. The stack is additive - you need all seven.
+    </p>
+
+    <div class="stack-container animate" style="--i:4">
+      <div class="stack-labels">
+        <div>
+          <div class="stack-label-arrow cost">COST TO FIX</div>
+          <div style="font-size:18px; text-align:center; margin-top:4px">&#x2191;</div>
+        </div>
+        <div>
+          <div style="font-size:18px; text-align:center; margin-bottom:4px">&#x2191;</div>
+          <div class="stack-label-arrow trust">TRUST LEVEL</div>
+        </div>
+      </div>
+
+      <div class="stack-layers">
+        <div class="stack-layer animate-scale" style="--i:10">
+          <div class="layer-num">7</div>
+          <div class="layer-content">
+            <div class="layer-name">Error Budget Governance</div>
+            <div class="layer-tools">SLOs / burn-rate alerts / auto-halt</div>
+          </div>
+          <span class="layer-catches catches-biz">Business value</span>
+        </div>
+
+        <div class="stack-layer animate-scale" style="--i:9">
+          <div class="layer-num">6</div>
+          <div class="layer-content">
+            <div class="layer-name">Production Observability</div>
+            <div class="layer-tools">OTel / synthetic monitoring / RUM / profiling</div>
+          </div>
+          <span class="layer-catches catches-prod">Runtime failures</span>
+        </div>
+
+        <div class="stack-layer animate-scale" style="--i:8">
+          <div class="layer-num">5</div>
+          <div class="layer-content">
+            <div class="layer-name">Progressive Delivery</div>
+            <div class="layer-tools">Feature flags / canary / ring-based rollout</div>
+          </div>
+          <span class="layer-catches catches-deploy">Deploy failures</span>
+        </div>
+
+        <div class="stack-layer animate-scale" style="--i:7">
+          <div class="layer-num">4</div>
+          <div class="layer-content">
+            <div class="layer-name">Advanced Verification</div>
+            <div class="layer-tools">PBT / mutation testing / fuzzing / formal proof</div>
+          </div>
+          <span class="layer-catches catches-logic">Logic errors</span>
+        </div>
+
+        <div class="stack-layer animate-scale" style="--i:6">
+          <div class="layer-num">3</div>
+          <div class="layer-content">
+            <div class="layer-name">Types as Automated Review</div>
+            <div class="layer-tools">Rust / TypeScript strict / ADTs / null safety</div>
+          </div>
+          <span class="layer-catches catches-type">Type errors</span>
+        </div>
+
+        <div class="stack-layer animate-scale" style="--i:5">
+          <div class="layer-num">2</div>
+          <div class="layer-content">
+            <div class="layer-name">Architecture as Constraint</div>
+            <div class="layer-tools">Hexagonal / CQRS / event sourcing / actors</div>
+          </div>
+          <span class="layer-catches catches-arch">Boundary violations</span>
+        </div>
+
+        <div class="stack-layer animate-scale" style="--i:4">
+          <div class="layer-num">1</div>
+          <div class="layer-content">
+            <div class="layer-name">Specifications as Source</div>
+            <div class="layer-tools">TLA+ / Lean 4 / Spec Kit / SPARK contracts</div>
+          </div>
+          <span class="layer-catches catches-spec">Requirements drift</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DIAGRAM 2: CONFIDENCE PIPELINE ============ -->
+  <div class="section">
+    <div class="section-header animate" style="--i:2">
+      <div class="section-number purple">02</div>
+      <h2 class="section-title">The Confidence Pipeline</h2>
+    </div>
+    <p class="section-desc animate" style="--i:3">
+      AI-generated code moves through graduated trust. Error budgets govern the entire pipeline - when budget is healthy, deploy fast; when it's burning, halt automatically. Feedback loops flow back from production to specs.
+    </p>
+
+    <div class="mermaid-wrap animate" style="--i:4">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+        graph LR
+          subgraph budget["ERROR BUDGET GOVERNANCE"]
+            direction LR
+            A["AI<br/>Generation"] --> B["Spec<br/>Check"]
+            B --> C["Compile /<br/>Type Check"]
+            C --> D["Property<br/>Tests"]
+            D --> E["Canary<br/>1-5%"]
+            E --> F["Progressive<br/>Rollout"]
+            F --> G["Full<br/>Production"]
+          end
+
+          G --> H["Observability<br/>& RUM"]
+          H -->|"feedback"| A
+          H -->|"refine specs"| B
+
+          style budget fill:transparent,stroke:#e85d04,stroke-width:3px,stroke-dasharray:8 4
+          style A fill:#f5f0e8,stroke:#8338ec,stroke-width:2px,color:#1a1a1a
+          style B fill:#f5f0e8,stroke:#059669,stroke-width:2px,color:#1a1a1a
+          style C fill:#f5f0e8,stroke:#8338ec,stroke-width:2px,color:#1a1a1a
+          style D fill:#f5f0e8,stroke:#e85d04,stroke-width:2px,color:#1a1a1a
+          style E fill:#f5f0e8,stroke:#d97706,stroke-width:2px,color:#1a1a1a
+          style F fill:#f5f0e8,stroke:#e85d04,stroke-width:2px,color:#1a1a1a
+          style G fill:#f5f0e8,stroke:#059669,stroke-width:2px,color:#1a1a1a
+          style H fill:#f5f0e8,stroke:#dc2626,stroke-width:2px,color:#1a1a1a
+      </pre>
+    </div>
+
+    <div class="legend animate" style="--i:5">
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--purple)"></div> AI / Types</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--green)"></div> Spec / Production</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--orange)"></div> Verification / Delivery</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--red)"></div> Observability</div>
+    </div>
+  </div>
+
+  <!-- ============ DIAGRAM 3: TRADITIONAL vs CONFIDENCE-FIRST ============ -->
+  <div class="section">
+    <div class="section-header animate" style="--i:2">
+      <div class="section-number">03</div>
+      <h2 class="section-title">Traditional vs Confidence-First</h2>
+    </div>
+    <p class="section-desc animate" style="--i:3">
+      The traditional lifecycle concentrates effort on writing code. The confidence-first lifecycle shifts effort to specifying and verifying - because AI makes code generation cheap, but trust remains expensive.
+    </p>
+
+    <div class="comparison">
+      <div class="compare-panel animate" style="--i:4">
+        <div class="compare-header traditional">
+          <span>Traditional Lifecycle</span>
+        </div>
+        <div class="compare-body">
+          <ul class="compare-steps">
+            <li class="compare-step">
+              <span class="step-num">1</span>
+              <div class="step-name">Requirements</div>
+              <div class="step-detail">Informal docs, user stories</div>
+              <div class="effort-bar-wrap">
+                <div class="effort-bar"><div class="effort-fill low"></div></div>
+                <span class="effort-label">Low</span>
+              </div>
+            </li>
+            <li class="compare-step">
+              <span class="step-num">2</span>
+              <div class="step-name">Design</div>
+              <div class="step-detail">Architecture diagrams, RFCs</div>
+              <div class="effort-bar-wrap">
+                <div class="effort-bar"><div class="effort-fill med"></div></div>
+                <span class="effort-label">Medium</span>
+              </div>
+            </li>
+            <li class="compare-step">
+              <span class="step-num">3</span>
+              <div class="step-name">Code (Manual)</div>
+              <div class="step-detail">Humans write every line</div>
+              <div class="effort-bar-wrap">
+                <div class="effort-bar"><div class="effort-fill very-high"></div></div>
+                <span class="effort-label">Very High</span>
+              </div>
+            </li>
+            <li class="compare-step">
+              <span class="step-num">4</span>
+              <div class="step-name">Test</div>
+              <div class="step-detail">Unit + integration tests</div>
+              <div class="effort-bar-wrap">
+                <div class="effort-bar"><div class="effort-fill med"></div></div>
+                <span class="effort-label">Medium</span>
+              </div>
+            </li>
+            <li class="compare-step">
+              <span class="step-num">5</span>
+              <div class="step-name">Deploy</div>
+              <div class="step-detail">CI/CD, manual approval</div>
+              <div class="effort-bar-wrap">
+                <div class="effort-bar"><div class="effort-fill low"></div></div>
+                <span class="effort-label">Low</span>
+              </div>
+            </li>
+            <li class="compare-step">
+              <span class="step-num">6</span>
+              <div class="step-name">Monitor</div>
+              <div class="step-detail">Logs, dashboards, alerts</div>
+              <div class="effort-bar-wrap">
+                <div class="effort-bar"><div class="effort-fill low"></div></div>
+                <span class="effort-label">Low</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="compare-panel animate" style="--i:5">
+        <div class="compare-header confidence">
+          <span>Confidence-First Lifecycle</span>
+        </div>
+        <div class="compare-body">
+          <ul class="compare-steps">
+            <li class="compare-step">
+              <span class="step-num purple-num">1</span>
+              <div class="step-name">Specify (Formal)</div>
+              <div class="step-detail">TLA+, Lean 4, Spec Kit</div>
+              <div class="effort-bar-wrap">
+                <div class="effort-bar"><div class="effort-fill very-high" style="background:var(--orange)"></div></div>
+                <span class="effort-label">Very High</span>
+              </div>
+            </li>
+            <li class="compare-step">
+              <span class="step-num">2</span>
+              <div class="step-name">Constrain (Architecture)</div>
+              <div class="step-detail">Hexagonal, CQRS, types</div>
+              <div class="effort-bar-wrap">
+                <div class="effort-bar"><div class="effort-fill high" style="background:var(--orange)"></div></div>
+                <span class="effort-label">High</span>
+              </div>
+            </li>
+            <li class="compare-step">
+              <span class="step-num purple-num">3</span>
+              <div class="step-name">Generate (AI)</div>
+              <div class="step-detail">LLM code generation</div>
+              <div class="effort-bar-wrap">
+                <div class="effort-bar"><div class="effort-fill low" style="background:var(--purple)"></div></div>
+                <span class="effort-label">Low</span>
+              </div>
+            </li>
+            <li class="compare-step">
+              <span class="step-num">4</span>
+              <div class="step-name">Verify (Multi-Layer)</div>
+              <div class="step-detail">PBT, mutation, fuzzing, proof</div>
+              <div class="effort-bar-wrap">
+                <div class="effort-bar"><div class="effort-fill very-high" style="background:var(--orange)"></div></div>
+                <span class="effort-label">Very High</span>
+              </div>
+            </li>
+            <li class="compare-step">
+              <span class="step-num purple-num">5</span>
+              <div class="step-name">Graduate (Progressive)</div>
+              <div class="step-detail">Flags, canary, ring rollout</div>
+              <div class="effort-bar-wrap">
+                <div class="effort-bar"><div class="effort-fill med" style="background:var(--purple)"></div></div>
+                <span class="effort-label">Medium</span>
+              </div>
+            </li>
+            <li class="compare-step">
+              <span class="step-num">6</span>
+              <div class="step-name">Govern (SLOs)</div>
+              <div class="step-detail">Error budgets, auto-halt</div>
+              <div class="effort-bar-wrap">
+                <div class="effort-bar"><div class="effort-fill high" style="background:var(--orange)"></div></div>
+                <span class="effort-label">High</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="insight-box animate" style="--i:6">
+      <div class="label">The Shift</div>
+      <p>
+        In the traditional model, <strong>most effort goes to writing code</strong>.
+        In the confidence-first model, code generation is the <em>cheapest step</em> -
+        effort concentrates on <strong>specifying what's correct</strong> and
+        <strong>verifying it stays correct</strong>. The role of the engineer evolves from
+        code author to <em>system specifier and validation architect</em>.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ MERMAID ============ -->
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  mermaid.registerLayoutLoaders(elkLayouts);
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    look: 'handDrawn',
+    layout: 'elk',
+    themeVariables: {
+      primaryColor: isDark ? '#3a3530' : '#f5f0e8',
+      primaryBorderColor: isDark ? '#fb923c' : '#e85d04',
+      primaryTextColor: isDark ? '#fafaf9' : '#1a1a1a',
+      secondaryColor: isDark ? '#2e2040' : '#f3eefc',
+      secondaryBorderColor: isDark ? '#a78bfa' : '#8338ec',
+      secondaryTextColor: isDark ? '#fafaf9' : '#1a1a1a',
+      tertiaryColor: isDark ? '#2e2618' : '#fffbeb',
+      tertiaryBorderColor: isDark ? '#fbbf24' : '#d97706',
+      tertiaryTextColor: isDark ? '#fafaf9' : '#1a1a1a',
+      lineColor: isDark ? '#a8a29e' : '#6b6b6b',
+      fontSize: '15px',
+      fontFamily: "'Space Grotesk', system-ui, sans-serif",
+    }
+  });
+</script>
+
+<!-- ============ ZOOM CONTROLS ============ -->
+<script>
+  function updateZoomState(wrap) {
+    var target = wrap.querySelector('.mermaid');
+    var zoom = parseFloat(target.dataset.zoom || '1');
+    wrap.classList.toggle('is-zoomed', zoom > 1);
+  }
+
+  function zoomDiagram(btn, factor) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    var current = parseFloat(target.dataset.zoom || '1');
+    var next = Math.min(Math.max(current * factor, 0.3), 5);
+    target.dataset.zoom = next;
+    target.style.transform = 'scale(' + next + ')';
+    updateZoomState(wrap);
+  }
+
+  function resetZoom(btn) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    target.dataset.zoom = '1';
+    target.style.transform = 'scale(1)';
+    updateZoomState(wrap);
+  }
+
+  document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+    wrap.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      var target = wrap.querySelector('.mermaid');
+      var current = parseFloat(target.dataset.zoom || '1');
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var next = Math.min(Math.max(current * factor, 0.3), 5);
+      target.dataset.zoom = next;
+      target.style.transform = 'scale(' + next + ')';
+      updateZoomState(wrap);
+    }, { passive: false });
+
+    var startX, startY, scrollL, scrollT;
+    wrap.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.zoom-controls')) return;
+      var target = wrap.querySelector('.mermaid');
+      if (parseFloat(target.dataset.zoom || '1') <= 1) return;
+      wrap.classList.add('is-panning');
+      startX = e.clientX;
+      startY = e.clientY;
+      scrollL = wrap.scrollLeft;
+      scrollT = wrap.scrollTop;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!wrap.classList.contains('is-panning')) return;
+      wrap.scrollLeft = scrollL - (e.clientX - startX);
+      wrap.scrollTop = scrollT - (e.clientY - startY);
+    });
+    window.addEventListener('mouseup', function() {
+      wrap.classList.remove('is-panning');
+    });
+  });
+</script>
+
+</body>
+</html>

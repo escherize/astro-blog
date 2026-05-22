@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Source Replacement — Week Status &amp; Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'Fira Code', 'SF Mono', Consolas, monospace;
+
+    --bg: #fafbfd;
+    --surface: #ffffff;
+    --surface2: #f0f3f8;
+    --border: rgba(0, 0, 0, 0.07);
+    --border-bright: rgba(0, 0, 0, 0.14);
+    --text: #1a1f36;
+    --text-dim: #6b7394;
+
+    --accent: #635bff;
+    --accent-dim: rgba(99, 91, 255, 0.08);
+    --green: #0ea371;
+    --green-dim: rgba(14, 163, 113, 0.08);
+    --red: #df1b41;
+    --red-dim: rgba(223, 27, 65, 0.08);
+    --amber: #d97706;
+    --amber-dim: rgba(217, 119, 6, 0.08);
+    --blue: #0073e6;
+    --blue-dim: rgba(0, 115, 230, 0.08);
+    --purple: #9b59b6;
+    --purple-dim: rgba(155, 89, 182, 0.08);
+    --cyan: #0891b2;
+    --cyan-dim: rgba(8, 145, 178, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0a0e1a;
+      --surface: #131825;
+      --surface2: #1c2236;
+      --border: rgba(255, 255, 255, 0.06);
+      --border-bright: rgba(255, 255, 255, 0.12);
+      --text: #e3e8f0;
+      --text-dim: #8b93b0;
+
+      --accent: #7c75ff;
+      --accent-dim: rgba(124, 117, 255, 0.14);
+      --green: #34d399;
+      --green-dim: rgba(52, 211, 153, 0.12);
+      --red: #f87171;
+      --red-dim: rgba(248, 113, 113, 0.12);
+      --amber: #fbbf24;
+      --amber-dim: rgba(251, 191, 36, 0.12);
+      --blue: #60a5fa;
+      --blue-dim: rgba(96, 165, 250, 0.12);
+      --purple: #c084fc;
+      --purple-dim: rgba(192, 132, 252, 0.12);
+      --cyan: #22d3ee;
+      --cyan-dim: rgba(34, 211, 238, 0.12);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(at 20% 10%, var(--accent-dim) 0%, transparent 50%),
+      radial-gradient(at 80% 80%, var(--cyan-dim) 0%, transparent 50%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .animate { animation: fadeUp 0.4s ease-out both; animation-delay: calc(var(--i, 0) * 0.06s); }
+  .animate-scale { animation: fadeScale 0.35s ease-out both; animation-delay: calc(var(--i, 0) * 0.06s); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+    .mermaid-wrap .mermaid { transition: none; }
+  }
+
+  .container { max-width: 1020px; margin: 0 auto; }
+
+  h1 { font-size: 34px; font-weight: 700; letter-spacing: -1px; margin-bottom: 6px; text-wrap: balance; }
+  .subtitle { color: var(--text-dim); font-family: var(--font-mono); font-size: 12px; margin-bottom: 36px; }
+
+  h2 {
+    font-size: 18px; font-weight: 600; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .badge {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    padding: 3px 9px; border-radius: 6px; letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .badge-arch { background: var(--accent-dim); color: var(--accent); }
+  .badge-status { background: var(--green-dim); color: var(--green); }
+  .badge-algo { background: var(--blue-dim); color: var(--blue); }
+  .badge-fk { background: var(--amber-dim); color: var(--amber); }
+  .badge-next { background: var(--purple-dim); color: var(--purple); }
+  .badge-demo { background: var(--cyan-dim); color: var(--cyan); }
+
+  .description {
+    font-size: 14px; line-height: 1.75; color: var(--text-dim);
+    margin-bottom: 20px; max-width: 720px;
+  }
+  .description strong { color: var(--text); }
+  .description code {
+    font-family: var(--font-mono); font-size: 12px;
+    background: var(--accent-dim); color: var(--accent);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  .section { margin-bottom: 44px; }
+
+  /* Mermaid */
+  .mermaid-wrap {
+    position: relative; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 32px 24px; overflow: auto; margin-bottom: 16px;
+    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  }
+  .mermaid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .mermaid-wrap::-webkit-scrollbar-track { background: transparent; }
+  .mermaid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .mermaid-wrap .mermaid {
+    display: flex; justify-content: center;
+    transition: transform 0.2s ease; transform-origin: top center;
+  }
+  .zoom-controls {
+    position: absolute; top: 8px; right: 8px;
+    display: flex; gap: 2px; z-index: 10;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 2px;
+  }
+  .zoom-controls button {
+    width: 28px; height: 28px; border: none; background: transparent;
+    color: var(--text-dim); font-family: var(--font-mono); font-size: 14px;
+    cursor: pointer; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .zoom-controls button:hover { background: var(--border); color: var(--text); }
+  .mermaid-wrap.is-zoomed { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+  .mermaid .nodeLabel { font-family: var(--font-body) !important; font-size: 13px !important; color: var(--text) !important; }
+  .mermaid .edgeLabel { font-family: var(--font-mono) !important; font-size: 11px !important; color: var(--text-dim) !important; background-color: var(--surface) !important; }
+  .mermaid .edgeLabel rect { fill: var(--surface) !important; }
+  .mermaid .node rect, .mermaid .node circle, .mermaid .node polygon { stroke-width: 1.5px !important; }
+  .mermaid .edge-pattern-solid { stroke-width: 1.5px !important; }
+
+  /* Tables */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 1.5; }
+  .data-table thead { position: sticky; top: 0; z-index: 2; }
+  .data-table th {
+    background: var(--surface2); font-family: var(--font-mono);
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-dim); text-align: left;
+    padding: 12px 16px; border-bottom: 2px solid var(--border-bright); white-space: nowrap;
+  }
+  .data-table td {
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    vertical-align: top; color: var(--text);
+  }
+  .data-table tbody tr:nth-child(even) { background: var(--accent-dim); }
+  .data-table tbody tr { transition: background 0.15s ease; }
+  .data-table tbody tr:hover { background: var(--border); }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table code {
+    font-family: var(--font-mono); font-size: 11px;
+    background: var(--accent-dim); color: var(--accent);
+    padding: 1px 5px; border-radius: 3px;
+  }
+  .data-table small { display: block; color: var(--text-dim); font-size: 11px; margin-top: 2px; }
+
+  .tag {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+    padding: 2px 8px; border-radius: 4px; white-space: nowrap; display: inline-block;
+  }
+  .tag-done { background: var(--green-dim); color: var(--green); }
+  .tag-wip { background: var(--amber-dim); color: var(--amber); }
+  .tag-todo { background: var(--red-dim); color: var(--red); }
+  .tag-blocked { background: var(--purple-dim); color: var(--purple); }
+  .tag-bryan { background: var(--blue-dim); color: var(--blue); }
+  .tag-eric { background: var(--green-dim); color: var(--green); }
+  .tag-alex { background: var(--accent-dim); color: var(--accent); }
+  .tag-dan { background: var(--cyan-dim); color: var(--cyan); }
+
+  /* Callout */
+  .callout {
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0;
+    padding: 16px 20px; font-size: 13px; line-height: 1.7; color: var(--text-dim);
+    margin-top: 20px;
+  }
+  .callout strong { color: var(--text); }
+  .callout code {
+    font-family: var(--font-mono); font-size: 11px;
+    background: var(--accent-dim); color: var(--accent);
+    padding: 1px 5px; border-radius: 3px;
+  }
+  .callout.callout-warn { border-left-color: var(--amber); }
+
+  /* Code block */
+  .code-block {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden; margin-bottom: 16px;
+  }
+  .code-header {
+    background: var(--surface2); padding: 10px 16px;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--text-dim); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .code-header::before { content: ''; width: 8px; height: 8px; border-radius: 50%; }
+  .code-header.ch-blue::before { background: var(--blue); }
+  .code-header.ch-green::before { background: var(--green); }
+  .code-header.ch-amber::before { background: var(--amber); }
+  .code-body {
+    padding: 16px 20px; font-family: var(--font-mono); font-size: 12px;
+    line-height: 1.7; overflow-x: auto; white-space: pre; color: var(--text);
+  }
+  .code-body .cm { color: var(--text-dim); }
+  .code-body .kw { color: var(--accent); }
+  .code-body .fn { color: var(--blue); }
+  .code-body .sp { color: var(--amber); }
+  .code-body .hl {
+    background: var(--accent-dim); display: inline-block;
+    width: calc(100% + 40px); margin: 0 -20px; padding: 0 20px;
+  }
+
+  /* Owner row */
+  .owner-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px; margin-bottom: 20px;
+  }
+  .owner-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+  }
+  .owner-card h3 {
+    font-size: 14px; font-weight: 600; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .owner-card ul { list-style: none; padding: 0; margin: 0; font-size: 12px; line-height: 1.8; }
+  .owner-card li { padding-left: 16px; position: relative; }
+  .owner-card li::before { content: ''; position: absolute; left: 0; top: 8px; width: 6px; height: 6px; border-radius: 50%; }
+  .owner-card li.done::before { background: var(--green); }
+  .owner-card li.wip::before { background: var(--amber); }
+  .owner-card li.todo::before { background: var(--red); }
+
+  /* Collapsible */
+  details.collapsible { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+  details.collapsible summary {
+    padding: 14px 20px; background: var(--surface);
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    cursor: pointer; list-style: none;
+    display: flex; align-items: center; gap: 8px; color: var(--text);
+    transition: background 0.15s ease;
+  }
+  details.collapsible summary:hover { background: var(--surface2); }
+  details.collapsible summary::-webkit-details-marker { display: none; }
+  details.collapsible summary::before { content: '\25B8'; font-size: 11px; color: var(--text-dim); transition: transform 0.15s ease; }
+  details.collapsible[open] summary::before { transform: rotate(90deg); }
+  details.collapsible .collapsible__body { padding: 16px 20px; border-top: 1px solid var(--border); font-size: 13px; line-height: 1.6; }
+
+  @media (max-width: 768px) {
+    body { padding: 16px; }
+    h1 { font-size: 24px; }
+    .mermaid-wrap { padding: 16px 12px; }
+    .owner-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1 class="animate" style="--i:0">Source Replacement</h1>
+  <p class="subtitle animate" style="--i:1">week status, architecture, and the unified swap algorithm &mdash; feb 17&ndash;20</p>
+
+  <!-- Section 1: The Three-Phase Algorithm -->
+  <div class="section">
+    <h2 class="animate" style="--i:2"><span class="badge badge-algo">Algorithm</span> The unified swap: upgrade &rarr; change source &rarr; upgrade</h2>
+    <p class="description animate" style="--i:3">
+      Alexander's design: <code>upgrade-ref</code> is a single function that normalizes any field ref to the correct format
+      for the current source. Swap is three steps: <strong>(1)</strong> upgrade with old source, <strong>(2)</strong> change
+      source-table/source-card, <strong>(3)</strong> upgrade with new source. The same function handles all four source type
+      combinations.
+    </p>
+
+    <div class="mermaid-wrap animate" style="--i:4">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+        graph TD
+          input["Input query<br/>e.g. {:source-table 1, :fields [[:field {} 10]]}"]
+
+          subgraph phase1 ["1. Upgrade with old source"]
+            up1["upgrade-query(query)"]
+            r1["Refs normalized for old source"]
+          end
+
+          subgraph phase2 ["2. Change source"]
+            chg["Set :source-table or :source-card<br/>to the new target"]
+            mid["Intermediate state:<br/>refs match old source format"]
+          end
+
+          subgraph phase3 ["3. Upgrade with new source"]
+            up3["upgrade-query(query)"]
+            r3["Refs normalized for new source"]
+          end
+
+          input --> up1
+          up1 --> r1
+          r1 --> chg
+          chg --> mid
+          mid --> up3
+          up3 --> r3
+
+          classDef p1 fill:#0073e622,stroke:#0073e6,stroke-width:2px
+          classDef p2 fill:#d9770622,stroke:#d97706,stroke-width:2px
+          classDef p3 fill:#0ea37122,stroke:#0ea371,stroke-width:2px
+      </pre>
+    </div>
+  </div>
+
+  <!-- Section 2: upgrade-ref internals -->
+  <div class="section">
+    <h2 class="animate" style="--i:6"><span class="badge badge-algo">Core</span> upgrade-ref: the branching logic</h2>
+    <p class="description animate" style="--i:7">
+      Each field ref is either <strong>ID-based</strong> (has a numeric <code>field-ref-id</code>) or
+      <strong>name-based</strong> (string). The resolution path differs, but both end at <code>lib.ref/ref(column)</code>
+      which always produces the correct format for the current source.
+    </p>
+
+    <div class="mermaid-wrap animate" style="--i:8">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+        graph TD
+          ref["field ref"]
+          check{"field-ref-id?"}
+
+          subgraph idpath ["ID-based path"]
+            lookup["metadata/field(query, id)"]
+            getkey["column-key = desired-column-alias or name"]
+            match1["find column by key match"]
+          end
+
+          subgraph namepath ["Name-based path"]
+            match2["lib.equality/find-matching-column"]
+          end
+
+          found{"Column?"}
+          emit["lib.ref/ref(column)"]
+          keep["Return ref unchanged"]
+
+          ref --> check
+          check -->|"numeric ID"| lookup
+          lookup --> getkey
+          getkey --> match1
+          match1 --> found
+
+          check -->|"no ID"| match2
+          match2 --> found
+
+          found -->|"found"| emit
+          found -->|"not found"| keep
+      </pre>
+    </div>
+
+    <div class="code-block animate" style="--i:9">
+      <div class="code-header ch-green">Alexander's sketch &mdash; upgrade-ref</div>
+      <div class="code-body">(<span class="kw">defn-</span> <span class="fn">column-key</span> [column]
+  ((<span class="kw">some-fn</span> <span class="sp">:lib/desired-column-alias</span> <span class="sp">:name</span>) column))
+
+(<span class="kw">defn-</span> <span class="fn">upgrade-ref</span> [query columns ref]
+  (<span class="kw">let</span> [field-id (<span class="fn">lib.ref/field-ref-id</span> ref)
+        field    (<span class="kw">when</span> field-id (<span class="fn">lib.metadata/field</span> query field-id))
+<span class="hl">        column   (<span class="kw">if</span> field</span>
+<span class="hl">                   (<span class="fn">m/find-first</span> #(= (<span class="fn">column-key</span> %) (<span class="fn">column-key</span> field)) columns)</span>
+<span class="hl">                   (<span class="fn">lib.equality/find-matching-column</span> ref columns))]</span>
+    (<span class="kw">if</span> column (<span class="fn">lib.ref/ref</span> column) ref)))</div>
+    </div>
+  </div>
+
+  <!-- Section 3: FK / Implicit Join complexity -->
+  <div class="section">
+    <h2 class="animate" style="--i:10"><span class="badge badge-fk">FK Joins</span> Implicit join field refs and the swap boundary</h2>
+    <p class="description animate" style="--i:11">
+      Implicit joins add complexity. A field ref like <code>[:field {:source-field fk-id} target-field-id]</code>
+      has <strong>two</strong> field IDs to update &mdash; and which one changes depends on which side of the join we're swapping.
+    </p>
+
+    <div class="code-block animate" style="--i:12">
+      <div class="code-header ch-amber">Implicit join ref structure</div>
+      <div class="code-body"><span class="cm">;; source is orders, joined table is products</span>
+[:field {<span class="sp">:source-field</span> &lt;orders.product_id&gt;} &lt;products.category&gt;]
+
+<span class="cm">;; Swap the PK table: products -> products_2</span>
+[:field {<span class="sp">:source-field</span> &lt;orders.product_id&gt;} &lt;<span class="fn">products_2.category</span>&gt;]
+<span class="cm">;;                   ^ no change              ^ changed</span>
+
+<span class="cm">;; Swap the FK table: orders -> orders_2</span>
+[:field {<span class="sp">:source-field</span> &lt;<span class="fn">orders_2.product_id</span>&gt;} &lt;products.category&gt;]
+<span class="cm">;;                   ^ changed                  ^ no change</span></div>
+    </div>
+
+    <div class="callout callout-warn animate" style="--i:13">
+      <strong>Hard boundary:</strong> We <strong>cannot</strong> swap a PK table used for an implicit join to a <strong>card</strong>.
+      Cards don't expose FK relationships, so there's no way to resolve <code>:source-field</code>. This case should throw.
+      Marked as week 3+ work.
+    </div>
+
+    <div class="code-block animate" style="--i:14">
+      <div class="code-header ch-amber">Detection logic for the impossible case</div>
+      <div class="code-body"><span class="cm">;; [:field {:source-field &lt;field-id&gt;} &lt;products.category&gt;]</span>
+<span class="cm">;; Fetch the field by field-id</span>
+<span class="cm">;; Find the fk-target-field-id field</span>
+<span class="cm">;; If its table-id is the original source table,</span>
+<span class="cm">;;   and we want to swap it to a card -> impossible (now)</span></div>
+    </div>
+  </div>
+
+  <!-- Section 4: Work by person -->
+  <div class="section">
+    <h2 class="animate" style="--i:15"><span class="badge badge-status">Status</span> Work breakdown &mdash; Feb 17&ndash;20</h2>
+
+    <div class="owner-grid animate" style="--i:16">
+      <div class="owner-card">
+        <h3><span class="tag tag-eric">Eric</span> lib.query / swap</h3>
+        <ul>
+          <li class="done">upgrade-query function</li>
+          <li class="done">swap functions (card&rarr;card)</li>
+          <li class="done">table swaps</li>
+          <li class="done">dashcard params + click behaviors</li>
+          <li class="done">joins (except FK edge case)</li>
+          <li class="wip">segments, metrics</li>
+          <li class="wip">transforms</li>
+        </ul>
+      </div>
+      <div class="owner-card">
+        <h3><span class="tag tag-bryan">Bryan</span> Native SQL / API</h3>
+        <ul>
+          <li class="done">All template tag types</li>
+          <li class="done">Card &amp; table tags, all combos</li>
+          <li class="done">Optional syntax, comments</li>
+          <li class="done">Schema-qualified table names</li>
+          <li class="done">Async run API</li>
+          <li class="done">Progress tracking</li>
+          <li class="wip">Stats DB testing</li>
+        </ul>
+      </div>
+      <div class="owner-card">
+        <h3><span class="tag tag-alex">Alex P</span> Frontend</h3>
+        <ul>
+          <li class="done">Initial UI</li>
+          <li class="wip">New UI (column comparison)</li>
+          <li class="wip">Async API integration</li>
+          <li class="todo">API change requests</li>
+        </ul>
+      </div>
+      <div class="owner-card">
+        <h3><span class="tag tag-dan">Dan</span> Support</h3>
+        <ul>
+          <li class="done">Security review</li>
+          <li class="todo">Implicit joins help (TBD)</li>
+          <li class="todo">Split work with Bryan</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 5: Entity coverage matrix -->
+  <div class="section">
+    <h2 class="animate" style="--i:18"><span class="badge badge-demo">Coverage</span> What gets swapped</h2>
+
+    <div class="table-wrap animate" style="--i:19">
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Entity / Location</th>
+              <th>What Changes</th>
+              <th>Status</th>
+              <th>Owner</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>MBQL <code>:source-table</code> / <code>:source-card</code></td>
+              <td>Source reference + all field refs in same stage</td>
+              <td><span class="tag tag-done">Done</span></td>
+              <td><span class="tag tag-eric">Eric</span></td>
+            </tr>
+            <tr>
+              <td>MBQL field refs (same-stage)</td>
+              <td>ID &harr; name normalization via <code>upgrade-ref</code></td>
+              <td><span class="tag tag-done">Done</span></td>
+              <td><span class="tag tag-eric">Eric</span></td>
+            </tr>
+            <tr>
+              <td>MBQL joins</td>
+              <td>Join condition field refs, RHS field refs</td>
+              <td><span class="tag tag-done">Done</span><small style="margin-left:4px">(except FK&rarr;card)</small></td>
+              <td><span class="tag tag-eric">Eric</span></td>
+            </tr>
+            <tr>
+              <td>Native SQL card refs <code>{{#id}}</code></td>
+              <td>Card ID in template tag + SQL text</td>
+              <td><span class="tag tag-done">Done</span></td>
+              <td><span class="tag tag-bryan">Bryan</span></td>
+            </tr>
+            <tr>
+              <td>Native SQL table names</td>
+              <td>Table name in SQL text</td>
+              <td><span class="tag tag-done">Done</span></td>
+              <td><span class="tag tag-bryan">Bryan</span></td>
+            </tr>
+            <tr>
+              <td>Template tags (all types)</td>
+              <td>text, number, date, boolean, dimension, temporal-unit</td>
+              <td><span class="tag tag-done">Done</span></td>
+              <td><span class="tag tag-bryan">Bryan</span></td>
+            </tr>
+            <tr>
+              <td>Viz settings &mdash; column_settings</td>
+              <td>Field ref keys in JSON</td>
+              <td><span class="tag tag-done">Done</span></td>
+              <td><span class="tag tag-eric">Eric</span></td>
+            </tr>
+            <tr>
+              <td>Viz settings &mdash; click_behavior</td>
+              <td>parameterMapping source IDs</td>
+              <td><span class="tag tag-done">Done</span></td>
+              <td><span class="tag tag-eric">Eric</span></td>
+            </tr>
+            <tr>
+              <td>Dashboard parameters</td>
+              <td>Parameter mappings on dashcards</td>
+              <td><span class="tag tag-done">Done</span></td>
+              <td><span class="tag tag-eric">Eric</span></td>
+            </tr>
+            <tr>
+              <td>Transforms</td>
+              <td>source &rarr; query rewrite</td>
+              <td><span class="tag tag-wip">Testing</span></td>
+              <td><span class="tag tag-eric">Eric</span></td>
+            </tr>
+            <tr>
+              <td>Segments &amp; Measures</td>
+              <td>Definition field refs</td>
+              <td><span class="tag tag-wip">WIP</span></td>
+              <td><span class="tag tag-eric">Eric</span></td>
+            </tr>
+            <tr>
+              <td>Async execution API</td>
+              <td>Run tracking, progress, cancellation</td>
+              <td><span class="tag tag-done">Done</span></td>
+              <td><span class="tag tag-bryan">Bryan</span></td>
+            </tr>
+            <tr>
+              <td>Frontend UI</td>
+              <td>Column comparison, async status</td>
+              <td><span class="tag tag-wip">WIP</span></td>
+              <td><span class="tag tag-alex">Alex P</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 6: Execution model -->
+  <div class="section">
+    <h2 class="animate" style="--i:21"><span class="badge badge-arch">Execution</span> Two-phase execution with transaction boundary</h2>
+    <p class="description animate" style="--i:22">
+      Upgrading is safe without a transaction (idempotent, doesn't change source references).
+      Swapping needs a transaction because it changes source pointers. Each entity can be swapped independently,
+      and the dependency table updates immediately &mdash; so we can batch (e.g. first 500), then re-query deps.
+    </p>
+
+    <div class="mermaid-wrap animate" style="--i:23">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+        graph TD
+          api["API: start swap"]
+          deps["Query dependency graph"]
+
+          subgraph upgrade ["Phase 1: Upgrade (no transaction)"]
+            u1["For each dependent entity"]
+            u2["upgrade-query with old source"]
+            u3["Save upgraded query"]
+          end
+
+          subgraph swap ["Phase 2: Swap (with transaction)"]
+            s1["For each dependent entity"]
+            s2["Change source-table/card"]
+            s3["upgrade-query with new source"]
+            s4["Save swapped query"]
+          end
+
+          progress["Report progress via runs API"]
+
+          api --> deps
+          deps --> u1
+          u1 --> u2
+          u2 --> u3
+          u3 --> s1
+          s1 --> s2
+          s2 --> s3
+          s3 --> s4
+          s4 --> progress
+      </pre>
+    </div>
+
+    <div class="callout animate" style="--i:24">
+      <strong>Scale concern:</strong> With the stats DB we could see ~5000 dependent entities, 10k columns &times; 10k
+      questions with joins. If it takes &gt;1 minute, the async API with progress tracking handles it. Batching
+      by 500 entities with incremental dependency re-queries keeps memory bounded.
+    </div>
+  </div>
+
+  <!-- Section 7: What's left -->
+  <div class="section">
+    <h2 class="animate" style="--i:25"><span class="badge badge-next">Remaining</span> Open items</h2>
+
+    <div class="table-wrap animate" style="--i:26">
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Notes</th>
+              <th>Priority</th>
+              <th>Owner</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>FK &rarr; card implicit join</td>
+              <td>Cannot swap PK table to card. Detect &amp; throw.</td>
+              <td><span class="tag tag-blocked">Week 3+</span></td>
+              <td>TBD</td>
+            </tr>
+            <tr>
+              <td>Implicit joins help</td>
+              <td>Dan or Bryan to assist Eric</td>
+              <td><span class="tag tag-wip">TBD</span></td>
+              <td><span class="tag tag-dan">Dan</span></td>
+            </tr>
+            <tr>
+              <td>Segments &amp; measures</td>
+              <td>Definition field refs need swapping</td>
+              <td><span class="tag tag-wip">WIP</span></td>
+              <td><span class="tag tag-eric">Eric</span></td>
+            </tr>
+            <tr>
+              <td>Transforms</td>
+              <td>source &rarr; query; testing in progress</td>
+              <td><span class="tag tag-wip">Testing</span></td>
+              <td><span class="tag tag-eric">Eric</span></td>
+            </tr>
+            <tr>
+              <td>Stats DB trial</td>
+              <td>~1&ndash;2k deps on accounts table. How long? 30s? 1min?</td>
+              <td><span class="tag tag-wip">WIP</span></td>
+              <td><span class="tag tag-bryan">Bryan</span></td>
+            </tr>
+            <tr>
+              <td>Frontend async + column comparison</td>
+              <td>New UI, integrate with async runs API</td>
+              <td><span class="tag tag-wip">WIP</span></td>
+              <td><span class="tag tag-alex">Alex P</span></td>
+            </tr>
+            <tr>
+              <td>Snippet warnings</td>
+              <td>To discuss</td>
+              <td><span class="tag tag-todo">TODO</span></td>
+              <td>TBD</td>
+            </tr>
+            <tr>
+              <td>Explore workspaces</td>
+              <td>Not blocking</td>
+              <td><span class="tag tag-todo">Later</span></td>
+              <td>TBD</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  mermaid.registerLayoutLoaders(elkLayouts);
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    look: 'handDrawn',
+    layout: 'elk',
+    themeVariables: {
+      primaryColor: isDark ? '#1c2236' : '#f0f3f8',
+      primaryBorderColor: isDark ? '#7c75ff' : '#635bff',
+      primaryTextColor: isDark ? '#e3e8f0' : '#1a1f36',
+      secondaryColor: isDark ? '#1c2236' : '#fafbfd',
+      secondaryBorderColor: isDark ? '#8b93b0' : '#6b7394',
+      secondaryTextColor: isDark ? '#e3e8f0' : '#1a1f36',
+      tertiaryColor: isDark ? '#1c2236' : '#fefce8',
+      tertiaryBorderColor: isDark ? '#fbbf24' : '#d97706',
+      tertiaryTextColor: isDark ? '#e3e8f0' : '#1a1f36',
+      lineColor: isDark ? '#8b93b0' : '#6b7394',
+      fontSize: '13px',
+      fontFamily: "'DM Sans', system-ui, sans-serif",
+      noteBkgColor: isDark ? '#1c2236' : '#fefce8',
+      noteTextColor: isDark ? '#e3e8f0' : '#1a1f36',
+      noteBorderColor: isDark ? '#fbbf24' : '#d97706',
+    }
+  });
+</script>
+<script>
+  function updateZoomState(wrap) {
+    var target = wrap.querySelector('.mermaid');
+    var zoom = parseFloat(target.dataset.zoom || '1');
+    wrap.classList.toggle('is-zoomed', zoom > 1);
+  }
+  function zoomDiagram(btn, factor) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    var current = parseFloat(target.dataset.zoom || '1');
+    var next = Math.min(Math.max(current * factor, 0.3), 5);
+    target.dataset.zoom = next;
+    target.style.transform = 'scale(' + next + ')';
+    updateZoomState(wrap);
+  }
+  function resetZoom(btn) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    target.dataset.zoom = '1';
+    target.style.transform = 'scale(1)';
+    updateZoomState(wrap);
+  }
+  document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+    wrap.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      var target = wrap.querySelector('.mermaid');
+      var current = parseFloat(target.dataset.zoom || '1');
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var next = Math.min(Math.max(current * factor, 0.3), 5);
+      target.dataset.zoom = next;
+      target.style.transform = 'scale(' + next + ')';
+      updateZoomState(wrap);
+    }, { passive: false });
+    var startX, startY, scrollL, scrollT;
+    wrap.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.zoom-controls')) return;
+      var target = wrap.querySelector('.mermaid');
+      if (parseFloat(target.dataset.zoom || '1') <= 1) return;
+      wrap.classList.add('is-panning');
+      startX = e.clientX; startY = e.clientY;
+      scrollL = wrap.scrollLeft; scrollT = wrap.scrollTop;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!wrap.classList.contains('is-panning')) return;
+      wrap.scrollLeft = scrollL - (e.clientX - startX);
+      wrap.scrollTop = scrollT - (e.clientY - startY);
+    });
+    window.addEventListener('mouseup', function() { wrap.classList.remove('is-panning'); });
+  });
+</script>
+
+</body>
+</html>

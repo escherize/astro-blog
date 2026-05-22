@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workspaces reorg — diff review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+    --font-serif: 'IBM Plex Serif', Georgia, serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+    /* Blueprint / drafting paper, daylight */
+    --bg: #f3eeda;
+    --bg2: #ebe4cb;
+    --surface: #fbf7e7;
+    --surface2: #f6efd5;
+    --surface-elevated: #ffffff;
+    --border: rgba(58, 47, 26, 0.14);
+    --border-bright: rgba(58, 47, 26, 0.28);
+    --text: #2d2410;
+    --text-dim: #6b5a3a;
+
+    /* Palette: blueprint teal + ochre accents */
+    --accent: #0e6b6b;
+    --accent-dim: rgba(14, 107, 107, 0.10);
+
+    --teal: #0e6b6b;
+    --teal-dim: rgba(14, 107, 107, 0.10);
+    --ochre: #b6791d;
+    --ochre-dim: rgba(182, 121, 29, 0.12);
+    --plum: #7a3e6b;
+    --plum-dim: rgba(122, 62, 107, 0.12);
+
+    /* Diff colors — muted to fit cream background */
+    --green: #2f7a3a;
+    --green-dim: rgba(47, 122, 58, 0.12);
+    --red: #b8423a;
+    --red-dim: rgba(184, 66, 58, 0.10);
+    --amber: #b07a18;
+    --amber-dim: rgba(176, 122, 24, 0.14);
+    --blue: #2f5a8a;
+    --blue-dim: rgba(47, 90, 138, 0.10);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14140e;
+      --bg2: #1a1a12;
+      --surface: #1f1e16;
+      --surface2: #25241a;
+      --surface-elevated: #2a2920;
+      --border: rgba(240, 220, 170, 0.10);
+      --border-bright: rgba(240, 220, 170, 0.20);
+      --text: #ece0bd;
+      --text-dim: #a89a73;
+
+      --accent: #5fbcb3;
+      --accent-dim: rgba(95, 188, 179, 0.14);
+      --teal: #5fbcb3;
+      --teal-dim: rgba(95, 188, 179, 0.14);
+      --ochre: #d9a74a;
+      --ochre-dim: rgba(217, 167, 74, 0.14);
+      --plum: #c587b5;
+      --plum-dim: rgba(197, 135, 181, 0.14);
+
+      --green: #6fcb7e;
+      --green-dim: rgba(111, 203, 126, 0.14);
+      --red: #e2766c;
+      --red-dim: rgba(226, 118, 108, 0.14);
+      --amber: #e0b65a;
+      --amber-dim: rgba(224, 182, 90, 0.14);
+      --blue: #7aa9d9;
+      --blue-dim: rgba(122, 169, 217, 0.14);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-body);
+    color: var(--text);
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 15% 0%, var(--teal-dim) 0%, transparent 55%),
+      radial-gradient(ellipse at 90% 30%, var(--ochre-dim) 0%, transparent 55%),
+      repeating-linear-gradient(0deg, transparent, transparent 31px, var(--border) 31px, var(--border) 32px),
+      repeating-linear-gradient(90deg, transparent, transparent 31px, var(--border) 31px, var(--border) 32px);
+    line-height: 1.55;
+    padding: 32px 40px;
+    overflow-wrap: break-word;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* min-width:0 for grid/flex children */
+  [style*="display: grid"] > *, [style*="display:grid"] > *,
+  [style*="display: flex"] > *, [style*="display:flex"] > *,
+  .grid > *, .flex > *, .wrap > *, .main > * { min-width: 0; }
+
+  /* ─────────── Layout ─────────── */
+  .wrap {
+    max-width: 1320px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 0 44px;
+  }
+  .main { min-width: 0; }
+
+  /* ─────────── TOC ─────────── */
+  .toc {
+    position: sticky; top: 24px; align-self: start;
+    grid-row: 1 / -1;
+    padding: 14px 0;
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+  }
+  .toc::-webkit-scrollbar { width: 3px; }
+  .toc::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+  .toc-title {
+    font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 2.5px;
+    color: var(--text-dim);
+    padding-bottom: 10px; margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .toc a {
+    display: block;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+    line-height: 1.4;
+    margin-bottom: 1px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.2px;
+  }
+  .toc a:hover { color: var(--text); background: var(--surface2); }
+  .toc a.active { color: var(--teal); border-left-color: var(--teal); background: var(--surface); }
+
+  /* ─────────── Headings ─────────── */
+  h1 {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 38px;
+    line-height: 1.15;
+    margin: 0 0 6px;
+    letter-spacing: -0.5px;
+  }
+  .subtitle {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    margin: 0 0 8px;
+  }
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 6px 14px;
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+    margin-bottom: 36px; padding-bottom: 18px;
+    border-bottom: 1px dashed var(--border-bright);
+  }
+  .meta-row span { display: inline-flex; align-items: center; gap: 6px; }
+  .meta-row span::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--teal);
+  }
+  .meta-row span.draft::before { background: var(--amber); }
+  .meta-row span.scope::before { background: var(--ochre); }
+
+  .sec-head {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    color: var(--text-dim);
+    padding: 8px 0;
+    margin: 36px 0 14px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .sec-head .num {
+    display: inline-block;
+    width: 24px; height: 24px;
+    border: 1px solid var(--border-bright);
+    border-radius: 50%;
+    text-align: center; line-height: 22px;
+    font-size: 10px; color: var(--teal);
+    background: var(--surface);
+  }
+  h2 {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 22px;
+    margin: 0 0 14px;
+    letter-spacing: -0.2px;
+  }
+  h3 {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14px;
+    margin: 18px 0 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+  }
+  p { margin: 0 0 12px; }
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    background: var(--accent-dim);
+    color: var(--teal);
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid color-mix(in srgb, var(--teal) 25%, transparent);
+  }
+
+  /* ─────────── Cards / Nodes ─────────── */
+  .node {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 22px;
+    position: relative;
+  }
+  .node--hero {
+    background: var(--surface-elevated);
+    background-image: linear-gradient(180deg, color-mix(in srgb, var(--surface-elevated) 92%, var(--teal) 8%) 0%, var(--surface-elevated) 100%);
+    box-shadow: 0 6px 28px rgba(58, 47, 26, 0.07), 0 1px 3px rgba(58, 47, 26, 0.05);
+    border-color: color-mix(in srgb, var(--border) 50%, var(--teal) 50%);
+    padding: 28px 32px;
+  }
+  .node--hero p { font-size: 16px; line-height: 1.65; }
+  .node--hero .lead {
+    font-family: var(--font-serif);
+    font-size: 21px;
+    line-height: 1.5;
+    font-style: italic;
+    color: var(--text);
+    margin: 0 0 16px;
+  }
+  .node--hero .lead span {
+    background: linear-gradient(180deg, transparent 65%, var(--ochre-dim) 65%);
+    padding: 0 2px;
+  }
+  .node--recessed {
+    background: color-mix(in srgb, var(--bg) 60%, var(--surface) 40%);
+    box-shadow: inset 0 1px 3px rgba(58, 47, 26, 0.05);
+    border-color: var(--border);
+  }
+  .node-list { list-style: none; padding: 0; margin: 0; font-size: 13px; line-height: 1.85; }
+  .node-list li { padding-left: 16px; position: relative; }
+  .node-list li::before { content: '›'; position: absolute; left: 0; color: var(--text-dim); font-weight: 600; }
+
+  /* ─────────── KPI Dashboard ─────────── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--accent-color, var(--teal));
+  }
+  .kpi-card[data-color="green"] { --accent-color: var(--green); }
+  .kpi-card[data-color="red"] { --accent-color: var(--red); }
+  .kpi-card[data-color="amber"] { --accent-color: var(--amber); }
+  .kpi-card[data-color="blue"] { --accent-color: var(--blue); }
+  .kpi-card[data-color="ochre"] { --accent-color: var(--ochre); }
+  .kpi-card[data-color="plum"] { --accent-color: var(--plum); }
+  .kpi-card__value {
+    font-family: var(--font-serif);
+    font-size: 34px;
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-color, var(--teal));
+  }
+  .kpi-card__value small { font-size: 14px; color: var(--text-dim); font-family: var(--font-mono); margin-left: 4px; }
+  .kpi-card__label {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1.6px;
+    color: var(--text-dim); margin-top: 8px;
+  }
+  .kpi-card__sub {
+    font-size: 11px; color: var(--text-dim);
+    margin-top: 4px; line-height: 1.4;
+  }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    padding: 3px 8px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .badge--green { background: var(--green-dim); color: var(--green); }
+  .badge--red { background: var(--red-dim); color: var(--red); }
+  .badge--amber { background: var(--amber-dim); color: var(--amber); }
+  .badge--blue { background: var(--blue-dim); color: var(--blue); }
+  .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* ─────────── Diff Panels ─────────── */
+  .diff-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .diff-panels > * { min-width: 0; overflow-wrap: break-word; }
+  .diff-panel {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .diff-panel__header {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 10px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .diff-panel__header--before {
+    background: var(--red-dim);
+    color: var(--red);
+    border-bottom: 2px solid var(--red);
+  }
+  .diff-panel__header--after {
+    background: var(--green-dim);
+    color: var(--green);
+    border-bottom: 2px solid var(--green);
+  }
+  .diff-panel__body {
+    padding: 16px 18px;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+  .diff-panel__body code { font-size: 11.5px; }
+  .diff-panel__body ul { margin: 0; padding: 0; list-style: none; }
+  .diff-panel__body li { padding-left: 18px; position: relative; margin-bottom: 6px; }
+  .diff-panel__body li::before {
+    position: absolute; left: 0; top: 0; font-family: var(--font-mono); font-weight: 700;
+  }
+  .diff-panel--before .diff-panel__body li::before { content: '−'; color: var(--red); }
+  .diff-panel--after .diff-panel__body li::before { content: '+'; color: var(--green); }
+  .diff-panel__body li.unchanged::before { content: '·'; color: var(--text-dim); }
+  .diff-panel__body li.modified::before { content: '~'; color: var(--amber); }
+
+  @media (max-width: 900px) {
+    .diff-panels { grid-template-columns: 1fr; }
+  }
+
+  /* ─────────── Tables ─────────── */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.data {
+    width: 100%; border-collapse: collapse;
+    font-size: 12.5px; line-height: 1.5;
+  }
+  table.data thead th {
+    background: var(--surface2);
+    font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--text-dim); text-align: left; padding: 10px 14px;
+    border-bottom: 2px solid var(--border-bright);
+    white-space: nowrap;
+  }
+  table.data td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.data tbody tr:nth-child(even) { background: color-mix(in srgb, var(--surface) 92%, var(--ochre) 8%); }
+  table.data tbody tr:hover { background: var(--accent-dim); }
+  table.data tbody tr:last-child td { border-bottom: none; }
+  table.data code { font-size: 11px; background: var(--surface2); color: var(--teal); border-color: transparent; }
+  table.data .num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-mono); white-space: nowrap; }
+
+  /* ─────────── ASCII Architecture Diagram ─────────── */
+  .ascii-arch {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ascii-arch pre {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--text);
+    white-space: pre;
+    letter-spacing: 0;
+    tab-size: 2;
+  }
+  .ascii-arch .new { color: var(--green); font-weight: 600; }
+  .ascii-arch .mod { color: var(--ochre); font-weight: 500; }
+  .ascii-arch .unchanged { color: var(--text-dim); }
+  .ascii-arch .legend { color: var(--text-dim); opacity: 0.7; }
+  @media (prefers-color-scheme: dark) {
+    .ascii-arch .new { color: var(--green); }
+    .ascii-arch .mod { color: var(--ochre); }
+  }
+  @media (max-width: 900px) {
+    .ascii-arch pre { font-size: 10.5px; }
+  }
+
+  /* ─────────── Mermaid ─────────── */
+  .mermaid-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 36px 24px 24px;
+    overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-bright) transparent;
+  }
+  .mermaid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .mermaid-wrap::-webkit-scrollbar-track { background: transparent; }
+  .mermaid-wrap::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+  .mermaid-wrap .mermaid {
+    transition: transform 0.2s ease;
+    transform-origin: top center;
+  }
+  .zoom-controls {
+    position: absolute; top: 8px; right: 8px;
+    display: flex; gap: 2px; z-index: 10;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px; padding: 2px;
+  }
+  .zoom-controls button {
+    width: 28px; height: 28px; border: none; background: transparent;
+    color: var(--text-dim); font-family: var(--font-mono); font-size: 14px;
+    cursor: pointer; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .zoom-controls button:hover { background: var(--accent-dim); color: var(--teal); }
+  .mermaid-wrap.is-zoomed { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+  /* ─────────── Review cards (Good / Bad / Ugly / Decisions) ─────────── */
+  .review-grid {
+    display: grid; grid-template-columns: 1fr; gap: 12px;
+  }
+  .rcard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 14px 18px;
+  }
+  .rcard--good { border-left-color: var(--green); }
+  .rcard--bad { border-left-color: var(--red); }
+  .rcard--ugly { border-left-color: var(--amber); }
+  .rcard--question { border-left-color: var(--blue); }
+  .rcard--high { border-left-color: var(--green); }
+  .rcard--medium { border-left-color: var(--blue); }
+  .rcard--low { border-left-color: var(--amber); }
+  .rcard__title {
+    font-family: var(--font-body);
+    font-weight: 600; font-size: 14px;
+    margin: 0 0 6px;
+    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  }
+  .rcard__tag {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    padding: 2px 7px; border-radius: 3px;
+    text-transform: uppercase; letter-spacing: 0.6px;
+  }
+  .rcard--good .rcard__tag { background: var(--green-dim); color: var(--green); }
+  .rcard--bad .rcard__tag { background: var(--red-dim); color: var(--red); }
+  .rcard--ugly .rcard__tag { background: var(--amber-dim); color: var(--amber); }
+  .rcard--question .rcard__tag { background: var(--blue-dim); color: var(--blue); }
+  .rcard--high .rcard__tag { background: var(--green-dim); color: var(--green); }
+  .rcard--medium .rcard__tag { background: var(--blue-dim); color: var(--blue); }
+  .rcard--low .rcard__tag { background: var(--amber-dim); color: var(--amber); }
+  .rcard p { margin: 4px 0; font-size: 13px; line-height: 1.6; }
+  .rcard p strong { color: var(--text); font-weight: 600; }
+  .rcard .ref {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--text-dim); margin-top: 6px;
+  }
+
+  /* ─────────── Collapsible (file map, re-entry) ─────────── */
+  details.collapsible {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--surface);
+    margin-bottom: 12px;
+  }
+  details.collapsible summary {
+    padding: 14px 20px;
+    background: var(--surface2);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+    display: flex; align-items: center; gap: 10px;
+    color: var(--text);
+  }
+  details.collapsible summary::-webkit-details-marker { display: none; }
+  details.collapsible summary::before {
+    content: '▸'; font-size: 11px; color: var(--text-dim);
+    transition: transform 0.15s ease;
+  }
+  details.collapsible[open] summary::before { transform: rotate(90deg); }
+  details.collapsible .body { padding: 16px 20px; border-top: 1px solid var(--border); font-size: 13px; line-height: 1.65; }
+
+  .filetree {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.85;
+    color: var(--text);
+  }
+  .filetree .ft-new { color: var(--green); font-weight: 600; }
+  .filetree .ft-mod { color: var(--amber); }
+  .filetree .ft-del { color: var(--red); text-decoration: line-through; opacity: 0.65; }
+  .filetree .ft-unchanged { color: var(--text-dim); }
+  .filetree .ft-tag {
+    font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 3px;
+    text-transform: uppercase; letter-spacing: 0.5px; margin-left: 8px;
+    vertical-align: middle;
+  }
+  .filetree .ft-tag.new { background: var(--green-dim); color: var(--green); }
+  .filetree .ft-tag.mod { background: var(--amber-dim); color: var(--amber); }
+  .filetree .ft-tag.del { background: var(--red-dim); color: var(--red); }
+
+  /* ─────────── Animations ─────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.94); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .node, .diff-panels, .table-wrap, .mermaid-wrap, .rcard, details.collapsible, .filetree {
+    animation: fadeUp 0.45s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.04s);
+  }
+  .kpi-card {
+    animation: fadeScale 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.05s);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Section heading colors */
+  .sec-head .num.green { color: var(--green); border-color: var(--green-dim); background: var(--green-dim); }
+  .sec-head .num.red { color: var(--red); border-color: var(--red-dim); background: var(--red-dim); }
+  .sec-head .num.amber { color: var(--amber); border-color: var(--amber-dim); background: var(--amber-dim); }
+  .sec-head .num.blue { color: var(--blue); border-color: var(--blue-dim); background: var(--blue-dim); }
+  .sec-head .num.plum { color: var(--plum); border-color: var(--plum-dim); background: var(--plum-dim); }
+  .sec-head .num.ochre { color: var(--ochre); border-color: var(--ochre-dim); background: var(--ochre-dim); }
+
+  .callout {
+    background: var(--blue-dim);
+    border-left: 3px solid var(--blue);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    margin: 14px 0;
+  }
+  .callout strong { color: var(--blue); }
+
+  .pill {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: var(--surface2);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    margin: 0 2px;
+    white-space: nowrap;
+  }
+
+  /* ─────────── Mobile ─────────── */
+  @media (max-width: 1000px) {
+    body { padding: 0; }
+    .wrap { grid-template-columns: 1fr; padding: 0 16px; gap: 0; padding-top: 0; }
+    .toc {
+      position: sticky; top: 0; z-index: 200;
+      max-height: none;
+      display: flex; gap: 4px; align-items: center;
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      background: var(--bg); border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      margin: 0 -16px;
+      grid-row: auto;
+    }
+    .toc::-webkit-scrollbar { display: none; }
+    .toc-title { display: none; }
+    .toc a {
+      white-space: nowrap; flex-shrink: 0;
+      border-left: none; border-bottom: 2px solid transparent;
+      border-radius: 4px 4px 0 0; padding: 6px 10px; font-size: 10px;
+    }
+    .toc a.active { border-left: none; border-bottom-color: var(--teal); background: var(--surface); }
+    .main { padding-top: 20px; }
+    .sec-head { scroll-margin-top: 60px; }
+    h1 { font-size: 28px; }
+    .node--hero { padding: 20px; }
+    .node--hero .lead { font-size: 17px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="toc" id="toc">
+    <div class="toc-title">Contents</div>
+    <a href="#s1">1. Summary</a>
+    <a href="#s2">2. KPIs</a>
+    <a href="#s3">3. Architecture</a>
+    <a href="#s4">4. Module diff</a>
+    <a href="#s5">5. Read-path flow</a>
+    <a href="#s6">6. File map</a>
+    <a href="#s7">7. Test coverage</a>
+    <a href="#s8">8. Code review</a>
+    <a href="#s9">9. Decision log</a>
+    <a href="#s10">10. Re-entry</a>
+  </nav>
+
+  <div class="main">
+    <p class="subtitle">Diff Review · Planned Refactor</p>
+    <h1>Workspaces reorg — diff review</h1>
+    <p style="font-family: var(--font-serif); font-size: 17px; color: var(--text-dim); margin: 0 0 18px; max-width: 720px;">
+      Code reorganization to make workspace seams discoverable by <code>grep</code> and unify two divergent table-remapping read paths into one.
+    </p>
+    <div class="meta-row">
+      <span class="draft">Status: scoped 2026-05-01 (Bryan/Dan/Ben), not yet executed</span>
+      <span class="scope">Scope: ~2 new files, 4 modified, mechanical only</span>
+      <span>Branch: feature/workspaces-v2</span>
+      <span>Plan: ~/.claude/plans/dan-sutton-8-15-am-vast-wave.md</span>
+      <span>Linear: GHY-3494</span>
+    </div>
+
+    <!-- ============ SECTION 1: Executive summary ============ -->
+    <div id="s1" class="sec-head"><span class="num">01</span>Executive summary</div>
+    <div class="node node--hero" style="--i: 0;">
+      <p class="lead">
+        Right now, <span><code>grep workspaces</code> in <code>src/</code> doesn't find sync</span> — five enterprise hooks live inline in <code>fetch_metadata.clj</code>, named after their consumer. The plan rehouses them under <code>metabase.workspaces.sync</code> and merges two read paths (one via <code>t2/select</code>, one via a protocol) into one.
+      </p>
+      <p>
+        <strong>The intuition.</strong> Metabase's <code>defenterprise</code> macro creates dynamic OSS→EE dispatch, which is invisible to text search. When a feature's stubs are scattered through consumer namespaces (<code>metabase.sync.*</code>, <code>metabase.query-processor.*</code>) and named after those consumers, you can't grep your way to the feature's surface. You have to <em>already know</em> the seams exist. That's fine for one-off hooks, but workspaces has eight seams across sync, QP, and transforms — discovery by archaeology is what eng lead Dan Sutton is pushing back on.
+      </p>
+      <p>
+        <strong>The fix has two halves.</strong> First, move the five sync stubs out of <code>fetch_metadata.clj</code> into a feature-named OSS namespace, mirroring the QP precedent. Second, collapse the duplicate read path: today, sync reads remappings via direct <code>t2/select</code> calls in <code>table_remapping.clj</code>, while QP middleware reads through a <code>RemappingStore</code> protocol in <code>remapping/core.clj</code>. After the reorg, both go through the protocol — which means sync tests gain access to the same <code>MapRemappingStore</code> seam that lets QP tests skip app-DB setup entirely.
+      </p>
+      <p>
+        <strong>The aha.</strong> <code>table_remapping.clj</code> (361 lines) shrinks to a writer module. <code>remapping/core.clj</code> (101 lines) becomes the canonical reader. A new <code>workspaces.sync</code> ns holds the five sync hooks. Three EE files instead of two — but each one has a single clear responsibility, and <code>grep workspaces src/</code> now lights up every consumer subsystem.
+      </p>
+      <p style="margin: 0; padding: 14px 18px; background: var(--amber-dim); border-left: 3px solid var(--amber); border-radius: 6px; font-size: 14px;">
+        <strong style="color: var(--amber);">Hard signal that this is real:</strong> the module linter is currently failing on the branch with errors that workspaces "should not be used in the actions / model-persistence / upload modules" — it sees the <code>defenterprise</code> edges that <code>grep</code> can't. After the reorg, those should drop to zero. <em>Mechanical refactor only — no behavior change.</em>
+      </p>
+    </div>
+
+    <!-- ============ SECTION 2: KPI dashboard ============ -->
+    <div id="s2" class="sec-head"><span class="num blue">02</span>KPI dashboard</div>
+    <div class="kpi-row">
+      <div class="kpi-card" data-color="green" style="--i:0;">
+        <div class="kpi-card__value">+2</div>
+        <div class="kpi-card__label">New namespaces</div>
+        <div class="kpi-card__sub">workspaces.sync (OSS &amp; EE)</div>
+      </div>
+      <div class="kpi-card" data-color="amber" style="--i:1;">
+        <div class="kpi-card__value">4 <small>files</small></div>
+        <div class="kpi-card__label">Modified</div>
+        <div class="kpi-card__sub">fetch_metadata, table-remapping, remapping/core, tests</div>
+      </div>
+      <div class="kpi-card" data-color="ochre" style="--i:2;">
+        <div class="kpi-card__value">−5</div>
+        <div class="kpi-card__label">Stubs out of fetch_metadata</div>
+        <div class="kpi-card__sub">workspace-* hooks → workspaces.sync</div>
+      </div>
+      <div class="kpi-card" data-color="plum" style="--i:3;">
+        <div class="kpi-card__value">361 → ~190</div>
+        <div class="kpi-card__label">table-remapping.clj</div>
+        <div class="kpi-card__sub">becomes spec + writers only</div>
+      </div>
+      <div class="kpi-card" data-color="blue" style="--i:4;">
+        <div class="kpi-card__value">2 → 1</div>
+        <div class="kpi-card__label">Read paths to remappings</div>
+        <div class="kpi-card__sub">protocol-only after reorg</div>
+      </div>
+      <div class="kpi-card" data-color="red" style="--i:5;">
+        <div class="kpi-card__value">3</div>
+        <div class="kpi-card__label">Direct t2/insert! to ban</div>
+        <div class="kpi-card__sub">tests must use add-mapping!</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 16px;">
+      <div class="node" style="--i:6;">
+        <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); margin-bottom: 8px;">Housekeeping</div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div><span class="badge badge--red">Not Updated</span> <code>CHANGELOG.md</code> — internal refactor, no entry needed</div>
+          <div><span class="badge badge--amber">Pending</span> Docstrings in moved fns — survive verbatim via clj-surgeon extract</div>
+          <div><span class="badge badge--green">Plan written</span> <code>~/.claude/plans/dan-sutton-8-15-am-vast-wave.md</code></div>
+          <div><span class="badge badge--amber">Linear</span> Unblocks <code>GHY-3494</code></div>
+        </div>
+      </div>
+      <div class="node" style="--i:7;">
+        <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); margin-bottom: 8px;">Test exposure</div>
+        <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px;">
+          <div><span class="pill">16 test ns</span> in <code>workspaces/</code></div>
+          <div><span class="pill">3 files</span> use direct <code>t2/insert! :model/TableRemapping</code> for setup</div>
+          <div><span class="pill">8+ files</span> bind <code>*remapping-store*</code> — must keep working</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SECTION 3: Architecture ============ -->
+    <div id="s3" class="sec-head"><span class="num green">03</span>Module architecture (after)</div>
+    <div class="ascii-arch" style="--i:0;">
+<pre><span class="legend">┌─ OSS · src/ ─────────────────────────┐         ┌─ EE · enterprise/backend/src/ ────────────────────┐</span>
+<span class="legend">│                                      │         │                                                   │</span>
+│  <span class="mod">▼ metabase.sync</span>                      │         │  <span class="unchanged">○ workspaces.core</span>                                │
+│  <span class="mod">  └─ fetch-metadata.clj</span>            <span class="legend">requires</span>     │         │  <span class="unchanged">  └─ (unchanged)</span>            ▲                    │
+│                       │              <span class="legend">───▶</span>      │         │                              │ <span class="legend">defenterprise</span>      │
+│                       ▼                       │  <span class="legend">- - - - - - - - - - - - - - -│- - - - - - - - -</span>  │
+│  <span class="new">★ metabase.workspaces.sync (NEW)</span>     │         │  <span class="new">★ workspaces.sync (NEW)</span>      │                    │
+│  <span class="new">    5 defenterprise stubs</span>            │         │  <span class="new">    5 defenterprise impls</span>    │                    │
+│  <span class="new">    + effective-schema+name</span>          │  <span class="legend">defenterprise</span> │      │                       │                    │
+│                                      │  <span class="legend">- - - - - - ─▶</span>      │                       │                    │
+│                                      │         │      ▼                                            │
+│  <span class="unchanged">○ qp.middleware.enterprise</span>          │         │  <span class="mod">▼ workspaces.remapping.core</span>                     │
+│  <span class="unchanged">    apply-workspace-* stubs</span>         │  <span class="legend">defenterprise</span> │      │  <span class="mod">  RemappingStore protocol</span>                       │
+│           │                          │  <span class="legend">- - - - - - ─▶</span>      │  <span class="mod">  + remap-table          (moved in)</span>              │
+│           │                          │         │      │  <span class="mod">  + all-mappings-for-db  (moved in)</span>              │
+│           │                          │         │      │  <span class="mod">  + remap-table-spec     (new)</span>                   │
+│           │                          │         │      ▲    ▲                                       │
+│           │                          │         │      │    │                                       │
+│           │                          │         │  <span class="legend">reads via protocol</span>                                  │
+│           │                          │         │      │    │                                       │
+│           │                          │         │  <span class="unchanged">○ workspaces.qp.middleware</span>                          │
+│           │                          │         │  <span class="unchanged">    Phase 1 (preprocess)</span>                            │
+│           │                          │         │  <span class="unchanged">    Phase 2 (execute, SQL rewrite)</span>                  │
+│           │                          │         │                                                   │
+│  <span class="unchanged">○ metabase.workspaces.core</span>          │         │  <span class="mod">▼ workspaces.table-remapping  (shrinks: 360 → 190)</span> │
+│  <span class="unchanged">    workspace-mode? stub</span>            │         │  <span class="mod">    ::table-spec schema</span>                          │
+│           │                          │         │  <span class="mod">    spec-for-table</span>                               │
+│           │                          │  <span class="legend">defenterprise</span> │  <span class="mod">    add-mapping!</span>                                 │
+│           └──────────────────────────│─────────│─▶ <span class="mod">    remove-mapping!</span>                              │
+│                                      │  <span class="legend">- - - - - - ─▶</span>      │  <span class="mod">    add-transform-target-mapping!</span>                │
+│                                      │         │      ▲                                            │
+│                                      │         │      │ <span class="legend">writes via</span>                                  │
+│                                      │         │      │                                            │
+│                                      │         │  <span class="unchanged">○ workspaces.transform-hooks</span>                        │
+│                                      │         │  <span class="unchanged">    resolve-transform-target</span>                        │
+<span class="legend">└──────────────────────────────────────┘         └───────────────────────────────────────────────────┘</span>
+
+  <span class="legend">Legend:  ★ new file      ▼ modified      ○ unchanged
+           ──▶ static require    - - ▶ dynamic defenterprise dispatch</span></pre>
+    </div>
+    <p style="font-size: 12px; color: var(--text-dim); margin-top: 8px; font-family: var(--font-mono);">
+      Eight workspace seams across two modules. Three new EE files = single-responsibility split: spec+writers, protocol+readers, sync defenterprise impls.
+    </p>
+
+    <!-- ============ SECTION 4: Module diff ============ -->
+    <div id="s4" class="sec-head"><span class="num red">04</span>Module diff — major changes</div>
+
+    <h3 style="margin-top: 0;">A · The sync defenterprise stubs (OSS side)</h3>
+    <div class="diff-panels" style="--i:0;">
+      <div class="diff-panel diff-panel--before">
+        <div class="diff-panel__header diff-panel__header--before"><span>Before</span><span class="pill">fetch_metadata.clj · 215 lines</span></div>
+        <div class="diff-panel__body">
+          <p style="margin-top:0;"><strong>5 workspace stubs inline</strong> with non-EE sync code.</p>
+          <ul>
+            <li><code>workspace-remap-schema+name</code> · L17</li>
+            <li><code>filter-workspace-side-tables</code> · L27</li>
+            <li><code>expand-schema-names-with-workspace</code> · L37</li>
+            <li><code>inject-workspace-canonical-tuples</code> · L46</li>
+            <li><code>rewrite-fk-result-canonical</code> · L56</li>
+            <li class="unchanged"><code>effective-schema+name</code> helper · L66</li>
+          </ul>
+          <p style="margin-bottom:0; font-size:12px; color:var(--text-dim);">
+            <code>grep workspaces src/</code> doesn't surface this file.
+          </p>
+        </div>
+      </div>
+      <div class="diff-panel diff-panel--after">
+        <div class="diff-panel__header diff-panel__header--after"><span>After</span><span class="pill">workspaces/sync.clj · ~85 lines</span></div>
+        <div class="diff-panel__body">
+          <p style="margin-top:0;"><strong>New OSS namespace</strong> <code>metabase.workspaces.sync</code> holds all five stubs and the helper.</p>
+          <ul>
+            <li><code>workspace-remap-schema+name</code></li>
+            <li><code>filter-workspace-side-tables</code></li>
+            <li><code>expand-schema-names-with-workspace</code></li>
+            <li><code>inject-workspace-canonical-tuples</code></li>
+            <li><code>rewrite-fk-result-canonical</code></li>
+            <li><code>effective-schema+name</code></li>
+          </ul>
+          <p style="margin-bottom:0; font-size:12px; color:var(--text-dim);">
+            <code>fetch_metadata.clj</code> requires it; <code>grep workspaces src/</code> lights up sync.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <h3>B · The EE table-remapping module</h3>
+    <div class="diff-panels" style="--i:1;">
+      <div class="diff-panel diff-panel--before">
+        <div class="diff-panel__header diff-panel__header--before"><span>Before</span><span class="pill">table_remapping.clj · 360 lines</span></div>
+        <div class="diff-panel__body">
+          <p style="margin-top:0;"><strong>God namespace</strong> mixing four responsibilities.</p>
+          <ul>
+            <li class="unchanged"><code>::table-spec</code> schema + <code>spec-for-table</code></li>
+            <li class="unchanged"><code>add-mapping!</code> &amp; siblings (writers)</li>
+            <li class="modified"><code>remap-table</code> (reader · moves out)</li>
+            <li class="modified"><code>all-mappings-for-db</code> (reader · moves out)</li>
+            <li>5 sync <code>defenterprise</code> impls (move out)</li>
+          </ul>
+          <p style="margin-bottom:0; font-size:12px; color:var(--text-dim);">
+            Sync reads via direct <code>t2/select</code> here. QP reads via protocol elsewhere. Two paths.
+          </p>
+        </div>
+      </div>
+      <div class="diff-panel diff-panel--after">
+        <div class="diff-panel__header diff-panel__header--after"><span>After</span><span class="pill">table_remapping.clj · ~190 lines</span></div>
+        <div class="diff-panel__body">
+          <p style="margin-top:0;"><strong>Writer + spec module.</strong> Single responsibility.</p>
+          <ul class="diff-noplus">
+            <li class="unchanged"><code>::table-spec</code> schema</li>
+            <li class="unchanged"><code>spec-for-table</code> + driver-aware slot resolution</li>
+            <li class="unchanged"><code>normalize-level</code>, <code>unique-violation?</code></li>
+            <li class="unchanged"><code>add-mapping!</code></li>
+            <li class="unchanged"><code>remove-mapping!</code></li>
+            <li class="unchanged"><code>clear-mappings-for-db!</code></li>
+            <li class="unchanged"><code>add-transform-target-mapping!</code></li>
+          </ul>
+          <p style="margin-bottom:0; font-size:12px; color:var(--text-dim);">
+            All readers and sync impls have moved out.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <h3>C · The remapping read path</h3>
+    <div class="diff-panels" style="--i:2;">
+      <div class="diff-panel diff-panel--before">
+        <div class="diff-panel__header diff-panel__header--before"><span>Before</span><span class="pill">remapping/core.clj · 101 lines</span></div>
+        <div class="diff-panel__body">
+          <p style="margin-top:0;"><strong>Protocol module · QP-only consumer.</strong></p>
+          <ul class="diff-noplus">
+            <li class="unchanged">protocol <code>RemappingStore</code></li>
+            <li class="unchanged"><code>AppDBRemappingStore</code> (default)</li>
+            <li class="unchanged"><code>MapRemappingStore</code> (test seam)</li>
+            <li class="unchanged"><code>enabled-for-db?</code> · <code>remappings-for-db</code></li>
+            <li class="unchanged"><code>*remapping-store*</code> · <code>*skip-remapping?*</code></li>
+          </ul>
+          <p style="margin-bottom:0; font-size:12px; color:var(--text-dim);">
+            QP middleware uses this. Sync doesn't — it reads via <code>table_remapping.clj</code>'s direct <code>t2/select</code> calls.
+          </p>
+        </div>
+      </div>
+      <div class="diff-panel diff-panel--after">
+        <div class="diff-panel__header diff-panel__header--after"><span>After</span><span class="pill">remapping/core.clj · ~150 lines</span></div>
+        <div class="diff-panel__body">
+          <p style="margin-top:0;"><strong>Canonical reader · used by everyone.</strong></p>
+          <ul>
+            <li class="unchanged">protocol <code>RemappingStore</code></li>
+            <li class="unchanged"><code>AppDBRemappingStore</code> · <code>MapRemappingStore</code></li>
+            <li class="unchanged"><code>enabled-for-db?</code> · <code>remappings-for-db</code></li>
+            <li><code>remap-table</code> (moved in)</li>
+            <li><code>all-mappings-for-db</code> (moved in)</li>
+            <li><code>remap-table-spec</code> (new — for sync hook bodies)</li>
+            <li class="unchanged"><code>*remapping-store*</code> · <code>*skip-remapping?*</code></li>
+          </ul>
+          <p style="margin-bottom:0; font-size:12px; color:var(--text-dim);">
+            Both QP and sync read through this. <code>MapRemappingStore</code> now serves sync tests too.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <h3>D · Tests using direct t2/insert!</h3>
+    <div class="diff-panels" style="--i:3;">
+      <div class="diff-panel diff-panel--before">
+        <div class="diff-panel__header diff-panel__header--before"><span>Before</span><span class="pill">3 test files</span></div>
+        <div class="diff-panel__body">
+          <p style="margin-top:0;"><strong>Bypasses <code>add-mapping!</code></strong> and the empty-string sentinel logic in <code>normalize-level</code>.</p>
+          <ul>
+            <li><code>core_test.clj:131</code> — direct insert</li>
+            <li><code>api/instance_test.clj:29</code> — direct insert</li>
+            <li><code>api/instance_test.clj:52</code> — direct insert</li>
+          </ul>
+          <p style="margin-bottom:0; font-size:12px; color:var(--text-dim);">
+            Footgun: <code>nil</code> vs <code>""</code> in <code>from_db</code>/<code>from_schema</code>. Unique constraint and SQLGlot rewriter handle them differently.
+          </p>
+        </div>
+      </div>
+      <div class="diff-panel diff-panel--after">
+        <div class="diff-panel__header diff-panel__header--after"><span>After</span><span class="pill">All via add-mapping!</span></div>
+        <div class="diff-panel__body">
+          <p style="margin-top:0;"><strong>Single insertion path.</strong> Tests funneled through the writer.</p>
+          <ul>
+            <li><code>add-mapping!</code> normalizes <code>nil</code> → <code>""</code> sentinel</li>
+            <li><code>add-mapping!</code> swallows unique-violation idempotently</li>
+            <li>Tests construct <code>::table-spec</code> maps, not raw rows</li>
+          </ul>
+          <p style="margin-bottom:0; font-size:12px; color:var(--text-dim);">
+            One footgun closed. Test setup gains a few keystrokes; gains back invariants.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SECTION 5: Read-path flow ============ -->
+    <div id="s5" class="sec-head"><span class="num plum">05</span>Read-path flow (after)</div>
+    <div class="mermaid-wrap" style="--i:0;">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant Caller as Sync or QP middleware
+  participant OSS as OSS stub<br/>(workspaces.sync<br/>or middleware.enterprise)
+  participant EE as EE impl<br/>(workspaces.sync<br/>or workspaces.qp.middleware)
+  participant Read as remapping.core<br/>(canonical reader)
+  participant Store as RemappingStore<br/>(AppDB or Map)
+  participant DB as table_remapping<br/>app-DB rows
+
+  Caller->>OSS: call defenterprise stub
+  alt EE jar loaded
+    OSS->>EE: dispatch via metabase.premium-features
+  else OSS-only
+    OSS-->>Caller: identity / nil fallback
+  end
+
+  EE->>Read: enabled-for-db? db-id
+  Read->>Store: enabled-for-db?* via *remapping-store*
+
+  alt Production
+    Store->>DB: t2/exists? :model/TableRemapping
+    DB-->>Store: true / false
+  else Test
+    Store-->>Read: lookup in in-memory map
+  end
+
+  Store-->>Read: boolean
+  Read-->>EE: boolean
+
+  opt enabled
+    EE->>Read: remappings-for-db db-id
+    Read->>Store: remappings-for-db*
+    Store-->>Read: {[from-db from-schema from-table] -> [to-...]}
+    Read-->>EE: tuples
+    EE->>EE: apply remap to query / sync result
+  end
+
+  EE-->>Caller: rewritten query / metadata
+      </pre>
+    </div>
+    <p style="font-size: 12px; color: var(--text-dim); margin-top: 8px; font-family: var(--font-mono);">
+      One read path serves both consumers. <code>*skip-remapping?*</code> dynamic-var gate gives workspace-execution contexts an escape hatch.
+    </p>
+
+    <!-- ============ SECTION 6: File map ============ -->
+    <div id="s6" class="sec-head"><span class="num ochre">06</span>File map</div>
+    <details class="collapsible">
+      <summary>Files added · modified · unchanged (workspace surface, ~12 files)</summary>
+      <div class="body">
+        <div class="filetree">
+          <div><span class="ft-unchanged">src/metabase/</span></div>
+          <div><span class="ft-unchanged">├─ sync/</span></div>
+          <div><span class="ft-mod">│  └─ fetch_metadata.clj</span> <span class="ft-tag mod">modified</span> <span style="color:var(--text-dim)"> · −5 stubs −1 helper, +1 require</span></div>
+          <div><span class="ft-unchanged">├─ workspaces/</span></div>
+          <div><span class="ft-unchanged">│  ├─ core.clj</span> <span style="color:var(--text-dim)"> · unchanged</span></div>
+          <div><span class="ft-new">│  └─ sync.clj</span> <span class="ft-tag new">new</span> <span style="color:var(--text-dim)"> · ~85 lines, 5 defenterprise stubs + helper</span></div>
+          <div><span class="ft-unchanged">└─ query_processor/middleware/</span></div>
+          <div><span class="ft-unchanged">   └─ enterprise.clj</span> <span style="color:var(--text-dim)"> · unchanged</span></div>
+          <br>
+          <div><span class="ft-unchanged">enterprise/backend/src/metabase_enterprise/workspaces/</span></div>
+          <div><span class="ft-unchanged">├─ core.clj</span> <span style="color:var(--text-dim)"> · unchanged</span></div>
+          <div><span class="ft-mod">├─ table_remapping.clj</span> <span class="ft-tag mod">modified</span> <span style="color:var(--text-dim)"> · 360 → ~190 lines (sync hooks &amp; readers move out)</span></div>
+          <div><span class="ft-mod">├─ remapping/core.clj</span> <span class="ft-tag mod">modified</span> <span style="color:var(--text-dim)"> · 101 → ~150 lines (gains canonical readers)</span></div>
+          <div><span class="ft-new">├─ sync.clj</span> <span class="ft-tag new">new</span> <span style="color:var(--text-dim)"> · 5 defenterprise impls, calls remapping.core</span></div>
+          <div><span class="ft-unchanged">├─ query_processor/middleware.clj</span> <span style="color:var(--text-dim)"> · unchanged</span></div>
+          <div><span class="ft-unchanged">├─ transform_hooks.clj</span> <span style="color:var(--text-dim)"> · unchanged</span></div>
+          <div><span class="ft-unchanged">└─ models/{workspace,workspace_database,table_remapping}.clj</span> <span style="color:var(--text-dim)"> · unchanged</span></div>
+          <br>
+          <div><span class="ft-unchanged">enterprise/backend/test/metabase_enterprise/workspaces/</span></div>
+          <div><span class="ft-mod">├─ core_test.clj</span> <span class="ft-tag mod">modified</span> <span style="color:var(--text-dim)"> · L131 t2/insert! → add-mapping!</span></div>
+          <div><span class="ft-mod">└─ api/instance_test.clj</span> <span class="ft-tag mod">modified</span> <span style="color:var(--text-dim)"> · L29, L52 t2/insert! → add-mapping!</span></div>
+        </div>
+      </div>
+    </details>
+
+    <!-- ============ SECTION 7: Test coverage ============ -->
+    <div id="s7" class="sec-head"><span class="num blue">07</span>Test coverage</div>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table class="data">
+          <thead>
+            <tr><th>Test namespace</th><th>What it covers</th><th>Reorg impact</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>workspaces.table_remapping_test</code></td><td>writers, idempotency, sync hook <code>workspace-remap-schema+name</code></td><td><span class="badge badge--amber">requires update</span> — sync hook tests follow impl to <code>workspaces.sync</code></td></tr>
+            <tr><td><code>workspaces.remapping.core_test</code></td><td>protocol, <code>MapRemappingStore</code>, <code>*skip-remapping?*</code></td><td><span class="badge badge--green">stable</span> — gains coverage for moved-in readers</td></tr>
+            <tr><td><code>workspaces.query_processor.middleware_test</code></td><td>Phase 1 MBQL metadata mutation, Phase 2 SQL rewriting</td><td><span class="badge badge--green">stable</span></td></tr>
+            <tr><td><code>workspaces.query_processor.{cross_driver,corpus,driver_corpus}_test</code></td><td>cross-driver SQL rewrite corpus</td><td><span class="badge badge--green">stable</span></td></tr>
+            <tr><td><code>workspaces.transform_hooks_test</code></td><td><code>resolve-transform-target</code>, transform→remapping write</td><td><span class="badge badge--green">stable</span></td></tr>
+            <tr><td><code>workspaces.core_test</code></td><td>workspace lifecycle, db provisioning</td><td><span class="badge badge--amber">L131</span> — switch direct insert to <code>add-mapping!</code></td></tr>
+            <tr><td><code>workspaces.api.instance_test</code></td><td>child-instance API</td><td><span class="badge badge--amber">L29, L52</span> — switch direct inserts</td></tr>
+            <tr><td><code>workspaces.api.{manager,public}_test</code> · <code>e2e_test</code></td><td>API + e2e</td><td><span class="badge badge--green">stable</span></td></tr>
+            <tr><td><code>workspaces.{config,settings,models}_test</code></td><td>infra</td><td><span class="badge badge--green">stable</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p style="font-size: 12px; color: var(--text-dim); font-family: var(--font-mono); margin-top: 6px;">
+      Run between every move: <code>./bin/test-agent :module enterprise/workspaces</code> + <code>:module sync</code>.
+    </p>
+
+    <!-- ============ SECTION 8: Code review ============ -->
+    <div id="s8" class="sec-head"><span class="num green">08</span>Code review · Good / Bad / Ugly / Questions</div>
+
+    <h3 style="margin-top: 0;">Good</h3>
+    <div class="review-grid">
+      <div class="rcard rcard--good" style="--i:0;">
+        <div class="rcard__title">Single read path through the protocol <span class="rcard__tag">good</span></div>
+        <p>Today, <code>filter-workspace-side-tables</code> at <code>table_remapping.clj:177</code> calls <code>all-mappings-for-db</code> which does its own <code>t2/select</code>; QP middleware at <code>query_processor/middleware.clj:175,247</code> calls <code>remappings-for-db</code> via the protocol. After the reorg, both go through the protocol — sync tests get the <code>MapRemappingStore</code> seam for free, and there is exactly one place to add caching, telemetry, or memoization later.</p>
+        <div class="ref">refs: <code>table_remapping.clj:162-191</code> · <code>remapping/core.clj:84-101</code></div>
+      </div>
+      <div class="rcard rcard--good" style="--i:1;">
+        <div class="rcard__title">Feature-named OSS namespace makes seams discoverable <span class="rcard__tag">good</span></div>
+        <p>The QP precedent (<code>middleware.enterprise</code>) is subsystem-named because it mixes EE stubs from sandboxing, impersonation, downloads, audit-app, and workspaces. Sync's 5 stubs are 100% workspaces — naming the new file <code>workspaces.sync</code> rather than <code>fetch-metadata.enterprise</code> means <code>grep workspaces src/</code> actually surfaces it. Different problems, different naming choices.</p>
+        <div class="ref">refs: <code>fetch_metadata.clj:17-65</code> · plan §Q1</div>
+      </div>
+      <div class="rcard rcard--good" style="--i:2;">
+        <div class="rcard__title">clj-surgeon-shaped reorg <span class="rcard__tag">good</span></div>
+        <p>This is exactly the cut-and-move-with-deps work clj-surgeon was built for. The plan sequences moves (readers first → sync hooks second) so each <code>:extract!</code> is a clean leaf. Compiler catches stragglers; tests gate each step. Mechanical work goes to the tool; judgment stays with the engineer.</p>
+        <div class="ref">refs: plan §Execution mechanics, steps 1-6</div>
+      </div>
+      <div class="rcard rcard--good" style="--i:3;">
+        <div class="rcard__title">Banning direct t2/insert in tests is a real fix, not stylistic <span class="rcard__tag">good</span></div>
+        <p>Three test sites at <code>core_test.clj:131</code>, <code>api/instance_test.clj:29</code>, <code>api/instance_test.clj:52</code> bypass <code>normalize-level</code>. The empty-string sentinel for missing identifier levels is exactly the place where Postgres' <code>NULL != NULL</code> behavior in unique indexes bites — tests that insert <code>nil</code> into <code>from_db</code> can construct rows the unique constraint and SQLGlot rewriter treat differently than production. Closing this footgun before BigQuery (4-level remapping) lands is timely.</p>
+        <div class="ref">refs: <code>table_remapping.clj:60-79</code> (sentinel logic) · <code>table_remapping.clj:281-315</code> (add-mapping!)</div>
+      </div>
+    </div>
+
+    <h3>Bad</h3>
+    <div class="review-grid">
+      <div class="rcard rcard--bad" style="--i:0;">
+        <div class="rcard__title">defenterprise pairing rewrite is manual and silent-fail <span class="rcard__tag">bad</span></div>
+        <p>Each OSS stub embeds the EE impl namespace as the second arg to <code>defenterprise</code>. The reorg has to rewrite five of these from <code>metabase-enterprise.workspaces.table-remapping</code> → <code>metabase-enterprise.workspaces.sync</code>. clj-surgeon won't do this — it's a value inside a form, not a structural move. A typo or miss means the EE impl never loads and the OSS fallback runs in EE production, which looks like the feature is just off. There's no compile error and no runtime warning. Mitigation: the plan calls this out (§Verification step 5), but it should be a checklist item, not a footnote.</p>
+        <div class="ref">refs: <code>fetch_metadata.clj:23, 33, 42, 52, 62</code> — the second-arg symbols to update</div>
+      </div>
+    </div>
+
+    <h3>Ugly</h3>
+    <div class="review-grid">
+      <div class="rcard rcard--ugly" style="--i:0;">
+        <div class="rcard__title">Three EE files instead of two — naming surface is denser <span class="rcard__tag">ugly</span></div>
+        <p>Post-reorg, contributors need to know that "the table remapping module" is actually three: <code>table-remapping</code> (writers), <code>remapping/core</code> (readers + protocol), and <code>workspaces.sync</code> (sync hooks). That's an entirely defensible split, but it asks more of the reader than today's "everything is in <code>table-remapping</code>." Fix: <em>require</em> a docstring at the top of each that points to its two siblings ("readers live in <code>remapping/core</code>; sync hooks live in <code>workspaces.sync</code>"). Without that cross-reference, the next contributor will rebuild the god namespace by accident.</p>
+        <div class="ref">refs: post-reorg <code>table_remapping.clj</code> · <code>remapping/core.clj</code> · <code>workspaces/sync.clj</code></div>
+      </div>
+      <div class="rcard rcard--ugly" style="--i:1;">
+        <div class="rcard__title">RemappingStore is a one-impl-plus-test-double protocol <span class="rcard__tag">ugly</span></div>
+        <p><code>AppDBRemappingStore</code> is the only production impl. <code>MapRemappingStore</code> exists for tests. A reader hitting this file may decide the abstraction is over-engineered and try to inline it; doing so deletes the <code>*remapping-store*</code> seam that 8+ test namespaces depend on. The plan (§Q4) calls for a docstring sentence: <em>"the protocol exists so tests can swap in <code>map-store</code>; do not add new impls without discussion."</em> That note should be enforced — not optional — since the protocol's value isn't visible from one impl alone.</p>
+        <div class="ref">refs: <code>remapping/core.clj:17-58</code></div>
+      </div>
+      <div class="rcard rcard--ugly" style="--i:2;">
+        <div class="rcard__title">remap-table is silently 3-arg only <span class="rcard__tag">ugly</span></div>
+        <p>The current <code>remap-table</code> at <code>table_remapping.clj:134-149</code> matches by <code>(from-schema, from-table-name)</code> only — <code>from_db</code> is ignored. That is correct for Postgres-family + ClickHouse but <strong>incorrect for BigQuery</strong>: two projects with same-named datasets will collide. The docstring acknowledges this. The reorg moves the function to <code>remapping/core</code> verbatim, which means the bug moves with it. The plan punts to "out of scope," which is fair, but landing the reorg without addressing it means the next module landing BigQuery support will hit a fork in the road that wasn't there before the move.</p>
+        <div class="ref">refs: <code>table_remapping.clj:134-149</code> · plan §Out of scope</div>
+      </div>
+    </div>
+
+    <h3>Questions</h3>
+    <div class="review-grid">
+      <div class="rcard rcard--question" style="--i:0;">
+        <div class="rcard__title">Should sync respect *skip-remapping?* the same way QP does? <span class="rcard__tag">question</span></div>
+        <p>Today, only QP middleware honors <code>*skip-remapping?*</code> (binding it skips remap during display contexts like <code>POST /api/dataset/native</code>). Once sync also reads through the protocol, <code>enabled-for-db?</code> would return false in the same scoped contexts — including any case where someone binds <code>*skip-remapping?*</code> while a sync runs. The plan (§Q4) says "probably correct: workspace-execution contexts shouldn't trigger sync remap behavior either." Confirm this is intentional and document it; otherwise this is a behavior change in disguise.</p>
+        <div class="ref">refs: <code>remapping/core.clj:73-89</code> · plan §Q4</div>
+      </div>
+      <div class="rcard rcard--good" style="--i:1;">
+        <div class="rcard__title"><s>Does Ben's defenterprise concern block this?</s> Resolved 2026-05-01 <span class="rcard__tag">resolved</span></div>
+        <p>Discussed in the 9:30 meeting. Ben confirmed his concern is about an architectural pattern (namespace-loading vs call-site graphs decoupling), not about this reorg specifically. He estimated the protocol-instance fix would be "four years" of work across the codebase. <strong>Outcome:</strong> tech-radar entry; this reorg proceeds as designed. See decision log §"defenterprise refactor is tech-radar."</p>
+        <div class="ref">refs: meeting transcript 2026-05-01, ~15:00–22:00</div>
+      </div>
+      <div class="rcard rcard--question" style="--i:2;">
+        <div class="rcard__title">Should remap-table-spec be the only sync helper, or two thinner readers? <span class="rcard__tag">question</span></div>
+        <p>Plan §Q2 introduces a new <code>remap-table-spec</code> in <code>remapping/core</code> for sync hook bodies. Open question: should it return a <code>::table-spec</code> map (uniform with the writer's input shape), or a 2-tuple <code>[to-schema to-name]</code> matching the existing sync-hook callsite signature? First option is cleaner; second is fewer call-site changes. Pick one before extracting.</p>
+        <div class="ref">refs: <code>fetch_metadata.clj:71</code> consumes existing 2-tuple shape</div>
+      </div>
+    </div>
+
+    <!-- ============ SECTION 9: Decision log ============ -->
+    <div id="s9" class="sec-head"><span class="num green">09</span>Decision log</div>
+    <div class="review-grid">
+      <div class="rcard rcard--high" style="--i:0; border-left-width: 6px;">
+        <div class="rcard__title">Keep the "lie" model — sync writes canonical Table rows backed by isolation metadata <span class="rcard__tag">high confidence · rejected alt</span></div>
+        <p><strong>Decision.</strong> Workspace child instances continue to store one <code>:model/Table</code> record per logical table — canonical schema name, isolation-schema metadata. Queries against the canonical name get rewritten via <code>:model/TableRemapping</code> at query time.</p>
+        <p><strong>Alternative considered (Ben, 2026-05-01):</strong> sync everything in the data warehouse honestly, expose isolation tables as their own Table records, filter them out on the read side (UI lists, search, query builder, joins).</p>
+        <p><strong>Why the alternative was withdrawn.</strong> Dan's pushback: "lots of stuff expects: if it's in the database, I can use it." Search would surface isolation tables. Query builder would offer them as joins. Model index would index them. Result: whack-a-mole filters across every consumer of the Table model. Storing rows you always filter is also wasteful (Ben acknowledged — real but minor). Ben withdrew once Bryan clarified that the current model stores <em>one</em> record (canonical name, isolation metadata), not two. Quote: <em>"that decision alleviates a lot of the need to fix up the view of the world on the read side."</em></p>
+        <p><strong>What this means for the reorg.</strong> Don't propose surfacing isolation-schema tables in the UI. The reorg is mechanical — co-locate the existing seams, don't redesign them.</p>
+        <p><strong>Source.</strong> Meeting transcript, 2026-05-01 9:30 AM (Bryan/Dan/Ben).</p>
+      </div>
+      <div class="rcard rcard--high" style="--i:1; border-left-width: 6px;">
+        <div class="rcard__title">Mechanical refactor only — no behavior change <span class="rcard__tag">high confidence · scope guard</span></div>
+        <p><strong>Decision.</strong> The reorg co-locates the existing seams. It does not change <code>defenterprise</code>, does not introduce a new abstraction layer, does not redesign the sync model.</p>
+        <p><strong>Direct quotes.</strong> Dan: <em>"leave the current implementation identical and just co-locate those."</em> Bryan: <em>"no behavior change. This is just organization and like making it easy to find everywhere."</em></p>
+        <p><strong>What this rules out.</strong> Protocol-instance refactor of <code>defenterprise</code> (Ben's tech-radar item — out of scope). Per-database vs instance-level gate redesign. New tests for new behaviors — only test surface change is "tests get easier" because of the unified read path.</p>
+        <p><strong>Source.</strong> Meeting transcript, 2026-05-01.</p>
+      </div>
+      <div class="rcard rcard--high" style="--i:2; border-left-width: 6px;">
+        <div class="rcard__title">Module linter is the falsifiable success criterion <span class="rcard__tag">high confidence · validation</span></div>
+        <p><strong>Decision.</strong> Post-reorg, the modular CI lint should report zero workspace-related findings.</p>
+        <p><strong>Why this is the right metric.</strong> Bryan/Dan ran the linter mid-meeting and saw errors: workspaces "should not be used in the actions / model-persistence / upload modules." The linter sees dynamic <code>defenterprise</code> edges (Bryan: <em>"definitely will attempt to require the namespace"</em>); humans grepping for <code>workspaces</code> don't. The linter is exactly the tool that proves the seams are now visible from the call graph.</p>
+        <p><strong>Open Q (Dan):</strong> some of these may already be fine after this reorg without further action. Some may need follow-up module config.</p>
+        <p><strong>Source.</strong> Meeting transcript, 2026-05-01 (~13:50).</p>
+      </div>
+      <div class="rcard rcard--high" style="--i:3;">
+        <div class="rcard__title">Feature-named OSS shim, not subsystem-named <span class="rcard__tag">high confidence</span></div>
+        <p><strong>Decision.</strong> Create <code>metabase.workspaces.sync</code> rather than <code>metabase.sync.fetch-metadata.enterprise</code>.</p>
+        <p><strong>Rationale.</strong> Dan's stated goal is grep discoverability of workspace seams. The QP precedent at <code>middleware/enterprise.clj</code> is subsystem-named because it mixes hooks from many features. Sync's five stubs are 100% workspaces — no mixed tenancy.</p>
+        <p><strong>Alternatives.</strong> <code>metabase.sync.fetch-metadata.enterprise</code> (subsystem-named) — rejected, would not surface in <code>grep workspaces</code>.</p>
+        <p><strong>Source.</strong> Slack thread + plan §Q1 (explicit conversation).</p>
+      </div>
+      <div class="rcard rcard--high" style="--i:4;">
+        <div class="rcard__title">Three EE files; option (c) over collapse or partial unify <span class="rcard__tag">high confidence</span></div>
+        <p><strong>Decision.</strong> Keep <code>remapping/core</code> separate from <code>table_remapping</code>; spin off sync hooks to a new <code>workspaces.sync</code>.</p>
+        <p><strong>Rationale.</strong> Collapsing (option b) deletes the <code>*remapping-store*</code> test seam relied on by 8+ test namespaces. Partial unify (option a) leaves sync still reading directly. Option (c) gives one read API for everyone, gives sync its own greppable home, shrinks <code>table_remapping</code> to a coherent writer module.</p>
+        <p><strong>Alternatives.</strong> Collapse all into one ns; or keep both EE files and partially unify reads.</p>
+        <p><strong>Source.</strong> Plan §Q2 (explicit, three options compared).</p>
+      </div>
+      <div class="rcard rcard--high" style="--i:5;">
+        <div class="rcard__title">Keep dynamic vars at the protocol, not at the consumer <span class="rcard__tag">high confidence</span></div>
+        <p><strong>Decision.</strong> <code>*skip-remapping?*</code> and <code>*remapping-store*</code> stay in <code>remapping/core</code>.</p>
+        <p><strong>Rationale.</strong> Moving them near QP would re-couple the abstraction to one consumer at the moment sync starts using it too. The dynamic vars are intrinsic to the protocol's contract.</p>
+        <p><strong>Source.</strong> Plan §Q4.</p>
+      </div>
+      <div class="rcard rcard--medium" style="--i:6;">
+        <div class="rcard__title">Sequence: move readers first, sync hooks second <span class="rcard__tag">inferred</span></div>
+        <p><strong>Decision.</strong> Move <code>remap-table</code> and <code>all-mappings-for-db</code> into <code>remapping/core</code> before extracting the five sync hooks.</p>
+        <p><strong>Rationale.</strong> If sync hooks are extracted first, clj-surgeon's <code>:extract!</code> will pull <code>all-mappings-for-db</code> along into <code>workspaces.sync</code> (because it's an exclusive private dep). We want it in <code>remapping/core</code>. Sequencing readers first means sync hooks see them as cross-ns deps and clj-surgeon adds a require rather than copying code.</p>
+        <p><strong>Source.</strong> Inferred from clj-surgeon README's <code>:ls-extract</code> closure semantics applied to current <code>table_remapping.clj</code> dep graph.</p>
+      </div>
+      <div class="rcard rcard--high" style="--i:7;">
+        <div class="rcard__title">Transform writer stays in table_remapping <span class="rcard__tag">high confidence</span></div>
+        <p><strong>Decision.</strong> <code>add-transform-target-mapping!</code> stays where it is; <code>transform_hooks.clj</code> continues to call it directly.</p>
+        <p><strong>Rationale.</strong> Post-reorg, <code>table_remapping.clj</code> is the writer module. Moving the writer to <code>core.clj</code> recreates a god namespace.</p>
+        <p><strong>Source.</strong> Plan §Q3.</p>
+      </div>
+      <div class="rcard rcard--high" style="--i:8;">
+        <div class="rcard__title">defenterprise refactor is tech-radar — explicitly out of scope <span class="rcard__tag">high confidence · scope guard</span></div>
+        <p><strong>Decision.</strong> The reorg keeps <code>defenterprise</code> as-is. Ben's deeper concern — that <code>defenterprise</code> decouples namespace-loading edges from call-site edges — gets a tech-radar entry, not a code change.</p>
+        <p><strong>Rationale.</strong> Ben's idiomatic alternative is to construct a single protocol-instance object early in boot (with EE or OSS impls per method depending on jar contents), pass it to consumers. Function-call edges then equal require edges. But Ben himself: <em>"this is not an easy problem to fix in our codebase. It's all over the place. You'd spend four years fixing it before you got to the point where it wasn't true anymore."</em></p>
+        <p><strong>Bryan's confirmation</strong> of the actual mechanics: <code>defenterprise</code> does NOT cause the EE namespace to load via the symbol mention. It works in EE because something else loads the namespace. In OSS, the EE dir isn't even in the jar.</p>
+        <p><strong>Source.</strong> Meeting transcript 2026-05-01 (~15:00–22:00).</p>
+      </div>
+    </div>
+
+    <!-- ============ SECTION 10: Re-entry ============ -->
+    <div id="s10" class="sec-head"><span class="num amber">10</span>Re-entry context</div>
+    <details class="collapsible" open>
+      <summary>Note from present-you to future-you</summary>
+      <div class="body">
+        <h3 style="margin-top: 0;">Key invariants</h3>
+        <ul class="node-list">
+          <li>Sync hooks are <code>:feature :none</code> — they engage on <em>row existence</em> in <code>table_remapping</code>, not on premium token state. Rationale: workspace children boot before token install. The reorg must preserve this; do not accidentally add a feature gate when moving impls.</li>
+          <li>Empty-string <code>""</code> is the sentinel for "this driver doesn't emit this identifier level," not <code>nil</code>. Rationale: Postgres/MySQL/H2 treat <code>NULL != NULL</code> in unique indexes. <code>normalize-level</code> in <code>table_remapping.clj:67-70</code> is the only enforcer — keep it on every write path.</li>
+          <li>Phase 2 SQL rewriter <strong>fails closed</strong>: parse failure throws, no fallback to original SQL. Don't "fix" this during the move; silent pass-through breaches workspace isolation.</li>
+        </ul>
+
+        <h3>Non-obvious coupling</h3>
+        <ul class="node-list">
+          <li><code>after-insert</code> and <code>before-delete</code> hooks on <code>:model/TableRemapping</code> invalidate the QP results cache. Tests that bypass <code>add-mapping!</code> with direct <code>t2/insert!</code> still trigger this — but tests that <em>delete</em> via raw SQL won't. Stay on the typed model.</li>
+          <li><code>workspace-mode?</code> (instance-level) and <code>db-workspace-schema</code> (per-database) and <code>enabled-for-db?</code> (per-database, by row existence) are three different gates. <code>core.clj:6-19</code> documents this. The reorg doesn't touch these but moves around the third one — keep that doc-block aligned post-move.</li>
+          <li>Sync hooks call each other implicitly via the diff/inject pair: <code>filter-workspace-side-tables</code> drops to-side tuples, <code>inject-workspace-canonical-tuples</code> adds canonical tuples — together they make the sync diff stable. They must continue to share a read source (one <code>all-mappings-for-db</code> call per sync, not five) post-reorg, or sync gets noisier.</li>
+        </ul>
+
+        <h3>Gotchas</h3>
+        <ul class="node-list">
+          <li>Five second-arg <code>defenterprise</code> symbols (<code>fetch_metadata.clj:23, 33, 42, 52, 62</code>) need rewriting from <code>metabase-enterprise.workspaces.table-remapping</code> to <code>metabase-enterprise.workspaces.sync</code>. Not structural — manual <code>Edit</code>. A miss is silent: the OSS fallback runs in EE.</li>
+          <li><code>remap-table</code> is 3-arg — schema + table only — and ignores <code>from_db</code>. Correct for Postgres/ClickHouse, broken for BigQuery. Out of scope for this reorg, but keep the docstring intact when moving.</li>
+          <li><code>MapRemappingStore</code> auto-widens 2-tuple keys to 3-tuples with empty <code>db</code> sentinel for back-compat (<code>remapping/core.clj:55-57</code>). If sync tests start using it, they may pass 2-tuples too — make sure the widening is visible in the docstring after the move.</li>
+        </ul>
+
+        <h3>Don't forget</h3>
+        <ul class="node-list">
+          <li>After reorg, post-merge <code>grep -rln workspace src/metabase/sync/</code> should return zero results. That's the regression check.</li>
+          <li>Update <code>~/dv/mb/.worklogs/workspaces-v2.md</code> with the discovery+decisions from this reorg before merging.</li>
+          <li>Ping Ben Grabow on GHY-3494 about defenterprise namespace conventions before starting (his 8:20 comment).</li>
+          <li>If BigQuery workspace remap lands soon, address the 4-arg <code>remap-table</code> in the same PR — moving and fixing in one step is cheaper than two reorgs.</li>
+        </ul>
+      </div>
+    </details>
+
+    <p style="text-align: center; font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); margin: 36px 0 16px; padding-top: 16px; border-top: 1px dashed var(--border-bright); letter-spacing: 1.5px;">
+      Plan: ~/.claude/plans/dan-sutton-8-15-am-vast-wave.md · Generated 2026-05-01
+    </p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  // Mermaid theme matched to page palette
+  const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    securityLevel: 'loose',
+    flowchart: { useMaxWidth: false, htmlLabels: false, curve: 'basis' },
+    themeVariables: dark ? {
+      fontFamily: 'IBM Plex Sans, system-ui, sans-serif',
+      fontSize: '13px',
+      background: '#1f1e16',
+      primaryColor: '#25241a',
+      primaryBorderColor: '#5fbcb3',
+      primaryTextColor: '#ece0bd',
+      lineColor: '#a89a73',
+      secondaryColor: '#2a2920',
+      tertiaryColor: '#1a1a12',
+      noteBkgColor: '#2a2920',
+      noteTextColor: '#ece0bd',
+      actorBkg: '#25241a',
+      actorTextColor: '#ece0bd',
+      actorLineColor: '#5fbcb3',
+      sequenceNumberColor: '#14140e',
+      labelBoxBkgColor: '#2a2920',
+      labelBoxBorderColor: '#5fbcb3',
+      labelTextColor: '#ece0bd',
+      activationBkgColor: '#5fbcb3',
+      activationBorderColor: '#5fbcb3',
+      altBackground: '#2a2920'
+    } : {
+      fontFamily: 'IBM Plex Sans, system-ui, sans-serif',
+      fontSize: '13px',
+      background: '#fbf7e7',
+      primaryColor: '#fbf7e7',
+      primaryBorderColor: '#0e6b6b',
+      primaryTextColor: '#2d2410',
+      lineColor: '#6b5a3a',
+      secondaryColor: '#f6efd5',
+      tertiaryColor: '#ebe4cb',
+      noteBkgColor: '#f6efd5',
+      noteTextColor: '#2d2410',
+      actorBkg: '#fbf7e7',
+      actorTextColor: '#2d2410',
+      actorLineColor: '#0e6b6b',
+      sequenceNumberColor: '#fbf7e7',
+      labelBoxBkgColor: '#f6efd5',
+      labelBoxBorderColor: '#0e6b6b',
+      labelTextColor: '#2d2410',
+      activationBkgColor: '#0e6b6b',
+      activationBorderColor: '#0e6b6b',
+      altBackground: '#f6efd5'
+    }
+  });
+
+  // Run after fonts load to fix zero-width node measurement bug
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() { mermaid.run(); });
+  } else {
+    window.addEventListener('load', function() { mermaid.run(); });
+  }
+</script>
+
+<script>
+  // Mermaid zoom controls + pan
+  function updateZoomState(wrap) {
+    var target = wrap.querySelector('.mermaid');
+    if (!target) return;
+    var zoom = parseFloat(target.dataset.zoom || '1');
+    wrap.classList.toggle('is-zoomed', zoom > 1);
+  }
+  function zoomDiagram(btn, factor) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    var current = parseFloat(target.dataset.zoom || '1');
+    var next = Math.min(Math.max(current * factor, 0.3), 5);
+    target.dataset.zoom = next;
+    target.style.transform = 'scale(' + next + ')';
+    updateZoomState(wrap);
+  }
+  function resetZoom(btn) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    target.dataset.zoom = '1';
+    target.style.transform = 'scale(1)';
+    updateZoomState(wrap);
+  }
+  document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+    wrap.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      var target = wrap.querySelector('.mermaid');
+      if (!target) return;
+      var current = parseFloat(target.dataset.zoom || '1');
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var next = Math.min(Math.max(current * factor, 0.3), 5);
+      target.dataset.zoom = next;
+      target.style.transform = 'scale(' + next + ')';
+      updateZoomState(wrap);
+    }, { passive: false });
+
+    var startX, startY, scrollL, scrollT;
+    wrap.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.zoom-controls')) return;
+      var target = wrap.querySelector('.mermaid');
+      if (!target || parseFloat(target.dataset.zoom || '1') <= 1) return;
+      wrap.classList.add('is-panning');
+      startX = e.clientX; startY = e.clientY;
+      scrollL = wrap.scrollLeft; scrollT = wrap.scrollTop;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!wrap.classList.contains('is-panning')) return;
+      wrap.scrollLeft = scrollL - (e.clientX - startX);
+      wrap.scrollTop = scrollT - (e.clientY - startY);
+    });
+    window.addEventListener('mouseup', function() {
+      wrap.classList.remove('is-panning');
+    });
+  });
+</script>
+
+<script>
+  // Scroll-spy TOC
+  (function() {
+    const toc = document.getElementById('toc');
+    if (!toc) return;
+    const links = toc.querySelectorAll('a');
+    const sections = [];
+    links.forEach(link => {
+      const id = link.getAttribute('href').slice(1);
+      const el = document.getElementById(id);
+      if (el) sections.push({ id, el, link });
+    });
+
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          links.forEach(l => l.classList.remove('active'));
+          const match = sections.find(s => s.el === entry.target);
+          if (match) {
+            match.link.classList.add('active');
+            if (window.innerWidth <= 1000) {
+              match.link.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+          }
+        }
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+
+    sections.forEach(s => observer.observe(s.el));
+
+    links.forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        const id = link.getAttribute('href').slice(1);
+        const el = document.getElementById(id);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          history.replaceState(null, '', '#' + id);
+        }
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>

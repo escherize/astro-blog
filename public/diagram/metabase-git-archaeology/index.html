@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Metabase Git Archaeology - 12 Month Intelligence Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Sora', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #0a0e1a;
+    --bg2: #0f1424;
+    --surface: #141a2e;
+    --surface2: #1a2140;
+    --surface-elevated: #1e2750;
+    --border: rgba(255, 255, 255, 0.06);
+    --border-bright: rgba(255, 255, 255, 0.12);
+    --text: #e8ecf4;
+    --text-dim: #7a8599;
+    --text-muted: #4d576b;
+
+    --cyan: #22d3ee;
+    --cyan-dim: rgba(34, 211, 238, 0.12);
+    --cyan-glow: rgba(34, 211, 238, 0.25);
+    --green: #34d399;
+    --green-dim: rgba(52, 211, 153, 0.12);
+    --amber: #fbbf24;
+    --amber-dim: rgba(251, 191, 36, 0.12);
+    --red: #f87171;
+    --red-dim: rgba(248, 113, 113, 0.12);
+    --purple: #a78bfa;
+    --purple-dim: rgba(167, 139, 250, 0.12);
+    --blue: #60a5fa;
+    --blue-dim: rgba(96, 165, 250, 0.12);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f0f2f7;
+      --bg2: #e8ebf2;
+      --surface: #ffffff;
+      --surface2: #f5f7fb;
+      --surface-elevated: #ffffff;
+      --border: rgba(0, 0, 0, 0.07);
+      --border-bright: rgba(0, 0, 0, 0.14);
+      --text: #0f172a;
+      --text-dim: #64748b;
+      --text-muted: #94a3b8;
+      --cyan: #0891b2;
+      --cyan-dim: rgba(8, 145, 178, 0.08);
+      --cyan-glow: rgba(8, 145, 178, 0.15);
+      --green: #059669;
+      --green-dim: rgba(5, 150, 105, 0.08);
+      --amber: #d97706;
+      --amber-dim: rgba(217, 119, 6, 0.08);
+      --red: #dc2626;
+      --red-dim: rgba(220, 38, 38, 0.08);
+      --purple: #7c3aed;
+      --purple-dim: rgba(124, 58, 237, 0.08);
+      --blue: #2563eb;
+      --blue-dim: rgba(37, 99, 235, 0.08);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 20% 0%, var(--cyan-dim) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, var(--purple-dim) 0%, transparent 40%),
+      radial-gradient(ellipse at 50% 100%, var(--blue-dim) 0%, transparent 40%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes glowPulse {
+    0%, 100% { box-shadow: 0 0 20px var(--cyan-dim), inset 0 1px 0 rgba(255,255,255,0.05); }
+    50% { box-shadow: 0 0 30px var(--cyan-glow), inset 0 1px 0 rgba(255,255,255,0.08); }
+  }
+
+  .animate { animation: fadeUp 0.4s ease-out both; animation-delay: calc(var(--i, 0) * 0.06s); }
+  .animate-scale { animation: fadeScale 0.35s ease-out both; animation-delay: calc(var(--i, 0) * 0.06s); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* ============ NAV ============ */
+  .wrap {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 170px 1fr;
+    gap: 0 40px;
+  }
+  .main { min-width: 0; }
+
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    padding: 14px 0;
+    grid-row: 1 / -1;
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+  }
+  .toc::-webkit-scrollbar { width: 3px; }
+  .toc::-webkit-scrollbar-thumb { background: var(--surface-elevated); border-radius: 2px; }
+
+  .toc-title {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    padding: 0 0 10px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toc a {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 5px 8px;
+    border-radius: 5px;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+    line-height: 1.4;
+    margin-bottom: 1px;
+  }
+  .toc a:hover { color: var(--text); background: var(--surface2); }
+  .toc a.active { color: var(--cyan); border-left-color: var(--cyan); }
+
+  @media (max-width: 1000px) {
+    .wrap { grid-template-columns: 1fr; padding-top: 0; }
+    body { padding-top: 0; }
+    .toc {
+      position: sticky; top: 0; z-index: 200;
+      max-height: none; display: flex; gap: 4px; align-items: center;
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      background: var(--bg); border-bottom: 1px solid var(--border);
+      padding: 10px 0; margin: 0 -40px; padding-left: 40px; padding-right: 40px;
+      grid-row: auto;
+    }
+    .toc::-webkit-scrollbar { display: none; }
+    .toc-title { display: none; }
+    .toc a {
+      white-space: nowrap; flex-shrink: 0; border-left: none;
+      border-bottom: 2px solid transparent; border-radius: 4px 4px 0 0;
+      padding: 6px 10px; font-size: 10px;
+    }
+    .toc a.active { border-left: none; border-bottom-color: var(--cyan); background: var(--surface); }
+    .main { padding-top: 20px; }
+    .sec-head { scroll-margin-top: 52px; }
+  }
+
+  /* ============ HEADER ============ */
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--cyan);
+    background: var(--cyan-dim);
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+  }
+  .header-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--cyan);
+    animation: glowPulse 2s ease-in-out infinite;
+  }
+
+  h1 {
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    line-height: 1.1;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--text), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 14px;
+    font-weight: 400;
+    margin-bottom: 8px;
+  }
+  .subtitle a {
+    color: var(--cyan);
+    text-decoration: none;
+    border-bottom: 1px solid var(--cyan-dim);
+  }
+
+  .date-line {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 36px;
+  }
+
+  /* ============ SECTION HEADS ============ */
+  .sec-head {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 10px 0;
+    margin-top: 40px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sec-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--cyan-dim);
+    color: var(--cyan);
+  }
+
+  /* ============ KPI ROW ============ */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--cyan);
+  }
+  .kpi-card--green::before { background: var(--green); }
+  .kpi-card--amber::before { background: var(--amber); }
+  .kpi-card--red::before { background: var(--red); }
+  .kpi-card--purple::before { background: var(--purple); }
+
+  .kpi-value {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+  .kpi-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+  .kpi-detail {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* ============ CHARTS ============ */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .chart-card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .chart-card .chart-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+  .chart-card canvas {
+    max-height: 280px;
+  }
+
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 900px) {
+    .chart-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ============ TABLES ============ */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .data-table thead { position: sticky; top: 0; z-index: 2; }
+  .data-table th {
+    background: var(--surface2);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--border-bright);
+    white-space: nowrap;
+  }
+  .data-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .data-table td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  .data-table th.num { text-align: right; }
+  .data-table tbody tr:nth-child(even) { background: var(--cyan-dim); }
+  .data-table tbody tr { transition: background 0.15s ease; }
+  .data-table tbody tr:hover { background: var(--border); }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--cyan-dim);
+    color: var(--cyan);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+  .data-table small {
+    display: block;
+    color: var(--text-dim);
+    font-size: 11px;
+    margin-top: 2px;
+  }
+
+  /* ============ STATUS BADGES ============ */
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .status::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .status--high { background: var(--red-dim); color: var(--red); }
+  .status--med { background: var(--amber-dim); color: var(--amber); }
+  .status--low { background: var(--green-dim); color: var(--green); }
+
+  /* ============ RISK MATRIX ============ */
+  .risk-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 12px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 16px;
+    align-items: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .risk-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+  .risk-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  .risk-icon--high { background: var(--red-dim); }
+  .risk-icon--med { background: var(--amber-dim); }
+  .risk-icon--low { background: var(--green-dim); }
+  .risk-area {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .risk-signal {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  /* ============ BAR (horizontal for hotspots) ============ */
+  .hbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hbar-track {
+    flex: 1;
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .hbar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s ease-out;
+  }
+  .hbar-fill--churn { background: var(--cyan); }
+  .hbar-fill--bug { background: var(--red); opacity: 0.8; }
+
+  /* ============ FIREFIGHTING ============ */
+  .fire-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .fire-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    position: relative;
+  }
+  .fire-card__count {
+    font-size: 28px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .fire-card__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+  .fire-card__note {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  /* ============ CALLOUT ============ */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-dim);
+  }
+  .callout strong { color: var(--text); }
+
+  /* ============ METHODOLOGY FOOTER ============ */
+  .footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+  .footer a { color: var(--cyan); text-decoration: none; }
+
+  @media (max-width: 768px) {
+    body { padding: 16px; }
+    h1 { font-size: 26px; }
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .fire-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <nav class="toc" id="toc">
+    <div class="toc-title">Sections</div>
+    <a href="#s0">Summary</a>
+    <a href="#s1">Velocity</a>
+    <a href="#s2">Contributors</a>
+    <a href="#s3">Bug Hotspots</a>
+    <a href="#s4">Firefighting</a>
+    <a href="#s5">Risk Matrix</a>
+  </nav>
+
+  <div class="main">
+
+    <div class="header-badge animate" style="--i:0">Intelligence Report</div>
+    <h1 class="animate" style="--i:1">Metabase Git Archaeology</h1>
+    <p class="subtitle animate" style="--i:2">12 months of commit history, analyzed with <a href="https://piechowski.io/post/git-commands-before-reading-code/">Ally Piechowski's 5-command technique</a></p>
+    <p class="date-line animate" style="--i:3">2025-04 through 2026-04-08 &middot; metabase/metabase</p>
+
+    <!-- ===== KPIs ===== -->
+    <div id="s0" class="sec-head animate" style="--i:4"><span class="sec-num">0</span> Executive Summary</div>
+
+    <div class="kpi-row">
+      <div class="kpi-card animate-scale" style="--i:5">
+        <div class="kpi-value" data-count="5759">5,759</div>
+        <div class="kpi-label">Commits</div>
+        <div class="kpi-detail">~480/month avg</div>
+      </div>
+      <div class="kpi-card kpi-card--green animate-scale" style="--i:6">
+        <div class="kpi-value" data-count="123">123</div>
+        <div class="kpi-label">Contributors</div>
+        <div class="kpi-detail">Top: 5.1% share</div>
+      </div>
+      <div class="kpi-card kpi-card--amber animate-scale" style="--i:7">
+        <div class="kpi-value">57</div>
+        <div class="kpi-label">Reverts</div>
+        <div class="kpi-detail">1% of commits</div>
+      </div>
+      <div class="kpi-card kpi-card--red animate-scale" style="--i:8">
+        <div class="kpi-value">72%</div>
+        <div class="kpi-label">QP Bug Rate</div>
+        <div class="kpi-detail">Highest risk file</div>
+      </div>
+    </div>
+
+    <div class="callout animate" style="--i:9">
+      <strong>Healthy repo.</strong> Steady velocity, distributed ownership, no single-contributor bottleneck. Main risk signals: <strong>transforms</strong> is the most volatile feature area (5 reverts), and the SQL query processor has a 72% bug-adjacent churn rate.
+    </div>
+
+    <!-- ===== VELOCITY ===== -->
+    <div id="s1" class="sec-head animate" style="--i:10"><span class="sec-num">1</span> Development Velocity</div>
+
+    <div class="chart-card animate" style="--i:11">
+      <h3>Monthly Commit Volume</h3>
+      <p class="chart-desc">Remarkably steady at ~470-540/month. Oct-Nov dip is holiday seasonality. Q1 2026 matches the July 2025 peak.</p>
+      <canvas id="velocityChart"></canvas>
+    </div>
+
+    <!-- ===== CONTRIBUTORS ===== -->
+    <div id="s2" class="sec-head animate" style="--i:12"><span class="sec-num">2</span> Contributor Distribution</div>
+
+    <div class="chart-grid">
+      <div class="chart-card animate" style="--i:13">
+        <h3>Top 10 Contributors</h3>
+        <p class="chart-desc">Non-bot, non-merge commits. Excellent bus factor - top contributor is only 5.1%.</p>
+        <canvas id="contribChart"></canvas>
+      </div>
+      <div class="chart-card animate" style="--i:14">
+        <h3>Ownership Share</h3>
+        <p class="chart-desc">Top 10 humans = 36% of all commits. Remaining 113 contributors = 64%.</p>
+        <canvas id="ownershipChart"></canvas>
+      </div>
+    </div>
+
+    <!-- ===== BUG HOTSPOTS ===== -->
+    <div id="s3" class="sec-head animate" style="--i:15"><span class="sec-num">3</span> Bug Hotspots</div>
+
+    <div class="callout animate" style="--i:16">
+      Files appearing in <strong>both</strong> high-churn and bug-fix lists represent the highest risk. The overlap is near-total - every high-churn source file also clusters bugs.
+    </div>
+
+    <div class="table-wrap animate" style="--i:17">
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th class="num">Total Churn</th>
+              <th class="num">Bug Commits</th>
+              <th class="num">Bug %</th>
+              <th>Risk</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>driver/sql/query_processor.clj</code><small>SQL compilation layer - affects every driver</small></td>
+              <td class="num">53</td>
+              <td class="num">38</td>
+              <td class="num" style="color:var(--red);font-weight:600">72%</td>
+              <td><span class="status status--high">High</span></td>
+            </tr>
+            <tr>
+              <td><code>queries/models/card.clj</code><small>Card model - under heavy renovation</small></td>
+              <td class="num">63</td>
+              <td class="num">40</td>
+              <td class="num" style="color:var(--red);font-weight:600">63%</td>
+              <td><span class="status status--high">High</span></td>
+            </tr>
+            <tr>
+              <td><code>driver/postgres.clj</code><small>Postgres driver</small></td>
+              <td class="num">48</td>
+              <td class="num">30</td>
+              <td class="num" style="color:var(--amber);font-weight:600">63%</td>
+              <td><span class="status status--med">Medium</span></td>
+            </tr>
+            <tr>
+              <td><code>lib/core.cljc</code><small>MLv2 core namespace</small></td>
+              <td class="num">65</td>
+              <td class="num">42</td>
+              <td class="num" style="color:var(--amber);font-weight:600">65%</td>
+              <td><span class="status status--med">Medium</span></td>
+            </tr>
+            <tr>
+              <td><code>legacy_mbql/schema.cljc</code><small>Legacy query schema</small></td>
+              <td class="num">60</td>
+              <td class="num">41</td>
+              <td class="num" style="color:var(--amber);font-weight:600">68%</td>
+              <td><span class="status status--med">Medium</span></td>
+            </tr>
+            <tr>
+              <td><code>driver/snowflake.clj</code><small>Snowflake driver</small></td>
+              <td class="num">50</td>
+              <td class="num">29</td>
+              <td class="num">58%</td>
+              <td><span class="status status--med">Medium</span></td>
+            </tr>
+            <tr>
+              <td><code>lib/schema/metadata.cljc</code><small>MLv2 metadata schema</small></td>
+              <td class="num">45</td>
+              <td class="num">32</td>
+              <td class="num" style="color:var(--amber);font-weight:600">71%</td>
+              <td><span class="status status--med">Medium</span></td>
+            </tr>
+            <tr>
+              <td><code>driver/mysql.clj</code><small>MySQL driver</small></td>
+              <td class="num">45</td>
+              <td class="num">28</td>
+              <td class="num">62%</td>
+              <td><span class="status status--med">Medium</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="chart-card animate" style="--i:18">
+      <h3>Churn vs Bug-Fix Overlap</h3>
+      <p class="chart-desc">Total file changes (cyan) vs bug-related changes (red). Overlap intensity signals defect concentration.</p>
+      <canvas id="hotspotChart"></canvas>
+    </div>
+
+    <!-- ===== FIREFIGHTING ===== -->
+    <div id="s4" class="sec-head animate" style="--i:19"><span class="sec-num">4</span> Firefighting Patterns</div>
+
+    <div class="fire-grid">
+      <div class="fire-card animate-scale" style="--i:20">
+        <div class="fire-card__count" style="color:var(--red)">5</div>
+        <div class="fire-card__label">Transforms</div>
+        <div class="fire-card__note">"Revert the revert" pattern. 218 commits, 2.3% revert rate (vs 1% baseline)</div>
+      </div>
+      <div class="fire-card animate-scale" style="--i:21">
+        <div class="fire-card__count" style="color:var(--amber)">4</div>
+        <div class="fire-card__label">CI / Infra</div>
+        <div class="fire-card__note">Docker images, Node pinning, e2e runner changes reverted</div>
+      </div>
+      <div class="fire-card animate-scale" style="--i:22">
+        <div class="fire-card__count" style="color:var(--amber)">3</div>
+        <div class="fire-card__label">ClickHouse</div>
+        <div class="fire-card__note">JDBC driver upgrades 0.9.7, 0.9.5, 0.9.2 all reverted. Root cause unresolved.</div>
+      </div>
+      <div class="fire-card animate-scale" style="--i:23">
+        <div class="fire-card__count" style="color:var(--purple)">2</div>
+        <div class="fire-card__label">Metabot / AI</div>
+        <div class="fire-card__note">Experimental features reverted after merge</div>
+      </div>
+      <div class="fire-card animate-scale" style="--i:24">
+        <div class="fire-card__count" style="color:var(--text-dim)">~10</div>
+        <div class="fire-card__label">Misc Features</div>
+        <div class="fire-card__note">Data studio permissions, cursor hiding, translations, etc.</div>
+      </div>
+    </div>
+
+    <div class="chart-card animate" style="--i:25">
+      <h3>Revert Distribution by Area</h3>
+      <p class="chart-desc">57 total reverts/hotfixes in 12 months. Transforms dominate.</p>
+      <canvas id="revertChart"></canvas>
+    </div>
+
+    <!-- ===== RISK MATRIX ===== -->
+    <div id="s5" class="sec-head animate" style="--i:26"><span class="sec-num">5</span> Risk Matrix</div>
+
+    <div class="risk-card animate" style="--i:27">
+      <div class="risk-icon risk-icon--high"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3L18 17H2L10 3Z" stroke="var(--red)" stroke-width="1.5" fill="var(--red-dim)"/><line x1="10" y1="8" x2="10" y2="12" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="14.5" r="0.8" fill="var(--red)"/></svg></div>
+      <div>
+        <div class="risk-area">SQL Query Processor</div>
+        <div class="risk-signal">High churn + 72% bug-adjacent rate. Bugs here cascade to every database driver.</div>
+      </div>
+      <span class="status status--high">High</span>
+    </div>
+
+    <div class="risk-card animate" style="--i:28">
+      <div class="risk-icon risk-icon--high"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3L18 17H2L10 3Z" stroke="var(--red)" stroke-width="1.5" fill="var(--red-dim)"/><line x1="10" y1="8" x2="10" y2="12" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="14.5" r="0.8" fill="var(--red)"/></svg></div>
+      <div>
+        <div class="risk-area">Transforms</div>
+        <div class="risk-signal">Highest revert rate (2.3% vs 1% baseline). "Revert of revert" signals development under pressure.</div>
+      </div>
+      <span class="status status--high">High</span>
+    </div>
+
+    <div class="risk-card animate" style="--i:29">
+      <div class="risk-icon risk-icon--med"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="var(--amber)" stroke-width="1.5" fill="var(--amber-dim)"/><line x1="10" y1="6" x2="10" y2="10.5" stroke="var(--amber)" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="13" r="0.8" fill="var(--amber)"/></svg></div>
+      <div>
+        <div class="risk-area">Card Model</div>
+        <div class="risk-signal">63 changes, 63% bug-adjacent. Active renovation with high defect density.</div>
+      </div>
+      <span class="status status--med">Medium</span>
+    </div>
+
+    <div class="risk-card animate" style="--i:30">
+      <div class="risk-icon risk-icon--med"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="var(--amber)" stroke-width="1.5" fill="var(--amber-dim)"/><line x1="10" y1="6" x2="10" y2="10.5" stroke="var(--amber)" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="13" r="0.8" fill="var(--amber)"/></svg></div>
+      <div>
+        <div class="risk-area">ClickHouse Driver</div>
+        <div class="risk-signal">3 failed JDBC upgrade attempts. Incompatibility root cause unresolved.</div>
+      </div>
+      <span class="status status--med">Medium</span>
+    </div>
+
+    <div class="risk-card animate" style="--i:31">
+      <div class="risk-icon risk-icon--med"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="var(--amber)" stroke-width="1.5" fill="var(--amber-dim)"/><line x1="10" y1="6" x2="10" y2="10.5" stroke="var(--amber)" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="13" r="0.8" fill="var(--amber)"/></svg></div>
+      <div>
+        <div class="risk-area">Postgres / Snowflake Drivers</div>
+        <div class="risk-signal">High bug-fix activity. Postgres: 63% bug rate. Snowflake: 58% bug rate.</div>
+      </div>
+      <span class="status status--med">Medium</span>
+    </div>
+
+    <div class="risk-card animate" style="--i:32">
+      <div class="risk-icon risk-icon--low"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="var(--green)" stroke-width="1.5" fill="var(--green-dim)"/><path d="M7 10l2 2 4-4" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div>
+        <div class="risk-area">Team Health</div>
+        <div class="risk-signal">Excellent bus factor. 123 contributors. Top contributor = 5.1%. Steady velocity.</div>
+      </div>
+      <span class="status status--low">Low</span>
+    </div>
+
+    <div class="risk-card animate" style="--i:33">
+      <div class="risk-icon risk-icon--low"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="var(--green)" stroke-width="1.5" fill="var(--green-dim)"/><path d="M7 10l2 2 4-4" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div>
+        <div class="risk-area">Deployment Confidence</div>
+        <div class="risk-signal">1% revert rate is healthy. Continuous deployment pattern, no batched releases.</div>
+      </div>
+      <span class="status status--low">Low</span>
+    </div>
+
+    <!-- ===== FOOTER ===== -->
+    <div class="footer animate" style="--i:34">
+      <strong style="color:var(--text)">Methodology:</strong> Based on <a href="https://piechowski.io/post/git-commands-before-reading-code/">Ally Piechowski's five-command git archaeology technique</a>.
+      All data derived from <code style="font-family:var(--font-mono);font-size:11px;background:var(--cyan-dim);color:var(--cyan);padding:1px 5px;border-radius:3px">git log</code> analysis of the Metabase monorepo over the trailing 12 months (2025-04 to 2026-04-08).
+      Bug hotspot analysis uses commit message keyword matching ("fix", "bug", "broken") which over-counts but reliably identifies clusters. Contributor data excludes merge commits and bot accounts.
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /wrap -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const textColor = isDark ? '#7a8599' : '#64748b';
+  const gridColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)';
+  const font = { family: "'IBM Plex Mono', monospace", size: 11 };
+
+  Chart.defaults.font = font;
+  Chart.defaults.color = textColor;
+
+  // Velocity Chart
+  new Chart(document.getElementById('velocityChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Apr 25', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan 26', 'Feb', 'Mar', 'Apr*'],
+      datasets: [{
+        label: 'Commits',
+        data: [333, 503, 482, 543, 512, 506, 425, 389, 452, 482, 492, 542, 98],
+        backgroundColor: [333,503,482,543,512,506,425,389,452,482,492,542,98].map((v,i) =>
+          i === 12 ? (isDark ? 'rgba(34,211,238,0.2)' : 'rgba(8,145,178,0.2)') :
+          v >= 530 ? (isDark ? 'rgba(34,211,238,0.7)' : 'rgba(8,145,178,0.7)') :
+          v < 400 ? (isDark ? 'rgba(251,191,36,0.5)' : 'rgba(217,119,6,0.5)') :
+          (isDark ? 'rgba(34,211,238,0.45)' : 'rgba(8,145,178,0.45)')
+        ),
+        borderColor: isDark ? '#22d3ee' : '#0891b2',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (c) => c.dataIndex === 12 ? c.formattedValue + ' (8 days)' : c.formattedValue + ' commits'
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: {
+          grid: { color: gridColor },
+          ticks: { stepSize: 100 },
+          suggestedMin: 0, suggestedMax: 600
+        }
+      }
+    }
+  });
+
+  // Contributors Chart
+  new Chart(document.getElementById('contribChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Nemanja G', 'Timofey K', 'Cam S', 'Jeff B', 'Alexander P', 'Fraser', 'Edward P', 'Phoomparin M', 'Ryan L', 'Romeo VS'],
+      datasets: [{
+        label: 'Commits',
+        data: [279, 217, 215, 207, 201, 197, 183, 174, 166, 154],
+        backgroundColor: isDark ? 'rgba(96,165,250,0.5)' : 'rgba(37,99,235,0.5)',
+        borderColor: isDark ? '#60a5fa' : '#2563eb',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: gridColor } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Ownership Chart
+  new Chart(document.getElementById('ownershipChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Nemanja G', 'Timofey K', 'Cam S', 'Jeff B', 'Alexander P', 'Fraser', 'Edward P', 'Phoomparin M', 'Ryan L', 'Romeo VS', '113 Others'],
+      datasets: [{
+        data: [279, 217, 215, 207, 201, 197, 183, 174, 166, 154, 3459],
+        backgroundColor: [
+          isDark ? '#22d3ee' : '#0891b2',
+          isDark ? '#60a5fa' : '#2563eb',
+          isDark ? '#a78bfa' : '#7c3aed',
+          isDark ? '#34d399' : '#059669',
+          isDark ? '#fbbf24' : '#d97706',
+          isDark ? '#f87171' : '#dc2626',
+          isDark ? '#fb923c' : '#ea580c',
+          isDark ? '#e879f9' : '#c026d3',
+          isDark ? '#2dd4bf' : '#0d9488',
+          isDark ? '#a3e635' : '#65a30d',
+          isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
+        ],
+        borderWidth: 0,
+        hoverOffset: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: '65%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { boxWidth: 10, padding: 8, font: { size: 9 } }
+        }
+      }
+    }
+  });
+
+  // Bug Hotspot Chart
+  new Chart(document.getElementById('hotspotChart'), {
+    type: 'bar',
+    data: {
+      labels: ['sql/qp.clj', 'card.clj', 'lib/core', 'mbql/schema', 'metadata', 'postgres', 'snowflake', 'mysql'],
+      datasets: [
+        {
+          label: 'Total Churn',
+          data: [53, 63, 65, 60, 45, 48, 50, 45],
+          backgroundColor: isDark ? 'rgba(34,211,238,0.35)' : 'rgba(8,145,178,0.35)',
+          borderColor: isDark ? '#22d3ee' : '#0891b2',
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+        {
+          label: 'Bug-Fix Commits',
+          data: [38, 40, 42, 41, 32, 30, 29, 28],
+          backgroundColor: isDark ? 'rgba(248,113,113,0.5)' : 'rgba(220,38,38,0.5)',
+          borderColor: isDark ? '#f87171' : '#dc2626',
+          borderWidth: 1,
+          borderRadius: 4,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          labels: { boxWidth: 10, padding: 12 }
+        }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: gridColor }, suggestedMin: 0 }
+      }
+    }
+  });
+
+  // Revert Chart
+  new Chart(document.getElementById('revertChart'), {
+    type: 'polarArea',
+    data: {
+      labels: ['Transforms', 'CI/Infra', 'ClickHouse', 'Metabot/AI', 'Misc Features'],
+      datasets: [{
+        data: [5, 4, 3, 2, 10],
+        backgroundColor: [
+          isDark ? 'rgba(248,113,113,0.5)' : 'rgba(220,38,38,0.5)',
+          isDark ? 'rgba(251,191,36,0.5)' : 'rgba(217,119,6,0.5)',
+          isDark ? 'rgba(251,191,36,0.4)' : 'rgba(217,119,6,0.4)',
+          isDark ? 'rgba(167,139,250,0.5)' : 'rgba(124,58,237,0.5)',
+          isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+        ],
+        borderWidth: 1,
+        borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { boxWidth: 10, padding: 10 }
+        }
+      },
+      scales: {
+        r: {
+          grid: { color: gridColor },
+          ticks: { display: false }
+        }
+      }
+    }
+  });
+</script>
+
+<!-- Scroll spy -->
+<script>
+(function() {
+  const toc = document.getElementById('toc');
+  const links = toc.querySelectorAll('a');
+  const sections = [];
+
+  links.forEach(link => {
+    const id = link.getAttribute('href').slice(1);
+    const el = document.getElementById(id);
+    if (el) sections.push({ id, el, link });
+  });
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const match = sections.find(s => s.el === entry.target);
+        if (match) {
+          match.link.classList.add('active');
+          if (window.innerWidth <= 1000) {
+            match.link.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          }
+        }
+      }
+    });
+  }, { rootMargin: '-10% 0px -80% 0px' });
+
+  sections.forEach(s => observer.observe(s.el));
+
+  links.forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      const id = link.getAttribute('href').slice(1);
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        history.replaceState(null, '', '#' + id);
+      }
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

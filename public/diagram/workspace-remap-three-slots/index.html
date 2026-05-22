@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workspace Remap — Three Slots Cover Every Warehouse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============ THEME — Catppuccin-inspired (dark-first, IDE feel) ============ */
+  :root {
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    --font-sans: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+
+    /* dark-first */
+    --bg: #11111b;
+    --surface: #181825;
+    --surface2: #1e1e2e;
+    --surface-elevated: #232337;
+    --border: rgba(205, 214, 244, 0.07);
+    --border-bright: rgba(205, 214, 244, 0.16);
+    --text: #cdd6f4;
+    --text-dim: #9399b2;
+    --text-faint: #6c7086;
+
+    /* slot colors — used everywhere */
+    --slot-db: #89b4fa;            /* blue (sapphire-ish) */
+    --slot-db-dim: rgba(137, 180, 250, 0.14);
+    --slot-schema: #a6e3a1;        /* green */
+    --slot-schema-dim: rgba(166, 227, 161, 0.14);
+    --slot-table: #fab387;         /* peach */
+    --slot-table-dim: rgba(250, 179, 135, 0.14);
+    --slot-empty: #6c7086;         /* overlay/gray */
+    --slot-empty-dim: rgba(108, 112, 134, 0.14);
+
+    /* warehouse-layer colors */
+    --layer-conn: #f38ba8;         /* red — connection / not-in-SQL */
+    --layer-conn-dim: rgba(243, 139, 168, 0.12);
+
+    --accent: #cba6f7;             /* mauve */
+    --accent-dim: rgba(203, 166, 247, 0.14);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #eff1f5;
+      --surface: #e6e9ef;
+      --surface2: #dce0e8;
+      --surface-elevated: #ffffff;
+      --border: rgba(76, 79, 105, 0.1);
+      --border-bright: rgba(76, 79, 105, 0.22);
+      --text: #4c4f69;
+      --text-dim: #6c6f85;
+      --text-faint: #8c8fa1;
+
+      --slot-db: #1e66f5;
+      --slot-db-dim: rgba(30, 102, 245, 0.12);
+      --slot-schema: #40a02b;
+      --slot-schema-dim: rgba(64, 160, 43, 0.12);
+      --slot-table: #fe640b;
+      --slot-table-dim: rgba(254, 100, 11, 0.12);
+      --slot-empty: #8c8fa1;
+      --slot-empty-dim: rgba(140, 143, 161, 0.12);
+
+      --layer-conn: #d20f39;
+      --layer-conn-dim: rgba(210, 15, 57, 0.1);
+
+      --accent: #8839ef;
+      --accent-dim: rgba(136, 57, 239, 0.1);
+    }
+  }
+
+  /* ============ RESET ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 20% 0%, var(--accent-dim) 0%, transparent 55%),
+      radial-gradient(ellipse at 90% 100%, var(--slot-db-dim) 0%, transparent 50%);
+    color: var(--text);
+    font-family: var(--font-sans);
+    padding: 48px 24px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  .container { max-width: 1080px; margin: 0 auto; }
+
+  /* min-width safety on grids/flex */
+  .grid > *, .flex > * { min-width: 0; }
+
+  /* ============ ANIMATION ============ */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .animate { animation: fadeUp 0.4s ease-out both; animation-delay: calc(var(--i, 0) * 0.05s); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  /* ============ HEADER ============ */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2.4px;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .eyebrow::before {
+    content: '◆';
+    margin-right: 8px;
+    color: var(--slot-db);
+  }
+  h1 {
+    font-family: var(--font-sans);
+    font-size: 44px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-bottom: 14px;
+    max-width: 22ch;
+  }
+  h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .lede {
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    max-width: 62ch;
+    margin-bottom: 8px;
+  }
+  .lede code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+  .meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-bottom: 48px;
+  }
+
+  /* ============ SECTION ============ */
+  section { margin-bottom: 56px; }
+
+  h2 {
+    font-family: var(--font-sans);
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.4px;
+    margin-bottom: 6px;
+  }
+  h2 .count {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-faint);
+    margin-right: 10px;
+    padding: 2px 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    vertical-align: 4px;
+  }
+  .section-tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+
+  /* ============ SLOT LEGEND ============ */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 28px;
+    padding: 14px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  .legend-pill {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+  .legend-pill--db    { background: var(--slot-db); }
+  .legend-pill--schema{ background: var(--slot-schema); }
+  .legend-pill--table { background: var(--slot-table); }
+  .legend-pill--empty { background: var(--slot-empty); }
+
+  /* ============ SLOT TOKENS (used in code/SQL/JSON) ============ */
+  .s-db, .s-schema, .s-table, .s-empty {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .s-db     { color: var(--slot-db);     background: var(--slot-db-dim); }
+  .s-schema { color: var(--slot-schema); background: var(--slot-schema-dim); }
+  .s-table  { color: var(--slot-table);  background: var(--slot-table-dim); }
+  .s-empty  { color: var(--slot-empty);  background: var(--slot-empty-dim); font-style: italic; }
+
+  /* ============ HERO 4-LAYER STACK ============ */
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 18px;
+  }
+  .layer {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid currentColor;
+    border-radius: 8px;
+    padding: 18px 22px;
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    gap: 18px;
+    align-items: center;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .layer:hover {
+    transform: translateX(2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  }
+  .layer--conn   { color: var(--layer-conn);   background: linear-gradient(90deg, var(--layer-conn-dim) 0%, transparent 60%), var(--surface); }
+  .layer--db     { color: var(--slot-db);      background: linear-gradient(90deg, var(--slot-db-dim) 0%, transparent 60%), var(--surface); }
+  .layer--schema { color: var(--slot-schema);  background: linear-gradient(90deg, var(--slot-schema-dim) 0%, transparent 60%), var(--surface); }
+  .layer--table  { color: var(--slot-table);   background: linear-gradient(90deg, var(--slot-table-dim) 0%, transparent 60%), var(--surface); }
+
+  .layer__num {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: currentColor;
+    text-align: center;
+  }
+  .layer__num small {
+    display: block;
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-top: 2px;
+    color: var(--text-faint);
+  }
+  .layer__body { min-width: 0; }
+  .layer__title {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .layer__detail {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  .layer__detail code {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--text);
+    background: var(--surface2);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .layer__slot {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: currentColor;
+    padding: 4px 10px;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .layer__slot--off {
+    color: var(--text-faint);
+    border-color: var(--border-bright);
+    background: var(--surface2);
+  }
+
+  .stack-divider {
+    margin: 20px 0;
+    padding: 14px 22px;
+    background: var(--surface2);
+    border: 1px dashed var(--border-bright);
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .stack-divider strong { color: var(--text); font-weight: 600; }
+
+  /* ============ DRIVER TABLE ============ */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .driver-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+  }
+  .driver-table thead { position: sticky; top: 0; z-index: 2; }
+  .driver-table th {
+    background: var(--surface2);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 14px 16px;
+    border-bottom: 2px solid var(--border-bright);
+    white-space: nowrap;
+  }
+  .driver-table td {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--text);
+  }
+  .driver-table tbody tr:last-child td { border-bottom: none; }
+  .driver-table tbody tr {
+    transition: background 0.15s ease;
+    animation: fadeUp 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.04s);
+  }
+  .driver-table tbody tr:hover { background: var(--surface-elevated); }
+
+  .driver-table .driver-name {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .driver-table .driver-warehouse {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .driver-table .components {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 2px 8px;
+    border-radius: 5px;
+    display: inline-block;
+  }
+  .driver-table .row-shape {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .driver-table .row-shape .punct { color: var(--text-faint); }
+  .driver-table .compiled-sql {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .driver-table .compiled-sql .punct { color: var(--text-faint); }
+  .driver-table small.note {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    color: var(--text-dim);
+    margin-top: 8px;
+    line-height: 1.5;
+    max-width: 36ch;
+  }
+  .driver-table small.note strong { color: var(--text); font-weight: 600; }
+
+  /* ============ CONTENT BLOCKS ============ */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 26px;
+    margin-bottom: 16px;
+  }
+  .panel--accent {
+    border-left: 3px solid var(--accent);
+    background: linear-gradient(90deg, var(--accent-dim) 0%, transparent 50%), var(--surface);
+  }
+  .panel--db   { border-left: 3px solid var(--slot-db); }
+  .panel--conn { border-left: 3px solid var(--layer-conn); }
+  .panel p {
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  .panel p:last-child { margin-bottom: 0; }
+  .panel p strong { color: var(--text); font-weight: 600; }
+  .panel ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .panel li {
+    position: relative;
+    padding-left: 20px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-dim);
+  }
+  .panel li::before {
+    content: '›';
+    position: absolute;
+    left: 4px;
+    color: var(--text-faint);
+    font-weight: 700;
+  }
+  .panel li strong { color: var(--text); font-weight: 600; }
+  .panel code {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: var(--surface2);
+    color: var(--text);
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  /* ============ TWO-COLUMN ============ */
+  .twocol {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .twocol > * { min-width: 0; overflow-wrap: break-word; }
+  @media (max-width: 768px) { .twocol { grid-template-columns: 1fr; } }
+
+  /* ============ TL;DR PARAGRAPH ============ */
+  .tldr {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-bright);
+    border-radius: 14px;
+    padding: 28px 30px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+    position: relative;
+  }
+  .tldr::before {
+    content: 'COPY-PASTE-READY';
+    position: absolute;
+    top: -10px;
+    left: 24px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent);
+    background: var(--bg);
+    padding: 0 10px;
+  }
+  .tldr p {
+    font-family: var(--font-sans);
+    font-size: 17px;
+    line-height: 1.65;
+    color: var(--text);
+    font-style: italic;
+  }
+  .tldr p code {
+    font-family: var(--font-mono);
+    font-size: 13.5px;
+    font-style: normal;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 2px 7px;
+    border-radius: 5px;
+  }
+
+  /* ============ FOOTER ============ */
+  footer {
+    margin-top: 64px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    line-height: 1.6;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 768px) {
+    body { padding: 24px 16px; }
+    h1 { font-size: 32px; }
+    h2 { font-size: 20px; }
+    .layer { grid-template-columns: 44px 1fr; }
+    .layer__slot { grid-column: 1 / -1; justify-self: start; margin-top: 4px; }
+    .driver-table th, .driver-table td { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ============================ HEADER ============================ -->
+  <header style="margin-bottom: 56px;">
+    <div class="eyebrow animate" style="--i:0">Workspaces v2 · Internal explainer</div>
+    <h1 class="animate" style="--i:1">Three slots cover <em>every</em> warehouse.</h1>
+    <p class="lede animate" style="--i:2">
+      Workspace remap rewrites table identifiers inside compiled SQL. The remap row has three columns —
+      <code>db</code>, <code>schema</code>, <code>table_name</code> — and they cover Postgres, Snowflake,
+      BigQuery, MySQL, ClickHouse, SQL Server, and Redshift without a fourth dimension. Here's why.
+    </p>
+    <div class="meta animate" style="--i:3">
+      branch: feature/workspaces-v2 &nbsp;·&nbsp; module: <code>:metabase-enterprise/workspaces</code>
+    </div>
+  </header>
+
+  <!-- ============================ LEGEND ============================ -->
+  <div class="legend animate" style="--i:4">
+    <span style="font-family:var(--font-mono); font-size:11px; color:var(--text-dim); font-weight:600; text-transform:uppercase; letter-spacing:1.4px;">Slot colors</span>
+    <span class="legend-item"><span class="legend-pill legend-pill--db"></span><span class="s-db">:db</span><span style="color:var(--text-faint);">SQLGlot Table.catalog</span></span>
+    <span class="legend-item"><span class="legend-pill legend-pill--schema"></span><span class="s-schema">:schema</span><span style="color:var(--text-faint);">SQLGlot Table.db</span></span>
+    <span class="legend-item"><span class="legend-pill legend-pill--table"></span><span class="s-table">:table</span><span style="color:var(--text-faint);">SQLGlot Table.name</span></span>
+    <span class="legend-item"><span class="legend-pill legend-pill--empty"></span><span class="s-empty">""</span><span style="color:var(--text-faint);">sentinel — slot unused</span></span>
+  </div>
+
+  <!-- ============================ §1 : 4-LAYER MODEL ============================ -->
+  <section>
+    <h2 class="animate" style="--i:5"><span class="count">§1</span>The four-layer model</h2>
+    <p class="section-tag animate" style="--i:6">where each piece of warehouse identity actually lives</p>
+
+    <div class="stack">
+
+      <div class="layer layer--conn animate" style="--i:7">
+        <div class="layer__num">L4<small>Conn</small></div>
+        <div class="layer__body">
+          <div class="layer__title">Account · Org · Region · Credentials</div>
+          <div class="layer__detail">
+            Snowflake account hostname, BigQuery service-account JSON, JDBC URL host. Lives in
+            <code>:model/Database.details</code>. Picked up at connection time. <strong>Never appears in compiled SQL.</strong>
+          </div>
+        </div>
+        <div class="layer__slot layer__slot--off">no slot · invisible to rewriter</div>
+      </div>
+
+      <div class="layer layer--db animate" style="--i:8">
+        <div class="layer__num">L3<small>AST</small></div>
+        <div class="layer__body">
+          <div class="layer__title">Database · Project</div>
+          <div class="layer__detail">
+            Snowflake DB name, SQL Server database, BigQuery project. The <strong>leftmost identifier</strong>
+            in compiled SQL when the driver populates it (<code>catalog.schema.table</code>).
+          </div>
+        </div>
+        <div class="layer__slot"><span class="s-db">:db</span> · Table.catalog</div>
+      </div>
+
+      <div class="layer layer--schema animate" style="--i:9">
+        <div class="layer__num">L2<small>AST</small></div>
+        <div class="layer__body">
+          <div class="layer__title">Schema · Dataset</div>
+          <div class="layer__detail">
+            Postgres schema, BigQuery dataset, SQL Server schema. Also: ClickHouse <em>database</em> name —
+            it sits at this AST position because that's where it appears in compiled SQL.
+          </div>
+        </div>
+        <div class="layer__slot"><span class="s-schema">:schema</span> · Table.db</div>
+      </div>
+
+      <div class="layer layer--table animate" style="--i:10">
+        <div class="layer__num">L1<small>AST</small></div>
+        <div class="layer__body">
+          <div class="layer__title">Table · Collection</div>
+          <div class="layer__detail">
+            The thing being addressed. Always populated. The slot every driver fills.
+          </div>
+        </div>
+        <div class="layer__slot"><span class="s-table">:table</span> · Table.name</div>
+      </div>
+
+    </div>
+
+    <div class="stack-divider animate" style="--i:11">
+      <strong>The rewriter operates on L1–L3 only.</strong> Layer 4 is invisible to it — by design.
+      Anything you'd want to change at L4 is what <strong>DB Routing</strong> handles, by swapping the
+      <code style="font-family:var(--font-mono);">:model/Database</code> row entirely. Different feature, different axis.
+    </div>
+  </section>
+
+  <!-- ============================ §2 : DRIVER TABLE ============================ -->
+  <section>
+    <h2 class="animate" style="--i:12"><span class="count">§2</span>How each driver fills the slots</h2>
+    <p class="section-tag animate" style="--i:13">same workspace concept, different AST positions populated</p>
+
+    <div class="table-wrap animate" style="--i:14">
+      <div class="table-scroll">
+        <table class="driver-table">
+          <thead>
+            <tr>
+              <th style="min-width: 150px;">Driver</th>
+              <th>qualified-name-components</th>
+              <th>Stored row shape</th>
+              <th>Compiled SQL</th>
+            </tr>
+          </thead>
+          <tbody>
+
+            <tr style="--i:0">
+              <td>
+                <div class="driver-name">Snowflake</div>
+                <div class="driver-warehouse">Database · Schema · Table</div>
+              </td>
+              <td><span class="components">[:db :schema]</span></td>
+              <td>
+                <span class="row-shape">{ <span class="s-db">:db</span> "ANALYTICS"<span class="punct">,</span> <span class="s-schema">:schema</span> "PUBLIC"<span class="punct">,</span> <span class="s-table">:table</span> "ORDERS" }</span>
+              </td>
+              <td>
+                <span class="compiled-sql"><span class="s-db">ANALYTICS</span><span class="punct">.</span><span class="s-schema">PUBLIC</span><span class="punct">.</span><span class="s-table">ORDERS</span></span>
+              </td>
+            </tr>
+
+            <tr style="--i:1">
+              <td>
+                <div class="driver-name">BigQuery</div>
+                <div class="driver-warehouse">Project · Dataset · Table</div>
+              </td>
+              <td><span class="components">[:db :schema]</span></td>
+              <td>
+                <span class="row-shape">{ <span class="s-db">:db</span> "metabase-prod"<span class="punct">,</span> <span class="s-schema">:schema</span> "core"<span class="punct">,</span> <span class="s-table">:table</span> "orders" }</span>
+              </td>
+              <td>
+                <span class="compiled-sql"><span class="punct">`</span><span class="s-db">metabase-prod</span><span class="punct">.</span><span class="s-schema">core</span><span class="punct">.</span><span class="s-table">orders</span><span class="punct">`</span></span>
+              </td>
+            </tr>
+
+            <tr style="--i:2">
+              <td>
+                <div class="driver-name">SQL Server</div>
+                <div class="driver-warehouse">Database · Schema · Table</div>
+              </td>
+              <td><span class="components">[:db :schema]</span></td>
+              <td>
+                <span class="row-shape">{ <span class="s-db">:db</span> "MyDB"<span class="punct">,</span> <span class="s-schema">:schema</span> "dbo"<span class="punct">,</span> <span class="s-table">:table</span> "Orders" }</span>
+              </td>
+              <td>
+                <span class="compiled-sql"><span class="s-db">MyDB</span><span class="punct">.</span><span class="s-schema">dbo</span><span class="punct">.</span><span class="s-table">Orders</span></span>
+              </td>
+            </tr>
+
+            <tr style="--i:3">
+              <td>
+                <div class="driver-name">Postgres</div>
+                <div class="driver-warehouse">Schema · Table</div>
+              </td>
+              <td><span class="components">[:schema]</span> <span style="color:var(--text-faint);font-size:10px;">(default)</span></td>
+              <td>
+                <span class="row-shape">{ <span class="s-db">:db</span> <span class="s-empty">""</span><span class="punct">,</span> <span class="s-schema">:schema</span> "public"<span class="punct">,</span> <span class="s-table">:table</span> "orders" }</span>
+              </td>
+              <td>
+                <span class="compiled-sql"><span class="s-schema">public</span><span class="punct">.</span><span class="s-table">orders</span></span>
+              </td>
+            </tr>
+
+            <tr style="--i:4">
+              <td>
+                <div class="driver-name">Redshift / H2</div>
+                <div class="driver-warehouse">Schema · Table</div>
+              </td>
+              <td><span class="components">[:schema]</span></td>
+              <td>
+                <span class="row-shape">{ <span class="s-db">:db</span> <span class="s-empty">""</span><span class="punct">,</span> <span class="s-schema">:schema</span> "<em>schema</em>"<span class="punct">,</span> <span class="s-table">:table</span> "<em>table</em>" }</span>
+              </td>
+              <td>
+                <span class="compiled-sql"><span class="s-schema">schema</span><span class="punct">.</span><span class="s-table">table</span></span>
+              </td>
+            </tr>
+
+            <tr style="--i:5">
+              <td>
+                <div class="driver-name">ClickHouse</div>
+                <div class="driver-warehouse">Database · Table <span style="color:var(--slot-db); font-weight:700;">⚠</span></div>
+              </td>
+              <td><span class="components">[:schema]</span></td>
+              <td>
+                <span class="row-shape">{ <span class="s-db">:db</span> <span class="s-empty">""</span><span class="punct">,</span> <span class="s-schema">:schema</span> "analytics"<span class="punct">,</span> <span class="s-table">:table</span> "events" }</span>
+                <small class="note">
+                  <strong>Vocabulary mismatch.</strong> ClickHouse calls <code>analytics</code> a
+                  <em>database</em>, but it lives at AST <span class="s-schema">:schema</span> because that's
+                  where it appears in compiled SQL. <strong>Slot names are AST positions, not warehouse concepts.</strong>
+                </small>
+              </td>
+              <td>
+                <span class="compiled-sql"><span class="s-schema">analytics</span><span class="punct">.</span><span class="s-table">events</span></span>
+              </td>
+            </tr>
+
+            <tr style="--i:6">
+              <td>
+                <div class="driver-name">MySQL</div>
+                <div class="driver-warehouse">Table only</div>
+              </td>
+              <td><span class="components">[]</span></td>
+              <td>
+                <span class="row-shape">{ <span class="s-db">:db</span> <span class="s-empty">""</span><span class="punct">,</span> <span class="s-schema">:schema</span> <span class="s-empty">""</span><span class="punct">,</span> <span class="s-table">:table</span> "orders" }</span>
+                <small class="note">
+                  Bare-table source. The rewriter <strong>adds a qualifier</strong> when the workspace remap
+                  fires: <code>orders</code> → <code><span class="s-schema">ws_alice</span>.<span class="s-table">orders</span></code> — upgrading cardinality on the way out.
+                </small>
+              </td>
+              <td>
+                <span class="compiled-sql"><span class="s-table">orders</span></span>
+                <small class="note" style="margin-top:4px;">↓ post-remap: <code>ws_alice.orders</code></small>
+              </td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ §3 : WHY NO ACCOUNT ============================ -->
+  <section>
+    <h2 class="animate" style="--i:15"><span class="count">§3</span>Why no Account / Org slot?</h2>
+    <p class="section-tag animate" style="--i:16">the FAQ that prompted this explainer</p>
+
+    <div class="panel panel--conn animate" style="--i:17">
+      <p>
+        <strong>It's not in the SQL.</strong> Snowflake's account name lives in the JDBC URL host
+        (<code>xy12345.us-east-1.snowflakecomputing.com</code>). BigQuery's project-as-credential
+        lives in the service-account JSON. JDBC URL hosts live in <code>:model/Database.details</code>.
+        The rewriter <em>only</em> sees the SQL string the QP is about to send. Anything outside that
+        string can't be remapped.
+      </p>
+      <p>
+        <strong>Switching across L4 means switching connections.</strong> A different account, a
+        different region, a different set of credentials — that's a different
+        <code>:model/Database</code> row entirely. Workspace remap doesn't try to do this; it would
+        be the wrong tool. <strong>DB Routing</strong> is the feature that swaps connections
+        atomically without changing the SQL.
+      </p>
+      <p>
+        <strong>Workspace remap × DB routing on the same DB is fundamentally incompatible</strong> —
+        each consumes the "database identity" degree of freedom for opposite purposes. We block the
+        combination at the API layer (Tier A) and inside Phase 2 (Tier B). See
+        <code>2026-04-30-workspace-remap-vs-db-routing.md</code>.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================ §4 : WHY 3 IS ENOUGH ============================ -->
+  <section>
+    <h2 class="animate" style="--i:18"><span class="count">§4</span>Why three slots is enough — forever</h2>
+    <p class="section-tag animate" style="--i:19">a structural ceiling, not a current limit</p>
+
+    <div class="twocol">
+      <div class="panel panel--accent animate" style="--i:20">
+        <p style="font-size: 16px; color: var(--text); margin-bottom: 14px;">
+          <strong>SQL grammar caps at three identifiers.</strong>
+        </p>
+        <p style="margin-bottom: 0;">
+          Every SQL dialect we support emits at most <code>catalog.db.name</code> in front of a table
+          reference. SQLGlot's AST has exactly three positions: <code>Table.catalog</code>,
+          <code>Table.db</code>, <code>Table.name</code>. No vendor extends this — they can't, without
+          breaking the parser ecosystem. So three slots is a <em>structural</em> ceiling, not just a
+          practical one.
+        </p>
+      </div>
+      <div class="panel panel--db animate" style="--i:21">
+        <p style="font-size: 16px; color: var(--text); margin-bottom: 14px;">
+          <strong>Cross-account access doesn't add a slot.</strong>
+        </p>
+        <p style="margin-bottom: 0;">
+          Snowflake "shares," BigQuery cross-project IAM, federated query tools — they all route through
+          the connection or via a higher-level construct, never through a 4-part SQL identifier. So even
+          the most exotic cross-warehouse workflows still come out the other end as 3-part SQL — which
+          our three slots handle.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ §5 : EMPTY STRING SENTINEL ============================ -->
+  <section>
+    <h2 class="animate" style="--i:22"><span class="count">§5</span>The empty-string sentinel rule</h2>
+    <p class="section-tag animate" style="--i:23">why <span class="s-empty">""</span> beats <code>NULL</code></p>
+
+    <div class="panel animate" style="--i:24">
+      <ul>
+        <li>
+          <strong>Meaning.</strong> <span class="s-empty">""</span> means <em>this driver does not emit
+          this AST level</em>. Postgres has no <code>catalog</code> in its compiled SQL; MySQL has neither
+          <code>catalog</code> nor <code>db</code>. The sentinel is honest about the absence.
+        </li>
+        <li>
+          <strong>Why not NULL?</strong> SQL unique constraints treat <code>NULL</code> as
+          <em>not equal to NULL</em>. Two MySQL remaps would both insert successfully and silently
+          collide later. The crash that surfaced the multi-cardinality work was literally
+          <code>NULL not allowed for column FROM_SCHEMA</code> on MySQL.
+        </li>
+        <li>
+          <strong>Equivalence at match time.</strong> The Phase 2 SQLGlot rewriter and Phase 1's MBQL
+          metadata override both treat <span class="s-empty">""</span> as <code>nil</code> when matching
+          incoming refs — so a schema-less MySQL query still hits the rewriter even though its AST has
+          no schema position.
+        </li>
+        <li>
+          <strong>Driver dispatch.</strong> Which slots get <span class="s-empty">""</span> vs. a real
+          value is determined by <code>driver/qualified-name-components</code>. The same multimethod is
+          authoritative for the writer (<code>spec-for-table</code>) and the rewriter (Phase 2).
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============================ §6 : TL;DR ============================ -->
+  <section>
+    <h2 class="animate" style="--i:25"><span class="count">§6</span>One paragraph for Slack</h2>
+    <p class="section-tag animate" style="--i:26">drop this when somebody asks why there's no account slot</p>
+
+    <div class="tldr animate" style="--i:27">
+      <p>
+        Workspace remap rewrites the strings that appear inside compiled SQL. SQL allows up to three
+        identifier positions before a table name (<code>catalog.db.name</code>), so the remap row has
+        three slots. Anything above that — account, region, credentials — lives in the connection,
+        never in the SQL, and so isn't a remap concern. Switching across that layer means switching
+        connections, which is a different feature (DB routing) entirely.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    Written from the audit
+    <a href="https://github.com/metabase/metabase/blob/feature/workspaces-v2/enterprise/backend/src/metabase_enterprise/workspaces/table_remapping.clj">workspaces/table_remapping.clj</a>
+    + <code>driver/qualified-name-components</code>. AST positions verified against the actual Snowflake
+    and BigQuery driver impls (<code>[:db :schema]</code>) on this branch. Refs:
+    <code>2026-04-30-workspace-remap-vs-db-routing.md</code>,
+    <code>2026-04-30-table-remapping-deep-audit.md</code>.
+  </footer>
+
+</div>
+</body>
+</html>

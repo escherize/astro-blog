@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>In-Situ Compilation Tracking — swap_verify</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============ THEME — Blueprint ============ */
+  :root {
+    --font-body: 'Sora', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #0b1628;
+    --surface: #0f1d33;
+    --surface2: #142640;
+    --border: rgba(100, 160, 255, 0.12);
+    --border-bright: rgba(100, 160, 255, 0.25);
+    --text: #c8ddf5;
+    --text-dim: #6b8bb8;
+
+    --primary: #5ba3f5;
+    --primary-dim: rgba(91, 163, 245, 0.10);
+    --secondary: #4ade80;
+    --secondary-dim: rgba(74, 222, 128, 0.10);
+    --tertiary: #f59e0b;
+    --tertiary-dim: rgba(245, 158, 11, 0.10);
+    --danger: #f87171;
+    --danger-dim: rgba(248, 113, 113, 0.10);
+    --purple: #a78bfa;
+    --purple-dim: rgba(167, 139, 250, 0.10);
+
+    --grid-color: rgba(91, 163, 245, 0.06);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #edf2f9;
+      --surface: #ffffff;
+      --surface2: #f0f5fc;
+      --border: rgba(30, 70, 130, 0.10);
+      --border-bright: rgba(30, 70, 130, 0.20);
+      --text: #1a2744;
+      --text-dim: #5a7094;
+
+      --primary: #2563eb;
+      --primary-dim: rgba(37, 99, 235, 0.08);
+      --secondary: #16a34a;
+      --secondary-dim: rgba(22, 163, 74, 0.08);
+      --tertiary: #d97706;
+      --tertiary-dim: rgba(217, 119, 6, 0.08);
+      --danger: #dc2626;
+      --danger-dim: rgba(220, 38, 38, 0.08);
+      --purple: #7c3aed;
+      --purple-dim: rgba(124, 58, 237, 0.08);
+
+      --grid-color: rgba(30, 70, 130, 0.05);
+    }
+  }
+
+  /* ============ RESET + BASE ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(var(--grid-color) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    background-size: 40px 40px;
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  /* ============ ANIMATION ============ */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .animate {
+    animation: fadeUp 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.06s);
+  }
+
+  .animate-scale {
+    animation: fadeScale 0.35s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.06s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+    .mermaid-wrap .mermaid { transition: none; }
+  }
+
+  /* ============ LAYOUT ============ */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    margin-bottom: 4px;
+    text-wrap: balance;
+    background: linear-gradient(135deg, var(--primary), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    margin-bottom: 32px;
+    letter-spacing: 0.5px;
+  }
+
+  h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 40px;
+    margin-bottom: 16px;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h2::before {
+    content: '';
+    width: 3px;
+    height: 20px;
+    background: var(--primary);
+    border-radius: 2px;
+  }
+
+  .description {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+    max-width: 800px;
+  }
+
+  .description code, p code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--primary-dim);
+    color: var(--primary);
+    padding: 1px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+  }
+
+  /* ============ MERMAID ============ */
+  .mermaid-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    overflow: auto;
+    margin-bottom: 24px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .mermaid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .mermaid-wrap::-webkit-scrollbar-track { background: transparent; }
+  .mermaid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .mermaid-wrap::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  .mermaid-wrap .mermaid {
+    display: flex;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    transform-origin: top center;
+  }
+
+  .zoom-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 2px;
+    z-index: 10;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+  }
+
+  .zoom-controls button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .zoom-controls button:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .mermaid-wrap.is-zoomed { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+  .diagram-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  /* ============ MERMAID SVG OVERRIDES ============ */
+  .mermaid .nodeLabel {
+    font-family: var(--font-body) !important;
+    font-size: 14px !important;
+    color: var(--text) !important;
+  }
+
+  .mermaid .edgeLabel {
+    font-family: var(--font-mono) !important;
+    font-size: 11px !important;
+    color: var(--text-dim) !important;
+    background-color: var(--surface) !important;
+  }
+
+  .mermaid .edgeLabel rect {
+    fill: var(--surface) !important;
+  }
+
+  .mermaid .node rect,
+  .mermaid .node circle,
+  .mermaid .node polygon {
+    stroke-width: 1.5px !important;
+  }
+
+  .mermaid .edge-pattern-solid {
+    stroke-width: 1.5px !important;
+  }
+
+  /* ============ CARDS ============ */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+
+  .card--accent-blue { border-left: 3px solid var(--primary); }
+  .card--accent-green { border-left: 3px solid var(--secondary); }
+  .card--accent-amber { border-left: 3px solid var(--tertiary); }
+  .card--accent-red { border-left: 3px solid var(--danger); }
+  .card--accent-purple { border-left: 3px solid var(--purple); }
+
+  .card__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card__label::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .card__label--blue { color: var(--primary); }
+  .card__label--green { color: var(--secondary); }
+  .card__label--amber { color: var(--tertiary); }
+  .card__label--red { color: var(--danger); }
+  .card__label--purple { color: var(--purple); }
+
+  .card__title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .card__body {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-dim);
+  }
+
+  .card__body code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--primary-dim);
+    color: var(--primary);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ============ TRICKS GRID ============ */
+  .tricks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .tricks-grid > * { min-width: 0; }
+
+  .trick-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .trick-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  .trick-num {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .trick-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .trick-body {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-dim);
+  }
+
+  .trick-body code {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    background: var(--primary-dim);
+    color: var(--primary);
+    padding: 1px 4px;
+    border-radius: 2px;
+  }
+
+  /* ============ CODE BLOCK ============ */
+  .code-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    overflow-x: auto;
+    margin: 12px 0;
+  }
+
+  .code-block .kw { color: var(--purple); }
+  .code-block .fn { color: var(--primary); }
+  .code-block .str { color: var(--secondary); }
+  .code-block .cmt { color: rgba(107, 139, 184, 0.5); font-style: italic; }
+  .code-block .sym { color: var(--tertiary); }
+
+  /* ============ FILE BADGES ============ */
+  .file-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    margin-right: 8px;
+    margin-bottom: 8px;
+  }
+
+  .file-badge--runner { color: var(--primary); border-color: var(--primary); background: var(--primary-dim); }
+  .file-badge--verify { color: var(--secondary); border-color: var(--secondary); background: var(--secondary-dim); }
+
+  /* ============ CALLOUT ============ */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--tertiary);
+    border-radius: 0 10px 10px 0;
+    padding: 14px 18px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    margin: 16px 0;
+  }
+
+  .callout strong { color: var(--text); }
+
+  .callout code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--tertiary-dim);
+    color: var(--tertiary);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ============ SEPARATOR ============ */
+  .sep {
+    height: 1px;
+    background: var(--border);
+    margin: 32px 0;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 768px) {
+    body { padding: 16px; }
+    h1 { font-size: 24px; }
+    .mermaid-wrap { padding: 16px 12px; }
+    .tricks-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1 class="animate" style="--i:0">In-Situ Compilation Tracking</h1>
+  <p class="subtitle animate" style="--i:1">swap_verify &mdash; phase-boundary regression attribution for source replacement</p>
+
+  <p class="description animate" style="--i:2">
+    When a source swap breaks card compilation, was it <strong>Phase 1</strong> (field ref upgrade) or
+    <strong>Phase 2</strong> (source swap) that caused it? This system instruments the production runner
+    with opt-in hooks that compile all cards at each phase boundary, attributing regressions to the exact
+    phase responsible.
+  </p>
+
+  <div class="animate" style="--i:3">
+    <span class="file-badge file-badge--runner">runner.clj &mdash; production</span>
+    <span class="file-badge file-badge--verify">swap_verify.clj &mdash; dev only</span>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 class="animate" style="--i:4">The Dynamic Var Pattern</h2>
+
+  <p class="description animate" style="--i:5">
+    A single <code>^:dynamic *compilation-tracker*</code> var in <code>runner.clj</code>. Default: <code>nil</code>.
+    Three <code>(when *compilation-tracker* ...)</code> guards around the two phases. When nil, the <code>when</code>
+    short-circuits &mdash; zero overhead. When bound by swap_verify, every card gets compiled three times.
+  </p>
+
+  <div class="code-block animate" style="--i:6">
+    <span class="cmt">;; runner.clj</span><br>
+    (<span class="kw">def</span> <span class="kw">^:dynamic</span> <span class="fn">*compilation-tracker*</span><br>
+    &nbsp;&nbsp;<span class="str">"Called at :before-upgrade, :after-upgrade, :after-swap"</span><br>
+    &nbsp;&nbsp;<span class="sym">nil</span>) <span class="cmt">;; nil = zero overhead in production</span>
+  </div>
+
+  <div class="mermaid-wrap animate" style="--i:7">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+    </div>
+    <p class="diagram-label">Phase boundaries in run-swap*</p>
+    <pre class="mermaid">
+      graph TD
+        START["run-swap*"] --> HOOK1
+
+        HOOK1[":before-upgrade hook"]:::hook --> P1
+        P1["Phase 1: field-refs/upgrade!"]:::phase1
+
+        P1 --> HOOK2
+        HOOK2[":after-upgrade hook"]:::hook --> P2
+        P2["Phase 2: source-swap/do-swap!"]:::phase2
+
+        P2 --> HOOK3
+        HOOK3[":after-swap hook"]:::hook --> DONE["return failures"]
+
+        classDef hook fill:#a78bfa22,stroke:#a78bfa,stroke-width:2px
+        classDef phase1 fill:#5ba3f522,stroke:#5ba3f5,stroke-width:2px
+        classDef phase2 fill:#4ade8022,stroke:#4ade80,stroke-width:2px
+    </pre>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 class="animate" style="--i:8">Phase Boundary Compilation</h2>
+
+  <p class="description animate" style="--i:9">
+    At each hook point, the tracker compiles <strong>every card entity</strong> and stores a snapshot.
+    Then diffs adjacent snapshots to find regressions &mdash; cards that <em>compiled before but fail after</em>
+    a given phase.
+  </p>
+
+  <div class="mermaid-wrap animate" style="--i:10">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+    </div>
+    <p class="diagram-label">Snapshot and diff flow</p>
+    <pre class="mermaid">
+      graph TD
+        DB1["Cards in DB"]:::db --> SNAP1["Snapshot: before-upgrade"]:::snap
+        SNAP1 --> UP["Phase 1: upgrade!"]:::phase1
+        UP --> DB2["Cards in DB"]:::db
+        DB2 --> SNAP2["Snapshot: after-upgrade"]:::snap
+        SNAP2 --> DIFF1{"diff vs before"}:::diff
+        DIFF1 -->|"regressions"| REG1["UPGRADE regressions"]:::regress
+        SNAP2 --> SWAP["Phase 2: do-swap!"]:::phase2
+        SWAP --> DB3["Cards in DB"]:::db
+        DB3 --> SNAP3["Snapshot: after-swap"]:::snap
+        SNAP3 --> DIFF2{"diff vs after-upgrade"}:::diff
+        DIFF2 -->|"regressions"| REG2["SWAP regressions"]:::regress
+
+        classDef db fill:#f59e0b22,stroke:#f59e0b,stroke-width:1.5px
+        classDef snap fill:#5ba3f522,stroke:#5ba3f5,stroke-width:1.5px
+        classDef phase1 fill:#5ba3f533,stroke:#5ba3f5,stroke-width:2px
+        classDef phase2 fill:#4ade8033,stroke:#4ade80,stroke-width:2px
+        classDef diff fill:#a78bfa22,stroke:#a78bfa,stroke-width:1.5px
+        classDef regress fill:#f8717122,stroke:#f87171,stroke-width:2px
+    </pre>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 class="animate" style="--i:11">The Closure Pair Pattern</h2>
+
+  <p class="description animate" style="--i:12">
+    <code>make-compilation-tracker</code> returns <code>[callback-fn, results-atom]</code>.
+    The callback captures the atom in its closure. The caller binds the callback, runs the swap,
+    then derefs the atom to read results.
+  </p>
+
+  <div class="code-block animate" style="--i:13">
+    <span class="cmt">;; swap_verify.clj</span><br>
+    (<span class="kw">let</span> [<span class="fn">[tracker-fn tracker-results]</span> (<span class="fn">make-compilation-tracker</span>)]<br>
+    &nbsp;&nbsp;(<span class="kw">binding</span> [<span class="fn">runner/*compilation-tracker*</span> tracker-fn]<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;(<span class="fn">runner/run-swap</span> old-source new-source))<br>
+    &nbsp;&nbsp;<span class="cmt">;; tracker-results is an atom, deref after the run</span><br>
+    &nbsp;&nbsp;(<span class="kw">let</span> [data <span class="sym">@</span>tracker-results] ...))
+  </div>
+
+  <div class="card card--accent-purple animate" style="--i:14">
+    <div class="card__label card__label--purple">Results atom shape</div>
+    <div class="code-block" style="margin: 0; border: none; background: transparent; padding: 0;">
+      {<span class="sym">:regressions</span><br>
+      &nbsp;&nbsp;{<span class="sym">:upgrade</span> [{<span class="sym">:card-id</span> 123 <span class="sym">:card-name</span> <span class="str">"..."</span> <span class="sym">:error</span> {...}}]<br>
+      &nbsp;&nbsp;&nbsp;<span class="sym">:swap</span>&nbsp;&nbsp;&nbsp;&nbsp;[{<span class="sym">:card-id</span> 456 <span class="sym">:card-name</span> <span class="str">"..."</span> <span class="sym">:error</span> {...}}]}<br>
+      &nbsp;<span class="sym">:stats</span><br>
+      &nbsp;&nbsp;{<span class="sym">:before-upgrade</span> {<span class="sym">:compilable</span> 45 <span class="sym">:failing</span> 3}<br>
+      &nbsp;&nbsp;&nbsp;<span class="sym">:after-upgrade</span>&nbsp; {<span class="sym">:compilable</span> 44 <span class="sym">:failing</span> 4}<br>
+      &nbsp;&nbsp;&nbsp;<span class="sym">:after-swap</span>&nbsp;&nbsp;&nbsp;&nbsp; {<span class="sym">:compilable</span> 42 <span class="sym">:failing</span> 6}}}
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 class="animate" style="--i:15">Full Run Flow</h2>
+
+  <div class="mermaid-wrap animate" style="--i:16">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+    </div>
+    <p class="diagram-label">run-swap-bench end-to-end flow</p>
+    <pre class="mermaid">
+      graph TD
+        ENT["run-swap-bench entries"]:::entry --> CHK{"dep count check"}:::guard
+        CHK -->|"actual < expected"| SKIP["SKIP card, no files"]:::skip
+        CHK -->|"ok"| CLONE["create-clone!"]:::verify
+
+        CLONE --> TRACK["make-compilation-tracker"]:::verify
+        TRACK --> BIND["binding *compilation-tracker*"]:::verify
+
+        BIND --> DIAG["run-swap-with-diagnostics!"]:::verify
+        DIAG --> SWAP["runner/run-swap"]:::runner
+
+        subgraph run["runner.clj : run-swap*"]
+          SWAP --> H1[":before-upgrade"]:::hook
+          H1 --> PH1["upgrade!"]:::runner
+          PH1 --> H2[":after-upgrade"]:::hook
+          H2 --> PH2["do-swap!"]:::runner
+          PH2 --> H3[":after-swap"]:::hook
+        end
+
+        H1 -.->|"compile all cards"| ATOM["results atom"]:::atom
+        H2 -.->|"compile + diff"| ATOM
+        H3 -.->|"compile + diff"| ATOM
+
+        ATOM --> DEREF["@tracker-results"]:::verify
+        DEREF --> LOG[".log file"]:::output
+        DEREF --> EDN[".edn file"]:::output
+
+        classDef entry fill:#f59e0b22,stroke:#f59e0b,stroke-width:1.5px
+        classDef guard fill:#a78bfa22,stroke:#a78bfa,stroke-width:2px
+        classDef skip fill:#f8717122,stroke:#f87171,stroke-width:1.5px
+        classDef verify fill:#4ade8022,stroke:#4ade80,stroke-width:1.5px
+        classDef runner fill:#5ba3f522,stroke:#5ba3f5,stroke-width:1.5px
+        classDef hook fill:#a78bfa33,stroke:#a78bfa,stroke-width:2px,stroke-dasharray:5 3
+        classDef atom fill:#f59e0b33,stroke:#f59e0b,stroke-width:1.5px
+        classDef output fill:#4ade8033,stroke:#4ade80,stroke-width:2px
+    </pre>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 class="animate" style="--i:17">Entry Points</h2>
+
+  <div class="card card--accent-green animate" style="--i:18">
+    <div class="card__label card__label--green">run-verified-swap!</div>
+    <div class="card__body">
+      Single-card verified swap. Creates tracker, binds it, runs <code>runner/run-swap</code> in a rollback
+      transaction. Prints structural, compilation, metadata, and column stability checks <em>plus</em> a
+      new "Phase Attribution" section showing which regressions came from upgrade vs swap.
+    </div>
+  </div>
+
+  <div class="card card--accent-blue animate" style="--i:19">
+    <div class="card__label card__label--blue">run-swap-bench</div>
+    <div class="card__body">
+      Takes <code>[{:card-id N :dep-count M} ...]</code>. Checks actual dep count <strong>before</strong>
+      choosing a filename &mdash; if actual &lt; expected, skips entirely (no files written). Only qualified
+      cards appear in the filename. Writes paired output files:<br>
+      <code>run_&lt;sha&gt;_&lt;ids&gt;_&lt;date&gt;.log</code> &mdash; captured console + log4j<br>
+      <code>run_&lt;sha&gt;_&lt;ids&gt;_&lt;date&gt;.edn</code> &mdash; structured vector of per-card reports
+    </div>
+  </div>
+
+  <div class="card card--accent-amber animate" style="--i:20">
+    <div class="card__label card__label--amber">bench-entries</div>
+    <div class="card__body">
+      Helper: takes <code>[card-id ...]</code>, queries live dep counts from the DB, returns
+      <code>[{:card-id N :dep-count M} ...]</code> ready for <code>run-swap-bench</code>.
+    </div>
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2 class="animate" style="--i:21">Tricks We Used</h2>
+
+  <div class="tricks-grid">
+
+    <div class="trick-card animate-scale" style="--i:22">
+      <div class="trick-num">Trick 01</div>
+      <div class="trick-title">Zero-cost instrumentation</div>
+      <div class="trick-body">
+        <code>(when *compilation-tracker* ...)</code> in runner.clj. The <code>nil</code> check
+        short-circuits &mdash; no function call, no allocation. Only active when swap_verify binds it.
+      </div>
+    </div>
+
+    <div class="trick-card animate-scale" style="--i:23">
+      <div class="trick-num">Trick 02</div>
+      <div class="trick-title">Closure pair pattern</div>
+      <div class="trick-body">
+        <code>make-compilation-tracker</code> returns <code>[fn, atom]</code>. The fn captures the atom
+        in its closure. Caller binds the fn, runs the swap, derefs the atom after. Clean separation.
+      </div>
+    </div>
+
+    <div class="trick-card animate-scale" style="--i:24">
+      <div class="trick-num">Trick 03</div>
+      <div class="trick-title">Phase diffing</div>
+      <div class="trick-body">
+        Each snapshot is compared to the <em>previous</em> one, not the baseline. So upgrade regressions
+        are separated from swap regressions. The diff only records cards that <em>regressed</em>
+        (compiled before, failed after).
+      </div>
+    </div>
+
+    <div class="trick-card animate-scale" style="--i:25">
+      <div class="trick-num">Trick 04</div>
+      <div class="trick-title">Dep count guard</div>
+      <div class="trick-body">
+        Check actual vs expected dep count <strong>before</strong> choosing a filename. If deps shrank,
+        skip the card entirely &mdash; no files created, no previous good data overwritten.
+      </div>
+    </div>
+
+    <div class="trick-card animate-scale" style="--i:26">
+      <div class="trick-num">Trick 05</div>
+      <div class="trick-title">Log/EDN split</div>
+      <div class="trick-body">
+        Same base name, different extensions. <code>.log</code> for humans (captured stdout+stderr).
+        <code>.edn</code> for machines (pprinted structured data). They line up in <code>ls</code>.
+      </div>
+    </div>
+
+    <div class="trick-card animate-scale" style="--i:27">
+      <div class="trick-num">Trick 06</div>
+      <div class="trick-title">binding vs requiring-resolve</div>
+      <div class="trick-body">
+        <code>binding</code> resolves vars at compile time. If the runner namespace was loaded before
+        the var was added, it fails. <code>requiring-resolve</code> returns nil for missing vars &rarr;
+        NPE in <code>with-bindings</code>. Fix: reload runner first, use plain <code>binding</code>.
+      </div>
+    </div>
+
+  </div>
+
+  <div class="callout animate" style="--i:28">
+    <strong>Why 3x compilation overhead is fine.</strong> The tracker compiles all cards once per phase
+    boundary (3 times total). This ~triples the compilation cost. But it only activates when swap_verify
+    explicitly binds the var &mdash; it's a diagnostic tool. In production, <code>*compilation-tracker*</code>
+    stays <code>nil</code> and the <code>when</code> guards cost essentially nothing.
+  </div>
+
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  mermaid.registerLayoutLoaders(elkLayouts);
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    look: 'classic',
+    layout: 'elk',
+    themeVariables: {
+      primaryColor: isDark ? '#142640' : '#e8f0fe',
+      primaryBorderColor: isDark ? '#5ba3f5' : '#2563eb',
+      primaryTextColor: isDark ? '#c8ddf5' : '#1a2744',
+      secondaryColor: isDark ? '#0f2618' : '#ecfdf5',
+      secondaryBorderColor: isDark ? '#4ade80' : '#16a34a',
+      secondaryTextColor: isDark ? '#c8ddf5' : '#1a2744',
+      tertiaryColor: isDark ? '#27201a' : '#fef3c7',
+      tertiaryBorderColor: isDark ? '#f59e0b' : '#d97706',
+      tertiaryTextColor: isDark ? '#c8ddf5' : '#1a2744',
+      lineColor: isDark ? '#6b8bb8' : '#5a7094',
+      fontSize: '14px',
+      fontFamily: "'Sora', system-ui, sans-serif",
+      noteBkgColor: isDark ? '#142640' : '#fefce8',
+      noteTextColor: isDark ? '#c8ddf5' : '#1a2744',
+      noteBorderColor: isDark ? '#f59e0b' : '#d97706',
+    }
+  });
+</script>
+<script>
+  function updateZoomState(wrap) {
+    var target = wrap.querySelector('.mermaid');
+    var zoom = parseFloat(target.dataset.zoom || '1');
+    wrap.classList.toggle('is-zoomed', zoom > 1);
+  }
+
+  function zoomDiagram(btn, factor) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    var current = parseFloat(target.dataset.zoom || '1');
+    var next = Math.min(Math.max(current * factor, 0.3), 5);
+    target.dataset.zoom = next;
+    target.style.transform = 'scale(' + next + ')';
+    updateZoomState(wrap);
+  }
+
+  function resetZoom(btn) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    target.dataset.zoom = '1';
+    target.style.transform = 'scale(1)';
+    updateZoomState(wrap);
+  }
+
+  document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+    wrap.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      var target = wrap.querySelector('.mermaid');
+      var current = parseFloat(target.dataset.zoom || '1');
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var next = Math.min(Math.max(current * factor, 0.3), 5);
+      target.dataset.zoom = next;
+      target.style.transform = 'scale(' + next + ')';
+      updateZoomState(wrap);
+    }, { passive: false });
+
+    var startX, startY, scrollL, scrollT;
+    wrap.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.zoom-controls')) return;
+      var target = wrap.querySelector('.mermaid');
+      if (parseFloat(target.dataset.zoom || '1') <= 1) return;
+      wrap.classList.add('is-panning');
+      startX = e.clientX;
+      startY = e.clientY;
+      scrollL = wrap.scrollLeft;
+      scrollT = wrap.scrollTop;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!wrap.classList.contains('is-panning')) return;
+      wrap.scrollLeft = scrollL - (e.clientX - startX);
+      wrap.scrollTop = scrollT - (e.clientY - startY);
+    });
+    window.addEventListener('mouseup', function() {
+      wrap.classList.remove('is-panning');
+    });
+  });
+</script>
+
+</body>
+</html>

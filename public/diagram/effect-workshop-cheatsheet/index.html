@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Effect for JS Developers</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #1a1614;
+    --bg-warm: #1e1a17;
+    --bg-panel: #242019;
+    --bg-code: #1c1916;
+    --bg-highlight: #2a2520;
+    --amber: #e8a040;
+    --amber-bright: #f0b860;
+    --amber-dim: #a06820;
+    --amber-glow: rgba(232,160,64,0.15);
+    --orange: #e07030;
+    --cream: #f5ead0;
+    --cream-dim: #c8b898;
+    --text: #d4c8b8;
+    --text-dim: #8a7e70;
+    --text-bright: #f0e8d8;
+    --green: #78c060;
+    --green-dim: #4a8838;
+    --red: #e05848;
+    --blue: #5098d0;
+    --purple: #a878d0;
+    --border: #3a3228;
+    --font-serif: 'DM Serif Display', Georgia, serif;
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    overflow: hidden;
+  }
+
+  .deck { width: 100vw; height: 100vh; position: relative; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    padding: 48px 64px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+    overflow-y: auto;
+  }
+
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  .nav {
+    position: fixed;
+    bottom: 24px;
+    right: 32px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .nav button {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    color: var(--amber);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 6px 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+
+  .nav button:hover { background: var(--bg-highlight); border-color: var(--amber-dim); }
+
+  .progress {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: linear-gradient(90deg, var(--amber-dim), var(--amber), var(--amber-bright));
+    transition: width 0.3s ease; z-index: 100;
+  }
+
+  h1 {
+    font-family: var(--font-serif); font-weight: 400; font-size: 3.2rem;
+    color: var(--cream); line-height: 1.15; letter-spacing: -0.01em;
+  }
+
+  h2 {
+    font-family: var(--font-serif); font-weight: 400; font-size: 2rem;
+    color: var(--cream); line-height: 1.2; margin-bottom: 8px;
+  }
+
+  h3 {
+    font-family: var(--font-sans); font-weight: 600; font-size: 0.72rem;
+    color: var(--amber); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 14px;
+  }
+
+  p, li {
+    font-family: var(--font-sans); font-size: 0.92rem; line-height: 1.6; color: var(--text);
+  }
+
+  .subtitle {
+    font-family: var(--font-sans); font-size: 1.05rem; color: var(--cream-dim);
+    line-height: 1.6; font-weight: 300;
+  }
+
+  .label {
+    font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.1em; padding: 3px 10px; border-radius: 3px; display: inline-block;
+  }
+  .label-js { background: var(--amber); color: var(--bg); }
+  .label-effect { background: var(--purple); color: #fff; }
+  .label-tip { background: var(--green); color: var(--bg); }
+  .label-warn { background: var(--red); color: #fff; }
+  .label-backend { background: var(--blue); color: #fff; }
+
+  pre {
+    background: var(--bg-code); border: 1px solid var(--border); border-radius: 6px;
+    padding: 14px 18px; font-family: var(--font-mono); font-size: 0.78rem;
+    line-height: 1.55; overflow-x: auto; color: var(--text);
+  }
+
+  .kw { color: var(--purple); } .fn { color: var(--blue); } .str { color: var(--green); }
+  .num { color: var(--amber); } .cm { color: var(--text-dim); font-style: italic; }
+  .type { color: var(--amber-bright); } .op { color: var(--red); }
+
+  .centered { flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+
+  .split { display: flex; gap: 40px; align-items: stretch; }
+  .split > .col { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+  .left-heavy { display: flex; gap: 40px; }
+  .left-heavy > .main { flex: 3; display: flex; flex-direction: column; justify-content: center; }
+  .left-heavy > .aside { flex: 2; display: flex; flex-direction: column; justify-content: center; }
+
+  .right-heavy { display: flex; gap: 40px; }
+  .right-heavy > .aside { flex: 2; display: flex; flex-direction: column; justify-content: center; }
+  .right-heavy > .main { flex: 3; display: flex; flex-direction: column; justify-content: center; }
+
+  .three-col { display: flex; gap: 24px; }
+  .three-col > .col { flex: 1; display: flex; flex-direction: column; }
+
+  .warm-line { width: 60px; height: 3px; background: var(--amber); border-radius: 2px; margin: 16px 0; box-shadow: 0 0 16px var(--amber-dim); }
+  .warm-line.center { margin: 16px auto; }
+  .warm-line.long { width: 120px; }
+
+  .card {
+    background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 18px; margin: 8px 0;
+  }
+  .card h4 { font-family: var(--font-sans); font-size: 0.85rem; font-weight: 600; color: var(--amber); margin-bottom: 6px; }
+
+  .callout {
+    border-left: 3px solid var(--amber-dim); padding: 14px 20px; margin: 14px 0;
+    background: var(--amber-glow); border-radius: 0 6px 6px 0;
+  }
+  .callout p { font-size: 0.88rem; }
+  .callout strong { color: var(--amber-bright); }
+
+  .callout-green {
+    border-left: 3px solid var(--green-dim); padding: 14px 20px; margin: 14px 0;
+    background: rgba(120,192,96,0.08); border-radius: 0 6px 6px 0;
+  }
+  .callout-green p { font-size: 0.88rem; }
+  .callout-green strong { color: var(--green); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  th {
+    text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--amber-dim);
+    color: var(--amber); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.68rem;
+  }
+  td { padding: 8px 14px; border-bottom: 1px solid var(--border); font-family: var(--font-mono); font-size: 0.76rem; }
+  td.desc { font-family: var(--font-sans); font-size: 0.82rem; color: var(--text); }
+  tr:hover td { background: var(--bg-highlight); }
+
+  ul { list-style: none; padding: 0; }
+  ul li { position: relative; padding-left: 18px; margin-bottom: 8px; }
+  ul li::before { content: ''; position: absolute; left: 0; top: 9px; width: 6px; height: 6px; border-radius: 50%; background: var(--amber); }
+
+  .vs {
+    display: inline-block; background: var(--orange); color: #fff; font-size: 0.6rem;
+    font-weight: 700; padding: 2px 8px; border-radius: 10px; letter-spacing: 0.08em;
+    vertical-align: middle; margin: 0 6px;
+  }
+
+  .slide-num {
+    position: absolute; top: 24px; right: 32px; font-size: 0.68rem;
+    color: var(--text-dim); font-family: var(--font-mono);
+  }
+
+  .diagram-box {
+    background: var(--bg-code); border: 1px solid var(--border); border-radius: 6px;
+    padding: 20px; font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.7;
+    color: var(--text-dim); white-space: pre; overflow-x: auto;
+  }
+
+  .emoji { font-size: 1.4rem; margin-right: 8px; vertical-align: middle; }
+
+  .tag { display: inline-block; font-size: 0.7rem; font-weight: 500; padding: 2px 8px; border-radius: 3px; margin-right: 6px; }
+  .tag-success { background: rgba(120,192,96,0.2); color: var(--green); border: 1px solid var(--green-dim); }
+  .tag-error { background: rgba(224,88,72,0.15); color: var(--red); border: 1px solid rgba(224,88,72,0.3); }
+  .tag-never { background: rgba(138,126,112,0.15); color: var(--text-dim); border: 1px solid var(--border); }
+
+  /* SVG accent decorations */
+  .accent-dots {
+    position: absolute; opacity: 0.08; pointer-events: none;
+  }
+
+  @media (max-width: 900px) {
+    .slide { padding: 24px 16px; }
+    h1 { font-size: 1.8rem; }
+    h2 { font-size: 1.3rem; }
+    .split, .left-heavy, .right-heavy, .three-col { flex-direction: column; gap: 16px; }
+    pre { font-size: 0.72rem; padding: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<div class="deck" id="deck">
+
+  <!-- ==================== SLIDE 1: Title ==================== -->
+  <div class="slide centered active" data-slide="1">
+    <!-- Decorative SVG background -->
+    <svg class="accent-dots" width="100%" height="100%" style="position:absolute;inset:0;">
+      <defs>
+        <radialGradient id="glow1" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#e8a040" stop-opacity="0.12"/>
+          <stop offset="100%" stop-color="#e8a040" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <circle cx="70%" cy="30%" r="300" fill="url(#glow1)"/>
+      <circle cx="25%" cy="70%" r="200" fill="url(#glow1)"/>
+      <!-- Grid dots -->
+      <pattern id="dots" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+        <circle cx="20" cy="20" r="1" fill="#e8a040" opacity="0.3"/>
+      </pattern>
+      <rect width="100%" height="100%" fill="url(#dots)" opacity="0.4"/>
+    </svg>
+
+    <div style="position:relative; z-index:2; max-width: 700px;">
+      <h3 style="margin-bottom: 20px; font-size: 0.8rem;">the effect workshop</h3>
+      <h1 style="font-size: 3.6rem;">Effect<br><span style="color: var(--amber);">for JS Developers</span></h1>
+      <div class="warm-line center long"></div>
+      <p class="subtitle" style="max-width: 550px; margin: 12px auto 0;">
+        A practical guide to the Effect library - what it is, why it exists,<br>
+        and how it maps to the JavaScript you already know.
+      </p>
+      <div style="margin-top: 32px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+        <span class="tag tag-success">Promises you know</span>
+        <span style="color: var(--text-dim); font-size: 0.8rem; line-height: 2;">-></span>
+        <span class="tag" style="background: rgba(168,120,208,0.2); color: var(--purple); border: 1px solid rgba(168,120,208,0.3);">Effects you'll learn</span>
+      </div>
+    </div>
+    <span class="slide-num">01 / 14</span>
+  </div>
+
+  <!-- ==================== SLIDE 2: Why Effect? ==================== -->
+  <div class="slide" data-slide="2">
+    <div class="left-heavy">
+      <div class="main">
+        <h3>the problem</h3>
+        <h2>Why Does Effect Exist?</h2>
+        <div class="warm-line"></div>
+
+        <p style="margin-bottom: 16px;">JavaScript gives you <code style="color:var(--amber)">try/catch</code> and <code style="color:var(--amber)">Promise</code> for async + errors. They work, but they have blind spots:</p>
+
+        <div class="card">
+          <h4>1. Errors are invisible</h4>
+          <p style="font-size: 0.85rem;">When you call <code>fetchUser(id)</code>, nothing in the type signature tells you it can throw <code>NotFoundError</code> or <code>NetworkError</code>. You just... hope you catch the right thing.</p>
+        </div>
+        <div class="card">
+          <h4>2. Dependencies are implicit</h4>
+          <p style="font-size: 0.85rem;">Your function secretly reaches into the environment for a database connection, an API key, a logger. Testing means mocking globals.</p>
+        </div>
+        <div class="card">
+          <h4>3. Composition is awkward</h4>
+          <p style="font-size: 0.85rem;">Chaining async operations with proper error handling leads to deeply nested try/catch blocks or <code>.then().catch().then()</code> chains.</p>
+        </div>
+      </div>
+      <div class="aside" style="display:flex; flex-direction:column; justify-content:center;">
+        <div style="background: var(--bg-code); border: 1px solid var(--border); border-radius: 8px; padding: 24px;">
+          <h4 style="color: var(--amber); font-size: 0.78rem; margin-bottom: 14px;">EFFECT'S ANSWER</h4>
+          <p style="font-size: 0.9rem; color: var(--cream); margin-bottom: 12px;">One type that tracks <strong>all three</strong>:</p>
+          <pre style="border: none; padding: 12px; margin: 0; font-size: 0.82rem;"><span class="type">Effect</span>&lt;
+  <span class="str">Success</span>,  <span class="cm">// what you get back</span>
+  <span class="op">Error</span>,    <span class="cm">// what can go wrong</span>
+  <span class="purple">Requirements</span> <span class="cm">// what it needs to run</span>
+&gt;</pre>
+          <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);">
+            <p style="font-size: 0.82rem; color: var(--text-dim);">TypeScript catches the errors at compile time, not at 3am in production.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <span class="slide-num">02 / 14</span>
+  </div>
+
+  <!-- ==================== SLIDE 3: The Mental Model ==================== -->
+  <div class="slide" data-slide="3">
+    <div class="split">
+      <div class="col">
+        <h3>mental model</h3>
+        <h2>Effect = Lazy Promise<br><span style="font-size: 0.6em; color: var(--text-dim);">with superpowers</span></h2>
+        <div class="warm-line"></div>
+
+        <div class="callout" style="margin-bottom: 16px;">
+          <p><strong>Key difference:</strong> A Promise runs the moment you create it. An Effect is just a <em>description</em> of work - nothing happens until you explicitly run it.</p>
+        </div>
+
+        <div style="margin-bottom:10px;"><span class="label label-js">Promise (runs immediately)</span></div>
+        <pre><span class="cm">// This fetch fires RIGHT NOW, even though</span>
+<span class="cm">// nobody asked for the result yet</span>
+<span class="kw">const</span> p = <span class="fn">fetch</span>(<span class="str">'/api/users'</span>);
+<span class="cm">// ^ HTTP request is already in flight!</span></pre>
+
+        <div style="margin:14px 0 10px;"><span class="label label-effect">Effect (waits for you)</span></div>
+        <pre><span class="cm">// This just creates a description.</span>
+<span class="cm">// No HTTP request happens yet.</span>
+<span class="kw">const</span> e = <span class="type">Effect</span>.<span class="fn">tryPromise</span>(() =>
+  <span class="fn">fetch</span>(<span class="str">'/api/users'</span>)
+);
+<span class="cm">// Nothing happened. It's a blueprint.</span>
+
+<span class="cm">// NOW it runs:</span>
+<span class="type">Effect</span>.<span class="fn">runPromise</span>(e);</pre>
+      </div>
+      <div class="col" style="display:flex; flex-direction:column; justify-content:center;">
+        <h3 style="margin-top:0;">why laziness matters</h3>
+        <p style="font-size: 0.9rem; margin-bottom: 16px; color: var(--cream-dim);">Because it's lazy, you can:</p>
+        <div class="card">
+          <h4>Compose first, run later</h4>
+          <p style="font-size: 0.85rem;">Build up a pipeline of 10 steps, add retry logic, add timeouts - then run the whole thing once.</p>
+        </div>
+        <div class="card">
+          <h4>Retry safely</h4>
+          <p style="font-size: 0.85rem;">Since it's just a blueprint, you can re-run the same Effect 3 times on failure. A Promise? Already done - no retries.</p>
+        </div>
+        <div class="card">
+          <h4>Test without executing</h4>
+          <p style="font-size: 0.85rem;">Swap in fake dependencies before running. No mocking libraries needed.</p>
+        </div>
+
+        <div class="callout-green" style="margin-top: 16px;">
+          <p><strong>Backend example:</strong> Building an API endpoint that fetches from DB, validates, then sends an email. With Effect, you describe all 3 steps, add retry on the email step, and run the whole pipeline per request.</p>
+        </div>
+      </div>
+    </div>
+    <span class="slide-num">03 / 14</span>
+  </div>
+
+  <!-- ==================== SLIDE 4: JS Concepts Quick Refresher ==================== -->
+  <div class="slide" data-slide="4">
+    <div class="right-heavy">
+      <div class="aside" style="display:flex; flex-direction:column; justify-content:center;">
+        <div style="background: linear-gradient(135deg, var(--bg-panel) 0%, var(--bg-warm) 100%); border: 1px solid var(--border); border-radius: 12px; padding: 28px;">
+          <h3 style="margin-bottom: 8px; color: var(--amber-bright);">glossary</h3>
+          <h2 style="font-size: 1.4rem; margin-bottom: 16px;">JS Terms<br>You'll See Here</h2>
+
+          <div style="margin-bottom: 20px;">
+            <p style="font-size: 0.82rem; font-weight: 600; color: var(--amber); margin-bottom: 4px;">Rejecting a Promise</p>
+            <p style="font-size: 0.85rem;">When an async operation <em>fails</em>. Like <code>fetch</code> returning a network error. The <code>.catch()</code> handler runs, or the <code>catch</code> block in a <code>try/await</code>.</p>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <p style="font-size: 0.82rem; font-weight: 600; color: var(--amber); margin-bottom: 4px;">Resolving a Promise</p>
+            <p style="font-size: 0.85rem;">When it <em>succeeds</em>. The <code>.then()</code> handler fires, or <code>await</code> gives you the value.</p>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <p style="font-size: 0.82rem; font-weight: 600; color: var(--amber); margin-bottom: 4px;">Throwing</p>
+            <p style="font-size: 0.85rem;">When synchronous code hits <code>throw new Error(...)</code>. Stops execution and jumps to the nearest <code>catch</code>. If there isn't one, your program crashes.</p>
+          </div>
+
+          <div>
+            <p style="font-size: 0.82rem; font-weight: 600; color: var(--amber); margin-bottom: 4px;">Generator function*</p>
+            <p style="font-size: 0.85rem;">A function that can <em>pause and resume</em> using <code>yield</code>. Effect uses these so you can write <code>yield*</code> instead of <code>await</code>. Same idea, different mechanism.</p>
+          </div>
+        </div>
+      </div>
+      <div class="main" style="display:flex; flex-direction:column; justify-content:center;">
+        <h3>quick refresher</h3>
+        <h2>Promises in 60 Seconds</h2>
+        <div class="warm-line"></div>
+
+        <pre style="margin-bottom: 14px;"><span class="cm">// A Promise represents an async operation</span>
+<span class="cm">// It either RESOLVES (success) or REJECTS (failure)</span>
+
+<span class="kw">const</span> promise = <span class="fn">fetch</span>(<span class="str">'/api/users/42'</span>);
+
+<span class="cm">// Handle success and failure:</span>
+promise
+  .<span class="fn">then</span>(response => response.<span class="fn">json</span>())  <span class="cm">// resolved!</span>
+  .<span class="fn">catch</span>(err => <span class="fn">console.error</span>(err));  <span class="cm">// rejected!</span>
+
+<span class="cm">// Or with async/await (same thing, nicer syntax):</span>
+<span class="kw">try</span> {
+  <span class="kw">const</span> response = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'/api/users/42'</span>);
+  <span class="kw">const</span> user = <span class="kw">await</span> response.<span class="fn">json</span>();
+} <span class="kw">catch</span> (err) {
+  <span class="cm">// Could be NetworkError, TypeError, SyntaxError...</span>
+  <span class="cm">// You have no idea. `err` is typed as `unknown`.</span>
+  <span class="fn">console.error</span>(err);
+}</pre>
+
+        <div class="callout" style="margin-top: 8px;">
+          <p><strong>The problem:</strong> <code>catch</code> gives you <code>unknown</code>. You don't know what went wrong. Effect fixes this by tracking errors in the type signature.</p>
+        </div>
+      </div>
+    </div>
+    <span class="slide-num">04 / 14</span>
+  </div>
+
+  <!-- ==================== SLIDE 5: Creating Effects ==================== -->
+  <div class="slide" data-slide="5">
+    <div class="left-heavy">
+      <div class="main">
+        <h3>creating effects</h3>
+        <h2>From JS Values to Effects</h2>
+        <div class="warm-line"></div>
+
+        <table style="margin-top: 12px;">
+          <thead>
+            <tr>
+              <th>Function</th>
+              <th>When to use</th>
+              <th>Backend example</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="color:var(--amber)">succeed(value)</td>
+              <td class="desc">Wrap a known value. Like <code>Promise.resolve()</code></td>
+              <td class="desc">Return a default config</td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">fail(error)</td>
+              <td class="desc">Create a failed Effect. Like <code>Promise.reject()</code></td>
+              <td class="desc">Return a validation error</td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">sync(() => A)</td>
+              <td class="desc">Wrap sync code that <strong>never throws</strong></td>
+              <td class="desc">Read from an in-memory cache</td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">try(() => A)</td>
+              <td class="desc">Wrap sync code that <strong>might throw</strong></td>
+              <td class="desc"><code>JSON.parse(body)</code></td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">promise(() => P)</td>
+              <td class="desc">Wrap a Promise that <strong>never rejects</strong></td>
+              <td class="desc">Trusted internal service call</td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">tryPromise(() => P)</td>
+              <td class="desc">Wrap a Promise that <strong>might reject</strong></td>
+              <td class="desc"><code>fetch()</code>, DB queries, etc.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout" style="margin-top: 16px;">
+          <p><strong>Rule of thumb:</strong> Use <code>try*</code> variants when the code could fail. Use the non-<code>try</code> versions when you're 100% sure it won't. If you use <code>sync</code>/<code>promise</code> and it throws anyway, Effect treats it as a "defect" - an unexpected crash, like a panic.</p>
+        </div>
+      </div>
+      <div class="aside" style="display:flex; flex-direction:column; justify-content:center;">
+        <h3>in practice</h3>
+
+        <div style="margin-bottom: 8px;"><span class="label label-backend">express route handler</span></div>
+        <pre style="font-size: 0.75rem;"><span class="cm">// Wrapping a DB call that might fail</span>
+<span class="kw">const</span> getUser = (id: <span class="type">string</span>) =>
+  <span class="type">Effect</span>.<span class="fn">tryPromise</span>({
+    <span class="fn">try</span>: () => db.users.<span class="fn">findUnique</span>({
+      where: { id }
+    }),
+    <span class="fn">catch</span>: (err) => <span class="kw">new</span> <span class="type">DatabaseError</span>({
+      message: <span class="str">`Failed to fetch user`</span>,
+      cause: err
+    })
+  });
+
+<span class="cm">// Now the type tells the whole story:</span>
+<span class="cm">// Effect&lt;User, DatabaseError&gt;</span>
+<span class="cm">//</span>
+<span class="cm">// Compare to the Promise version:</span>
+<span class="cm">// Promise&lt;User&gt;  (errors? who knows!)</span></pre>
+
+        <div style="margin-top: 16px; margin-bottom: 8px;"><span class="label label-tip">safe json parse</span></div>
+        <pre style="font-size: 0.75rem;"><span class="cm">// JSON.parse throws on bad input</span>
+<span class="kw">const</span> parseBody = (raw: <span class="type">string</span>) =>
+  <span class="type">Effect</span>.<span class="fn">try</span>({
+    <span class="fn">try</span>: () => <span class="fn">JSON.parse</span>(raw),
+    <span class="fn">catch</span>: () => <span class="kw">new</span> <span class="type">ParseError</span>({
+      message: <span class="str">"Invalid JSON body"</span>
+    })
+  });
+
+<span class="cm">// Effect&lt;unknown, ParseError&gt;</span></pre>
+      </div>
+    </div>
+    <span class="slide-num">05 / 14</span>
+  </div>
+
+  <!-- ==================== SLIDE 6: Running Effects ==================== -->
+  <div class="slide" data-slide="6">
+    <div class="split">
+      <div class="col">
+        <h3>running effects</h3>
+        <h2>Where the Rubber<br>Meets the Road</h2>
+        <div class="warm-line"></div>
+
+        <p style="margin-bottom: 16px;">Effects are lazy blueprints. <strong>Running</strong> is when actual work happens. You should only run at the <em>edges</em> of your program - the entry point, the route handler, the script's <code>main()</code>.</p>
+
+        <table>
+          <thead>
+            <tr><th>Function</th><th>Returns</th><th>On error</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="color:var(--amber)">runSync</td>
+              <td class="desc">The value directly</td>
+              <td class="desc">Throws</td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">runPromise</td>
+              <td class="desc">Promise&lt;A&gt;</td>
+              <td class="desc">Promise rejects</td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">runSyncExit</td>
+              <td class="desc">Exit&lt;A, E&gt;</td>
+              <td class="desc">Returns failure (no throw)</td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">runPromiseExit</td>
+              <td class="desc">Promise&lt;Exit&lt;A, E&gt;&gt;</td>
+              <td class="desc">Returns failure (no reject)</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout-green" style="margin-top: 14px;">
+          <p><strong>Exit?</strong> Think of it as a result wrapper: either <code>Success(value)</code> or <code>Failure(cause)</code>. The <code>*Exit</code> runners give you the result without throwing, so <em>you</em> decide what to do with errors.</p>
+        </div>
+      </div>
+      <div class="col" style="display:flex; flex-direction:column; justify-content:center;">
+        <h3>example: express app</h3>
+        <pre style="font-size: 0.75rem; margin-bottom: 16px;"><span class="cm">// In your route handler (the "edge")</span>
+app.<span class="fn">get</span>(<span class="str">'/users/:id'</span>, <span class="kw">async</span> (req, res) => {
+  <span class="cm">// Build the Effect pipeline</span>
+  <span class="kw">const</span> program = getUser(req.params.id).<span class="fn">pipe</span>(
+    <span class="type">Effect</span>.<span class="fn">map</span>(user => ({ status: <span class="num">200</span>, body: user })),
+    <span class="type">Effect</span>.<span class="fn">catchTag</span>(<span class="str">"NotFound"</span>, () =>
+      <span class="type">Effect</span>.<span class="fn">succeed</span>({ status: <span class="num">404</span>, body: <span class="str">"Not found"</span> })
+    )
+  );
+
+  <span class="cm">// Run at the edge - convert to Promise</span>
+  <span class="kw">const</span> result = <span class="kw">await</span> <span class="type">Effect</span>.<span class="fn">runPromise</span>(program);
+  res.<span class="fn">status</span>(result.status).<span class="fn">json</span>(result.body);
+});</pre>
+
+        <div class="diagram-box" style="font-size: 0.78rem; line-height: 1.8; text-align: center;">
+<span style="color:var(--text-dim)">Your app</span>
+<span style="color:var(--border)">┌──────────────────────────────────┐</span>
+<span style="color:var(--border)">│</span>  <span style="color:var(--purple)">Effect world</span> <span style="color:var(--text-dim)">(compose, transform)</span>  <span style="color:var(--border)">│</span>
+<span style="color:var(--border)">│</span>                                  <span style="color:var(--border)">│</span>
+<span style="color:var(--border)">│</span>  getUser -> validate -> format   <span style="color:var(--border)">│</span>
+<span style="color:var(--border)">│</span>          <span style="color:var(--text-dim)">(all lazy)</span>              <span style="color:var(--border)">│</span>
+<span style="color:var(--border)">└─────────────┬────────────────────┘</span>
+              <span style="color:var(--amber)">│ runPromise()</span>
+              <span style="color:var(--amber)">▼</span>
+<span style="color:var(--border)">┌──────────────────────────────────┐</span>
+<span style="color:var(--border)">│</span>  <span style="color:var(--green)">JS world</span> <span style="color:var(--text-dim)">(Express, actual I/O)</span>     <span style="color:var(--border)">│</span>
+<span style="color:var(--border)">└──────────────────────────────────┘</span></div>
+      </div>
+    </div>
+    <span class="slide-num">06 / 14</span>
+  </div>
+
+  <!-- ==================== SLIDE 7: Composing Effects (map, flatMap, tap) ==================== -->
+  <div class="slide" data-slide="7">
+    <div class="left-heavy">
+      <div class="main">
+        <h3>composing effects</h3>
+        <h2>Building Pipelines</h2>
+        <div class="warm-line"></div>
+        <p style="margin-bottom: 14px;">These functions let you chain Effects together without running them. Think of it like building a recipe before you start cooking.</p>
+
+        <div class="card" style="border-left: 3px solid var(--amber);">
+          <h4>map(effect, fn) - Transform the result</h4>
+          <p style="font-size: 0.85rem; margin-bottom: 10px;">Like <code>Array.map()</code> but for Effects. Takes the success value and transforms it. <strong>The function can't fail.</strong></p>
+          <pre style="font-size: 0.74rem;"><span class="cm">// Turn a User into just their name</span>
+getUser(id).<span class="fn">pipe</span>(
+  <span class="type">Effect</span>.<span class="fn">map</span>(user => user.name)
+)
+<span class="cm">// Effect&lt;string, DatabaseError&gt;</span></pre>
+        </div>
+
+        <div class="card" style="border-left: 3px solid var(--orange);">
+          <h4>flatMap(effect, fn) - Chain with another Effect</h4>
+          <p style="font-size: 0.85rem; margin-bottom: 10px;">Your transform returns <em>another Effect</em>. This is how you chain async steps. Like <code>.then()</code> where the callback returns a new Promise.</p>
+          <pre style="font-size: 0.74rem;"><span class="cm">// Get user, then get their orders</span>
+getUser(id).<span class="fn">pipe</span>(
+  <span class="type">Effect</span>.<span class="fn">flatMap</span>(user => getOrders(user.id))
+)
+<span class="cm">// Effect&lt;Order[], DatabaseError&gt;</span></pre>
+        </div>
+
+        <div class="card" style="border-left: 3px solid var(--green);">
+          <h4>tap(effect, fn) - Side effect, keep original value</h4>
+          <p style="font-size: 0.85rem; margin-bottom: 10px;">Do something (like logging) but the pipeline continues with the <em>original</em> value, not the result of your tap function.</p>
+          <pre style="font-size: 0.74rem;"><span class="cm">// Log the user, but pass the user through</span>
+getUser(id).<span class="fn">pipe</span>(
+  <span class="type">Effect</span>.<span class="fn">tap</span>(user =>
+    <span class="type">Effect</span>.<span class="fn">sync</span>(() => <span class="fn">console.log</span>(<span class="str">`Found: ${user.name}`</span>))
+  ),
+  <span class="type">Effect</span>.<span class="fn">flatMap</span>(user => getOrders(user.id))
+)
+<span class="cm">// Still passes the user to getOrders</span></pre>
+        </div>
+      </div>
+      <div class="aside" style="display:flex; flex-direction:column; justify-content:center;">
+        <h3>promise equivalents</h3>
+        <div style="background: var(--bg-code); border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
+          <table style="font-size: 0.78rem;">
+            <thead>
+              <tr><th>Promise</th><th></th><th>Effect</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="color:var(--amber)">.then(x => y)</td>
+                <td style="text-align:center; color:var(--text-dim)">-></td>
+                <td style="color:var(--purple)">map</td>
+              </tr>
+              <tr>
+                <td style="color:var(--amber)">.then(x => fetch(...))</td>
+                <td style="text-align:center; color:var(--text-dim)">-></td>
+                <td style="color:var(--purple)">flatMap</td>
+              </tr>
+              <tr>
+                <td style="color:var(--amber)"><em>(no equivalent)</em></td>
+                <td style="text-align:center; color:var(--text-dim)">-></td>
+                <td style="color:var(--purple)">tap</td>
+              </tr>
+              <tr>
+                <td style="color:var(--amber)">Promise.all()</td>
+                <td style="text-align:center; color:var(--text-dim)">-></td>
+                <td style="color:var(--purple)">all</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout" style="margin-top: 16px;">
+          <p><strong>Why flatMap, not just map?</strong></p>
+          <p style="font-size: 0.84rem; margin-top: 6px;"><code>map</code> wraps your return in an Effect. If your function <em>already returns an Effect</em>, you'd get Effect&lt;Effect&lt;...&gt;&gt; - nested. <code>flatMap</code> "flattens" that into a single Effect.</p>
+          <p style="font-size: 0.84rem; margin-top: 6px;">Same reason <code>.then()</code> auto-unwraps Promises - it's doing flatMap under the hood!</p>
+        </div>
+
+        <div class="card" style="margin-top: 14px;">
+          <h4>all - Run multiple at once</h4>
+          <pre style="font-size: 0.74rem; border: none; padding: 8px; margin: 0;"><span class="cm">// Like Promise.all() - run in parallel</span>
+<span class="type">Effect</span>.<span class="fn">all</span>([
+  getUser(id),
+  getOrders(id),
+  getPrefs(id)
+])
+<span class="cm">// Effect&lt;[User, Order[], Prefs], ...&gt;</span></pre>
+        </div>
+      </div>
+    </div>
+    <span class="slide-num">07 / 14</span>
+  </div>
+
+  <!-- ==================== SLIDE 8: pipe and Effect.gen ==================== -->
+  <div class="slide" data-slide="8">
+    <div class="split">
+      <div class="col">
+        <h3>syntax styles</h3>
+        <h2>pipe vs Effect.gen</h2>
+        <div class="warm-line"></div>
+        <p style="margin-bottom: 16px;">Effect gives you two ways to write the same thing. Pick whichever clicks for you.</p>
+
+        <div style="margin-bottom: 10px;"><span class="label label-js">pipe style</span> <span style="font-size:0.78rem; color:var(--text-dim); margin-left:8px;">functional, point-free</span></div>
+        <pre style="font-size: 0.76rem;"><span class="cm">// Data flows top to bottom through each step</span>
+<span class="kw">const</span> program = <span class="type">Effect</span>.<span class="fn">succeed</span>(<span class="num">5</span>).<span class="fn">pipe</span>(
+  <span class="type">Effect</span>.<span class="fn">flatMap</span>(x =>
+    x === <span class="num">0</span>
+      ? <span class="type">Effect</span>.<span class="fn">fail</span>(<span class="str">"division by zero"</span>)
+      : <span class="type">Effect</span>.<span class="fn">succeed</span>(<span class="num">10</span> / x)
+  ),
+  <span class="type">Effect</span>.<span class="fn">tap</span>(result =>
+    <span class="type">Effect</span>.<span class="fn">sync</span>(() => <span class="fn">console.log</span>(result))
+  )
+);</pre>
+
+        <div style="margin: 18px 0 10px;"><span class="label label-effect">generator style</span> <span style="font-size:0.78rem; color:var(--text-dim); margin-left:8px;">imperative, like async/await</span></div>
+        <pre style="font-size: 0.76rem;"><span class="cm">// Reads like normal code. yield* = await</span>
+<span class="kw">const</span> program = <span class="type">Effect</span>.<span class="fn">gen</span>(<span class="kw">function*</span> () {
+  <span class="kw">const</span> x = <span class="kw">yield*</span> <span class="type">Effect</span>.<span class="fn">succeed</span>(<span class="num">5</span>);
+  <span class="kw">if</span> (x === <span class="num">0</span>) {
+    <span class="kw">yield*</span> <span class="type">Effect</span>.<span class="fn">fail</span>(<span class="str">"division by zero"</span>);
+  }
+  <span class="fn">console.log</span>(<span class="num">10</span> / x);
+});</pre>
+      </div>
+      <div class="col" style="display:flex; flex-direction:column; justify-content:center;">
+        <h3>the mapping</h3>
+        <div style="background: var(--bg-code); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 16px;">
+          <table style="font-size: 0.82rem;">
+            <thead>
+              <tr><th>async/await</th><th></th><th>Effect.gen</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="color:var(--amber)">async function</td>
+                <td style="text-align:center; color:var(--text-dim)">-></td>
+                <td style="color:var(--purple)">Effect.gen(function*)</td>
+              </tr>
+              <tr>
+                <td style="color:var(--amber)">await promise</td>
+                <td style="text-align:center; color:var(--text-dim)">-></td>
+                <td style="color:var(--purple)">yield* effect</td>
+              </tr>
+              <tr>
+                <td style="color:var(--amber)">return value</td>
+                <td style="text-align:center; color:var(--text-dim)">-></td>
+                <td style="color:var(--purple)">return value</td>
+              </tr>
+              <tr>
+                <td style="color:var(--amber)">throw error</td>
+                <td style="text-align:center; color:var(--text-dim)">-></td>
+                <td style="color:var(--purple)">yield* Effect.fail(e)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout-green">
+          <p><strong>Generator style is usually easier</strong> if you're coming from async/await. It reads top-to-bottom like normal code, lets you use <code>if/else</code> and <code>for</code> loops, and avoids the nesting that pipe style can create.</p>
+        </div>
+
+        <div class="callout" style="margin-top: 10px;">
+          <p><strong>Backend example:</strong> An order processing pipeline in generator style:</p>
+          <pre style="border: none; padding: 8px; margin: 4px 0 0; font-size: 0.72rem; background: transparent;"><span class="type">Effect</span>.<span class="fn">gen</span>(<span class="kw">function*</span> () {
+  <span class="kw">const</span> order = <span class="kw">yield*</span> getOrder(id);
+  <span class="kw">const</span> stock = <span class="kw">yield*</span> checkInventory(order);
+  <span class="kw">if</span> (!stock.available) {
+    <span class="kw">yield*</span> <span class="type">Effect</span>.<span class="fn">fail</span>(<span class="kw">new</span> <span class="type">OutOfStock</span>());
+  }
+  <span class="kw">yield*</span> chargePayment(order);
+  <span class="kw">yield*</span> sendConfirmationEmail(order);
+  <span class="kw">return</span> order;
+});</pre>
+        </div>
+      </div>
+    </div>
+    <span class="slide-num">08 / 14</span>
+  </div>
+
+  <!-- ==================== SLIDE 9: Error Handling ==================== -->
+  <div class="slide" data-slide="9">
+    <div class="left-heavy">
+      <div class="main">
+        <h3>error handling</h3>
+        <h2>Errors as <em>Data</em>,<br>Not Surprises</h2>
+        <div class="warm-line"></div>
+
+        <div class="split" style="gap: 20px; margin-top: 16px;">
+          <div class="col" style="flex: 1;">
+            <div style="margin-bottom:8px;"><span class="tag tag-error">Expected errors</span></div>
+            <p style="font-size: 0.85rem; margin-bottom: 10px;">Things you <em>planned for</em>. Tracked in the type system. Like a function saying "I might return NotFound or Unauthorized."</p>
+            <pre style="font-size: 0.72rem;"><span class="cm">// Type: Effect&lt;User, NotFound | DBError&gt;</span>
+<span class="cm">// The signature TELLS you what can go wrong</span>
+<span class="kw">const</span> getUser = (id: <span class="type">string</span>) =>
+  <span class="type">Effect</span>.<span class="fn">gen</span>(<span class="kw">function*</span> () {
+    <span class="kw">const</span> row = <span class="kw">yield*</span> queryDB(id);
+    <span class="kw">if</span> (!row) {
+      <span class="kw">yield*</span> <span class="type">Effect</span>.<span class="fn">fail</span>(
+        <span class="kw">new</span> <span class="type">NotFound</span>({ id })
+      );
+    }
+    <span class="kw">return</span> row;
+  });</pre>
+          </div>
+          <div class="col" style="flex: 1;">
+            <div style="margin-bottom:8px;"><span class="tag tag-never">Unexpected errors (defects)</span></div>
+            <p style="font-size: 0.85rem; margin-bottom: 10px;">Bugs. Things that <em>shouldn't happen</em>. Like accessing <code>null.foo</code>. Not tracked in types - they represent programmer errors.</p>
+            <pre style="font-size: 0.72rem;"><span class="cm">// These create defects (panics)</span>
+<span class="type">Effect</span>.<span class="fn">die</span>(<span class="str">"impossible state"</span>);
+<span class="type">Effect</span>.<span class="fn">dieMessage</span>(<span class="str">"unreachable"</span>);
+
+<span class="cm">// Also: if you use sync() and it</span>
+<span class="cm">// throws, that's a defect too.</span>
+<span class="type">Effect</span>.<span class="fn">sync</span>(() => {
+  <span class="kw">throw</span> <span class="kw">new</span> <span class="type">Error</span>(<span class="str">"oops"</span>);
+  <span class="cm">// ^ This is a DEFECT, not a</span>
+  <span class="cm">//   tracked error. You promised</span>
+  <span class="cm">//   sync() wouldn't throw!</span>
+});</pre>
+          </div>
+        </div>
+
+        <div class="callout" style="margin-top: 12px;">
+          <p><strong>Short-circuiting:</strong> Just like Promises, when an error happens the rest of the pipeline stops. The error bubbles up until something catches it. No more <code>if (result.error) return;</code> checks at every step.</p>
+        </div>
+      </div>
+      <div class="aside" style="display:flex; flex-direction:column; justify-content:center;">
+        <h3>catching errors</h3>
+
+        <div class="card" style="border-left: 3px solid var(--amber); margin-bottom: 8px;">
+          <h4>catchAll - Catch everything</h4>
+          <pre style="font-size: 0.72rem; border: none; padding: 6px; margin: 0;">getUser(id).<span class="fn">pipe</span>(
+  <span class="type">Effect</span>.<span class="fn">catchAll</span>(err =>
+    <span class="type">Effect</span>.<span class="fn">succeed</span>(defaultUser)
+  )
+)</pre>
+        </div>
+
+        <div class="card" style="border-left: 3px solid var(--orange); margin-bottom: 8px;">
+          <h4>catchTag - Catch specific error</h4>
+          <pre style="font-size: 0.72rem; border: none; padding: 6px; margin: 0;"><span class="cm">// Only catch NotFound, let DBError</span>
+<span class="cm">// propagate up to the caller</span>
+getUser(id).<span class="fn">pipe</span>(
+  <span class="type">Effect</span>.<span class="fn">catchTag</span>(<span class="str">"NotFound"</span>, () =>
+    <span class="type">Effect</span>.<span class="fn">succeed</span>(guestUser)
+  )
+)</pre>
+        </div>
+
+        <div class="card" style="border-left: 3px solid var(--blue);">
+          <h4>either - Move error to success channel</h4>
+          <pre style="font-size: 0.72rem; border: none; padding: 6px; margin: 0;"><span class="cm">// Instead of failing, you get</span>
+<span class="cm">// Either&lt;User, Error&gt; as the value</span>
+getUser(id).<span class="fn">pipe</span>(
+  <span class="type">Effect</span>.<span class="fn">either</span>,
+  <span class="type">Effect</span>.<span class="fn">map</span>(result => {
+    <span class="kw">if</span> (<span class="type">Either</span>.<span class="fn">isLeft</span>(result)) {
+      <span class="cm">// handle error</span>
+    } <span class="kw">else</span> {
+      <span class="cm">// use result.right</span>
+    }
+  })
+)</pre>
+        </div>
+      </div>
+    </div>
+    <span class="slide-num">09 / 14</span>
+  </div>
+
+  <!-- ==================== SLIDE 10: Services & Dependency Injection ==================== -->
+  <div class="slide" data-slide="10">
+    <div class="split">
+      <div class="col">
+        <h3>services</h3>
+        <h2>Dependency Injection,<br>Effect-Style</h2>
+        <div class="warm-line"></div>
+
+        <p style="margin-bottom: 14px;">Instead of importing a database client directly (hard to test), you declare <em>"I need a database"</em> as a requirement in the type. Effect won't let you run the program until you provide it.</p>
+
+        <div style="margin-bottom: 10px;"><span class="label label-effect">Step 1: Define what you need</span></div>
+        <pre style="font-size: 0.75rem; margin-bottom: 14px;"><span class="cm">// "I need something called UserRepo</span>
+<span class="cm">//  that has a findById method"</span>
+<span class="kw">class</span> <span class="type">UserRepo</span> <span class="kw">extends</span> Context.<span class="fn">Tag</span>(<span class="str">"UserRepo"</span>)<
+  <span class="type">UserRepo</span>,
+  {
+    findById: (id: <span class="type">string</span>) => <span class="type">Effect</span>&lt;<span class="type">User</span>, <span class="type">NotFound</span>&gt;
+  }
+>() {}</pre>
+
+        <div style="margin-bottom: 10px;"><span class="label label-effect">Step 2: Use it in your code</span></div>
+        <pre style="font-size: 0.75rem; margin-bottom: 14px;"><span class="kw">const</span> getUser = <span class="type">Effect</span>.<span class="fn">gen</span>(<span class="kw">function*</span> () {
+  <span class="kw">const</span> repo = <span class="kw">yield*</span> <span class="type">UserRepo</span>;  <span class="cm">// "give me the repo"</span>
+  <span class="kw">return</span> <span class="kw">yield*</span> repo.<span class="fn">findById</span>(<span class="str">"42"</span>);
+});
+<span class="cm">// Type: Effect&lt;User, NotFound, UserRepo&gt;</span>
+<span class="cm">//                              ^^^^^^^^</span>
+<span class="cm">//                     "requires UserRepo"</span></pre>
+
+        <div style="margin-bottom: 10px;"><span class="label label-effect">Step 3: Provide it when running</span></div>
+        <pre style="font-size: 0.75rem;"><span class="cm">// Production: real database</span>
+getUser.<span class="fn">pipe</span>(
+  <span class="type">Effect</span>.<span class="fn">provideService</span>(<span class="type">UserRepo</span>, {
+    findById: (id) => queryPostgres(id)
+  }),
+  <span class="type">Effect</span>.<span class="fn">runPromise</span>
+);</pre>
+      </div>
+      <div class="col" style="display:flex; flex-direction:column; justify-content:center;">
+        <h3>why this rocks for backend</h3>
+
+        <div class="card" style="border-left: 3px solid var(--green);">
+          <h4>Testing is trivial</h4>
+          <pre style="font-size: 0.72rem; border: none; padding: 6px; margin: 0;"><span class="cm">// Test: provide a fake</span>
+getUser.<span class="fn">pipe</span>(
+  <span class="type">Effect</span>.<span class="fn">provideService</span>(<span class="type">UserRepo</span>, {
+    findById: (id) =>
+      <span class="type">Effect</span>.<span class="fn">succeed</span>({ id, name: <span class="str">"Test"</span> })
+  }),
+  <span class="type">Effect</span>.<span class="fn">runPromise</span>
+);</pre>
+          <p style="font-size: 0.82rem; margin-top: 8px;">No mocking libraries. No monkey-patching. Just provide different implementations.</p>
+        </div>
+
+        <div class="callout" style="margin-top: 14px;">
+          <p><strong>TypeScript enforces it:</strong> If your code needs <code>UserRepo</code> and you try to run it without providing one, <em>TypeScript gives you a compile error</em>. You literally cannot forget a dependency.</p>
+        </div>
+
+        <div class="diagram-box" style="font-size: 0.76rem; line-height: 1.7; text-align: center; margin-top: 14px;">
+<span style="color:var(--text-dim)">The Requirements channel</span>
+<span style="color:var(--border)">┌──────────────────────────────────┐</span>
+<span style="color:var(--border)">│</span>  <span style="color:var(--purple)">Effect&lt;User, NotFound, UserRepo&gt;</span> <span style="color:var(--border)">│</span>
+<span style="color:var(--border)">│</span>                                  <span style="color:var(--border)">│</span>
+<span style="color:var(--border)">│</span>  <span style="color:var(--green)">provideService(UserRepo, impl)</span>  <span style="color:var(--border)">│</span>
+<span style="color:var(--border)">│</span>          <span style="color:var(--text-dim)">▼</span>                       <span style="color:var(--border)">│</span>
+<span style="color:var(--border)">│</span>  <span style="color:var(--amber)">Effect&lt;User, NotFound&gt;</span>          <span style="color:var(--border)">│</span>
+<span style="color:var(--border)">│</span>  <span style="color:var(--text-dim)">Requirements satisfied! Can run.</span> <span style="color:var(--border)">│</span>
+<span style="color:var(--border)">└──────────────────────────────────┘</span></div>
+      </div>
+    </div>
+    <span class="slide-num">10 / 14</span>
+  </div>
+
+  <!-- ==================== SLIDE 11: Scoped Resources ==================== -->
+  <div class="slide" data-slide="11">
+    <div class="right-heavy">
+      <div class="aside" style="display:flex; flex-direction:column; justify-content:center;">
+        <div style="background: linear-gradient(135deg, var(--bg-panel) 0%, rgba(224,112,48,0.06) 100%); border: 1px solid var(--border); border-radius: 12px; padding: 28px;">
+          <h3 style="color: var(--orange);">the problem in JS</h3>
+          <h2 style="font-size: 1.3rem;">Resource Leaks</h2>
+          <div class="warm-line" style="background: var(--orange);"></div>
+          <pre style="font-size: 0.72rem; margin-bottom: 14px;"><span class="cm">// Classic JS problem:</span>
+<span class="kw">const</span> conn = <span class="kw">await</span> db.<span class="fn">connect</span>();
+<span class="kw">const</span> data = <span class="kw">await</span> conn.<span class="fn">query</span>(<span class="str">"..."</span>);
+conn.<span class="fn">release</span>(); <span class="cm">// Did you remember?</span>
+
+<span class="cm">// What if query() throws?</span>
+<span class="cm">// conn.release() never runs!</span>
+<span class="cm">// You just leaked a connection.</span></pre>
+
+          <pre style="font-size: 0.72rem;"><span class="cm">// The try/finally fix:</span>
+<span class="kw">const</span> conn = <span class="kw">await</span> db.<span class="fn">connect</span>();
+<span class="kw">try</span> {
+  <span class="kw">const</span> data = <span class="kw">await</span> conn.<span class="fn">query</span>(<span class="str">"..."</span>);
+  <span class="kw">return</span> data;
+} <span class="kw">finally</span> {
+  conn.<span class="fn">release</span>(); <span class="cm">// Always runs</span>
+}
+<span class="cm">// Works, but manual and error-prone</span>
+<span class="cm">// with multiple resources</span></pre>
+        </div>
+      </div>
+      <div class="main" style="display:flex; flex-direction:column; justify-content:center;">
+        <h3>scoped resources</h3>
+        <h2>Auto-Cleanup<br>with Scope</h2>
+        <div class="warm-line"></div>
+
+        <p style="margin-bottom: 14px;">A <strong>Scope</strong> collects cleanup functions ("finalizers") and runs them when the scope closes - even if something throws. Think <code>try/finally</code> but composable and automatic.</p>
+
+        <pre style="font-size: 0.75rem; margin-bottom: 16px;"><span class="cm">// Define a resource with auto-cleanup</span>
+<span class="kw">const</span> dbConnection = <span class="type">Effect</span>.<span class="fn">acquireRelease</span>(
+  <span class="cm">// acquire: open the connection</span>
+  <span class="type">Effect</span>.<span class="fn">tryPromise</span>(() => db.<span class="fn">connect</span>()),
+  <span class="cm">// release: always close it</span>
+  (conn) => <span class="type">Effect</span>.<span class="fn">sync</span>(() => conn.<span class="fn">release</span>())
+);
+<span class="cm">// Type: Effect&lt;Connection, Error, Scope&gt;</span>
+<span class="cm">//                                 ^^^^^</span>
+<span class="cm">//             "has cleanup to run"</span>
+
+<span class="cm">// Use the resource</span>
+<span class="kw">const</span> program = <span class="type">Effect</span>.<span class="fn">gen</span>(<span class="kw">function*</span> () {
+  <span class="kw">const</span> conn = <span class="kw">yield*</span> dbConnection;
+  <span class="kw">return</span> <span class="kw">yield*</span> conn.<span class="fn">query</span>(<span class="str">"SELECT * FROM users"</span>);
+});
+
+<span class="cm">// Effect.scoped says "run cleanup HERE"</span>
+<span class="type">Effect</span>.<span class="fn">runPromise</span>(
+  <span class="type">Effect</span>.<span class="fn">scoped</span>(program)
+);
+<span class="cm">// Connection opens, query runs, connection</span>
+<span class="cm">// closes - even if query fails!</span></pre>
+
+        <div class="callout-green">
+          <p><strong>Backend win:</strong> DB connections, file handles, temp files, HTTP connections - anything that needs cleanup. Define it once, never worry about leaks again. Effect composes multiple scoped resources naturally.</p>
+        </div>
+      </div>
+    </div>
+    <span class="slide-num">11 / 14</span>
+  </div>
+
+  <!-- ==================== SLIDE 12: Retry & Repeat ==================== -->
+  <div class="slide" data-slide="12">
+    <div class="centered" style="max-width: 900px; margin: 0 auto; text-align: left;">
+      <h3 style="text-align: center;">resilience</h3>
+      <h2 style="text-align: center;">Retry & Repeat</h2>
+      <div class="warm-line center"></div>
+      <p style="text-align: center; max-width: 600px; margin: 0 auto 24px;">Because Effect is lazy (a blueprint), you can re-run the same Effect on failure or success. A <code style="color:var(--amber)">Schedule</code> defines the pattern: how many times, how long to wait, whether to back off.</p>
+
+      <div class="three-col" style="width: 100%;">
+        <div class="col">
+          <div class="card" style="flex: 1; border-left: 3px solid var(--red);">
+            <h4 style="color: var(--red);">retry - On Failure</h4>
+            <p style="font-size: 0.85rem; margin-bottom: 10px;">Try again when it fails. Great for flaky network calls.</p>
+            <pre style="font-size: 0.72rem;"><span class="cm">// Retry 3 times with exponential backoff</span>
+callExternalAPI(data).<span class="fn">pipe</span>(
+  <span class="type">Effect</span>.<span class="fn">retry</span>(
+    <span class="type">Schedule</span>.<span class="fn">exponential</span>(<span class="str">"100 millis"</span>).<span class="fn">pipe</span>(
+      <span class="type">Schedule</span>.<span class="fn">compose</span>(
+        <span class="type">Schedule</span>.<span class="fn">recurs</span>(<span class="num">3</span>)
+      )
+    )
+  )
+)
+<span class="cm">// Waits: 100ms, 200ms, 400ms</span>
+<span class="cm">// Then gives up</span></pre>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card" style="flex: 1; border-left: 3px solid var(--green);">
+            <h4 style="color: var(--green);">repeat - On Success</h4>
+            <p style="font-size: 0.85rem; margin-bottom: 10px;">Run it again after it succeeds. Great for polling.</p>
+            <pre style="font-size: 0.72rem;"><span class="cm">// Poll every 5 seconds, forever</span>
+checkJobStatus(jobId).<span class="fn">pipe</span>(
+  <span class="type">Effect</span>.<span class="fn">repeat</span>(
+    <span class="type">Schedule</span>.<span class="fn">spaced</span>(<span class="str">"5 seconds"</span>)
+  )
+)
+
+<span class="cm">// Poll 10 times, 1 second apart</span>
+checkQueue().<span class="fn">pipe</span>(
+  <span class="type">Effect</span>.<span class="fn">repeat</span>(
+    <span class="type">Schedule</span>.<span class="fn">spaced</span>(<span class="str">"1 second"</span>).<span class="fn">pipe</span>(
+      <span class="type">Schedule</span>.<span class="fn">compose</span>(
+        <span class="type">Schedule</span>.<span class="fn">recurs</span>(<span class="num">10</span>)
+      )
+    )
+  )
+)</pre>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card" style="flex: 1; border-left: 3px solid var(--amber);">
+            <h4 style="color: var(--amber);">Schedule Combinators</h4>
+            <p style="font-size: 0.85rem; margin-bottom: 10px;">Schedules compose. Mix and match strategies:</p>
+            <pre style="font-size: 0.72rem;"><span class="cm">// Fixed interval</span>
+<span class="type">Schedule</span>.<span class="fn">spaced</span>(<span class="str">"1 second"</span>)
+
+<span class="cm">// Exponential backoff</span>
+<span class="type">Schedule</span>.<span class="fn">exponential</span>(<span class="str">"100 millis"</span>)
+
+<span class="cm">// Stop after N retries</span>
+<span class="type">Schedule</span>.<span class="fn">recurs</span>(<span class="num">5</span>)
+
+<span class="cm">// Combine: exponential but max 3</span>
+<span class="type">Schedule</span>.<span class="fn">exponential</span>(<span class="str">"100 millis"</span>)
+  .<span class="fn">pipe</span>(
+    <span class="type">Schedule</span>.<span class="fn">compose</span>(
+      <span class="type">Schedule</span>.<span class="fn">recurs</span>(<span class="num">3</span>)
+    )
+  )</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout" style="margin-top: 14px; text-align: left;">
+        <p><strong>Why this is hard without Effect:</strong> In plain JS, retrying a <code>fetch()</code> means wrapping it in a loop with sleep, handling backoff math, managing state. With Effect, it's one line: <code>Effect.retry(schedule)</code>. Because Effects are lazy blueprints, retrying is just... running the blueprint again.</p>
+      </div>
+    </div>
+    <span class="slide-num">12 / 14</span>
+  </div>
+
+  <!-- ==================== SLIDE 13: Data Types ==================== -->
+  <div class="slide" data-slide="13">
+    <div class="left-heavy">
+      <div class="main">
+        <h3>data types</h3>
+        <h2>Effect's Toolkit</h2>
+        <div class="warm-line"></div>
+        <p style="margin-bottom: 16px;">Effect ships with data structures that are immutable, composable, and play nicely with the rest of the ecosystem.</p>
+
+        <table>
+          <thead>
+            <tr><th>Type</th><th>JS Equivalent</th><th>Why use it</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="color:var(--amber)">Option&lt;T&gt;</td>
+              <td class="desc"><code>T | null</code></td>
+              <td class="desc">No more <code>if (x !== null)</code> everywhere. Forces you to handle the "nothing" case.</td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">Either&lt;A, E&gt;</td>
+              <td class="desc"><code>{ ok: A } | { err: E }</code></td>
+              <td class="desc">A result type. Right = success, Left = error. Useful when you want errors as values, not exceptions.</td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">Chunk&lt;A&gt;</td>
+              <td class="desc"><code>Array&lt;A&gt;</code></td>
+              <td class="desc">Immutable, lazy array. Better for pipelines because operations don't create intermediate copies.</td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">HashMap&lt;K,V&gt;</td>
+              <td class="desc"><code>Map&lt;K,V&gt;</code></td>
+              <td class="desc">Immutable. Uses structural equality (two objects with same data are equal), not reference equality.</td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">HashSet&lt;A&gt;</td>
+              <td class="desc"><code>Set&lt;A&gt;</code></td>
+              <td class="desc">Immutable. Same structural equality benefit - <code>new Foo(1)</code> and <code>new Foo(1)</code> are the same entry.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="aside" style="display:flex; flex-direction:column; justify-content:center;">
+        <h3>structural equality</h3>
+        <p style="font-size: 0.88rem; margin-bottom: 14px;">In JS, <code>===</code> compares by <em>reference</em>. Two objects with identical data are still "not equal":</p>
+
+        <pre style="font-size: 0.74rem; margin-bottom: 14px;"><span class="cm">// Plain JS</span>
+{ name: <span class="str">"alice"</span> } === { name: <span class="str">"alice"</span> }
+<span class="cm">// false! Different objects in memory.</span>
+
+<span class="cm">// This bites you with Sets:</span>
+<span class="kw">const</span> s = <span class="kw">new</span> <span class="type">Set</span>();
+s.<span class="fn">add</span>({ id: <span class="num">1</span> });
+s.<span class="fn">add</span>({ id: <span class="num">1</span> });
+s.size; <span class="cm">// 2 (not 1!)</span></pre>
+
+        <pre style="font-size: 0.74rem;"><span class="cm">// Effect's Hash + Equal traits</span>
+<span class="kw">class</span> <span class="type">UserId</span> {
+  <span class="fn">constructor</span>(<span class="kw">public</span> n: <span class="type">number</span>) {}
+
+  [<span class="type">Hash</span>.symbol]() {
+    <span class="kw">return</span> <span class="type">Hash</span>.<span class="fn">number</span>(<span class="kw">this</span>.n);
+  }
+  [<span class="type">Equal</span>.symbol](that: <span class="type">unknown</span>) {
+    <span class="kw">return</span> that <span class="kw">instanceof</span> <span class="type">UserId</span>
+      && that.n === <span class="kw">this</span>.n;
+  }
+}
+
+<span class="type">Equal</span>.<span class="fn">equals</span>(
+  <span class="kw">new</span> <span class="type">UserId</span>(<span class="num">1</span>),
+  <span class="kw">new</span> <span class="type">UserId</span>(<span class="num">1</span>)
+); <span class="cm">// true!</span></pre>
+      </div>
+    </div>
+    <span class="slide-num">13 / 14</span>
+  </div>
+
+  <!-- ==================== SLIDE 14: Other Modules & Summary ==================== -->
+  <div class="slide" data-slide="14">
+    <!-- Decorative SVG background -->
+    <svg class="accent-dots" width="100%" height="100%" style="position:absolute;inset:0;">
+      <circle cx="80%" cy="20%" r="250" fill="url(#glow1)"/>
+      <circle cx="15%" cy="75%" r="180" fill="url(#glow1)"/>
+      <rect width="100%" height="100%" fill="url(#dots)" opacity="0.3"/>
+    </svg>
+
+    <div class="split" style="position: relative; z-index: 2;">
+      <div class="col">
+        <h3>the ecosystem</h3>
+        <h2>Beyond Core Effect</h2>
+        <div class="warm-line"></div>
+
+        <div class="card" style="border-left: 3px solid var(--purple); margin-bottom: 6px;">
+          <h4 style="color: var(--purple);">Schema</h4>
+          <p style="font-size: 0.85rem;">Data validation + transformation. Like Zod, but integrated with Effect. Parse API request bodies, validate configs, transform data between shapes.</p>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--blue); margin-bottom: 6px;">
+          <h4 style="color: var(--blue);">Config</h4>
+          <p style="font-size: 0.85rem;">Typed env variables. <code>Config.string("DATABASE_URL")</code> gives you an Effect that reads from the environment. Missing? You get a typed error at startup, not a crash at midnight.</p>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--green); margin-bottom: 6px;">
+          <h4 style="color: var(--green);">Stream</h4>
+          <p style="font-size: 0.85rem;">Pull-based streams. Like an Effect that produces multiple values over time. Processing large files, WebSocket messages, database cursors.</p>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--amber);">
+          <h4 style="color: var(--amber);">Match</h4>
+          <p style="font-size: 0.85rem;">Pattern matching. Exhaustive, type-safe <code>switch</code> on steroids. Great for handling different error types or API response shapes.</p>
+        </div>
+      </div>
+      <div class="col" style="display:flex; flex-direction:column; justify-content:center;">
+        <h3>the cheatsheet</h3>
+        <h2 style="font-size: 1.5rem; margin-bottom: 16px;">Quick Reference</h2>
+
+        <div style="background: var(--bg-code); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 16px;">
+          <p style="font-size: 0.82rem; color: var(--amber); font-weight: 600; margin-bottom: 8px;">PROMISE -> EFFECT</p>
+          <table style="font-size: 0.76rem;">
+            <tbody>
+              <tr><td style="color:var(--text-dim)">Promise.resolve(x)</td><td style="color:var(--amber)">Effect.succeed(x)</td></tr>
+              <tr><td style="color:var(--text-dim)">Promise.reject(e)</td><td style="color:var(--amber)">Effect.fail(e)</td></tr>
+              <tr><td style="color:var(--text-dim)">.then(x => y)</td><td style="color:var(--amber)">Effect.map(x => y)</td></tr>
+              <tr><td style="color:var(--text-dim)">.then(x => fetch(...))</td><td style="color:var(--amber)">Effect.flatMap(x => ...)</td></tr>
+              <tr><td style="color:var(--text-dim)">.catch(e => ...)</td><td style="color:var(--amber)">Effect.catchAll(e => ...)</td></tr>
+              <tr><td style="color:var(--text-dim)">Promise.all([...])</td><td style="color:var(--amber)">Effect.all([...])</td></tr>
+              <tr><td style="color:var(--text-dim)">await promise</td><td style="color:var(--amber)">yield* effect</td></tr>
+              <tr><td style="color:var(--text-dim)">async function</td><td style="color:var(--amber)">Effect.gen(function*)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="background: var(--bg-code); border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
+          <p style="font-size: 0.82rem; color: var(--green); font-weight: 600; margin-bottom: 8px;">KEY TAKEAWAYS</p>
+          <ul>
+            <li style="font-size: 0.85rem;">Effects are <strong style="color:var(--cream)">lazy</strong> - blueprints, not actions</li>
+            <li style="font-size: 0.85rem;">Errors are <strong style="color:var(--cream)">typed</strong> - no more <code>unknown</code> in catch</li>
+            <li style="font-size: 0.85rem;">Dependencies are <strong style="color:var(--cream)">explicit</strong> - in the type signature</li>
+            <li style="font-size: 0.85rem;">Composition is <strong style="color:var(--cream)">natural</strong> - pipe or generator style</li>
+            <li style="font-size: 0.85rem;">Resources are <strong style="color:var(--cream)">managed</strong> - auto-cleanup with Scope</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <span class="slide-num">14 / 14</span>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav">
+  <button onclick="prev()">&#8592; Prev</button>
+  <span id="counter">1 / 14</span>
+  <button onclick="next()">Next &#8594;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  function show(n) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(total - 1, n));
+    slides[current].classList.add('active');
+    document.getElementById('counter').textContent = `${current + 1} / ${total}`;
+    document.getElementById('progress').style.width = `${((current + 1) / total) * 100}%`;
+  }
+
+  function next() { show(current + 1); }
+  function prev() { show(current - 1); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+    if (e.key === 'Home') { e.preventDefault(); show(0); }
+    if (e.key === 'End') { e.preventDefault(); show(total - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) { diff > 0 ? next() : prev(); }
+  });
+
+  show(0);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Table Remapping — 10-min Intro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============ THEME: Terminal Mono ============ */
+  :root {
+    --font-body: 'Geist', system-ui, sans-serif;
+    --font-mono: 'Geist Mono', 'SF Mono', Consolas, monospace;
+    --bg: #0a0e14;
+    --surface: #12161e;
+    --surface2: #1a1f2a;
+    --surface-elevated: #222836;
+    --border: rgba(80, 250, 123, 0.10);
+    --border-bright: rgba(80, 250, 123, 0.20);
+    --text: #c8d6e5;
+    --text-dim: #6a7a8a;
+    --accent: #50fa7b;
+    --accent-dim: rgba(80, 250, 123, 0.08);
+    --code-bg: #060a10;
+    --code-text: #c8d6e5;
+    --amber: #ffb86c;
+    --amber-dim: rgba(255, 184, 108, 0.10);
+    --magenta: #ff79c6;
+    --magenta-dim: rgba(255, 121, 198, 0.10);
+    --cyan: #8be9fd;
+    --cyan-dim: rgba(139, 233, 253, 0.10);
+    --red: #ff5555;
+    --red-dim: rgba(255, 85, 85, 0.10);
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --surface2: #eaecf0;
+      --surface-elevated: #f8f9fa;
+      --border: rgba(0, 80, 40, 0.10);
+      --border-bright: rgba(0, 80, 40, 0.20);
+      --text: #1a2332;
+      --text-dim: #5a6a7a;
+      --accent: #0d7a3e;
+      --accent-dim: rgba(13, 122, 62, 0.08);
+      --code-bg: #1a2332;
+      --code-text: #c8d6e5;
+      --amber: #b45309;
+      --amber-dim: rgba(180, 83, 9, 0.08);
+      --magenta: #be185d;
+      --magenta-dim: rgba(190, 24, 93, 0.08);
+      --cyan: #0e7490;
+      --cyan-dim: rgba(14, 116, 144, 0.08);
+      --red: #b91c1c;
+      --red-dim: rgba(185, 28, 28, 0.08);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-body); color: var(--text); background: var(--bg); overflow: hidden; }
+
+  /* ============ DECK ENGINE ============ */
+  .deck { height: 100dvh; overflow-y: auto; scroll-snap-type: y mandatory; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+  .slide {
+    height: 100dvh; scroll-snap-align: start; overflow: hidden; position: relative;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: clamp(40px, 6vh, 80px) clamp(40px, 8vw, 120px);
+    isolation: isolate;
+    opacity: 0; transform: translateY(40px) scale(0.98);
+    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .slide.visible { opacity: 1; transform: none; }
+  .slide .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+  .slide.visible .reveal { opacity: 1; transform: none; }
+  .slide.visible .reveal:nth-child(1) { transition-delay: 0.1s; }
+  .slide.visible .reveal:nth-child(2) { transition-delay: 0.2s; }
+  .slide.visible .reveal:nth-child(3) { transition-delay: 0.3s; }
+  .slide.visible .reveal:nth-child(4) { transition-delay: 0.4s; }
+  .slide.visible .reveal:nth-child(5) { transition-delay: 0.5s; }
+  .slide.visible .reveal:nth-child(6) { transition-delay: 0.6s; }
+  @media (prefers-reduced-motion: reduce) {
+    .slide, .slide .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+  }
+
+  /* Dot grid background pattern — Terminal Mono signature */
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+    background-size: 32px 32px; opacity: 0.5; pointer-events: none; z-index: 0;
+  }
+
+  /* ============ NAV CHROME ============ */
+  .deck-progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); z-index: 100; transition: width 0.3s ease; pointer-events: none; }
+  .deck-dots {
+    position: fixed; right: clamp(12px, 2vw, 24px); top: 50%;
+    transform: translateY(-50%); display: flex; flex-direction: column;
+    gap: 8px; z-index: 100; padding: 8px;
+    background: color-mix(in srgb, var(--bg) 60%, transparent 40%);
+    border-radius: 20px;
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  }
+  .deck-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-dim); opacity: 0.3; border: none; padding: 0; cursor: pointer; transition: opacity 0.2s ease, transform 0.2s ease; }
+  .deck-dot:hover { opacity: 0.6; }
+  .deck-dot.active { opacity: 1; transform: scale(1.5); background: var(--accent); }
+  .deck-counter { position: fixed; bottom: clamp(12px, 2vh, 24px); right: clamp(12px, 2vw, 24px); font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); z-index: 100; font-variant-numeric: tabular-nums; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  .deck-hints { position: fixed; bottom: clamp(12px, 2vh, 24px); left: 50%; transform: translateX(-50%); font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); opacity: 0.6; z-index: 100; transition: opacity 0.5s ease; white-space: nowrap; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  .deck-hints.faded { opacity: 0; pointer-events: none; }
+
+  /* ============ SHARED ============ */
+  .slide__display { font-family: var(--font-mono); font-size: clamp(48px, 10vw, 120px); font-weight: 500; letter-spacing: -3px; line-height: 0.95; text-wrap: balance; }
+  .slide__heading { font-family: var(--font-mono); font-size: clamp(28px, 5vw, 48px); font-weight: 600; letter-spacing: -1px; line-height: 1.1; text-wrap: balance; }
+  .slide__body { font-size: clamp(16px, 2.2vw, 22px); line-height: 1.6; color: var(--text-dim); text-wrap: pretty; }
+  .slide__subtitle { font-family: var(--font-mono); font-size: clamp(12px, 1.5vw, 18px); color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; }
+  .slide__label { font-family: var(--font-mono); font-size: clamp(10px, 1.2vw, 13px); font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent); margin-bottom: 12px; }
+
+  /* ============ TITLE ============ */
+  .slide--title { justify-content: center; align-items: flex-start; text-align: left; background-image: radial-gradient(ellipse at 80% 20%, var(--accent-dim) 0%, transparent 50%); }
+  .slide--title .slide__display { color: var(--accent); }
+  .slide__display .punct { color: var(--text-dim); }
+  .slide__meta-row { display: flex; gap: clamp(24px, 4vw, 60px); margin-top: clamp(24px, 4vh, 48px); font-family: var(--font-mono); font-size: clamp(11px, 1.3vw, 14px); color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; }
+  .slide__meta-row strong { color: var(--accent); font-weight: 600; margin-right: 6px; }
+
+  /* ============ DIVIDER ============ */
+  .slide--divider { justify-content: center; }
+  .slide--divider .slide__number {
+    font-family: var(--font-mono);
+    font-size: clamp(100px, 22vw, 260px);
+    font-weight: 200; line-height: 0.85; opacity: 0.08;
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -55%); pointer-events: none;
+    font-variant-numeric: tabular-nums; color: var(--accent);
+  }
+  .slide--divider .slide__inner { position: relative; z-index: 2; }
+
+  /* ============ CONTENT ============ */
+  .slide--content .slide__inner { display: grid; grid-template-columns: 3fr 2fr; gap: clamp(24px, 4vw, 60px); align-items: center; width: 100%; }
+  .slide--content.right-heavy .slide__inner { grid-template-columns: 2fr 3fr; }
+  .slide__bullets { list-style: none; padding: 0; }
+  .slide__bullets li { padding: 10px 0 10px 24px; position: relative; font-size: clamp(16px, 2vw, 22px); line-height: 1.5; color: var(--text-dim); }
+  .slide__bullets li::before { content: '\203A'; font-family: var(--font-mono); position: absolute; left: 0; top: 8px; color: var(--accent); font-weight: 700; }
+  .slide__bullets li strong { color: var(--text); font-weight: 600; }
+  .slide__aside { display: flex; align-items: center; justify-content: center; min-height: 200px; }
+
+  /* Sentence box on slide 3 */
+  .sentence-box {
+    background: var(--surface); border: 1px solid var(--border-bright); border-left: 3px solid var(--accent);
+    padding: clamp(20px, 3vh, 32px) clamp(20px, 3vw, 32px); border-radius: 8px;
+    font-family: var(--font-mono); font-size: clamp(15px, 1.9vw, 22px); line-height: 1.5;
+    color: var(--text); margin-top: clamp(16px, 2vh, 24px);
+  }
+  .sentence-box .from { color: var(--amber); }
+  .sentence-box .to { color: var(--accent); }
+  .sentence-box .arrow { color: var(--text-dim); padding: 0 4px; }
+
+  /* ============ SPLIT ============ */
+  .slide--split { padding: 0; }
+  .slide--split .slide__panels { display: grid; grid-template-columns: 1fr 1fr; height: 100%; }
+  .slide--split .slide__panel { padding: clamp(40px, 6vh, 80px) clamp(32px, 4vw, 60px); display: flex; flex-direction: column; justify-content: center; }
+  .slide--split .slide__panel--primary { background: var(--surface); }
+  .slide--split .slide__panel--secondary { background: var(--surface2); }
+  .slide--split .slide__panel h3 { font-family: var(--font-mono); font-size: clamp(20px, 2.8vw, 30px); font-weight: 600; margin-bottom: 8px; }
+  .slide--split .phase-num { font-family: var(--font-mono); font-size: clamp(11px, 1.4vw, 14px); color: var(--accent); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; font-weight: 600; }
+  .slide--split .phase-when { font-family: var(--font-mono); font-size: clamp(11px, 1.3vw, 13px); color: var(--text-dim); margin-bottom: clamp(16px, 2vh, 24px); }
+
+  /* ============ DIAGRAM ============ */
+  .slide--diagram { padding: clamp(24px, 4vh, 48px) clamp(24px, 4vw, 60px); }
+  .slide--diagram .slide__heading { margin-bottom: clamp(8px, 1.5vh, 20px); }
+  .mermaid-wrap { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; overflow: auto; flex: 1; min-height: 0; display: flex; justify-content: center; align-items: center; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  .mermaid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .mermaid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .zoom-controls { position: absolute; top: 8px; right: 8px; display: flex; gap: 2px; z-index: 10; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 2px; }
+  .zoom-controls button { width: 28px; height: 28px; border: none; background: transparent; color: var(--text-dim); font-family: var(--font-mono); font-size: 14px; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
+  .zoom-controls button:hover { background: var(--border); color: var(--text); }
+  .mermaid-wrap { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+  .mermaid .nodeLabel { color: var(--text) !important; }
+  .mermaid .edgeLabel { color: var(--text-dim) !important; background-color: var(--bg) !important; }
+  .mermaid .edgeLabel rect { fill: var(--bg) !important; }
+  .slide--diagram .mermaid svg { width: 100% !important; height: auto !important; max-width: 100% !important; }
+  .slide--diagram .mermaid .nodeLabel { font-size: 18px !important; }
+  .slide--diagram .mermaid .edgeLabel { font-family: var(--font-mono) !important; font-size: 14px !important; }
+  .slide--diagram .mermaid .node rect, .slide--diagram .mermaid .node circle, .slide--diagram .mermaid .node polygon { stroke-width: 2px; }
+  .slide--diagram .mermaid .edge-pattern-solid { stroke-width: 2px; }
+
+  /* ============ TABLE ============ */
+  .slide--table { padding: clamp(24px, 4vh, 48px) clamp(24px, 4vw, 60px); }
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; flex: 1; min-height: 0; }
+  .table-scroll { overflow-x: auto; height: 100%; }
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th { background: var(--surface2); font-family: var(--font-mono); font-size: clamp(11px, 1.4vw, 15px); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); text-align: left; padding: clamp(12px, 1.8vh, 18px) clamp(16px, 2.2vw, 26px); border-bottom: 2px solid var(--border-bright); white-space: nowrap; }
+  .data-table td { padding: clamp(12px, 1.8vh, 18px) clamp(16px, 2.2vw, 26px); border-bottom: 1px solid var(--border); font-size: clamp(14px, 1.8vw, 20px); vertical-align: middle; font-family: var(--font-mono); }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table tbody tr:nth-child(even) { background: var(--surface2); }
+  .data-table tbody tr { transition: background 0.15s; }
+  .data-table tbody tr:hover { background: var(--accent-dim); }
+  .data-table .driver { color: var(--text); font-weight: 600; }
+  .data-table .slot-empty { color: var(--text-dim); }
+  .data-table .slot-fill { color: var(--accent); }
+  .data-table .slot-amber { color: var(--amber); }
+  .data-table .slot-cyan { color: var(--cyan); }
+  .data-table .slot-magenta { color: var(--magenta); }
+  .table-footer { font-family: var(--font-mono); font-size: clamp(11px, 1.3vw, 14px); color: var(--text-dim); margin-top: clamp(8px, 1.5vh, 16px); padding: 0 8px; }
+  .table-footer .key { color: var(--accent); }
+
+  /* ============ CODE ============ */
+  .slide--code { align-items: center; }
+  .slide__code-block { background: var(--code-bg); border: 1px solid var(--border-bright); border-radius: 12px; padding: clamp(24px, 4vh, 48px) clamp(24px, 4vw, 48px); max-width: 1000px; width: 100%; position: relative; }
+  .slide__code-filename { position: absolute; top: -12px; left: 24px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 4px; background: var(--accent); color: var(--bg); }
+  .slide__code-block pre { margin: 0; overflow-x: auto; }
+  .slide__code-block code { font-family: var(--font-mono); font-size: clamp(14px, 1.7vw, 19px); line-height: 1.7; color: var(--code-text); }
+  .slide__code-block .hl { color: var(--accent); }
+  .slide__code-block .key { color: var(--cyan); }
+  .slide__code-block .str { color: var(--amber); }
+  .slide__code-block .cm { color: var(--text-dim); }
+  .slide__code-block .num { color: var(--magenta); }
+
+  /* ============ FULL-BLEED ============ */
+  .slide--bleed { padding: 0; justify-content: center; }
+  .slide__bg { position: absolute; inset: 0; z-index: 0; }
+  .slide__bg--gradient {
+    background:
+      radial-gradient(ellipse at 25% 80%, rgba(80, 250, 123, 0.18) 0%, transparent 45%),
+      radial-gradient(ellipse at 75% 20%, rgba(139, 233, 253, 0.10) 0%, transparent 45%),
+      linear-gradient(180deg, #060a10 0%, #0a0e14 100%);
+  }
+  .slide__bg--gradient::after {
+    content: ''; position: absolute; inset: 0;
+    background-image: radial-gradient(circle, rgba(80, 250, 123, 0.06) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .slide--bleed .slide__content { position: relative; z-index: 2; padding: clamp(40px, 6vh, 80px) clamp(40px, 8vw, 120px); text-align: center; }
+  .slide--bleed .slide__display { font-size: clamp(36px, 7vw, 88px); color: var(--accent); }
+  .slide--bleed .slide__subtitle { color: var(--text-dim); margin-top: clamp(16px, 2.5vh, 28px); }
+
+  /* Vocab confusables panel (slide 11) */
+  .vocab-list { display: flex; flex-direction: column; gap: clamp(10px, 1.5vh, 16px); }
+  .vocab-item { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--text-dim); border-radius: 6px; padding: clamp(12px, 1.8vh, 18px) clamp(14px, 2vw, 22px); }
+  .vocab-item .v-name { font-family: var(--font-mono); font-size: clamp(13px, 1.5vw, 16px); font-weight: 600; color: var(--text); }
+  .vocab-item .v-diff { font-size: clamp(13px, 1.5vw, 16px); color: var(--text-dim); margin-top: 4px; line-height: 1.5; }
+  .vocab-item.is-this { border-left-color: var(--accent); background: var(--accent-dim); }
+  .vocab-item.is-this .v-name { color: var(--accent); }
+  .vocab-item.is-this .v-diff { color: var(--text); }
+
+  /* Use-case cards (slide 6) */
+  .uc-list { display: flex; flex-direction: column; gap: clamp(8px, 1.2vh, 14px); }
+  .uc-row { display: flex; align-items: baseline; gap: clamp(14px, 2vw, 24px); padding: clamp(10px, 1.5vh, 16px) clamp(12px, 1.8vw, 20px); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
+  .uc-row .uc-num { font-family: var(--font-mono); font-size: clamp(11px, 1.3vw, 14px); color: var(--accent); font-weight: 600; min-width: 24px; }
+  .uc-row .uc-name { font-family: var(--font-mono); font-size: clamp(14px, 1.7vw, 18px); color: var(--text); font-weight: 600; min-width: clamp(140px, 18vw, 220px); }
+  .uc-row .uc-desc { font-size: clamp(13px, 1.5vw, 16px); color: var(--text-dim); flex: 1; line-height: 1.5; }
+  .uc-row.first { border-left: 3px solid var(--accent); }
+  .uc-row.first .uc-num { color: var(--accent); }
+  .uc-row.first .uc-name { color: var(--accent); }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-height: 700px) {
+    .slide { padding: clamp(24px, 4vh, 40px) clamp(32px, 6vw, 80px); }
+    .slide__display { font-size: clamp(36px, 8vw, 72px); }
+    .slide--divider .slide__number { font-size: clamp(80px, 16vw, 160px); }
+  }
+  @media (max-height: 600px) {
+    .slide__decor { display: none; }
+  }
+  @media (max-height: 500px) {
+    .slide { padding: clamp(16px, 3vh, 24px) clamp(24px, 5vw, 48px); }
+    .deck-dots { display: none; }
+    .slide__display { font-size: clamp(28px, 7vw, 48px); }
+  }
+  @media (max-width: 768px) {
+    .slide--content .slide__inner { grid-template-columns: 1fr; }
+    .slide--content .slide__aside { display: none; }
+    .slide--split .slide__panels { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- SLIDE 1: TITLE -->
+  <section class="slide slide--title">
+    <div class="reveal">
+      <p class="slide__subtitle">Engineering All-Hands &mdash; 2026-05-13</p>
+    </div>
+    <h1 class="slide__display reveal">table<span class="punct">_</span>remapping<span class="punct">.</span></h1>
+    <div class="reveal">
+      <p class="slide__subtitle" style="margin-top:clamp(16px,2vh,32px); text-transform:none; letter-spacing:0.5px; font-size:clamp(14px,1.8vw,20px);">A new routing primitive at Metabase's driver boundary.</p>
+    </div>
+    <div class="slide__meta-row reveal">
+      <span><strong>Status</strong>V1 shipping</span>
+      <span><strong>First customer</strong>Workspaces v2</span>
+      <span><strong>Owners</strong>Graphy</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 2: DIVIDER 01 -->
+  <section class="slide slide--divider">
+    <span class="slide__number">01</span>
+    <div class="slide__inner">
+      <p class="slide__subtitle reveal" style="margin-bottom:16px;">~ 2 minutes</p>
+      <h2 class="slide__heading reveal">What it does.</h2>
+      <p class="slide__body reveal" style="margin-top:12px; max-width:600px;">One sentence. One row. Then the picture.</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 3: CONTENT — the sentence -->
+  <section class="slide slide--content">
+    <div class="slide__inner">
+      <div>
+        <p class="slide__label reveal">The Rule</p>
+        <h2 class="slide__heading reveal">A routing rule at the SQL boundary.</h2>
+        <div class="sentence-box reveal">
+          On database <span class="from">D</span>, when something asks for<br>
+          <span class="from">canonical-db.canonical-schema.canonical-table</span><br>
+          <span class="arrow">&rarr;</span> serve them from<br>
+          <span class="to">target-db.target-schema.target-table</span>.
+        </div>
+        <ul class="slide__bullets" style="margin-top:clamp(16px,2vh,24px);">
+          <li class="reveal"><strong>Above the boundary</strong> &mdash; cards, dashboards, pickers, serdes &mdash; the world is <span style="color:var(--amber);">canonical</span>.</li>
+          <li class="reveal"><strong>Below the boundary</strong> &mdash; warehouse SQL, JDBC describe &mdash; the world is <span style="color:var(--accent);">target</span>.</li>
+        </ul>
+      </div>
+      <div class="slide__aside reveal">
+        <svg viewBox="0 0 200 240" width="180" height="220">
+          <!-- canonical layer -->
+          <rect x="20" y="20" width="160" height="70" fill="none" stroke="var(--amber)" stroke-width="2" rx="6" opacity="0.8"/>
+          <text x="100" y="50" text-anchor="middle" font-family="var(--font-mono)" font-size="11" fill="var(--amber)" font-weight="600">CANONICAL</text>
+          <text x="100" y="68" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">cards · sync · picker</text>
+          <text x="100" y="82" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">serdes · search</text>
+          <!-- boundary -->
+          <line x1="10" y1="120" x2="190" y2="120" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4 4" opacity="0.5"/>
+          <text x="100" y="115" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--accent)" letter-spacing="1">&mdash; boundary &mdash;</text>
+          <!-- target layer -->
+          <rect x="20" y="150" width="160" height="70" fill="none" stroke="var(--accent)" stroke-width="2" rx="6" opacity="0.8"/>
+          <text x="100" y="180" text-anchor="middle" font-family="var(--font-mono)" font-size="11" fill="var(--accent)" font-weight="600">TARGET</text>
+          <text x="100" y="198" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">compiled SQL · JDBC</text>
+          <text x="100" y="212" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-dim)">warehouse traffic</text>
+          <!-- arrow -->
+          <path d="M 100 90 L 100 145" stroke="var(--text-dim)" stroke-width="1.5" fill="none"/>
+          <path d="M 95 138 L 100 148 L 105 138" stroke="var(--text-dim)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 4: CODE — the row -->
+  <section class="slide slide--code" style="background-image:radial-gradient(ellipse at 70% 30%, var(--accent-dim) 0%, transparent 45%);">
+    <h2 class="slide__heading reveal" style="text-align:center; margin-bottom:clamp(16px,2.5vh,32px);">The whole primitive, in one row.</h2>
+    <div class="slide__code-block reveal">
+      <span class="slide__code-filename">:model/TableRemapping</span>
+<pre><code>{<span class="key">:database-id</span>  <span class="num">7</span>
+
+ <span class="key">:from</span> {<span class="key">:db</span>     <span class="str">""</span>
+        <span class="key">:schema</span> <span class="str">"public"</span>
+        <span class="key">:table</span>  <span class="str">"orders"</span>}
+
+ <span class="key">:to</span>   {<span class="key">:db</span>     <span class="str">""</span>
+        <span class="key">:schema</span> <span class="str">"ws_alice"</span>
+        <span class="key">:table</span>  <span class="str">"orders"</span>}}
+
+<span class="cm">;; That's it. No user, no role, no workspace field.</span>
+<span class="cm">;; Anything that wants identity routing produces this row.</span></code></pre>
+    </div>
+  </section>
+
+  <!-- SLIDE 5: DIVIDER 02 -->
+  <section class="slide slide--divider">
+    <span class="slide__number">02</span>
+    <div class="slide__inner">
+      <p class="slide__subtitle reveal" style="margin-bottom:16px;">~ 2 minutes</p>
+      <h2 class="slide__heading reveal">How it'll get used.</h2>
+      <p class="slide__body reveal" style="margin-top:12px; max-width:600px;">Workspaces is customer one. There will be more.</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 6: CONTENT — use cases -->
+  <section class="slide" style="background-image:radial-gradient(ellipse at 90% 90%, var(--accent-dim) 0%, transparent 40%);">
+    <p class="slide__label reveal">Customers</p>
+    <h2 class="slide__heading reveal" style="margin-bottom:clamp(16px,2.5vh,28px);">One primitive, many redirects.</h2>
+    <div class="uc-list">
+      <div class="uc-row first reveal">
+        <span class="uc-num">01</span>
+        <span class="uc-name">Workspaces v2</span>
+        <span class="uc-desc">Per-developer isolated copies of warehouse tables. <strong style="color:var(--text);">Shipping V1 now.</strong></span>
+      </div>
+      <div class="uc-row reveal">
+        <span class="uc-num">02</span>
+        <span class="uc-name">Blue / green</span>
+        <span class="uc-desc">Cut over <span style="color:var(--amber);">prod.orders</span> &rarr; <span style="color:var(--accent);">prod_v2.orders</span> with one insert. Rollback = delete the row.</span>
+      </div>
+      <div class="uc-row reveal">
+        <span class="uc-num">03</span>
+        <span class="uc-name">Vendor rename</span>
+        <span class="uc-desc">Snowflake renamed a shared dataset. Absorb it without touching 500 cards.</span>
+      </div>
+      <div class="uc-row reveal">
+        <span class="uc-num">04</span>
+        <span class="uc-name">Dev / staging alias</span>
+        <span class="uc-desc">Point <span style="color:var(--amber);">public.events</span> at <span style="color:var(--accent);">dev_&lt;user&gt;.events</span> per session.</span>
+      </div>
+      <div class="uc-row reveal">
+        <span class="uc-num">05</span>
+        <span class="uc-name">Embedded SDK per-tenant</span>
+        <span class="uc-desc">Tenant A's instance serves <span style="color:var(--amber);">public.orders</span> from <span style="color:var(--accent);">tenant_a.orders</span>.</span>
+      </div>
+      <div class="uc-row reveal">
+        <span class="uc-num">06</span>
+        <span class="uc-name">Region replica routing</span>
+        <span class="uc-desc">EU users hit <span style="color:var(--accent);">analytics_eu_replica.huge_fact</span>; US users hit the canonical.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 7: DIVIDER 03 -->
+  <section class="slide slide--divider">
+    <span class="slide__number">03</span>
+    <div class="slide__inner">
+      <p class="slide__subtitle reveal" style="margin-bottom:16px;">~ 4 minutes</p>
+      <h2 class="slide__heading reveal">How it works.</h2>
+      <p class="slide__body reveal" style="margin-top:12px; max-width:600px;">Two phases at query time, one hook at sync time, three slots in the row.</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 8: DIAGRAM -->
+  <section class="slide slide--diagram">
+    <h2 class="slide__heading reveal">Three points of enforcement.</h2>
+    <div class="mermaid-wrap reveal">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this,1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this,0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset">&#8634;</button>
+        <button onclick="openDiagramFullscreen(this)" title="Open full size in new tab">&#x26F6;</button>
+      </div>
+      <pre class="mermaid">
+graph LR
+  User["MBQL or<br/>Native SQL"] --> P1["Phase 1<br/>Preprocess"]
+  P1 -->|"MBQL: flip<br/>metadata provider"| Compile["HoneySQL<br/>Compile"]
+  P1 -->|"native: passthrough"| Compile
+  Compile --> P2["Phase 2<br/>Execute"]
+  P2 -->|"SQLGlot<br/>replace-names"| Driver["Driver"]
+  Driver --> WH[("Warehouse")]
+
+  Sync["Sync<br/>describe-fields"] -.->|"effective-<br/>schema+name"| Driver
+
+  Store[("table_remapping<br/>app DB row")] -.->|"read"| P1
+  Store -.->|"read"| P2
+  Store -.->|"read"| Sync
+
+  classDef phase fill:#50fa7b22,stroke:#50fa7b,stroke-width:2px,color:#c8d6e5
+  classDef sync fill:#8be9fd22,stroke:#8be9fd,stroke-width:2px,color:#c8d6e5
+  classDef store fill:#ffb86c22,stroke:#ffb86c,stroke-width:2px,color:#c8d6e5
+  classDef neutral fill:#1a1f2a,stroke:#6a7a8a,stroke-width:1.5px,color:#c8d6e5
+
+  class P1,P2 phase
+  class Sync sync
+  class Store store
+  class User,Compile,Driver,WH neutral
+      </pre>
+    </div>
+  </section>
+
+  <!-- SLIDE 9: SPLIT — Phase 1 vs Phase 2 -->
+  <section class="slide slide--split">
+    <div class="slide__panels">
+      <div class="slide__panel slide__panel--primary">
+        <p class="phase-num reveal">Phase 1</p>
+        <p class="phase-when reveal">preprocess &middot; MBQL only</p>
+        <h3 class="reveal">Flip the metadata provider.</h3>
+        <ul class="slide__bullets" style="margin-top:clamp(16px,2vh,24px);">
+          <li class="reveal">Walk the active remappings; for each, mutate <code style="font-family:var(--font-mono); color:var(--accent);">:metadata/table</code> to the target identity.</li>
+          <li class="reveal"><strong>MBQL tree untouched.</strong> HoneySQL reads the mutated identity at compile time.</li>
+          <li class="reveal">Provider is the single chokepoint &mdash; covers <code style="font-family:var(--font-mono);">:source-table</code>, joins, field-refs, implicit joins, everything.</li>
+          <li class="reveal">Runs <strong>after sandboxing</strong> &mdash; filters materialize against canonical first, then identity flips.</li>
+        </ul>
+      </div>
+      <div class="slide__panel slide__panel--secondary">
+        <p class="phase-num reveal" style="color:var(--cyan);">Phase 2</p>
+        <p class="phase-when reveal">execute &middot; native &amp; compiled SQL</p>
+        <h3 class="reveal" style="color:var(--cyan);">Rewrite the compiled SQL.</h3>
+        <ul class="slide__bullets" style="margin-top:clamp(16px,2vh,24px);">
+          <li class="reveal">Parse <code style="font-family:var(--font-mono); color:var(--cyan);">:qp/compiled</code> with SQLGlot via GraalPy &rarr; 3-tuples.</li>
+          <li class="reveal">Match against active remappings &rarr; <code style="font-family:var(--font-mono); color:var(--cyan);">sql-tools/replace-names</code>.</li>
+          <li class="reveal"><strong>Throws on parse fail.</strong> Never silent fallback to canonical.</li>
+          <li class="reveal">Corpus-validated: <strong style="color:var(--accent);">12,511 queries</strong> across 7 dialects &middot; <strong style="color:var(--accent);">0 errors</strong>.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 10: TABLE — per-driver slots -->
+  <section class="slide slide--table">
+    <p class="slide__label reveal">::table-spec</p>
+    <h2 class="slide__heading reveal">Slot names track the SQL AST. Not the vendor.</h2>
+    <div class="table-wrap reveal" style="margin-top:clamp(12px,2vh,24px);">
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr><th>Driver</th><th>db</th><th>schema</th><th>table_name</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="driver">Postgres / Redshift / H2</td>
+              <td class="slot-empty">""</td>
+              <td class="slot-fill">schema</td>
+              <td class="slot-fill">table</td>
+            </tr>
+            <tr>
+              <td class="driver">MySQL</td>
+              <td class="slot-amber">db</td>
+              <td class="slot-empty">""</td>
+              <td class="slot-fill">table</td>
+            </tr>
+            <tr>
+              <td class="driver">ClickHouse</td>
+              <td class="slot-empty">""</td>
+              <td class="slot-magenta">db-name</td>
+              <td class="slot-fill">table</td>
+            </tr>
+            <tr>
+              <td class="driver">Snowflake</td>
+              <td class="slot-amber">database</td>
+              <td class="slot-fill">schema</td>
+              <td class="slot-fill">table</td>
+            </tr>
+            <tr>
+              <td class="driver">SQL Server</td>
+              <td class="slot-amber">database</td>
+              <td class="slot-fill">schema</td>
+              <td class="slot-fill">table</td>
+            </tr>
+            <tr>
+              <td class="driver">BigQuery</td>
+              <td class="slot-cyan">project</td>
+              <td class="slot-cyan">dataset</td>
+              <td class="slot-fill">table</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p class="table-footer reveal"><span class="key">""</span> = "this driver doesn't emit this AST level" &middot; ClickHouse calls top level "database" but it lands at AST <code>:schema</code> because that's where it appears in compiled SQL.</p>
+  </section>
+
+  <!-- SLIDE 11: CONTENT — what it isn't -->
+  <section class="slide slide--content right-heavy" style="background-image:radial-gradient(ellipse at 10% 50%, var(--accent-dim) 0%, transparent 45%);">
+    <div class="slide__inner">
+      <div>
+        <p class="slide__label reveal">Disambiguation</p>
+        <h2 class="slide__heading reveal">What it isn't.</h2>
+        <p class="slide__body reveal" style="margin-top:clamp(12px,2vh,20px);">Table remapping is a <strong style="color:var(--accent);">fourth axis</strong>, orthogonal to existing routing primitives. The naming overlaps; the mechanics don't.</p>
+      </div>
+      <div class="vocab-list">
+        <div class="vocab-item is-this reveal">
+          <div class="v-name">&rarr; Table remapping</div>
+          <div class="v-diff">Same connection, different SQL. Per database &times; table tuple.</div>
+        </div>
+        <div class="vocab-item reveal">
+          <div class="v-name">Field remapping</div>
+          <div class="v-diff">Stored value &rarr; display value in result rows. Different word, different code.</div>
+        </div>
+        <div class="vocab-item reveal">
+          <div class="v-name">Sandboxing</div>
+          <div class="v-diff">Rewrites query <em>shape</em>. Per user. Remap rewrites <em>idents</em> in unchanged shape.</div>
+        </div>
+        <div class="vocab-item reveal">
+          <div class="v-name">DB Routing</div>
+          <div class="v-diff">Same SQL, different <em>connection</em>. Mutually exclusive with remap on the same DB.</div>
+        </div>
+        <div class="vocab-item reveal">
+          <div class="v-name">Source-replacement</div>
+          <div class="v-diff">Mutates card content in app DB. Remap leaves content untouched, rewrites at boundary.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 12: FULL-BLEED — close -->
+  <section class="slide slide--bleed">
+    <div class="slide__bg slide__bg--gradient"></div>
+    <div class="slide__content">
+      <div class="reveal">
+        <p class="slide__subtitle">Status &middot; 2026-05-13</p>
+      </div>
+      <h2 class="slide__display reveal" style="margin-top:clamp(16px,2vh,28px);">First customer ships.<br>Primitive lands.</h2>
+      <div class="reveal">
+        <p class="slide__subtitle" style="margin-top:clamp(20px,3vh,36px); text-transform:none; letter-spacing:0.5px; font-size:clamp(14px,1.8vw,20px);">Open: rename to <code style="font-family:var(--font-mono); color:var(--accent); background:rgba(80,250,123,0.08); padding:2px 8px; border-radius:4px;">metabase.table-remapping.core</code> &middot; OSS opt-in &middot; session scoping &middot; serdes hooks &middot; cache invalidation</p>
+      </div>
+      <div class="reveal" style="margin-top:clamp(28px,4vh,48px);">
+        <p class="slide__subtitle" style="font-size:clamp(11px,1.3vw,14px);">Giga doc: ai-reports/explainers/2026-05-13-table-remapping-giga-explainer.md</p>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /deck -->
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    look: 'classic',
+    themeVariables: {
+      primaryColor: isDark ? '#12161e' : '#ffffff',
+      primaryBorderColor: isDark ? '#50fa7b' : '#0d7a3e',
+      primaryTextColor: isDark ? '#c8d6e5' : '#1a2332',
+      secondaryColor: isDark ? '#1a1f2a' : '#eaecf0',
+      secondaryBorderColor: isDark ? '#8be9fd' : '#0e7490',
+      secondaryTextColor: isDark ? '#c8d6e5' : '#1a2332',
+      tertiaryColor: isDark ? '#1a1f2a' : '#eaecf0',
+      tertiaryBorderColor: isDark ? '#ffb86c' : '#b45309',
+      tertiaryTextColor: isDark ? '#c8d6e5' : '#1a2332',
+      lineColor: isDark ? '#6a7a8a' : '#5a6a7a',
+      fontSize: '18px',
+      fontFamily: 'var(--font-mono)',
+    }
+  });
+
+  function autoFit() {
+    document.querySelectorAll('.mermaid svg').forEach(function(svg) {
+      svg.removeAttribute('height');
+      svg.style.width = '100%';
+      svg.style.maxWidth = '100%';
+      svg.style.height = 'auto';
+      svg.parentElement.style.width = '100%';
+    });
+    document.querySelectorAll('.slide__kpi-val').forEach(function(el) {
+      if (el.scrollWidth > el.clientWidth) {
+        var s = el.clientWidth / el.scrollWidth;
+        el.style.transform = 'scale(' + s + ')';
+        el.style.transformOrigin = 'left top';
+      }
+    });
+  }
+
+  mermaid.run({ querySelector: '.mermaid' }).then(function() {
+    autoFit();
+    new SlideEngine();
+  });
+</script>
+
+<script>
+  var INITIAL_ZOOM=1;
+  function zoomDiagram(b,f){var w=b.closest('.mermaid-wrap');var t=w.querySelector('.mermaid');var c=parseFloat(t.dataset.zoom||INITIAL_ZOOM);var n=Math.min(Math.max(c*f,0.5),5);t.dataset.zoom=n;t.style.zoom=n;}
+  function resetZoom(b){var w=b.closest('.mermaid-wrap');var t=w.querySelector('.mermaid');t.dataset.zoom=INITIAL_ZOOM;t.style.zoom=INITIAL_ZOOM;}
+  function openDiagramFullscreen(b){openMermaidInNewTab(b.closest('.mermaid-wrap'));}
+  function openMermaidInNewTab(w){var svg=w.querySelector('.mermaid svg');if(!svg)return;var clone=svg.cloneNode(true);clone.style.zoom='';clone.style.transform='';var styles=getComputedStyle(document.documentElement);var bg=styles.getPropertyValue('--bg').trim()||'#ffffff';var html='<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Diagram</title><style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:'+bg+';padding:40px;box-sizing:border-box}svg{max-width:100%;max-height:90vh;height:auto}</style></head><body>'+clone.outerHTML+'</body></html>';window.open(URL.createObjectURL(new Blob([html],{type:'text/html'})),'_blank');}
+  document.querySelectorAll('.mermaid-wrap').forEach(function(w){w.addEventListener('wheel',function(e){if(!e.ctrlKey&&!e.metaKey)return;e.preventDefault();var t=w.querySelector('.mermaid');var c=parseFloat(t.dataset.zoom||INITIAL_ZOOM);var f=e.deltaY<0?1.1:0.9;var n=Math.min(Math.max(c*f,0.5),5);t.dataset.zoom=n;t.style.zoom=n;},{passive:false});var sX,sY,sL,sT,sTime,didPan;w.addEventListener('mousedown',function(e){if(e.target.closest('.zoom-controls'))return;w.classList.add('is-panning');sX=e.clientX;sY=e.clientY;sL=w.scrollLeft;sT=w.scrollTop;sTime=Date.now();didPan=false;});window.addEventListener('mousemove',function(e){if(!w.classList.contains('is-panning'))return;var dx=e.clientX-sX,dy=e.clientY-sY;if(Math.abs(dx)>5||Math.abs(dy)>5)didPan=true;w.scrollLeft=sL-dx;w.scrollTop=sT-dy;});window.addEventListener('mouseup',function(){if(!w.classList.contains('is-panning'))return;w.classList.remove('is-panning');if(!didPan&&Date.now()-sTime<300)openMermaidInNewTab(w);});});
+
+  // SlideEngine
+  function SlideEngine(){
+    this.deck=document.querySelector('.deck');
+    this.slides=[].slice.call(document.querySelectorAll('.slide'));
+    this.current=0;
+    this.total=this.slides.length;
+    this.buildChrome();
+    this.bindEvents();
+    this.observe();
+    this.update();
+  }
+  SlideEngine.prototype.buildChrome=function(){
+    var bar=document.createElement('div');bar.className='deck-progress';document.body.appendChild(bar);this.bar=bar;
+    var dots=document.createElement('div');dots.className='deck-dots';var self=this;
+    this.slides.forEach(function(_,i){var d=document.createElement('button');d.className='deck-dot';d.title='Slide '+(i+1);d.onclick=function(){self.goTo(i);};dots.appendChild(d);});
+    document.body.appendChild(dots);this.dots=[].slice.call(dots.children);
+    var ctr=document.createElement('div');ctr.className='deck-counter';document.body.appendChild(ctr);this.counter=ctr;
+    var hints=document.createElement('div');hints.className='deck-hints';hints.textContent='← → or scroll to navigate';document.body.appendChild(hints);this.hints=hints;
+    this.hintTimer=setTimeout(function(){hints.classList.add('faded');},4000);
+  };
+  SlideEngine.prototype.bindEvents=function(){
+    var self=this;
+    document.addEventListener('keydown',function(e){
+      if(e.target.closest('.mermaid-wrap,.table-scroll,.code-scroll,input,textarea,[contenteditable]'))return;
+      if(['ArrowDown','ArrowRight',' ','PageDown'].indexOf(e.key)>-1){e.preventDefault();self.next();}
+      else if(['ArrowUp','ArrowLeft','PageUp'].indexOf(e.key)>-1){e.preventDefault();self.prev();}
+      else if(e.key==='Home'){e.preventDefault();self.goTo(0);}
+      else if(e.key==='End'){e.preventDefault();self.goTo(self.total-1);}
+      self.fadeHints();
+    });
+    var tY;
+    this.deck.addEventListener('touchstart',function(e){tY=e.touches[0].clientY;},{passive:true});
+    this.deck.addEventListener('touchend',function(e){var dy=tY-e.changedTouches[0].clientY;if(Math.abs(dy)>50){dy>0?self.next():self.prev();}});
+  };
+  SlideEngine.prototype.observe=function(){
+    var self=this;
+    var obs=new IntersectionObserver(function(entries){entries.forEach(function(entry){if(entry.isIntersecting){entry.target.classList.add('visible');self.current=self.slides.indexOf(entry.target);self.update();}});},{threshold:0.5});
+    this.slides.forEach(function(s){obs.observe(s);});
+  };
+  SlideEngine.prototype.goTo=function(i){this.slides[Math.max(0,Math.min(i,this.total-1))].scrollIntoView({behavior:'smooth'});};
+  SlideEngine.prototype.next=function(){if(this.current<this.total-1)this.goTo(this.current+1);};
+  SlideEngine.prototype.prev=function(){if(this.current>0)this.goTo(this.current-1);};
+  SlideEngine.prototype.update=function(){
+    this.bar.style.width=((this.current+1)/this.total*100)+'%';
+    var c=this.current;this.dots.forEach(function(d,i){d.classList.toggle('active',i===c);});
+    this.counter.textContent=(this.current+1)+' / '+this.total;
+  };
+  SlideEngine.prototype.fadeHints=function(){clearTimeout(this.hintTimer);this.hints.classList.add('faded');};
+</script>
+
+</body>
+</html>

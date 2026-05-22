@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>netl — share files publicly via Netlify</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============ Theme: Catppuccin Latte (light) + Frappe (dark) ============ */
+  :root {
+    --font-body: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'Fira Code', 'SF Mono', Consolas, monospace;
+
+    /* Catppuccin Latte */
+    --bg: #eff1f5;
+    --surface: #ffffff;
+    --surface-2: #e6e9ef;
+    --surface-elevated: #ffffff;
+    --border: rgba(76, 79, 105, 0.12);
+    --border-bright: rgba(76, 79, 105, 0.22);
+    --text: #4c4f69;
+    --text-strong: #1e1f2c;
+    --text-dim: #6c6f85;
+    --text-muted: #9ca0b0;
+
+    --accent: #1e66f5;       /* Latte blue */
+    --accent-dim: rgba(30, 102, 245, 0.08);
+    --mauve: #8839ef;
+    --mauve-dim: rgba(136, 57, 239, 0.08);
+    --green: #40a02b;
+    --green-dim: rgba(64, 160, 43, 0.08);
+    --peach: #fe640b;
+    --peach-dim: rgba(254, 100, 11, 0.08);
+    --teal: #179299;
+    --teal-dim: rgba(23, 146, 153, 0.08);
+    --red: #d20f39;
+    --red-dim: rgba(210, 15, 57, 0.08);
+    --yellow: #df8e1d;
+    --yellow-dim: rgba(223, 142, 29, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      /* Catppuccin Frappe */
+      --bg: #303446;
+      --surface: #414559;
+      --surface-2: #51576d;
+      --surface-elevated: #51576d;
+      --border: rgba(198, 208, 245, 0.1);
+      --border-bright: rgba(198, 208, 245, 0.2);
+      --text: #c6d0f5;
+      --text-strong: #f2d5cf;
+      --text-dim: #a5adce;
+      --text-muted: #838ba7;
+
+      --accent: #8caaee;
+      --accent-dim: rgba(140, 170, 238, 0.12);
+      --mauve: #ca9ee6;
+      --mauve-dim: rgba(202, 158, 230, 0.12);
+      --green: #a6d189;
+      --green-dim: rgba(166, 209, 137, 0.12);
+      --peach: #ef9f76;
+      --peach-dim: rgba(239, 159, 118, 0.12);
+      --teal: #81c8be;
+      --teal-dim: rgba(129, 200, 190, 0.12);
+      --red: #e78284;
+      --red-dim: rgba(231, 130, 132, 0.12);
+      --yellow: #e5c890;
+      --yellow-dim: rgba(229, 200, 144, 0.12);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 12% 8%, var(--accent-dim) 0%, transparent 45%),
+      radial-gradient(ellipse at 88% 92%, var(--mauve-dim) 0%, transparent 40%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: clamp(28px, 4vw, 56px) clamp(20px, 4vw, 48px);
+    min-height: 100vh;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ============ Animations ============ */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section, .hero, .quick {
+    animation: fadeUp 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.05s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* ============ Layout shell ============ */
+  .page {
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+
+  /* ============ Hero ============ */
+  .hero {
+    padding: clamp(24px, 4vh, 44px) clamp(24px, 3vw, 40px);
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 14px;
+    margin-bottom: clamp(20px, 3vh, 32px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--mauve), var(--teal));
+  }
+
+  .hero__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .hero__eyebrow::before {
+    content: '';
+    width: 28px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .hero__title {
+    font-size: clamp(36px, 5.5vw, 56px);
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    line-height: 1.0;
+    color: var(--text-strong);
+    margin-bottom: 14px;
+    font-family: var(--font-mono);
+  }
+
+  .hero__title .accent { color: var(--accent); }
+
+  .hero__lede {
+    font-size: clamp(15px, 1.6vw, 18px);
+    color: var(--text-dim);
+    max-width: 60ch;
+    line-height: 1.6;
+  }
+
+  .hero__lede code {
+    font-family: var(--font-mono);
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.92em;
+  }
+
+  /* ============ Section headings ============ */
+  h2 {
+    font-size: clamp(22px, 2.4vw, 28px);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text-strong);
+    margin-bottom: clamp(12px, 1.5vh, 18px);
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  h2 .h2-num {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 1.5px;
+    padding: 2px 8px;
+    background: var(--accent-dim);
+    border-radius: 3px;
+  }
+
+  h3 {
+    font-size: clamp(15px, 1.5vw, 17px);
+    font-weight: 600;
+    color: var(--text-strong);
+    margin-bottom: 8px;
+    letter-spacing: -0.2px;
+  }
+
+  /* ============ Section spacing ============ */
+  .section {
+    margin-bottom: clamp(24px, 4vh, 40px);
+  }
+
+  /* ============ Cards ============ */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: clamp(18px, 2.4vh, 26px) clamp(20px, 2.4vw, 28px);
+  }
+
+  .card--accent { border-left: 3px solid var(--accent); }
+  .card--green { border-left: 3px solid var(--green); }
+  .card--teal { border-left: 3px solid var(--teal); }
+  .card--mauve { border-left: 3px solid var(--mauve); }
+  .card--peach { border-left: 3px solid var(--peach); }
+
+  .card__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .card--green .card__label { color: var(--green); }
+  .card--teal .card__label { color: var(--teal); }
+  .card--mauve .card__label { color: var(--mauve); }
+  .card--peach .card__label { color: var(--peach); }
+
+  .card p {
+    font-size: clamp(13px, 1.3vw, 15px);
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .card p + p { margin-top: 8px; }
+
+  /* ============ Code blocks ============ */
+  .code-block {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: clamp(14px, 2vh, 18px) clamp(16px, 2vw, 20px);
+    font-family: var(--font-mono);
+    font-size: clamp(12px, 1.2vw, 14px);
+    line-height: 1.65;
+    overflow-x: auto;
+    color: var(--text);
+    position: relative;
+    white-space: pre;
+    tab-size: 2;
+  }
+
+  .code-block + .code-block { margin-top: 8px; }
+
+  .code-block .prompt { color: var(--text-muted); user-select: none; }
+  .code-block .cmd { color: var(--mauve); font-weight: 500; }
+  .code-block .arg { color: var(--peach); }
+  .code-block .flag { color: var(--teal); }
+  .code-block .comm { color: var(--text-muted); font-style: italic; }
+  .code-block .url { color: var(--accent); text-decoration: underline dotted; text-underline-offset: 2px; }
+  .code-block .arrow { color: var(--text-muted); }
+
+  /* Inline code in prose */
+  p code, li code, dd code, td code {
+    font-family: var(--font-mono);
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.88em;
+    border: 1px solid var(--border);
+  }
+
+  /* ============ Quick-start grid ============ */
+  .quick {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(14px, 2vw, 20px);
+    margin-bottom: clamp(20px, 3vh, 28px);
+  }
+
+  @media (max-width: 720px) {
+    .quick { grid-template-columns: 1fr; }
+  }
+
+  .quick__step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: clamp(18px, 2.4vh, 24px) clamp(20px, 2.4vw, 26px);
+    position: relative;
+  }
+
+  .quick__num {
+    font-family: var(--font-mono);
+    font-size: clamp(28px, 3vw, 38px);
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1.0;
+    opacity: 0.7;
+    margin-bottom: 6px;
+  }
+
+  .quick__title {
+    font-size: clamp(15px, 1.5vw, 17px);
+    font-weight: 600;
+    color: var(--text-strong);
+    margin-bottom: 10px;
+    letter-spacing: -0.3px;
+  }
+
+  /* ============ Usage table ============ */
+  .usage-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    font-family: var(--font-mono);
+    font-size: clamp(12px, 1.2vw, 14px);
+  }
+
+  .usage-table th {
+    background: var(--surface-2);
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .usage-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .usage-table tr:last-child td { border-bottom: none; }
+  .usage-table tr:hover td { background: var(--accent-dim); }
+
+  .usage-table td:first-child {
+    color: var(--mauve);
+    white-space: nowrap;
+    font-weight: 500;
+    width: 38%;
+  }
+
+  .usage-table td:nth-child(2) {
+    color: var(--text);
+    font-family: var(--font-body);
+    line-height: 1.55;
+  }
+
+  /* ============ Two-up ============ */
+  .twoup {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(14px, 2vw, 20px);
+  }
+
+  @media (max-width: 720px) {
+    .twoup { grid-template-columns: 1fr; }
+  }
+
+  /* ============ List ============ */
+  .features {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .features li {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: clamp(13px, 1.3vw, 15px);
+    line-height: 1.55;
+    color: var(--text);
+  }
+
+  .features li strong {
+    color: var(--text-strong);
+    font-weight: 600;
+  }
+
+  .features li code {
+    font-family: var(--font-mono);
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+
+  /* ============ How-it-works steps ============ */
+  .steps {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .steps li {
+    counter-increment: step;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px 16px 64px;
+    position: relative;
+    font-size: clamp(13px, 1.3vw, 15px);
+    line-height: 1.55;
+    color: var(--text);
+  }
+
+  .steps li::before {
+    content: counter(step, decimal-leading-zero);
+    position: absolute;
+    left: 16px;
+    top: 14px;
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1;
+    opacity: 0.7;
+  }
+
+  .steps li code {
+    font-family: var(--font-mono);
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+
+  /* ============ Footer ============ */
+  .footer {
+    margin-top: clamp(28px, 4vh, 48px);
+    padding: 18px 22px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    letter-spacing: 0.3px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .footer code {
+    background: var(--surface-2);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--text);
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ===================================================================== -->
+  <!-- HERO -->
+  <!-- ===================================================================== -->
+  <section class="hero" style="--i: 0;">
+    <div class="hero__eyebrow">~/bin/netl &middot; macos shell tool</div>
+    <h1 class="hero__title">net<span class="accent">l</span></h1>
+    <p class="hero__lede">
+      Share files publicly via Netlify. Each call creates a fresh site, returns a
+      public URL, and logs the URL locally so you can list past shares. Use it when
+      <code>ggc</code> + gistpreview can't render your page (typically: native
+      <code>&lt;script type="module"&gt;</code> imports).
+    </p>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SETUP -->
+  <!-- ===================================================================== -->
+  <section class="section" style="--i: 1;">
+    <h2><span class="h2-num">01</span> Setup (one time)</h2>
+    <pre class="code-block"><span class="prompt">$ </span><span class="cmd">npm</span> install <span class="flag">-g</span> netlify-cli
+<span class="prompt">$ </span><span class="cmd">netlify</span> login</pre>
+    <p style="margin-top: 12px; font-size: 14px; color: var(--text-dim);">That's it. Future <code>netl</code> calls deploy into your Netlify account.</p>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- USAGE -->
+  <!-- ===================================================================== -->
+  <section class="section" style="--i: 2;">
+    <h2><span class="h2-num">02</span> Usage</h2>
+    <table class="usage-table">
+      <thead>
+        <tr><th>Command</th><th>What it does</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>netl file.html</td>
+          <td>Single HTML &mdash; uploaded as <code>index.html</code>, root URL serves it directly.</td>
+        </tr>
+        <tr>
+          <td>netl a.html b.html data.json</td>
+          <td>Multi-file &mdash; each by basename, with an auto-generated <code>index.html</code> linking them.</td>
+        </tr>
+        <tr>
+          <td>netl --list</td>
+          <td>Print history file, newest first.</td>
+        </tr>
+        <tr>
+          <td>netl --list workspaces</td>
+          <td>Filter history (case-insensitive substring match).</td>
+        </tr>
+        <tr>
+          <td>netl --help</td>
+          <td>Show help.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- WHAT YOU GET -->
+  <!-- ===================================================================== -->
+  <section class="section" style="--i: 3;">
+    <h2><span class="h2-num">03</span> What you get</h2>
+    <ul class="features">
+      <li>
+        <strong>Public URL</strong> &mdash; anyone can hit it
+        (<code>https://netl-share-&lt;6hex&gt;.netlify.app</code>).
+      </li>
+      <li>
+        <strong>Stable</strong> &mdash; each <code>netl</code> call creates a new site.
+        URLs don't get overwritten by future deploys.
+      </li>
+      <li>
+        <strong>Listable two ways</strong> &mdash; <code>netl --list</code> reads the
+        local history file (<code>~/.netl-history</code>); <code>netlify sites:list</code>
+        enumerates everything in your Netlify account.
+      </li>
+      <li>
+        <strong>No transformation</strong> &mdash; files upload as-is. ESM imports work,
+        native modules work, anything modern browsers handle works.
+      </li>
+    </ul>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- ENVIRONMENT + HISTORY FORMAT -->
+  <!-- ===================================================================== -->
+  <section class="section" style="--i: 4;">
+    <h2><span class="h2-num">04</span> Environment &amp; history</h2>
+    <div class="twoup">
+      <div class="card card--teal">
+        <div class="card__label">env vars</div>
+        <h3>Override behavior at call time.</h3>
+        <p style="margin-top: 12px;">
+          <code>NETL_NO_HISTORY=1</code> &mdash; skip writing this deploy to the history file.
+        </p>
+        <p>
+          <code>NETL_HISTORY_FILE=path</code> &mdash; use a different history file
+          (default: <code>~/.netl-history</code>).
+        </p>
+      </div>
+      <div class="card card--mauve">
+        <div class="card__label">history format</div>
+        <h3>Tab-separated, one line per success.</h3>
+        <pre class="code-block" style="font-size: 11px; margin-top: 12px;"><span class="comm"># timestamp	url	files</span>
+2026-04-30T04:37:20Z	<span class="url">https://netl-share-ec3c82.netlify.app</span>	page.html</pre>
+        <p style="margin-top: 10px; font-size: 12px;">UTC ISO 8601 timestamp, public URL, file paths joined by <code>, </code>. Failed deploys are not logged.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- HOW IT WORKS -->
+  <!-- ===================================================================== -->
+  <section class="section" style="--i: 5;">
+    <h2><span class="h2-num">05</span> How it works</h2>
+    <ol class="steps">
+      <li>Copies your file(s) into a temp directory. Single HTML becomes <code>index.html</code>; multi-file gets each by basename plus an auto-generated index.</li>
+      <li>Runs <code>netlify deploy</code> from inside the temp directory. This sidesteps any ambient <code>.netlify/</code> folder in your CWD that might link to a site you don't own.</li>
+      <li>Site name is <code>netl-share-&lt;6hex&gt;</code>. The <code>--site-name</code> flag implies <code>--create-site</code>, so each call mints a fresh site rather than overwriting an existing one.</li>
+      <li>Parses the JSON response, prints the production URL on stdout, and appends a line to <code>~/.netl-history</code>.</li>
+    </ol>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- COMPANION -->
+  <!-- ===================================================================== -->
+  <section class="section" style="--i: 6;">
+    <h2><span class="h2-num">06</span> Companion: <code style="color: var(--mauve); background: var(--mauve-dim); padding: 2px 8px; border-radius: 3px; border: 1px solid var(--border); font-size: 0.85em;">ggc</code></h2>
+    <div class="card card--mauve">
+      <p>
+        <code>ggc</code> does the same idea but via GitHub gists + <code>gistpreview.github.io</code>.
+        Use <code>ggc</code> when the file works on gistpreview (most CDN-script HTML); use
+        <code>netl</code> when it doesn't (ESM imports, native modules, anything gistpreview's
+        iframe loader breaks).
+      </p>
+      <p>
+        Same general pattern in both: returns a URL, no manual setup beyond the one-time install.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- TROUBLESHOOTING -->
+  <!-- ===================================================================== -->
+  <section class="section" style="--i: 7;">
+    <h2><span class="h2-num">07</span> Troubleshooting</h2>
+    <div class="twoup">
+      <div class="card card--peach">
+        <div class="card__label">401 unauthorized</div>
+        <h3>Stale site linkage in CWD.</h3>
+        <p>Your CWD has a <code>.netlify/</code> folder linked to a site you don't own. The script normally avoids this by <code>cd</code>-ing into a fresh temp directory before deploying. If you see this anyway, check that <code>netlify --version</code> is current.</p>
+      </div>
+      <div class="card card--peach">
+        <div class="card__label">daily limit reached</div>
+        <h3>You're not logged in.</h3>
+        <p>Anonymous deploys are capped at ~5/day. Run <code>netlify login</code> to remove the cap; future deploys go to your account and are listable via <code>netlify sites:list</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- FOOTER -->
+  <!-- ===================================================================== -->
+  <footer class="footer">
+    <span><code>~/bin/netl</code> &middot; bash &middot; ~3.4 kB</span>
+    <span>last edit: 2026-04-29</span>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>auth_method Flow - Login to Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700&family=Fragment+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Bricolage Grotesque', system-ui, sans-serif;
+    --font-mono: 'Fragment Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #f0fdfa;
+    --surface: #ffffff;
+    --surface2: #e6f7f3;
+    --surface-elevated: #f0fdf9;
+    --border: rgba(0, 0, 0, 0.07);
+    --border-bright: rgba(0, 0, 0, 0.14);
+    --text: #134e4a;
+    --text-dim: #5f8a85;
+
+    --primary: #0d9488;
+    --primary-dim: rgba(13, 148, 136, 0.08);
+    --secondary: #7c3aed;
+    --secondary-dim: rgba(124, 58, 237, 0.08);
+    --tertiary: #d97706;
+    --tertiary-dim: rgba(217, 119, 6, 0.08);
+    --danger: #dc2626;
+    --danger-dim: rgba(220, 38, 38, 0.08);
+    --green: #16a34a;
+    --green-dim: rgba(22, 163, 74, 0.08);
+    --orange: #d97706;
+    --orange-dim: rgba(217, 119, 6, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #042f2e;
+      --surface: #0a3d3a;
+      --surface2: #115e59;
+      --surface-elevated: #0d4744;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-bright: rgba(255, 255, 255, 0.14);
+      --text: #ccfbf1;
+      --text-dim: #5eead4;
+
+      --primary: #2dd4bf;
+      --primary-dim: rgba(45, 212, 191, 0.14);
+      --secondary: #c4b5fd;
+      --secondary-dim: rgba(196, 181, 253, 0.12);
+      --tertiary: #fbbf24;
+      --tertiary-dim: rgba(251, 191, 36, 0.12);
+      --danger: #f87171;
+      --danger-dim: rgba(248, 113, 113, 0.12);
+      --green: #4ade80;
+      --green-dim: rgba(74, 222, 128, 0.1);
+      --orange: #fbbf24;
+      --orange-dim: rgba(251, 191, 36, 0.1);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--bg);
+    background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+    background-size: 24px 24px;
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate {
+    animation: fadeUp 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.06s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+    .mermaid-wrap .mermaid { transition: none; }
+  }
+
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 38px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    margin-bottom: 6px;
+    text-wrap: balance;
+  }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 32px 0 12px;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    margin-bottom: 32px;
+  }
+
+  .description {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+    max-width: 700px;
+  }
+
+  .description code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--primary-dim);
+    color: var(--primary);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ============ MERMAID ============ */
+  .mermaid-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    overflow: auto;
+    margin-bottom: 24px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .mermaid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .mermaid-wrap::-webkit-scrollbar-track { background: transparent; }
+  .mermaid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .mermaid-wrap::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  .mermaid-wrap .mermaid {
+    display: flex;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    transform-origin: top center;
+  }
+
+  .zoom-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 2px;
+    z-index: 10;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+  }
+
+  .zoom-controls button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .zoom-controls button:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .mermaid-wrap.is-zoomed { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+  .mermaid .nodeLabel {
+    font-family: var(--font-body) !important;
+    font-size: 16px !important;
+  }
+
+  .mermaid .edgeLabel {
+    font-family: var(--font-mono) !important;
+    font-size: 13px !important;
+  }
+
+  .mermaid .node rect,
+  .mermaid .node circle,
+  .mermaid .node polygon {
+    stroke-width: 1.5px !important;
+  }
+
+  .mermaid .edge-pattern-solid {
+    stroke-width: 1.5px !important;
+  }
+
+  /* ============ TABLE ============ */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .data-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .data-table th {
+    background: var(--surface2);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 14px 16px;
+    border-bottom: 2px solid var(--border-bright);
+    white-space: nowrap;
+  }
+
+  .data-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .data-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .data-table .wide {
+    min-width: 180px;
+    max-width: 440px;
+  }
+
+  .data-table tbody tr:nth-child(even) {
+    background: var(--primary-dim);
+  }
+
+  .data-table tbody tr {
+    transition: background 0.15s ease;
+    animation: fadeUp 0.35s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.04s);
+  }
+
+  .data-table tbody tr:hover {
+    background: var(--border);
+  }
+
+  .data-table code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--primary-dim);
+    color: var(--primary);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .data-table small {
+    display: block;
+    color: var(--text-dim);
+    font-size: 11px;
+    margin-top: 3px;
+  }
+
+  /* ============ CALLOUT ============ */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--primary);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+
+  .callout strong { color: var(--text); }
+
+  .callout code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--primary-dim);
+    color: var(--primary);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .callout--warn {
+    border-left-color: var(--orange);
+  }
+
+  .callout--purple {
+    border-left-color: var(--secondary);
+  }
+
+  /* ============ CODE BLOCK ============ */
+  .code-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+  }
+
+  .code-block__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .code-block__label::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+  }
+
+  .code-block pre {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .code-block pre .comment { color: var(--text-dim); }
+  .code-block pre .keyword { color: var(--secondary); }
+  .code-block pre .string { color: var(--primary); }
+
+  /* ============ COLLAPSIBLE ============ */
+  details.collapsible {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  details.collapsible summary {
+    padding: 14px 20px;
+    background: var(--surface);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+    transition: background 0.15s ease;
+  }
+
+  details.collapsible summary:hover {
+    background: var(--surface-elevated);
+  }
+
+  details.collapsible summary::-webkit-details-marker { display: none; }
+
+  details.collapsible summary::before {
+    content: '\25B8';
+    font-size: 11px;
+    color: var(--text-dim);
+    transition: transform 0.15s ease;
+  }
+
+  details.collapsible[open] summary::before {
+    transform: rotate(90deg);
+  }
+
+  details.collapsible .collapsible__body {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-dim);
+  }
+
+  details.collapsible .collapsible__body strong { color: var(--text); }
+
+  details.collapsible .collapsible__body code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--primary-dim);
+    color: var(--primary);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ============ LEGEND ============ */
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  /* ============ SECTION DIVIDER ============ */
+  .section-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 32px 0;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 768px) {
+    body { padding: 16px; }
+    h1 { font-size: 22px; }
+    .mermaid-wrap { padding: 16px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1 class="animate" style="--i:0">How auth_method Flows to Analytics</h1>
+  <p class="subtitle animate" style="--i:1">login -> session -> middleware -> view_log / query_execution</p>
+
+  <p class="description animate" style="--i:2">
+    Every request in Metabase carries an <code>auth_method</code> value that records how the user authenticated.
+    This value flows from login through session middleware into the <code>*auth-method*</code> dynamic var,
+    and lands in <code>view_log</code> and <code>query_execution</code> rows via <code>include-sdk-info</code>.
+  </p>
+
+  <!-- ============ FLOW DIAGRAM ============ -->
+  <h2 class="animate" style="--i:3">The Flow</h2>
+
+  <div class="mermaid-wrap animate" style="--i:4">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+    </div>
+    <pre class="mermaid">
+      graph TD
+        A["User logs in<br/>(password, JWT, LDAP, SAML, Google, OIDC)"] --> B["auth_identity row created<br/>provider = (name :provider/xxx)"]
+        B --> C["create-session-with-auth-tracking!<br/>session.auth_identity_id = ai.id"]
+        C --> D["Session stored in DB<br/>with FK to auth_identity"]
+        D --> E["Next request arrives<br/>with session token"]
+        E --> F["session-with-id query<br/>LEFT JOIN auth_identity<br/>SELECT ai.provider AS auth-provider"]
+        F --> G{auth-provider<br/>present?}
+        G -->|Yes| H["merge-current-user-info<br/>sets :auth-provider on request"]
+        G -->|No| I["Fallback: no :auth-provider<br/>(legacy session)"]
+        H --> J["session-tracking-mw<br/>sdk/with-auth-method!<br/>binds *auth-method*"]
+        I --> K["session-tracking-mw<br/>*auth-method* = 'session'"]
+        J --> L["Handler runs<br/>*auth-method* is bound"]
+        K --> L
+        L --> M["include-sdk-info called<br/>on view_log or query_execution"]
+        M --> N["Row saved with<br/>auth_method column"]
+    </pre>
+  </div>
+
+  <div class="legend animate" style="--i:5">
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--primary)"></div> Happy path (SSO provider found)</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--tertiary)"></div> Fallback (legacy session)</div>
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- ============ PROVIDER VALUES TABLE ============ -->
+  <h2 class="animate" style="--i:6">Provider String Values</h2>
+
+  <p class="description animate" style="--i:7">
+    The <code>auth_identity.provider</code> column stores these values as strings.
+    They come from <code>(name :provider/xxx)</code> in <code>auth_identity/provider.clj</code>.
+  </p>
+
+  <div class="table-wrap animate" style="--i:8">
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Provider Keyword</th>
+            <th>Stored String</th>
+            <th>Auth Type</th>
+            <th class="wide">Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="--i:9">
+            <td><code>:provider/password</code></td>
+            <td><code>"password"</code></td>
+            <td>Built-in</td>
+            <td>Email/password login</td>
+          </tr>
+          <tr style="--i:10">
+            <td><code>:provider/ldap</code></td>
+            <td><code>"ldap"</code></td>
+            <td>SSO</td>
+            <td>LDAP directory auth</td>
+          </tr>
+          <tr style="--i:11">
+            <td><code>:provider/jwt</code></td>
+            <td><code>"jwt"</code></td>
+            <td>SSO</td>
+            <td>JWT token auth (enterprise)</td>
+          </tr>
+          <tr style="--i:12">
+            <td><code>:provider/saml</code></td>
+            <td><code>"saml"</code></td>
+            <td>SSO</td>
+            <td>SAML SSO (enterprise)</td>
+          </tr>
+          <tr style="--i:13">
+            <td><code>:provider/google</code></td>
+            <td><code>"google"</code></td>
+            <td>SSO</td>
+            <td>Google OAuth</td>
+          </tr>
+          <tr style="--i:14">
+            <td><code>:provider/oidc</code></td>
+            <td><code>"oidc"</code></td>
+            <td>SSO</td>
+            <td>OpenID Connect</td>
+          </tr>
+          <tr style="--i:15">
+            <td><code>:provider/custom-oidc</code></td>
+            <td><code>"custom-oidc"</code></td>
+            <td>SSO</td>
+            <td>Custom OIDC provider</td>
+          </tr>
+          <tr style="--i:16">
+            <td><code>:provider/slack-connect</code></td>
+            <td><code>"slack-connect"</code></td>
+            <td>Integration</td>
+            <td>Slack Connect</td>
+          </tr>
+          <tr style="--i:17">
+            <td>-</td>
+            <td><code>"api-key"</code></td>
+            <td>Special</td>
+            <td>Hardcoded in <code>session-tracking-mw</code>, no auth_identity row
+              <small>API key auth bypasses session creation entirely</small>
+            </td>
+          </tr>
+          <tr style="--i:18">
+            <td>-</td>
+            <td><code>"session"</code></td>
+            <td>Fallback</td>
+            <td>Legacy sessions without auth_identity_id
+              <small>Older sessions created before auth_identity tracking was added</small>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- ============ KEY FILES ============ -->
+  <h2 class="animate" style="--i:19">Critical Code Paths</h2>
+
+  <div class="callout animate" style="--i:20">
+    <strong>auth_identity/provider.clj</strong> - <code>create-user!</code> (line ~330) and <code>update-user!</code> (line ~310)
+    insert rows into <code>auth_identity</code> with <code>provider = (name provider-keyword)</code>.
+    This is where the string value originates.
+  </div>
+
+  <div class="callout callout--purple animate" style="--i:21">
+    <strong>auth_identity/session.clj</strong> - <code>create-session-with-auth-tracking!</code> (line ~15)
+    looks up the <code>auth_identity</code> row by <code>user_id + provider</code>, then creates a session
+    with <code>auth_identity_id</code> as a foreign key.
+  </div>
+
+  <div class="callout animate" style="--i:22">
+    <strong>server/middleware/session.clj</strong> - The <code>session-with-id</code> query (line ~105)
+    LEFT JOINs <code>auth_identity</code> to get <code>provider AS auth-provider</code>.
+    Then <code>merge-current-user-info</code> puts it on the request map.
+    Finally, <code>session-tracking-mw</code> binds <code>*auth-method*</code>.
+  </div>
+
+  <div class="callout callout--warn animate" style="--i:23">
+    <strong>analytics/sdk.clj</strong> - <code>include-sdk-info</code> (line ~93) copies
+    <code>*auth-method*</code> into the row map as <code>:auth_method</code>.
+    Called by both <code>view-log</code> and <code>query-execution</code> insert paths.
+  </div>
+
+  <hr class="section-divider">
+
+  <!-- ============ TESTING GUIDE ============ -->
+  <h2 class="animate" style="--i:24">Writing SSO auth_method Tests</h2>
+
+  <p class="description animate" style="--i:25">
+    You do <strong>not</strong> need a real JWT/LDAP/SAML server to test <code>auth_method</code> values.
+    Create an <code>AuthIdentity</code> row directly with <code>mt/with-temp</code>, then create a session
+    linked to it. The middleware will pick up the provider from the JOIN.
+  </p>
+
+  <div class="code-block animate" style="--i:26">
+    <div class="code-block__label">Test Pattern - Direct auth_identity insertion</div>
+    <pre><span class="comment">;; Create a user + auth_identity + session manually</span>
+<span class="keyword">(mt/with-temp</span> [<span class="string">:model/User</span> {user-id :id} {}
+              <span class="string">:model/AuthIdentity</span> {ai-id :id}
+                {:user_id    user-id
+                 :provider   <span class="string">"jwt"</span>    <span class="comment">; &lt;-- the value you're testing</span>
+                 :auth_hash  <span class="string">"test-hash"</span>}]
+  <span class="comment">;; Create session linked to this auth_identity</span>
+  <span class="keyword">(let</span> [session (auth-identity.session/create-session-with-auth-tracking!
+                  :provider/jwt user-id <span class="string">"127.0.0.1"</span>)]
+    <span class="comment">;; Make a request with this session</span>
+    <span class="comment">;; The middleware will LEFT JOIN auth_identity</span>
+    <span class="comment">;; and bind *auth-method* = "jwt"</span>
+    <span class="comment">;; Then view_log/query_execution will capture it</span>
+    <span class="keyword">(is</span> (= <span class="string">"jwt"</span> (:auth_method (t2/select-one :model/ViewLog
+                                              :user_id user-id))))))</pre>
+  </div>
+
+  <div class="callout callout--warn animate" style="--i:27">
+    <strong>Watch out:</strong> <code>create-session-with-auth-tracking!</code> looks up the auth_identity
+    by <code>(user_id, provider)</code>. If you create the AuthIdentity with <code>provider = "jwt"</code>,
+    you must pass <code>:provider/jwt</code> to the session creator so the lookup matches.
+  </div>
+
+  <details class="collapsible animate" style="--i:28">
+    <summary>Alternative: bind *auth-method* directly (unit test style)</summary>
+    <div class="collapsible__body">
+      <p>For unit tests that don't need the full middleware stack, you can bind the var directly:</p>
+      <br>
+      <code>(sdk/with-auth-method! ["jwt"]
+  (let [row (sdk/include-sdk-info {})]
+    (is (= "jwt" (:auth_method row)))))</code>
+      <br><br>
+      <p>This tests <code>include-sdk-info</code> in isolation but doesn't verify the middleware flow.</p>
+    </div>
+  </details>
+
+  <hr class="section-divider">
+
+  <!-- ============ API KEY SPECIAL CASE ============ -->
+  <h2 class="animate" style="--i:29">Special Cases</h2>
+
+  <div class="table-wrap animate" style="--i:30">
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            <th class="wide">auth_method Value</th>
+            <th class="wide">Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="--i:31">
+            <td>API key request</td>
+            <td><code>"api-key"</code></td>
+            <td>Hardcoded in <code>session-tracking-mw</code>. No session, no auth_identity row.
+              <small>API keys use a separate auth path entirely</small>
+            </td>
+          </tr>
+          <tr style="--i:32">
+            <td>Legacy session (no auth_identity_id)</td>
+            <td><code>"session"</code></td>
+            <td>The LEFT JOIN returns NULL for provider, so the fallback kicks in.
+              <small>Sessions created before auth_identity tracking was added</small>
+            </td>
+          </tr>
+          <tr style="--i:33">
+            <td>No session at all (public/embed)</td>
+            <td><code>nil</code></td>
+            <td>No session middleware runs for these routes. <code>*auth-method*</code> stays nil.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  mermaid.registerLayoutLoaders(elkLayouts);
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    look: 'handDrawn',
+    layout: 'elk',
+    themeVariables: {
+      primaryColor: isDark ? '#115e59' : '#ccfbf1',
+      primaryBorderColor: isDark ? '#2dd4bf' : '#0d9488',
+      primaryTextColor: isDark ? '#ccfbf1' : '#134e4a',
+      secondaryColor: isDark ? '#1e1b4b' : '#ede9fe',
+      secondaryBorderColor: isDark ? '#c4b5fd' : '#7c3aed',
+      secondaryTextColor: isDark ? '#ccfbf1' : '#134e4a',
+      tertiaryColor: isDark ? '#2e2618' : '#fffbeb',
+      tertiaryBorderColor: isDark ? '#fbbf24' : '#d97706',
+      tertiaryTextColor: isDark ? '#ccfbf1' : '#134e4a',
+      lineColor: isDark ? '#5eead4' : '#5f8a85',
+      fontSize: '16px',
+      fontFamily: "'Bricolage Grotesque', system-ui, sans-serif",
+      noteBkgColor: isDark ? '#115e59' : '#fefce8',
+      noteTextColor: isDark ? '#ccfbf1' : '#134e4a',
+      noteBorderColor: isDark ? '#fbbf24' : '#d97706',
+    }
+  });
+</script>
+<script>
+  function updateZoomState(wrap) {
+    var target = wrap.querySelector('.mermaid');
+    var zoom = parseFloat(target.dataset.zoom || '1');
+    wrap.classList.toggle('is-zoomed', zoom > 1);
+  }
+
+  function zoomDiagram(btn, factor) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    var current = parseFloat(target.dataset.zoom || '1');
+    var next = Math.min(Math.max(current * factor, 0.3), 5);
+    target.dataset.zoom = next;
+    target.style.transform = 'scale(' + next + ')';
+    updateZoomState(wrap);
+  }
+
+  function resetZoom(btn) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    target.dataset.zoom = '1';
+    target.style.transform = 'scale(1)';
+    updateZoomState(wrap);
+  }
+
+  document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+    wrap.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      var target = wrap.querySelector('.mermaid');
+      var current = parseFloat(target.dataset.zoom || '1');
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var next = Math.min(Math.max(current * factor, 0.3), 5);
+      target.dataset.zoom = next;
+      target.style.transform = 'scale(' + next + ')';
+      updateZoomState(wrap);
+    }, { passive: false });
+
+    var startX, startY, scrollL, scrollT;
+    wrap.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.zoom-controls')) return;
+      var target = wrap.querySelector('.mermaid');
+      if (parseFloat(target.dataset.zoom || '1') <= 1) return;
+      wrap.classList.add('is-panning');
+      startX = e.clientX;
+      startY = e.clientY;
+      scrollL = wrap.scrollLeft;
+      scrollT = wrap.scrollTop;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!wrap.classList.contains('is-panning')) return;
+      wrap.scrollLeft = scrollL - (e.clientX - startX);
+      wrap.scrollTop = scrollT - (e.clientY - startY);
+    });
+    window.addEventListener('mouseup', function() {
+      wrap.classList.remove('is-panning');
+    });
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Source Replacement API Flow — Metabase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Sora', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #0c0e1a;
+    --surface: #12152a;
+    --surface2: #1a1e3a;
+    --surface3: #222750;
+    --border: rgba(255, 255, 255, 0.06);
+    --border-bright: rgba(255, 255, 255, 0.12);
+    --text: #e2e4f0;
+    --text-dim: #8890b5;
+
+    --blue: #60a5fa;
+    --blue-dim: rgba(96, 165, 250, 0.12);
+    --indigo: #a78bfa;
+    --indigo-dim: rgba(167, 139, 250, 0.10);
+    --green: #4ade80;
+    --green-dim: rgba(74, 222, 128, 0.10);
+    --orange: #fb923c;
+    --orange-dim: rgba(251, 146, 60, 0.10);
+    --red: #f87171;
+    --red-dim: rgba(248, 113, 113, 0.10);
+    --cyan: #22d3ee;
+    --cyan-dim: rgba(34, 211, 238, 0.10);
+    --pink: #f472b6;
+    --pink-dim: rgba(244, 114, 182, 0.10);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f5fa;
+      --surface: #ffffff;
+      --surface2: #eeeef5;
+      --surface3: #e0e0ee;
+      --border: rgba(0, 0, 0, 0.07);
+      --border-bright: rgba(0, 0, 0, 0.14);
+      --text: #1a1a2e;
+      --text-dim: #6b7280;
+
+      --blue: #2563eb;
+      --blue-dim: rgba(37, 99, 235, 0.08);
+      --indigo: #7c3aed;
+      --indigo-dim: rgba(124, 58, 237, 0.08);
+      --green: #16a34a;
+      --green-dim: rgba(22, 163, 74, 0.08);
+      --orange: #ea580c;
+      --orange-dim: rgba(234, 88, 12, 0.08);
+      --red: #dc2626;
+      --red-dim: rgba(220, 38, 38, 0.08);
+      --cyan: #0891b2;
+      --cyan-dim: rgba(8, 145, 178, 0.08);
+      --pink: #db2777;
+      --pink-dim: rgba(219, 39, 119, 0.08);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(at 15% 10%, var(--indigo-dim) 0%, transparent 50%),
+      radial-gradient(at 85% 60%, var(--blue-dim) 0%, transparent 50%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .animate {
+    animation: fadeUp 0.45s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.06s);
+  }
+  .animate-scale {
+    animation: fadeScale 0.35s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.06s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+    .mermaid-wrap .mermaid { transition: none; }
+  }
+
+  /* ── NAV ── */
+  .wrap {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 170px 1fr;
+    gap: 0 40px;
+  }
+  .main { min-width: 0; }
+
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    padding: 14px 0;
+    grid-row: 1 / -1;
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+  }
+  .toc::-webkit-scrollbar { width: 3px; }
+  .toc::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
+
+  .toc-title {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    padding: 0 0 10px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toc a {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 4px 8px;
+    border-radius: 5px;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+    line-height: 1.4;
+    margin-bottom: 1px;
+  }
+  .toc a:hover { color: var(--text); background: var(--surface2); }
+  .toc a.active { color: var(--text); border-left-color: var(--blue); }
+
+  @media (max-width: 1000px) {
+    .wrap { grid-template-columns: 1fr; padding-top: 0; }
+    body { padding-top: 0; }
+    .toc {
+      position: sticky; top: 0; z-index: 200;
+      max-height: none; display: flex; gap: 4px; align-items: center;
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      background: var(--bg); border-bottom: 1px solid var(--border);
+      padding: 10px 0; margin: 0 -40px; padding-left: 40px; padding-right: 40px;
+      grid-row: auto;
+    }
+    .toc::-webkit-scrollbar { display: none; }
+    .toc-title { display: none; }
+    .toc a {
+      white-space: nowrap; flex-shrink: 0; border-left: none;
+      border-bottom: 2px solid transparent; border-radius: 4px 4px 0 0;
+      padding: 6px 10px; font-size: 10px;
+    }
+    .toc a.active { border-left: none; border-bottom-color: var(--blue); background: var(--surface); }
+    .main { padding-top: 20px; }
+    .sec-head { scroll-margin-top: 52px; }
+  }
+
+  /* ── TYPOGRAPHY ── */
+  h1 {
+    font-size: 38px;
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    text-wrap: balance;
+    margin-bottom: 6px;
+    background: linear-gradient(135deg, var(--blue), var(--indigo));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    margin-bottom: 32px;
+  }
+
+  .sec-head {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 12px 0 18px;
+    margin-top: 48px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sec-head .dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+
+  .description {
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--text-dim);
+    margin: 16px 0 24px;
+    max-width: 750px;
+  }
+  .description code, .callout code, .step-body code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--blue-dim);
+    color: var(--blue);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+  .description strong { color: var(--text); }
+
+  /* ── KPI ── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .kpi-card--blue::before { background: var(--blue); }
+  .kpi-card--indigo::before { background: var(--indigo); }
+  .kpi-card--green::before { background: var(--green); }
+  .kpi-card--orange::before { background: var(--orange); }
+  .kpi-card--cyan::before { background: var(--cyan); }
+
+  .kpi-card__value {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-card__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  /* ── MERMAID ── */
+  .mermaid-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    overflow: auto;
+    margin-bottom: 20px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .mermaid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .mermaid-wrap::-webkit-scrollbar-track { background: transparent; }
+  .mermaid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .mermaid-wrap::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  .mermaid-wrap .mermaid {
+    display: flex;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    transform-origin: top center;
+  }
+
+  .zoom-controls {
+    position: absolute; top: 8px; right: 8px;
+    display: flex; gap: 2px; z-index: 10;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 2px;
+  }
+  .zoom-controls button {
+    width: 28px; height: 28px; border: none; background: transparent;
+    color: var(--text-dim); font-family: var(--font-mono); font-size: 14px;
+    cursor: pointer; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s;
+  }
+  .zoom-controls button:hover { background: var(--border); color: var(--text); }
+
+  .mermaid-wrap.is-zoomed { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+  .mermaid .nodeLabel {
+    font-family: var(--font-body) !important;
+    font-size: 14px !important;
+    color: var(--text) !important;
+  }
+  .mermaid .edgeLabel {
+    font-family: var(--font-mono) !important;
+    font-size: 12px !important;
+    color: var(--text-dim) !important;
+    background-color: var(--surface) !important;
+  }
+  .mermaid .edgeLabel rect { fill: var(--surface) !important; }
+  .mermaid .node rect, .mermaid .node circle, .mermaid .node polygon {
+    stroke-width: 1.5px !important;
+  }
+  .mermaid .edge-pattern-solid { stroke-width: 1.5px !important; }
+
+  /* ── STEPS ── */
+  .steps { margin: 20px 0 24px; }
+  .step {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 0 16px;
+  }
+  .step-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+  .step-dot {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 12px; font-weight: 700;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+  .step-connector {
+    width: 2px; flex: 1;
+    background: var(--border-bright);
+    min-height: 16px;
+  }
+  .step-body {
+    padding: 4px 0 28px;
+  }
+  .step-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    line-height: 32px;
+  }
+  .step-detail {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-dim);
+  }
+  .step-detail code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--blue-dim);
+    color: var(--blue);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  .step--blue .step-dot { background: var(--blue-dim); color: var(--blue); border: 2px solid var(--blue); }
+  .step--indigo .step-dot { background: var(--indigo-dim); color: var(--indigo); border: 2px solid var(--indigo); }
+  .step--green .step-dot { background: var(--green-dim); color: var(--green); border: 2px solid var(--green); }
+  .step--orange .step-dot { background: var(--orange-dim); color: var(--orange); border: 2px solid var(--orange); }
+  .step--cyan .step-dot { background: var(--cyan-dim); color: var(--cyan); border: 2px solid var(--cyan); }
+  .step--pink .step-dot { background: var(--pink-dim); color: var(--pink); border: 2px solid var(--pink); }
+
+  /* ── EXAMPLE CARD ── */
+  .example {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 20px 0 24px;
+  }
+  .example-header {
+    background: var(--surface2);
+    padding: 14px 20px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .example-header .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+  }
+  .example-body {
+    padding: 20px;
+  }
+  .example-body pre {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text);
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .example-body pre .k { color: var(--indigo); }
+  .example-body pre .s { color: var(--green); }
+  .example-body pre .n { color: var(--orange); }
+  .example-body pre .c { color: var(--text-dim); font-style: italic; }
+  .example-body pre .v { color: var(--cyan); }
+
+  /* ── PROGRESS TIMELINE ── */
+  .timeline {
+    margin: 20px 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .timeline-event {
+    display: grid;
+    grid-template-columns: 120px 20px 1fr;
+    gap: 0 12px;
+    align-items: start;
+  }
+  .timeline-time {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align: right;
+    padding-top: 3px;
+  }
+  .timeline-dot-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .timeline-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .timeline-bar {
+    width: 2px;
+    background: var(--border-bright);
+    min-height: 48px;
+  }
+  .timeline-content {
+    padding: 0 0 20px;
+  }
+  .timeline-label {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+  .timeline-sub {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text-dim);
+  }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 16px 0 24px;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .progress-track {
+    height: 8px;
+    background: var(--surface2);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--blue), var(--indigo));
+    transition: width 0.3s ease;
+    position: relative;
+  }
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 40px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15));
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* ── CALLOUT ── */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--orange);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--text-dim);
+    margin: 20px 0;
+  }
+  .callout strong { color: var(--text); }
+
+  .callout--info { border-left-color: var(--blue); }
+
+  /* ── FILE MAP ── */
+  details.collapsible {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 16px 0;
+  }
+  details.collapsible summary {
+    padding: 14px 20px;
+    background: var(--surface);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+    transition: background 0.15s;
+  }
+  details.collapsible summary:hover { background: var(--surface2); }
+  details.collapsible summary::-webkit-details-marker { display: none; }
+  details.collapsible summary::before {
+    content: '\25B8'; font-size: 11px; color: var(--text-dim);
+    transition: transform 0.15s;
+  }
+  details.collapsible[open] summary::before { transform: rotate(90deg); }
+  details.collapsible .collapsible__body {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    line-height: 1.65;
+    font-family: var(--font-mono);
+    color: var(--text-dim);
+  }
+  details.collapsible .collapsible__body div {
+    padding: 3px 0;
+  }
+  .file-color { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; }
+
+  /* ── LEGEND ── */
+  .legend {
+    display: flex; gap: 20px; flex-wrap: wrap; margin: 16px 0;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 3px; }
+
+  /* ── TAG ── */
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .tag--blue { background: var(--blue-dim); color: var(--blue); }
+  .tag--green { background: var(--green-dim); color: var(--green); }
+  .tag--orange { background: var(--orange-dim); color: var(--orange); }
+  .tag--indigo { background: var(--indigo-dim); color: var(--indigo); }
+  .tag--red { background: var(--red-dim); color: var(--red); }
+  .tag--cyan { background: var(--cyan-dim); color: var(--cyan); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    body { padding: 16px; }
+    h1 { font-size: 24px; }
+    .mermaid-wrap { padding: 16px 12px; }
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .step { grid-template-columns: 36px 1fr; }
+    .timeline-event { grid-template-columns: 80px 16px 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <nav class="toc" id="toc">
+    <div class="toc-title">Sections</div>
+    <a href="#s1">Overview</a>
+    <a href="#s2">API Endpoints</a>
+    <a href="#s3">Pre-flight Check</a>
+    <a href="#s4">Sequence Diagram</a>
+    <a href="#s5">Execution Engine</a>
+    <a href="#s6">1000-Card Example</a>
+    <a href="#s7">Progress Timeline</a>
+    <a href="#s8">File Map</a>
+  </nav>
+
+  <div class="main">
+
+    <h1 class="animate" style="--i:0">Source Replacement API Flow</h1>
+    <p class="subtitle animate" style="--i:1">POST /api/ee/replacement/replace-source &mdash; enterprise feature</p>
+
+    <!-- ─── OVERVIEW ─── -->
+    <div id="s1" class="sec-head animate" style="--i:2">
+      <span class="dot" style="background:var(--blue)"></span> Overview
+    </div>
+
+    <p class="description animate" style="--i:3">
+      Source replacement lets you <strong>swap the data source</strong> of every card that depends on a given source.
+      A "source" is either a <code>[:card id]</code> or <code>[:table id]</code> &mdash; anything that appears as
+      <code>:source-card</code> or <code>:source-table</code> in a question's query. The swap is <strong>async</strong>:
+      the API returns a <code>run_id</code> immediately and the actual work happens on a virtual thread, updating
+      both MBQL and native SQL queries, field references, dashboard card viz settings, and parameter mappings.
+    </p>
+
+    <div class="kpi-row">
+      <div class="kpi-card kpi-card--blue animate-scale" style="--i:4">
+        <div class="kpi-card__value">4</div>
+        <div class="kpi-card__label">API Endpoints</div>
+      </div>
+      <div class="kpi-card kpi-card--indigo animate-scale" style="--i:5">
+        <div class="kpi-card__value">2</div>
+        <div class="kpi-card__label">Swap Phases</div>
+      </div>
+      <div class="kpi-card kpi-card--green animate-scale" style="--i:6">
+        <div class="kpi-card__value">1</div>
+        <div class="kpi-card__label">Active Run Max</div>
+      </div>
+      <div class="kpi-card kpi-card--orange animate-scale" style="--i:7">
+        <div class="kpi-card__value">50</div>
+        <div class="kpi-card__label">Progress Batch</div>
+      </div>
+      <div class="kpi-card kpi-card--cyan animate-scale" style="--i:8">
+        <div class="kpi-card__value">30m</div>
+        <div class="kpi-card__label">Timeout Limit</div>
+      </div>
+    </div>
+
+    <!-- ─── API ENDPOINTS ─── -->
+    <div id="s2" class="sec-head animate" style="--i:9">
+      <span class="dot" style="background:var(--indigo)"></span> API Endpoints
+    </div>
+
+    <p class="description animate" style="--i:10">
+      All routes live under <code>/api/ee/replacement/</code> and require the <strong>dependencies</strong> premium
+      feature plus authentication.
+    </p>
+
+    <div class="mermaid-wrap animate" style="--i:11">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+graph LR
+  subgraph endpoints["API Endpoints"]
+    direction TB
+    A["POST /check-replace-source"]
+    B["POST /replace-source"]
+    C["GET /runs/:id"]
+    D["POST /runs/:id/cancel"]
+  end
+
+  A -->|"validates"| V["Column Mapping\n+ Cycle Detection\n+ DB Match"]
+  B -->|"returns 202"| R["{ run_id }"]
+  C -->|"polls"| P["{ status, progress }"]
+  D -->|"sets"| X["is_active = nil"]
+
+  V -.->|"pre-flight"| B
+      </pre>
+    </div>
+
+    <div class="legend animate" style="--i:12">
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--blue)"></div> Request</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--indigo)"></div> Validation</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--green)"></div> Response</div>
+    </div>
+
+    <!-- ─── PRE-FLIGHT ─── -->
+    <div id="s3" class="sec-head animate" style="--i:13">
+      <span class="dot" style="background:var(--green)"></span> Pre-flight Check
+    </div>
+
+    <p class="description animate" style="--i:14">
+      Before executing, the system validates the swap via <code>check-replace-source</code>.
+      This runs automatically as a gate inside <code>/replace-source</code> too.
+    </p>
+
+    <div class="steps animate" style="--i:15">
+      <div class="step step--blue">
+        <div class="step-line"><div class="step-dot">1</div><div class="step-connector"></div></div>
+        <div class="step-body">
+          <div class="step-title">Reject same source</div>
+          <div class="step-detail">If <code>old == new</code>, returns <code>:same-source</code> error immediately.</div>
+        </div>
+      </div>
+      <div class="step step--indigo">
+        <div class="step-line"><div class="step-dot">2</div><div class="step-connector"></div></div>
+        <div class="step-body">
+          <div class="step-title">Database match</div>
+          <div class="step-detail">Both sources must be in the <strong>same database</strong>. Cross-DB swaps return <code>:database-mismatch</code>.</div>
+        </div>
+      </div>
+      <div class="step step--green">
+        <div class="step-line"><div class="step-dot">3</div><div class="step-connector"></div></div>
+        <div class="step-body">
+          <div class="step-title">Cycle detection</div>
+          <div class="step-detail">Checks whether the new source transitively depends on the old source. If so, the swap would create a <strong>circular dependency</strong> &rarr; <code>:cycle-detected</code>.</div>
+        </div>
+      </div>
+      <div class="step step--orange">
+        <div class="step-line"><div class="step-dot">4</div><div class="step-connector"></div></div>
+        <div class="step-body">
+          <div class="step-title">Column mapping</div>
+          <div class="step-detail">
+            Compares columns by <code>lib/desired-column-alias</code>. For each old column, finds the matching new column.
+            Reports: <code>:missing-column</code>, <code>:column-type-mismatch</code>, <code>:missing-primary-key</code>,
+            <code>:missing-foreign-key</code>, <code>:foreign-key-mismatch</code>.
+          </div>
+        </div>
+      </div>
+      <div class="step step--cyan">
+        <div class="step-line"><div class="step-dot">5</div></div>
+        <div class="step-body">
+          <div class="step-title">Return result</div>
+          <div class="step-detail"><code>{ success: true/false, errors: [...], column_mappings: [...] }</code></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── SEQUENCE DIAGRAM ─── -->
+    <div id="s4" class="sec-head animate" style="--i:16">
+      <span class="dot" style="background:var(--orange)"></span> Full Sequence Diagram
+    </div>
+
+    <p class="description animate" style="--i:17">
+      The complete request lifecycle from the frontend modal through async execution.
+      The frontend polls every <strong>1 second</strong> until the run status is no longer <code>started</code>.
+    </p>
+
+    <div class="mermaid-wrap animate" style="--i:18">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+sequenceDiagram
+  participant FE as Frontend Modal
+  participant API as /api/ee/replacement
+  participant DB as App Database
+  participant VT as Virtual Thread
+
+  FE->>API: POST /check-replace-source
+  Note right of FE: {old: [card, 42], new: [card, 99]}
+  API->>API: validate same-source, DB match, cycle, columns
+  API-->>FE: {success: true, column_mappings: [...]}
+
+  Note over FE: User clicks "Replace in 1000 items"
+
+  FE->>API: POST /replace-source
+  Note right of FE: {old: [card, 42], new: [card, 99]}
+  API->>API: Re-run pre-flight check
+  API->>DB: INSERT source_replacement_run (status=started)
+  API->>VT: Launch virtual thread
+  API-->>FE: 202 {run_id: 7}
+
+  loop Every 1 second
+    FE->>API: GET /runs/7
+    API->>DB: SELECT FROM source_replacement_run
+    API-->>FE: {status: started, progress: 0.35}
+  end
+
+  Note over VT: Phase 1: Upgrade field refs (transitive)
+  VT->>VT: find-matching-column + lib.ref/ref
+  VT->>DB: UPDATE card SET dataset_query (per card)
+  VT->>DB: Write progress every 50 items + check cancel
+
+  Note over VT: Phase 2: Swap sources (direct)
+  VT->>VT: lib.walk/walk (source swap + field ref remap)
+  VT->>DB: UPDATE card (swap source-card/source-table)
+  VT->>DB: UPDATE dashboard_cards viz_settings
+  VT->>DB: Publish dependency events (cards + segments)
+  VT->>DB: SET status=succeeded, progress=1.0
+
+  FE->>API: GET /runs/7
+  API-->>FE: {status: succeeded, progress: 1.0}
+  Note over FE: Show success state
+      </pre>
+    </div>
+
+    <!-- ─── EXECUTION ENGINE ─── -->
+    <div id="s5" class="sec-head animate" style="--i:19">
+      <span class="dot" style="background:var(--cyan)"></span> Execution Engine
+    </div>
+
+    <p class="description animate" style="--i:20">
+      The runner operates in <strong>two sequential phases</strong> on a single virtual thread.
+      There is no parallelism and no wrapping transaction &mdash; each card is updated individually.
+      A failure mid-run leaves some cards swapped and others unchanged.
+      Segments are also tracked in the dependency graph via <code>segment-create/update/delete</code> events.
+    </p>
+
+    <div class="mermaid-wrap animate" style="--i:21">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+graph TD
+  START["run-swap old new"] --> TU["transitive-usages old"]
+  START --> DU["direct-usages old"]
+
+  TU --> P1["Phase 1: Upgrade Field Refs\n(transitive dependents)"]
+  DU --> P2["Phase 2: Swap Sources\n(direct dependents)"]
+
+  P1 --> P1A{"Entity type?"}
+  P1A -->|"card"| P1B["lib/upgrade-field-refs on dataset_query\nfind-matching-column + lib.ref/ref\n+ dashcard viz_settings + param_mappings"]
+  P1A -->|"transform"| P1C["lib/upgrade-field-refs on source.query"]
+  P1A -->|"dashboard"| P1D["no-op"]
+
+  P1B --> PROG1["Write progress every 50 items"]
+  P1C --> PROG1
+  P1D --> PROG1
+
+  PROG1 --> CHK1{"is_active?"}
+  CHK1 -->|"false"| CANCEL["Throw: Run canceled"]
+  CHK1 -->|"true"| P2
+
+  P2 --> P2A{"Query type?"}
+  P2A -->|"MBQL"| P2B["lib.walk/walk\nupdate-stage-source-type\n+ update-field-refs-in-stage\n(single walk pass)"]
+  P2A -->|"Native SQL"| P2C["swap-native-stages\nrewrite SQL text + template tags"]
+
+  P2B --> VIZ["Update dashboard_card\nviz_settings + parameter_mappings"]
+  P2C --> VIZ
+
+  VIZ --> EVT["Publish card-dependency-backfill\n+ segment dependency events"]
+  EVT --> DONE["Set status=succeeded\nprogress=1.0, is_active=nil"]
+      </pre>
+    </div>
+
+    <div class="callout callout--info animate" style="--i:22">
+      <strong>Simplified field-ref handling.</strong> Both phases now use <code>lib.equality/find-matching-column</code> +
+      <code>lib.ref/ref</code> for field ref resolution &mdash; name-based refs pass through unchanged. The MBQL swap
+      is a single <code>lib.walk/walk</code> pass that handles both source-type swapping and field-ref remapping
+      together via <code>update-stage</code>.
+    </div>
+
+    <div class="callout animate" style="--i:22">
+      <strong>Native SQL rewriting.</strong> The system handles all 4 combinations: card&rarr;card (swap template tags
+      <code>{{#42-old}}</code> &rarr; <code>{{#99-new}}</code>), table&rarr;table (AST-level SQL name replacement),
+      table&rarr;card (replace <code>FROM orders</code> with <code>FROM {{#123-slug}}</code>), and card&rarr;table (inverse).
+    </div>
+
+    <!-- ─── 1000-CARD EXAMPLE ─── -->
+    <div id="s6" class="sec-head animate" style="--i:23">
+      <span class="dot" style="background:var(--pink)"></span> 1000-Card Example
+    </div>
+
+    <p class="description animate" style="--i:24">
+      Suppose you have <strong>Card #42</strong> ("Revenue Summary") and you want to replace it with
+      <strong>Card #99</strong> ("Revenue Summary v2"). Card #42 is used as a source by <strong>1000 other cards</strong>,
+      800 of which reference it directly and 200 more that depend transitively (e.g., a card based on a card based on #42).
+    </p>
+
+    <div class="example animate" style="--i:25">
+      <div class="example-header"><span class="dot" style="background:var(--blue)"></span> Step 1: Pre-flight Check</div>
+      <div class="example-body">
+<pre><span class="k">POST</span> /api/ee/replacement/check-replace-source
+
+{
+  <span class="s">"old_source"</span>: { <span class="s">"type"</span>: <span class="s">"card"</span>, <span class="s">"id"</span>: <span class="n">42</span> },
+  <span class="s">"new_source"</span>: { <span class="s">"type"</span>: <span class="s">"card"</span>, <span class="s">"id"</span>: <span class="n">99</span> }
+}
+
+<span class="c">// Response: 200 OK</span>
+{
+  <span class="s">"success"</span>: <span class="v">true</span>,
+  <span class="s">"errors"</span>: [],
+  <span class="s">"column_mappings"</span>: [
+    { <span class="s">"old_column"</span>: <span class="s">"TOTAL"</span>,    <span class="s">"new_column"</span>: <span class="s">"TOTAL"</span>,    <span class="s">"status"</span>: <span class="s">"match"</span> },
+    { <span class="s">"old_column"</span>: <span class="s">"TAX"</span>,      <span class="s">"new_column"</span>: <span class="s">"TAX"</span>,      <span class="s">"status"</span>: <span class="s">"match"</span> },
+    { <span class="s">"old_column"</span>: <span class="s">"DISCOUNT"</span>, <span class="s">"new_column"</span>: <span class="s">"DISCOUNT"</span>, <span class="s">"status"</span>: <span class="s">"match"</span> },
+    { <span class="s">"old_column"</span>: <span class="s">"QUANTITY"</span>, <span class="s">"new_column"</span>: <span class="s">"QTY"</span>,      <span class="s">"status"</span>: <span class="s">"match"</span> }
+  ]
+}</pre>
+      </div>
+    </div>
+
+    <div class="example animate" style="--i:26">
+      <div class="example-header"><span class="dot" style="background:var(--indigo)"></span> Step 2: Execute Replacement</div>
+      <div class="example-body">
+<pre><span class="k">POST</span> /api/ee/replacement/replace-source
+
+{
+  <span class="s">"old_source"</span>: { <span class="s">"type"</span>: <span class="s">"card"</span>, <span class="s">"id"</span>: <span class="n">42</span> },
+  <span class="s">"new_source"</span>: { <span class="s">"type"</span>: <span class="s">"card"</span>, <span class="s">"id"</span>: <span class="n">99</span> }
+}
+
+<span class="c">// Response: 202 Accepted</span>
+{
+  <span class="s">"id"</span>: <span class="n">7</span>,
+  <span class="s">"status"</span>: <span class="s">"started"</span>,
+  <span class="s">"progress"</span>: <span class="n">0.0</span>,
+  <span class="s">"source_entity_type"</span>: <span class="s">"card"</span>,
+  <span class="s">"source_entity_id"</span>: <span class="n">42</span>,
+  <span class="s">"target_entity_type"</span>: <span class="s">"card"</span>,
+  <span class="s">"target_entity_id"</span>: <span class="n">99</span>
+}</pre>
+      </div>
+    </div>
+
+    <div class="example animate" style="--i:27">
+      <div class="example-header"><span class="dot" style="background:var(--green)"></span> Step 3: Poll Progress</div>
+      <div class="example-body">
+<pre><span class="k">GET</span> /api/ee/replacement/runs/7
+
+<span class="c">// Response (mid-run): 200 OK</span>
+{
+  <span class="s">"id"</span>: <span class="n">7</span>,
+  <span class="s">"status"</span>: <span class="s">"started"</span>,
+  <span class="s">"progress"</span>: <span class="n">0.35</span>,    <span class="c">// 350 / 1000 items done</span>
+  <span class="s">"start_time"</span>: <span class="s">"2026-02-20T10:00:00Z"</span>,
+  <span class="s">"end_time"</span>: <span class="v">null</span>
+}
+
+<span class="c">// Response (complete): 200 OK</span>
+{
+  <span class="s">"id"</span>: <span class="n">7</span>,
+  <span class="s">"status"</span>: <span class="s">"succeeded"</span>,
+  <span class="s">"progress"</span>: <span class="n">1.0</span>,
+  <span class="s">"start_time"</span>: <span class="s">"2026-02-20T10:00:00Z"</span>,
+  <span class="s">"end_time"</span>: <span class="s">"2026-02-20T10:04:12Z"</span>
+}</pre>
+      </div>
+    </div>
+
+    <!-- ─── PROGRESS TIMELINE ─── -->
+    <div id="s7" class="sec-head animate" style="--i:28">
+      <span class="dot" style="background:var(--orange)"></span> Progress Timeline for 1000 Cards
+    </div>
+
+    <p class="description animate" style="--i:29">
+      Processing is <strong>sequential</strong>: each card is updated one at a time. Progress is flushed to the DB every
+      50 items (the <code>progress-batch-size</code> constant). For 1000 total items (200 transitive + 800 direct),
+      you'll see ~20 progress writes.
+    </p>
+
+    <div class="progress-wrap animate" style="--i:30">
+      <div class="progress-label">
+        <span>Phase 1: Field ref upgrades (200 transitive)</span>
+        <span>200 / 200</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width: 100%"></div>
+      </div>
+    </div>
+
+    <div class="progress-wrap animate" style="--i:31">
+      <div class="progress-label">
+        <span>Phase 2: Source swaps (800 direct)</span>
+        <span>800 / 800</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width: 100%"></div>
+      </div>
+    </div>
+
+    <div class="timeline animate" style="--i:32">
+      <div class="timeline-event">
+        <div class="timeline-time">t = 0s</div>
+        <div class="timeline-dot-col"><div class="timeline-dot" style="background:var(--blue)"></div><div class="timeline-bar"></div></div>
+        <div class="timeline-content">
+          <div class="timeline-label">Run started</div>
+          <div class="timeline-sub">INSERT run, progress = 0.0, virtual thread launched</div>
+        </div>
+      </div>
+      <div class="timeline-event">
+        <div class="timeline-time">t &asymp; 12s</div>
+        <div class="timeline-dot-col"><div class="timeline-dot" style="background:var(--indigo)"></div><div class="timeline-bar"></div></div>
+        <div class="timeline-content">
+          <div class="timeline-label">Phase 1: items 1-50 <span class="tag tag--indigo">progress=0.05</span></div>
+          <div class="timeline-sub">First batch of field-ref upgrades for transitive dependents. DB write + cancel check.</div>
+        </div>
+      </div>
+      <div class="timeline-event">
+        <div class="timeline-time">t &asymp; 24s</div>
+        <div class="timeline-dot-col"><div class="timeline-dot" style="background:var(--indigo)"></div><div class="timeline-bar"></div></div>
+        <div class="timeline-content">
+          <div class="timeline-label">Phase 1: items 51-100 <span class="tag tag--indigo">progress=0.10</span></div>
+          <div class="timeline-sub">Second batch complete. Frontend polling shows 10% in the progress bar.</div>
+        </div>
+      </div>
+      <div class="timeline-event">
+        <div class="timeline-time">t &asymp; 48s</div>
+        <div class="timeline-dot-col"><div class="timeline-dot" style="background:var(--indigo)"></div><div class="timeline-bar"></div></div>
+        <div class="timeline-content">
+          <div class="timeline-label">Phase 1 complete <span class="tag tag--green">200 items</span></div>
+          <div class="timeline-sub">All transitive field refs upgraded. progress = 0.20</div>
+        </div>
+      </div>
+      <div class="timeline-event">
+        <div class="timeline-time">t &asymp; 49s</div>
+        <div class="timeline-dot-col"><div class="timeline-dot" style="background:var(--orange)"></div><div class="timeline-bar"></div></div>
+        <div class="timeline-content">
+          <div class="timeline-label">Phase 2 begins &mdash; source swaps</div>
+          <div class="timeline-sub">Processing 800 direct dependents. Each card: rewrite query + update dashboard viz settings + publish event.</div>
+        </div>
+      </div>
+      <div class="timeline-event">
+        <div class="timeline-time">t &asymp; 1m</div>
+        <div class="timeline-dot-col"><div class="timeline-dot" style="background:var(--orange)"></div><div class="timeline-bar"></div></div>
+        <div class="timeline-content">
+          <div class="timeline-label">Phase 2: items 201-250 <span class="tag tag--orange">progress=0.25</span></div>
+          <div class="timeline-sub">Flush progress. Check is_active = true (not cancelled). Continue.</div>
+        </div>
+      </div>
+      <div class="timeline-event">
+        <div class="timeline-time">t &asymp; 2m</div>
+        <div class="timeline-dot-col"><div class="timeline-dot" style="background:var(--orange)"></div><div class="timeline-bar"></div></div>
+        <div class="timeline-content">
+          <div class="timeline-label">Phase 2: items 451-500 <span class="tag tag--orange">progress=0.50</span></div>
+          <div class="timeline-sub">Halfway through. Frontend shows 50% on the modal progress bar.</div>
+        </div>
+      </div>
+      <div class="timeline-event">
+        <div class="timeline-time">t &asymp; 4m</div>
+        <div class="timeline-dot-col"><div class="timeline-dot" style="background:var(--green)"></div></div>
+        <div class="timeline-content">
+          <div class="timeline-label">Run succeeded <span class="tag tag--green">progress=1.0</span></div>
+          <div class="timeline-sub">SET status=succeeded, is_active=nil, end_time=now. Frontend shows success state.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout--info animate" style="--i:33">
+      <strong>No wrapping transaction.</strong> Each of the 1000 cards is updated in its own transaction.
+      If the run fails at card #600, the first 599 cards are already swapped &mdash; there is no rollback.
+      The cancellation check only happens at progress-flush boundaries (every 50 items), so a cancel
+      request may take up to 50 items to take effect.
+    </div>
+
+    <div class="callout animate" style="--i:34">
+      <strong>Cluster-wide singleton.</strong> Only one replacement run can be active at a time, enforced by a
+      <code>UNIQUE</code> constraint on <code>is_active = true</code>. Attempting a second concurrent
+      replacement returns <code>409 Conflict</code>. A Quartz job runs every 10 minutes to time out
+      stale runs (&gt;30 minutes).
+    </div>
+
+    <!-- ─── FILE MAP ─── -->
+    <div id="s8" class="sec-head animate" style="--i:35">
+      <span class="dot" style="background:var(--cyan)"></span> File Map
+    </div>
+
+    <details class="collapsible animate" style="--i:36">
+      <summary>Backend &mdash; Clojure (12 files)</summary>
+      <div class="collapsible__body">
+        <div><span class="file-color" style="background:var(--blue)"></span>replacement/api.clj &mdash; Route handlers, request validation</div>
+        <div><span class="file-color" style="background:var(--blue)"></span>replacement/source.clj &mdash; check-replace-source logic</div>
+        <div><span class="file-color" style="background:var(--indigo)"></span>replacement/execute.clj &mdash; Async harness, progress tracking, virtual thread</div>
+        <div><span class="file-color" style="background:var(--indigo)"></span>replacement/runner.clj &mdash; 2-phase orchestrator</div>
+        <div><span class="file-color" style="background:var(--green)"></span>replacement/usages.clj &mdash; transitive/direct dependent lookup</div>
+        <div><span class="file-color" style="background:var(--orange)"></span>replacement/source_swap.clj &mdash; Query mutation dispatcher</div>
+        <div><span class="file-color" style="background:var(--orange)"></span>replacement/swap/native.clj &mdash; Native SQL rewriting</div>
+        <div><span class="file-color" style="background:var(--orange)"></span>replacement/swap/mbql.clj &mdash; MBQL source swap (delegates to lib.query.field_ref_update)</div>
+        <div><span class="file-color" style="background:var(--orange)"></span>replacement/swap/viz.clj &mdash; Dashboard card viz/param updates</div>
+        <div><span class="file-color" style="background:var(--cyan)"></span>replacement/field_refs.clj &mdash; Phase 1 field-ref upgrade (find-matching-column + lib.ref/ref)</div>
+        <div><span class="file-color" style="background:var(--cyan)"></span>lib/query/field_ref_update.cljc &mdash; lib.walk/walk-based update-field-refs</div>
+        <div><span class="file-color" style="background:var(--cyan)"></span>dependencies/events.clj &mdash; Segment dependency event handlers</div>
+        <div><span class="file-color" style="background:var(--pink)"></span>replacement/models/replacement_run.clj &mdash; Toucan2 model</div>
+        <div><span class="file-color" style="background:var(--pink)"></span>replacement/timeout.clj &mdash; Quartz timeout job</div>
+      </div>
+    </details>
+
+    <details class="collapsible animate" style="--i:37">
+      <summary>Frontend &mdash; TypeScript (6 files)</summary>
+      <div class="collapsible__body">
+        <div><span class="file-color" style="background:var(--blue)"></span>api/replacement.ts &mdash; RTK Query endpoints (check, replace, getRun)</div>
+        <div><span class="file-color" style="background:var(--indigo)"></span>replacement/components/ReplaceDataSourceModal.tsx &mdash; Full-screen modal</div>
+        <div><span class="file-color" style="background:var(--green)"></span>ConfirmModalContent.tsx &mdash; Confirm button, fires POST /replace-source</div>
+        <div><span class="file-color" style="background:var(--green)"></span>ProgressModalContent.tsx &mdash; Progress bar, polls GET /runs/:id every 1s</div>
+        <div><span class="file-color" style="background:var(--orange)"></span>replacement/index.ts &mdash; Plugin registration (premium gate)</div>
+        <div><span class="file-color" style="background:var(--cyan)"></span>replacement.ts (types) &mdash; TypeScript API shapes</div>
+      </div>
+    </details>
+
+    <details class="collapsible animate" style="--i:38">
+      <summary>Database &mdash; Migration</summary>
+      <div class="collapsible__body">
+        <div><span class="file-color" style="background:var(--pink)"></span>migrations/059_update_migrations.yaml &mdash; source_replacement_run table + unique is_active constraint</div>
+      </div>
+    </details>
+
+    <div style="height:60px"></div>
+
+  </div><!-- /main -->
+</div><!-- /wrap -->
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  mermaid.registerLayoutLoaders(elkLayouts);
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    look: 'classic',
+    layout: 'elk',
+    themeVariables: {
+      primaryColor: isDark ? '#1a1e3a' : '#eef2ff',
+      primaryBorderColor: isDark ? '#60a5fa' : '#2563eb',
+      primaryTextColor: isDark ? '#e2e4f0' : '#1a1a2e',
+      secondaryColor: isDark ? '#1e1535' : '#f5f3ff',
+      secondaryBorderColor: isDark ? '#a78bfa' : '#7c3aed',
+      secondaryTextColor: isDark ? '#e2e4f0' : '#1a1a2e',
+      tertiaryColor: isDark ? '#1f1a10' : '#fff7ed',
+      tertiaryBorderColor: isDark ? '#fb923c' : '#ea580c',
+      tertiaryTextColor: isDark ? '#e2e4f0' : '#1a1a2e',
+      lineColor: isDark ? '#8890b5' : '#6b7280',
+      fontSize: '14px',
+      fontFamily: "'Sora', system-ui, sans-serif",
+      noteBkgColor: isDark ? '#222750' : '#fef3c7',
+      noteTextColor: isDark ? '#e2e4f0' : '#1a1a2e',
+      noteBorderColor: isDark ? '#fb923c' : '#ea580c',
+      actorBkg: isDark ? '#1a1e3a' : '#eef2ff',
+      actorBorder: isDark ? '#60a5fa' : '#2563eb',
+      actorTextColor: isDark ? '#e2e4f0' : '#1a1a2e',
+      activationBorderColor: isDark ? '#a78bfa' : '#7c3aed',
+      activationBkgColor: isDark ? '#1e1535' : '#f5f3ff',
+      signalColor: isDark ? '#e2e4f0' : '#1a1a2e',
+      signalTextColor: isDark ? '#e2e4f0' : '#1a1a2e',
+    }
+  });
+</script>
+
+<script>
+  function updateZoomState(wrap) {
+    var target = wrap.querySelector('.mermaid');
+    var zoom = parseFloat(target.dataset.zoom || '1');
+    wrap.classList.toggle('is-zoomed', zoom > 1);
+  }
+  function zoomDiagram(btn, factor) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    var current = parseFloat(target.dataset.zoom || '1');
+    var next = Math.min(Math.max(current * factor, 0.3), 5);
+    target.dataset.zoom = next;
+    target.style.transform = 'scale(' + next + ')';
+    updateZoomState(wrap);
+  }
+  function resetZoom(btn) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    target.dataset.zoom = '1';
+    target.style.transform = 'scale(1)';
+    updateZoomState(wrap);
+  }
+  document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+    wrap.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      var target = wrap.querySelector('.mermaid');
+      var current = parseFloat(target.dataset.zoom || '1');
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var next = Math.min(Math.max(current * factor, 0.3), 5);
+      target.dataset.zoom = next;
+      target.style.transform = 'scale(' + next + ')';
+      updateZoomState(wrap);
+    }, { passive: false });
+
+    var startX, startY, scrollL, scrollT;
+    wrap.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.zoom-controls')) return;
+      var target = wrap.querySelector('.mermaid');
+      if (parseFloat(target.dataset.zoom || '1') <= 1) return;
+      wrap.classList.add('is-panning');
+      startX = e.clientX; startY = e.clientY;
+      scrollL = wrap.scrollLeft; scrollT = wrap.scrollTop;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!wrap.classList.contains('is-panning')) return;
+      wrap.scrollLeft = scrollL - (e.clientX - startX);
+      wrap.scrollTop = scrollT - (e.clientY - startY);
+    });
+    window.addEventListener('mouseup', function() {
+      wrap.classList.remove('is-panning');
+    });
+  });
+
+  /* ── SCROLL SPY ── */
+  (function() {
+    var toc = document.getElementById('toc');
+    var links = toc.querySelectorAll('a');
+    var sections = [];
+    links.forEach(function(link) {
+      var id = link.getAttribute('href').slice(1);
+      var el = document.getElementById(id);
+      if (el) sections.push({ id: id, el: el, link: link });
+    });
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          links.forEach(function(l) { l.classList.remove('active'); });
+          var match = sections.find(function(s) { return s.el === entry.target; });
+          if (match) {
+            match.link.classList.add('active');
+            if (window.innerWidth <= 1000) {
+              match.link.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+          }
+        }
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    sections.forEach(function(s) { observer.observe(s.el); });
+    links.forEach(function(link) {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        var id = link.getAttribute('href').slice(1);
+        var el = document.getElementById(id);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          history.replaceState(null, '', '#' + id);
+        }
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>

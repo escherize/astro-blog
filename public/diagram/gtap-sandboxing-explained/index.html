@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GTAP Sandboxing &amp; Source Replacement</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600;700&family=Noto+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Crimson Pro', Georgia, serif;
+    --font-mono: 'Noto Sans Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #faf8f5;
+    --surface: #ffffff;
+    --surface2: #f3efe9;
+    --border: rgba(0, 0, 0, 0.08);
+    --border-bright: rgba(0, 0, 0, 0.15);
+    --text: #2c2418;
+    --text-dim: #8a7e6d;
+
+    --sand: #b5761a;
+    --sand-dim: rgba(181, 118, 26, 0.08);
+    --teal: #0d7377;
+    --teal-dim: rgba(13, 115, 119, 0.08);
+    --rose: #b91c4a;
+    --rose-dim: rgba(185, 28, 74, 0.08);
+    --green: #1a7a3a;
+    --green-dim: rgba(26, 122, 58, 0.08);
+    --slate: #4a5568;
+    --slate-dim: rgba(74, 85, 104, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1612;
+      --surface: #241f1a;
+      --surface2: #2e2820;
+      --border: rgba(255, 255, 255, 0.07);
+      --border-bright: rgba(255, 255, 255, 0.14);
+      --text: #e8e0d4;
+      --text-dim: #9a8e7e;
+
+      --sand: #e0a040;
+      --sand-dim: rgba(224, 160, 64, 0.12);
+      --teal: #2dd4bf;
+      --teal-dim: rgba(45, 212, 191, 0.12);
+      --rose: #fb7185;
+      --rose-dim: rgba(251, 113, 133, 0.12);
+      --green: #4ade80;
+      --green-dim: rgba(74, 222, 128, 0.12);
+      --slate: #94a3b8;
+      --slate-dim: rgba(148, 163, 184, 0.12);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(at 30% 10%, var(--sand-dim) 0%, transparent 50%),
+      radial-gradient(at 70% 80%, var(--teal-dim) 0%, transparent 50%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 48px 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate {
+    animation: fadeUp 0.45s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.07s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+    line-height: 1.1;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    margin-bottom: 36px;
+  }
+
+  h2 {
+    font-size: 26px;
+    font-weight: 600;
+    margin: 48px 0 16px;
+    letter-spacing: -0.3px;
+  }
+
+  h2 .num {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--sand);
+    margin-right: 8px;
+    vertical-align: 2px;
+  }
+
+  .prose {
+    font-size: 18px;
+    line-height: 1.65;
+    color: var(--text);
+    max-width: 720px;
+    margin-bottom: 24px;
+  }
+
+  .prose code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: var(--sand-dim);
+    color: var(--sand);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  /* ============ ER DIAGRAM ============ */
+  .mermaid-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    overflow: auto;
+    margin-bottom: 24px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .mermaid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .mermaid-wrap::-webkit-scrollbar-track { background: transparent; }
+  .mermaid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .mermaid-wrap .mermaid {
+    display: flex;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    transform-origin: top center;
+  }
+
+  .zoom-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 2px;
+    z-index: 10;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+  }
+
+  .zoom-controls button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .zoom-controls button:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .mermaid-wrap.is-zoomed { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+  .mermaid .nodeLabel {
+    font-family: var(--font-body) !important;
+    font-size: 16px !important;
+  }
+  .mermaid .edgeLabel {
+    font-family: var(--font-mono) !important;
+    font-size: 12px !important;
+    color: var(--text-dim) !important;
+    background-color: var(--surface) !important;
+  }
+  .mermaid .edgeLabel rect { fill: var(--surface) !important; }
+  .mermaid .node rect,
+  .mermaid .node circle,
+  .mermaid .node polygon { stroke-width: 1.5px !important; }
+  .mermaid .edge-pattern-solid { stroke-width: 1.5px !important; }
+
+  /* ============ SCENARIO CARDS ============ */
+  .scenario-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 24px 0;
+  }
+
+  .scenario-grid > * { min-width: 0; }
+
+  .scenario {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .scenario--good {
+    border-top: 3px solid var(--green);
+  }
+
+  .scenario--bad {
+    border-top: 3px solid var(--rose);
+  }
+
+  .scenario--blocked {
+    border-top: 3px solid var(--sand);
+  }
+
+  .scenario__tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .scenario--good .scenario__tag { color: var(--green); }
+  .scenario--bad .scenario__tag { color: var(--rose); }
+  .scenario--blocked .scenario__tag { color: var(--sand); }
+
+  .scenario__tag::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .scenario h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .scenario p {
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--text-dim);
+  }
+
+  .scenario code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--slate-dim);
+    color: var(--slate);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .scenario .step-list {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0 0;
+    font-size: 14px;
+    line-height: 1.8;
+  }
+
+  .scenario .step-list li {
+    padding-left: 20px;
+    position: relative;
+    color: var(--text-dim);
+  }
+
+  .scenario .step-list li::before {
+    position: absolute;
+    left: 0;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .scenario--bad .step-list li::before {
+    content: '!';
+    color: var(--rose);
+  }
+
+  .scenario--good .step-list li::before {
+    content: '>';
+    color: var(--green);
+  }
+
+  .scenario--blocked .step-list li::before {
+    content: '#';
+    color: var(--sand);
+  }
+
+  /* ============ DB SCHEMA CARD ============ */
+  .schema-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--teal);
+    border-radius: 0 10px 10px 0;
+    padding: 20px 24px;
+    margin: 24px 0;
+    font-size: 14px;
+  }
+
+  .schema-card__title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--teal);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .schema-card__title::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--teal);
+  }
+
+  .schema-cols {
+    display: grid;
+    grid-template-columns: 140px 100px 1fr;
+    gap: 4px 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.8;
+  }
+
+  .schema-cols > * { min-width: 0; }
+
+  .col-name { color: var(--text); font-weight: 500; }
+  .col-type { color: var(--text-dim); }
+  .col-desc { color: var(--text-dim); font-family: var(--font-body); font-size: 13px; }
+  .col-pk { color: var(--sand); }
+  .col-fk { color: var(--teal); }
+
+  /* ============ CALLOUT ============ */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--rose);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px;
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    margin: 24px 0;
+  }
+
+  .callout strong { color: var(--text); }
+
+  .callout code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--rose-dim);
+    color: var(--rose);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .callout--info {
+    border-left-color: var(--teal);
+  }
+
+  .callout--info code {
+    background: var(--teal-dim);
+    color: var(--teal);
+  }
+
+  /* ============ LEGEND ============ */
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  @media (max-width: 768px) {
+    body { padding: 20px 16px; }
+    h1 { font-size: 28px; }
+    .scenario-grid { grid-template-columns: 1fr; }
+    .schema-cols { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1 class="animate" style="--i:0">GTAP Sandboxing &amp; Source Replacement</h1>
+  <p class="subtitle animate" style="--i:1">group_table_access_policy &mdash; how sandboxing scopes data access</p>
+
+  <!-- ============ SECTION 1: WHAT IS GTAP ============ -->
+
+  <h2 class="animate" style="--i:2"><span class="num">01</span> What is a Sandbox Policy?</h2>
+
+  <p class="prose animate" style="--i:3">
+    A <strong>sandbox</strong> (formerly GTAP - Group Table Access Policy) restricts what rows a permissions group
+    can see in a table. Instead of querying the real table, Metabase substitutes a <strong>scoping card</strong>
+    (a saved question) that filters the data. The scoping card typically queries the <em>same table</em>
+    it's sandboxing, with filters applied (e.g., <code>WHERE region = {{user_attr}}</code>).
+  </p>
+
+  <div class="schema-card animate" style="--i:4">
+    <div class="schema-card__title">sandboxes table schema</div>
+    <div class="schema-cols">
+      <span class="col-name col-pk">id</span>         <span class="col-type">INTEGER</span>  <span class="col-desc">Primary key</span>
+      <span class="col-name col-fk">group_id</span>    <span class="col-type">INTEGER</span>  <span class="col-desc">FK -> permissions_group - which group is sandboxed</span>
+      <span class="col-name col-fk">table_id</span>    <span class="col-type">INTEGER</span>  <span class="col-desc">FK -> metabase_table - the table being sandboxed</span>
+      <span class="col-name col-fk">card_id</span>     <span class="col-type">INTEGER?</span> <span class="col-desc">FK -> report_card - the scoping question (nullable)</span>
+      <span class="col-name">attribute_remappings</span> <span class="col-type">TEXT?</span>  <span class="col-desc">JSON mapping user attributes to query params</span>
+    </div>
+  </div>
+
+  <div class="callout callout--info animate" style="--i:5">
+    <strong>Unique constraint:</strong> <code>(table_id, group_id)</code> - only one policy per group per table.
+    When <code>card_id</code> is null, sandboxing uses column-based filtering via <code>attribute_remappings</code> instead.
+  </div>
+
+  <!-- ============ SECTION 2: HOW IT WORKS ============ -->
+
+  <h2 class="animate" style="--i:6"><span class="num">02</span> How the Scoping Card Works</h2>
+
+  <p class="prose animate" style="--i:7">
+    When a user in the sandboxed group queries the Orders table, the query processor middleware
+    intercepts it and <strong>substitutes</strong> the scoping card's query. The card typically
+    queries the same Orders table with a filter, so the user sees a filtered view of the real data.
+  </p>
+
+  <div class="mermaid-wrap animate" style="--i:8">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+    </div>
+    <pre class="mermaid">
+flowchart LR
+  subgraph setup["Setup"]
+    direction TB
+    orders["Orders table"]
+    card["Scoping Card\n(saved question)"]
+    sandbox["Sandbox Policy"]
+    group["Sales Group"]
+
+    sandbox -.-|"table_id"| orders
+    sandbox -.-|"card_id"| card
+    sandbox -.-|"group_id"| group
+    card -->|"queries"| orders
+  end
+
+  subgraph runtime["At Query Time"]
+    direction TB
+    user["User in Sales Group"]
+    query["SELECT * FROM Orders"]
+    middleware["QP Middleware\n(sandboxing)"]
+    rewritten["SELECT * FROM Orders\nWHERE region = 'East'"]
+    result["Filtered rows only"]
+
+    user --> query
+    query --> middleware
+    middleware --> rewritten
+    rewritten --> result
+  end
+
+  setup ~~~ runtime
+
+  classDef tbl fill:#0d737722,stroke:#0d7377,stroke-width:2px
+  classDef crd fill:#b5761a22,stroke:#b5761a,stroke-width:2px
+  classDef pol fill:#4a556822,stroke:#4a5568,stroke-width:2px
+  classDef grp fill:#1a7a3a22,stroke:#1a7a3a,stroke-width:2px
+  classDef usr fill:#1a7a3a22,stroke:#1a7a3a,stroke-width:1.5px
+  classDef qry fill:#4a556811,stroke:#4a5568,stroke-width:1px
+
+  class orders tbl
+  class card crd
+  class sandbox pol
+  class group grp
+  class user usr
+  class query,middleware,rewritten,result qry
+    </pre>
+  </div>
+
+  <div class="legend animate" style="--i:9">
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--teal)"></div> Table</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--sand)"></div> Scoping Card</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--slate)"></div> Sandbox Policy</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--green)"></div> Group / User</div>
+  </div>
+
+  <!-- ============ SECTION 3: THE PROBLEM ============ -->
+
+  <h2 class="animate" style="--i:10"><span class="num">03</span> The Source Replacement Problem</h2>
+
+  <p class="prose animate" style="--i:11">
+    When you replace <code>Orders</code> with <code>Orders_clone</code>, source replacement updates
+    all questions that reference Orders to point at Orders_clone instead. But the sandbox policy
+    has two references that break:
+  </p>
+
+  <div class="mermaid-wrap animate" style="--i:12">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+    </div>
+    <pre class="mermaid">
+flowchart TD
+  subgraph before["Before Replacement"]
+    direction TB
+    o1["Orders table"]
+    c1["Scoping Card"]
+    s1["Sandbox Policy"]
+
+    s1 -.-|"table_id"| o1
+    s1 -.-|"card_id"| c1
+    c1 -->|"queries"| o1
+  end
+
+  subgraph after["After Replacement (broken!)"]
+    direction TB
+    o2["Orders (now inactive)"]
+    oc["Orders_clone (new)"]
+    c2["Scoping Card (updated)"]
+    s2["Sandbox Policy (stale!)"]
+
+    s2 -.-|"table_id still points here!"| o2
+    s2 -.-|"card_id"| c2
+    c2 -->|"now queries"| oc
+  end
+
+  before --> after
+
+  classDef tbl fill:#0d737722,stroke:#0d7377,stroke-width:2px
+  classDef crd fill:#b5761a22,stroke:#b5761a,stroke-width:2px
+  classDef pol fill:#4a556822,stroke:#4a5568,stroke-width:2px
+  classDef stale fill:#b91c4a22,stroke:#b91c4a,stroke-width:2px
+  classDef inactive fill:#4a556811,stroke:#4a5568,stroke-width:1px,stroke-dasharray:5 5
+  classDef newtbl fill:#1a7a3a22,stroke:#1a7a3a,stroke-width:2px
+
+  class o1 tbl
+  class c1 crd
+  class s1 pol
+  class o2 inactive
+  class oc newtbl
+  class c2 crd
+  class s2 stale
+    </pre>
+  </div>
+
+  <div class="callout animate" style="--i:13">
+    <strong>Two things go wrong:</strong>
+    The sandbox policy's <code>table_id</code> still points to the old Orders table (not updated by replacement).
+    The scoping card now queries Orders_clone, but the policy doesn't protect that table.
+    Result: the sandbox is effectively broken - it protects a table nobody queries anymore,
+    and the new table has no sandboxing at all.
+  </div>
+
+  <!-- ============ SECTION 4: SCENARIOS ============ -->
+
+  <h2 class="animate" style="--i:14"><span class="num">04</span> Scenarios</h2>
+
+  <div class="scenario-grid">
+
+    <div class="scenario scenario--bad animate" style="--i:15">
+      <div class="scenario__tag">Current behavior (broken)</div>
+      <h3>Replace Orders with Orders_clone</h3>
+      <ul class="step-list">
+        <li>Replacement proceeds without warning</li>
+        <li>Scoping card updated to query Orders_clone</li>
+        <li>Sandbox <code>table_id</code> still points to Orders</li>
+        <li>Orders_clone has zero sandboxing</li>
+        <li>Users in sandboxed group see all rows</li>
+      </ul>
+    </div>
+
+    <div class="scenario scenario--blocked animate" style="--i:16">
+      <div class="scenario__tag">New behavior (our fix)</div>
+      <h3>Block the replacement</h3>
+      <ul class="step-list">
+        <li>Check <code>sandboxes</code> table for <code>table_id = source</code></li>
+        <li>Found a policy - return <code>affects-gtap-policies</code> error</li>
+        <li>UI shows: "This table has sandboxing policies that block this replacement."</li>
+        <li>Admin must remove sandbox first, then replace, then re-add sandbox</li>
+      </ul>
+    </div>
+
+    <div class="scenario scenario--good animate" style="--i:17">
+      <div class="scenario__tag">No sandbox - no problem</div>
+      <h3>Replace a regular table</h3>
+      <ul class="step-list">
+        <li>No sandbox policies on the source table</li>
+        <li>GTAP check passes (no rows in sandboxes table)</li>
+        <li>Replacement proceeds normally</li>
+        <li>All other checks still apply (columns, FKs, etc.)</li>
+      </ul>
+    </div>
+
+    <div class="scenario scenario--good animate" style="--i:18">
+      <div class="scenario__tag">Card source - not affected</div>
+      <h3>Replace a card/model source</h3>
+      <ul class="step-list">
+        <li>GTAP check only applies to <code>:table</code> sources</li>
+        <li>Card replacements skip sandbox check entirely</li>
+        <li>Sandboxes are table-level, not card-level</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- ============ SECTION 5: CODE PATH ============ -->
+
+  <h2 class="animate" style="--i:19"><span class="num">05</span> Where It Lives in Code</h2>
+
+  <div class="mermaid-wrap animate" style="--i:20">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+    </div>
+    <pre class="mermaid">
+flowchart TD
+  api["POST /api/ee/replacement/check-replace-source"]
+  fn["check-replace-source"]
+  db["db-mismatch?"]
+  cyc["cycle?"]
+  cols["column mappings"]
+  fk["implicit-joins?"]
+  gtap["gtap? (NEW)"]
+  ok{{"success?"}}
+  yes["Return success: true"]
+  no["Return success: false\n+ errors array"]
+
+  api --> fn
+  fn --> db
+  fn --> cyc
+  fn --> cols
+  fn --> fk
+  fn --> gtap
+  db --> ok
+  cyc --> ok
+  cols --> ok
+  fk --> ok
+  gtap --> ok
+  ok -->|"all clear"| yes
+  ok -->|"any failed"| no
+
+  classDef check fill:#4a556822,stroke:#4a5568,stroke-width:1.5px
+  classDef newcheck fill:#b5761a22,stroke:#b5761a,stroke-width:2px
+  classDef endpoint fill:#0d737722,stroke:#0d7377,stroke-width:2px
+  classDef result fill:#1a7a3a22,stroke:#1a7a3a,stroke-width:1.5px
+  classDef fail fill:#b91c4a22,stroke:#b91c4a,stroke-width:1.5px
+  classDef decision fill:#b5761a11,stroke:#b5761a,stroke-width:1.5px
+
+  class api endpoint
+  class fn endpoint
+  class db,cyc,cols,fk check
+  class gtap newcheck
+  class ok decision
+  class yes result
+  class no fail
+    </pre>
+  </div>
+
+  <div class="legend animate" style="--i:21">
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--teal)"></div> API endpoint</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--slate)"></div> Existing check</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--sand)"></div> New GTAP check</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--green)"></div> Success</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--rose)"></div> Blocked</div>
+  </div>
+
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  mermaid.registerLayoutLoaders(elkLayouts);
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    look: 'handDrawn',
+    layout: 'elk',
+    themeVariables: {
+      primaryColor: isDark ? '#2e2820' : '#faf8f5',
+      primaryBorderColor: isDark ? '#9a8e7e' : '#8a7e6d',
+      primaryTextColor: isDark ? '#e8e0d4' : '#2c2418',
+      secondaryColor: isDark ? '#1a2e28' : '#f0faf5',
+      secondaryBorderColor: isDark ? '#2dd4bf' : '#0d7377',
+      secondaryTextColor: isDark ? '#e8e0d4' : '#2c2418',
+      tertiaryColor: isDark ? '#2e2418' : '#fef8eb',
+      tertiaryBorderColor: isDark ? '#e0a040' : '#b5761a',
+      tertiaryTextColor: isDark ? '#e8e0d4' : '#2c2418',
+      lineColor: isDark ? '#9a8e7e' : '#8a7e6d',
+      fontSize: '15px',
+      fontFamily: "'Crimson Pro', Georgia, serif",
+      noteBkgColor: isDark ? '#2e2820' : '#fef8eb',
+      noteTextColor: isDark ? '#e8e0d4' : '#2c2418',
+      noteBorderColor: isDark ? '#e0a040' : '#b5761a',
+    }
+  });
+</script>
+<script>
+  function updateZoomState(wrap) {
+    var target = wrap.querySelector('.mermaid');
+    var zoom = parseFloat(target.dataset.zoom || '1');
+    wrap.classList.toggle('is-zoomed', zoom > 1);
+  }
+
+  function zoomDiagram(btn, factor) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    var current = parseFloat(target.dataset.zoom || '1');
+    var next = Math.min(Math.max(current * factor, 0.3), 5);
+    target.dataset.zoom = next;
+    target.style.transform = 'scale(' + next + ')';
+    updateZoomState(wrap);
+  }
+
+  function resetZoom(btn) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    target.dataset.zoom = '1';
+    target.style.transform = 'scale(1)';
+    updateZoomState(wrap);
+  }
+
+  document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+    wrap.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      var target = wrap.querySelector('.mermaid');
+      var current = parseFloat(target.dataset.zoom || '1');
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var next = Math.min(Math.max(current * factor, 0.3), 5);
+      target.dataset.zoom = next;
+      target.style.transform = 'scale(' + next + ')';
+      updateZoomState(wrap);
+    }, { passive: false });
+
+    var startX, startY, scrollL, scrollT;
+    wrap.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.zoom-controls')) return;
+      var target = wrap.querySelector('.mermaid');
+      if (parseFloat(target.dataset.zoom || '1') <= 1) return;
+      wrap.classList.add('is-panning');
+      startX = e.clientX;
+      startY = e.clientY;
+      scrollL = wrap.scrollLeft;
+      scrollT = wrap.scrollTop;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!wrap.classList.contains('is-panning')) return;
+      wrap.scrollLeft = scrollL - (e.clientX - startX);
+      wrap.scrollTop = scrollT - (e.clientY - startY);
+    });
+    window.addEventListener('mouseup', function() {
+      wrap.classList.remove('is-panning');
+    });
+  });
+</script>
+
+</body>
+</html>

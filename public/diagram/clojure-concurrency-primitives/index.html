@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clojure's Concurrency Toolkit</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0a0e14;
+    --bg-panel: #0d1117;
+    --bg-code: #161b22;
+    --bg-highlight: #1a2233;
+    --green: #3cdc7c;
+    --green-dim: #2a9d5c;
+    --amber: #f0a030;
+    --amber-dim: #b07820;
+    --cyan: #56d4e8;
+    --red: #f05050;
+    --purple: #b388ff;
+    --text: #c9d1d9;
+    --text-dim: #6e7681;
+    --text-bright: #f0f3f6;
+    --border: #21262d;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    overflow: hidden;
+  }
+
+  .deck { width: 100vw; height: 100vh; position: relative; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    padding: 48px 64px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+    overflow-y: auto;
+  }
+
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  .nav {
+    position: fixed;
+    bottom: 24px;
+    right: 32px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .nav button {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    color: var(--green);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 6px 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+
+  .nav button:hover { background: var(--bg-highlight); border-color: var(--green-dim); }
+
+  .progress {
+    position: fixed; top: 0; left: 0; height: 2px;
+    background: var(--green); transition: width 0.3s ease; z-index: 100;
+  }
+
+  h1 {
+    font-family: var(--font-mono); font-weight: 700; font-size: 3rem;
+    color: var(--text-bright); line-height: 1.15; letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-family: var(--font-mono); font-weight: 600; font-size: 1.8rem;
+    color: var(--text-bright); line-height: 1.2; margin-bottom: 8px;
+  }
+
+  h3 {
+    font-family: var(--font-mono); font-weight: 500; font-size: 1rem;
+    color: var(--green); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px;
+  }
+
+  p, li {
+    font-family: var(--font-sans); font-size: 0.95rem; line-height: 1.55; color: var(--text);
+  }
+
+  .subtitle {
+    font-family: var(--font-sans); font-size: 1.1rem; color: var(--text-dim);
+    line-height: 1.5; font-weight: 300;
+  }
+
+  .label {
+    font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.1em; padding: 3px 10px; border-radius: 3px; display: inline-block;
+  }
+
+  .label-java { background: var(--amber); color: var(--bg); }
+  .label-clj { background: var(--green); color: var(--bg); }
+  .label-use { background: var(--purple); color: var(--bg); }
+  .label-deep { background: var(--cyan); color: var(--bg); }
+
+  pre {
+    background: var(--bg-code); border: 1px solid var(--border); border-radius: 6px;
+    padding: 14px 18px; font-family: var(--font-mono); font-size: 0.8rem;
+    line-height: 1.5; overflow-x: auto; color: var(--text);
+  }
+
+  .kw { color: var(--purple); } .fn { color: var(--cyan); } .str { color: var(--green); }
+  .num { color: var(--amber); } .cm { color: var(--text-dim); font-style: italic; }
+  .type { color: var(--amber); } .op { color: var(--red); }
+
+  .centered { flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+
+  .split { display: flex; gap: 40px; align-items: stretch; }
+  .split > .col { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+  .left-heavy { display: flex; gap: 40px; }
+  .left-heavy > .main { flex: 3; display: flex; flex-direction: column; justify-content: center; }
+  .left-heavy > .aside { flex: 2; display: flex; flex-direction: column; justify-content: center; }
+
+  .right-heavy { display: flex; gap: 40px; }
+  .right-heavy > .aside { flex: 2; display: flex; flex-direction: column; justify-content: center; }
+  .right-heavy > .main { flex: 3; display: flex; flex-direction: column; justify-content: center; }
+
+  .three-col { display: flex; gap: 24px; }
+  .three-col > .col { flex: 1; display: flex; flex-direction: column; }
+
+  .glow-line { width: 60px; height: 3px; background: var(--green); border-radius: 2px; margin: 16px 0; box-shadow: 0 0 12px var(--green-dim); }
+  .glow-line.amber { background: var(--amber); box-shadow: 0 0 12px var(--amber-dim); }
+  .glow-line.center { margin: 16px auto; }
+
+  .quote {
+    border-left: 3px solid var(--green-dim); padding: 12px 20px; margin: 16px 0;
+    font-family: var(--font-sans); font-style: italic; color: var(--text-dim);
+    font-size: 0.9rem; line-height: 1.6;
+  }
+
+  .card {
+    background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 18px; margin: 8px 0;
+  }
+
+  .card h4 { font-family: var(--font-mono); font-size: 0.85rem; color: var(--green); margin-bottom: 6px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  th {
+    text-align: left; padding: 10px 14px; border-bottom: 2px solid var(--green-dim);
+    color: var(--green); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.7rem;
+  }
+  td { padding: 8px 14px; border-bottom: 1px solid var(--border); font-family: var(--font-mono); font-size: 0.78rem; }
+  tr:hover td { background: var(--bg-highlight); }
+
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .dot-green { background: var(--green); }
+  .dot-amber { background: var(--amber); }
+  .dot-cyan { background: var(--cyan); }
+  .dot-purple { background: var(--purple); }
+
+  .scanlines {
+    position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+  }
+
+  .cursor {
+    display: inline-block; width: 10px; height: 1.1em; background: var(--green);
+    margin-left: 4px; animation: blink 1s step-end infinite; vertical-align: text-bottom;
+  }
+
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .slide-num {
+    position: absolute; top: 24px; right: 32px; font-size: 0.7rem;
+    color: var(--text-dim); font-family: var(--font-mono);
+  }
+  .slide-num::before { content: '// '; color: var(--border); }
+
+  ul { list-style: none; padding: 0; }
+  ul li { position: relative; padding-left: 18px; margin-bottom: 6px; }
+  ul li::before { content: '›'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+
+  .diagram-box {
+    background: var(--bg-code); border: 1px solid var(--border); border-radius: 6px;
+    padding: 20px; font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.7;
+    color: var(--text-dim); white-space: pre; overflow-x: auto;
+  }
+
+  @media (max-width: 900px) {
+    .slide { padding: 24px 16px; }
+    h1 { font-size: 1.8rem; }
+    h2 { font-size: 1.3rem; }
+    .split, .left-heavy, .right-heavy, .three-col { flex-direction: column; gap: 16px; }
+    pre { font-size: 0.72rem; padding: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<div class="deck" id="deck">
+
+  <!-- ==================== SLIDE 1: Title ==================== -->
+  <div class="slide centered active" data-slide="1">
+    <div class="scanlines"></div>
+    <div style="position:relative; z-index:2; max-width: 800px;">
+      <h3 style="margin-bottom: 20px;">concurrency primitives</h3>
+      <h1>Clojure's Concurrency<br>Toolkit<span class="cursor"></span></h1>
+      <div class="glow-line center"></div>
+      <p class="subtitle" style="max-width: 600px; margin: 0 auto;">What they are in Java, how Clojure reimagines them,<br>and when you'd practically reach for each one.</p>
+      <div class="quote" style="max-width: 580px; margin: 28px auto 0; text-align: left;">
+        "The language and runtime have excellent concurrency support: real threads, promises, futures, atoms, locks, queues, cyclic barriers, all of java.util.concurrent."
+      </div>
+    </div>
+    <span class="slide-num">01 / 16</span>
+  </div>
+
+  <!-- ==================== SLIDE 2: Overview ==================== -->
+  <div class="slide" data-slide="2">
+    <div class="split">
+      <div class="col">
+        <h3>the spectrum</h3>
+        <h2>Three Philosophies</h2>
+        <div class="glow-line"></div>
+        <div class="card" style="margin-top: 12px;">
+          <h4><span class="dot dot-amber"></span>Java: Manual & Explicit</h4>
+          <p style="font-size:0.88rem;">You get threads, locks, and volatile. Correctness is your problem. Maximum control, maximum footguns. Every shared mutable object is a potential data race.</p>
+        </div>
+        <div class="card">
+          <h4><span class="dot dot-green"></span>Clojure: Pragmatic & Safe</h4>
+          <p style="font-size:0.88rem;">Data is immutable by default. When you need mutation, you go through controlled gates (atoms, refs, agents) that enforce thread-safety for you. Side effects are allowed - just not the default path.</p>
+        </div>
+        <div class="card">
+          <h4><span class="dot dot-purple"></span>Haskell: Pure & Rigorous</h4>
+          <p style="font-size:0.88rem;">Side effects are tracked in the type system via IO and ST monads. You literally cannot mutate state without the type signature declaring it. Elegant, but the learning curve and ceremony add friction.</p>
+        </div>
+      </div>
+      <div class="col" style="display:flex; flex-direction:column; justify-content:center;">
+        <h3>why clojure wins</h3>
+        <div style="background: var(--bg-code); border: 1px solid var(--border); border-radius: 8px; padding: 24px;">
+          <p style="font-size: 0.95rem; margin-bottom: 14px; color: var(--text-bright);">Clojure sits in the sweet spot:</p>
+          <ul>
+            <li><strong style="color:var(--green)">Immutability</strong> eliminates most race conditions before they start</li>
+            <li><strong style="color:var(--green)">Managed references</strong> give you coordinated mutation when needed</li>
+            <li><strong style="color:var(--green)">Full JVM access</strong> - j.u.c. is always one import away</li>
+            <li><strong style="color:var(--green)">No purity tax</strong> - side effects are allowed, just not the default</li>
+          </ul>
+          <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border);">
+            <p style="font-size: 0.85rem; color: var(--text-dim);">Most concurrency bugs come from <em>mutable shared state</em>. Make data immutable, and 90% of the problem disappears. The remaining 10% gets explicit, well-designed primitives.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <span class="slide-num">02 / 16</span>
+  </div>
+
+  <!-- ==================== SLIDE 3: Real Threads ==================== -->
+  <div class="slide" data-slide="3">
+    <div class="left-heavy">
+      <div class="main">
+        <h3>primitive #1</h3>
+        <h2>Real Threads</h2>
+        <div class="glow-line"></div>
+        <p style="margin-bottom: 16px;">Platform threads mapped 1:1 to OS threads. Each one gets its own stack (~1MB), its own program counter, and is scheduled by the OS kernel.</p>
+
+        <div style="margin-bottom: 10px;"><span class="label label-java">Java - async logging</span></div>
+        <pre><span class="cm">// A background thread that drains a log queue</span>
+<span class="type">Thread</span> logger = <span class="kw">new</span> <span class="type">Thread</span>(() -> {
+    <span class="kw">while</span> (!<span class="type">Thread</span>.<span class="fn">currentThread</span>().<span class="fn">isInterrupted</span>()) {
+        <span class="type">String</span> msg = logQueue.<span class="fn">take</span>(); <span class="cm">// blocks</span>
+        writer.<span class="fn">write</span>(msg);
+    }
+});
+logger.<span class="fn">setName</span>(<span class="str">"async-logger"</span>);   <span class="cm">// shows in thread dumps</span>
+logger.<span class="fn">setDaemon</span>(<span class="kw">true</span>);           <span class="cm">// won't prevent JVM shutdown</span>
+logger.<span class="fn">setPriority</span>(<span class="type">Thread</span>.MIN_PRIORITY); <span class="cm">// yield CPU to real work</span>
+logger.<span class="fn">start</span>();</pre>
+
+        <div style="margin: 14px 0 10px;"><span class="label label-clj">Clojure - async logging</span></div>
+        <pre>(<span class="kw">def</span> logger-thread
+  (<span class="kw">doto</span> (<span class="type">Thread.</span>
+          #(<span class="kw">loop</span> []
+             (<span class="kw">when-not</span> (<span class="fn">.isInterrupted</span> (<span class="type">Thread/currentThread</span>))
+               (<span class="kw">let</span> [msg (<span class="fn">.take</span> log-queue)]
+                 (<span class="fn">.write</span> writer msg)
+                 (<span class="kw">recur</span>)))))
+    (<span class="fn">.setName</span> <span class="str">"async-logger"</span>)
+    (<span class="fn">.setDaemon</span> <span class="kw">true</span>)
+    (<span class="fn">.setPriority</span> <span class="type">Thread/MIN_PRIORITY</span>)
+    (<span class="fn">.start</span>)))</pre>
+      </div>
+      <div class="aside">
+        <div class="card" style="border-left: 3px solid var(--cyan);">
+          <h4 style="color: var(--cyan);">Daemon vs Non-Daemon</h4>
+          <p style="font-size: 0.84rem;"><strong style="color:var(--text-bright)">Non-daemon</strong> (default): The JVM won't shut down until this thread finishes. Your main app thread is non-daemon. If you forget to stop a non-daemon thread, your process hangs forever on shutdown.</p>
+          <p style="font-size: 0.84rem; margin-top: 6px;"><strong style="color:var(--text-bright)">Daemon</strong>: The JVM kills it automatically when all non-daemon threads are done. Perfect for background work like logging, monitoring, cache cleanup - stuff that should just die when the app stops.</p>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--amber);">
+          <h4 style="color: var(--amber);">Thread Priority (1-10)</h4>
+          <p style="font-size: 0.84rem;">A <em>hint</em> to the OS scheduler about how to allocate CPU time. MIN_PRIORITY(1) means "run me when nothing else wants the CPU." MAX_PRIORITY(10) means "prefer me."</p>
+          <p style="font-size: 0.84rem; margin-top: 6px; color: var(--text-dim);">In practice, most OSes mostly ignore it. Linux's CFS scheduler treats all threads roughly equally. It matters more on Windows and real-time systems. For a logger, MIN_PRIORITY is polite - it won't steal CPU from request-handling threads.</p>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--green);">
+          <h4 style="color: var(--green);">Cached Thread Pool</h4>
+          <p style="font-size: 0.84rem;">When you call <code style="color:var(--green)">(future ...)</code>, Clojure submits your work to a <em>cached thread pool</em>. This is a pool that creates new threads on demand, reuses idle ones, and kills threads that sit idle for 60 seconds. You don't manage thread lifecycles - the pool does.</p>
+          <p style="font-size: 0.84rem; margin-top: 6px; color:var(--text-dim);">Under the hood it's <code style="color:var(--amber)">Executors.newCachedThreadPool()</code>. Good for bursty I/O work. Bad for CPU-bound work (can spawn too many threads).</p>
+        </div>
+      </div>
+    </div>
+    <span class="slide-num">03 / 16</span>
+  </div>
+
+  <!-- ==================== SLIDE 3b: Lightweight Processes ==================== -->
+  <div class="slide" data-slide="4">
+    <div class="split">
+      <div class="col">
+        <h3>threads vs lightweight processes</h3>
+        <h2>What's a "Lightweight Process"?</h2>
+        <div class="glow-line"></div>
+        <p style="margin-bottom: 16px;">core.async <code style="color:var(--green)">go</code> blocks are "lightweight processes" - they look like threads but are multiplexed onto a small fixed thread pool (8 threads by default).</p>
+
+        <div class="diagram-box" style="font-size: 0.78rem; line-height: 1.6;">
+<span style="color:var(--amber)">OS Threads (real, ~1MB stack each)</span>
+┌──────────┐ ┌──────────┐ ┌──────────┐
+│ Thread 1 │ │ Thread 2 │ │ Thread 3 │  ... (8 total)
+└────┬─────┘ └────┬─────┘ └────┬─────┘
+     │            │            │
+<span style="color:var(--green)">Go blocks (lightweight, parked/resumed)</span>
+  ┌──┴──┐     ┌──┴──┐     ┌──┴──┐
+  │go-A │     │go-D │     │go-G │
+  │go-B │     │go-E │     │go-H │
+  │go-C │     │go-F │     │go-I │  ... (thousands)
+  └─────┘     └─────┘     └─────┘
+
+When a go block hits <span style="color:var(--cyan)">&lt;!</span> or <span style="color:var(--cyan)">&gt;!</span>, it <span style="color:var(--amber)">parks</span> (saves state)
+and the thread picks up another go block.
+No OS thread is blocked. No stack is wasted.</div>
+
+        <div style="margin-top: 14px;">
+          <span class="label label-clj">Example</span>
+        </div>
+        <pre><span class="cm">;; 10,000 concurrent "processes" on 8 threads</span>
+(<span class="kw">dotimes</span> [i <span class="num">10000</span>]
+  (<span class="fn">a/go</span>
+    (<span class="kw">let</span> [result (<span class="fn">a/&lt;!</span> (fetch-chan i))]
+      (<span class="fn">a/&gt;!</span> output-chan {<span class="str">:id</span> i <span class="str">:data</span> result}))))</pre>
+      </div>
+      <div class="col">
+        <div class="card" style="border-left: 3px solid var(--amber);">
+          <h4 style="color: var(--amber);">Real thread: ~1MB stack</h4>
+          <p style="font-size: 0.84rem;">Creating 10,000 OS threads = ~10GB of stack space. The OS scheduler also slows down with that many threads context-switching.</p>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--green);">
+          <h4 style="color: var(--green);">Go block: ~few hundred bytes</h4>
+          <p style="font-size: 0.84rem;">The go macro rewrites your code into a state machine at compile time. When a go block "parks" on a channel operation, it just saves a small state object. No thread is consumed while waiting.</p>
+        </div>
+        <div class="card" style="background: var(--bg-highlight);">
+          <h4 style="color: var(--cyan);">The tradeoff</h4>
+          <p style="font-size: 0.84rem;">Go blocks must never do blocking I/O (like JDBC calls, HTTP requests, or Thread/sleep). If they block, they hold one of the 8 threads hostage and starve everyone else. For blocking work, use <code style="color:var(--green)">a/thread</code> instead, which runs on a real thread.</p>
+          <p style="font-size: 0.84rem; margin-top: 8px; color:var(--text-dim);">Rule of thumb: go blocks for coordination logic, real threads for I/O.</p>
+        </div>
+        <div class="card">
+          <h4 style="color: var(--purple);">Java 21 comparison</h4>
+          <p style="font-size: 0.84rem;">Virtual threads (Project Loom) solve the same problem differently. Instead of a macro rewriting your code, the JVM itself handles parking/resuming at the VM level. You write normal blocking code and the runtime makes it lightweight. Clojure can use these too via <code style="color:var(--amber)">Thread/startVirtualThread</code>.</p>
+        </div>
+      </div>
+    </div>
+    <span class="slide-num">04 / 16</span>
+  </div>
+
+  <!-- ==================== SLIDE 4: Atoms ==================== -->
+  <div class="slide" data-slide="5">
+    <div class="right-heavy">
+      <div class="aside">
+        <h3>primitive #2</h3>
+        <h2>Atoms</h2>
+        <div class="glow-line"></div>
+        <p style="margin-bottom: 14px;">Thread-safe updates to a single independent value. The workhorse of Clojure state management.</p>
+        <div class="card" style="border-left: 3px solid var(--purple);">
+          <span class="label label-use">Real example: rate limiter</span>
+          <div style="margin-top: 10px;">
+<pre style="font-size: 0.78rem;">
+<span class="cm">;; Track request counts per client</span>
+(<span class="kw">def</span> rate-limits (<span class="fn">atom</span> {}))
+
+(<span class="kw">defn</span> <span class="fn">allow-request?</span> [client-id]
+  (<span class="kw">let</span> [now   (<span class="type">System/currentTimeMillis</span>)
+        limit <span class="num">100</span>] <span class="cm">; per minute</span>
+    (<span class="kw">->></span> (<span class="fn">swap!</span> rate-limits
+           (<span class="kw">fn</span> [m]
+             (<span class="kw">let</span> [entry (get m client-id
+                         {<span class="str">:count</span> <span class="num">0</span> <span class="str">:window</span> now})]
+               (<span class="kw">if</span> (> (- now (<span class="str">:window</span> entry)) <span class="num">60000</span>)
+                 (assoc m client-id
+                   {<span class="str">:count</span> <span class="num">1</span> <span class="str">:window</span> now})
+                 (update-in m [client-id <span class="str">:count</span>]
+                   inc)))))
+         (get-in [client-id <span class="str">:count</span>])
+         (>= limit)
+         not)))</pre>
+          </div>
+        </div>
+      </div>
+      <div class="main">
+        <div style="margin-bottom: 10px;"><span class="label label-deep">How CAS actually works</span></div>
+        <div class="diagram-box" style="font-size: 0.78rem; line-height: 1.7; margin-bottom: 14px;">
+<span style="color:var(--amber)">Compare-And-Swap (CAS) - CPU instruction level</span>
+
+<span style="color:var(--green)">Thread A</span> wants to change atom from {:count 5} to {:count 6}
+<span style="color:var(--cyan)">Thread B</span> wants to change atom from {:count 5} to {:count 6}
+
+<span style="color:var(--text-bright)">Step 1:</span> Both threads read current value: {:count 5}
+<span style="color:var(--text-bright)">Step 2:</span> Both compute new value:          {:count 6}
+<span style="color:var(--text-bright)">Step 3:</span> CAS instruction (atomic, hardware-level):
+
+  <span style="color:var(--green)">Thread A:</span> "If value is still {:count 5}, set to {:count 6}"
+           -> <span style="color:var(--green)">CPU says: YES, it's still 5. Swapped!</span>
+
+  <span style="color:var(--cyan)">Thread B:</span> "If value is still {:count 5}, set to {:count 6}"
+           -> <span style="color:var(--red)">CPU says: NO, it's now 6. Rejected!</span>
+
+<span style="color:var(--text-bright)">Step 4:</span> Thread B <span style="color:var(--amber)">retries</span>: reads 6, computes 7, CAS succeeds.
+
+<span style="color:var(--text-dim)">No lock. No blocking. The CPU's cache coherence protocol</span>
+<span style="color:var(--text-dim)">(MESI) ensures only one core can write at a time.</span>
+<span style="color:var(--text-dim)">This is a single x86 instruction: CMPXCHG.</span></div>
+
+        <div style="margin-bottom: 10px;"><span class="label label-java">Java AtomicReference</span></div>
+        <pre><span class="type">AtomicReference</span>&lt;<span class="type">Map</span>&gt; counter = <span class="kw">new</span> <span class="type">AtomicReference</span>&lt;&gt;(<span class="type">Map</span>.<span class="fn">of</span>(<span class="str">"count"</span>, <span class="num">0</span>));
+
+<span class="cm">// updateAndGet does the read-compute-CAS-retry loop for you</span>
+counter.<span class="fn">updateAndGet</span>(m -> {
+    <span class="kw">var</span> copy = <span class="kw">new</span> <span class="type">HashMap</span>&lt;&gt;(m);
+    copy.<span class="fn">put</span>(<span class="str">"count"</span>, (<span class="type">int</span>) copy.<span class="fn">get</span>(<span class="str">"count"</span>) + <span class="num">1</span>);
+    <span class="kw">return</span> <span class="type">Map</span>.<span class="fn">copyOf</span>(copy); <span class="cm">// must return immutable!</span>
+});</pre>
+        <p style="font-size: 0.82rem; color: var(--text-dim); margin-top: 10px;">In Java, you have to manually copy and re-freeze the map because Java maps are mutable. In Clojure, all data is already immutable, so <code style="color:var(--green)">swap!</code> just works - the old value is never corrupted because nobody can mutate it.</p>
+      </div>
+    </div>
+    <span class="slide-num">05 / 16</span>
+  </div>
+
+  <!-- ==================== SLIDE 5: Promises ==================== -->
+  <div class="slide" data-slide="6">
+    <div class="split">
+      <div class="col">
+        <h3>primitive #3</h3>
+        <h2>Promises</h2>
+        <div class="glow-line"></div>
+        <p style="margin-bottom: 14px;">A write-once, read-many synchronization point. One thread delivers a value; any number of threads can block waiting for it. It's a rendezvous.</p>
+
+        <div style="margin-bottom: 10px;"><span class="label label-deep">How delivery works internally</span></div>
+        <div class="diagram-box" style="font-size: 0.76rem; line-height: 1.6; margin-bottom: 14px;">
+<span style="color:var(--amber)">Promise internals (simplified)</span>
+
+A promise is a small object with:
+  - <span style="color:var(--green)">value</span>: the delivered result (initially empty)
+  - <span style="color:var(--cyan)">latch</span>: a CountDownLatch(1)
+
+<span style="color:var(--text-bright)">@p (deref):</span>
+  1. Check if value is set -> return immediately
+  2. Otherwise: <span style="color:var(--amber)">latch.await()</span> -> thread parks (OS-level)
+     The thread is removed from the run queue.
+     It consumes zero CPU while waiting.
+
+<span style="color:var(--text-bright)">(deliver p "result"):</span>
+  1. CAS the value field (only first deliver wins)
+  2. <span style="color:var(--green)">latch.countDown()</span> -> wakes ALL waiting threads
+     OS moves them back to the run queue.
+
+<span style="color:var(--text-dim)">After delivery, @p returns instantly forever.</span>
+<span style="color:var(--text-dim)">The latch is never checked again.</span></div>
+
+        <div style="margin-bottom: 10px;"><span class="label label-clj">Fan-out pattern</span></div>
+        <pre><span class="cm">;; One computation, many consumers</span>
+(<span class="kw">def</span> config-loaded (<span class="fn">promise</span>))
+
+<span class="cm">;; Three threads all waiting for config</span>
+(<span class="kw">future</span> (<span class="fn">start-web-server</span> <span class="fn">@config-loaded</span>))
+(<span class="kw">future</span> (<span class="fn">start-worker-pool</span> <span class="fn">@config-loaded</span>))
+(<span class="kw">future</span> (<span class="fn">start-metrics</span> <span class="fn">@config-loaded</span>))
+
+<span class="cm">;; Eventually, the config loader delivers</span>
+(<span class="fn">deliver</span> config-loaded (<span class="fn">load-config!</span>))
+<span class="cm">;; All three threads unblock simultaneously</span></pre>
+      </div>
+      <div class="col">
+        <div style="margin-bottom: 10px;"><span class="label label-java">Java equivalent</span></div>
+        <pre><span class="type">CompletableFuture</span>&lt;<span class="type">Config</span>&gt; cfg =
+    <span class="kw">new</span> <span class="type">CompletableFuture</span>&lt;&gt;();
+
+<span class="cm">// Consumers</span>
+cfg.<span class="fn">thenAcceptAsync</span>(c -> startWeb(c));
+cfg.<span class="fn">thenAcceptAsync</span>(c -> startPool(c));
+cfg.<span class="fn">thenAcceptAsync</span>(c -> startMetrics(c));
+
+<span class="cm">// Or blocking: cfg.get()</span>
+
+<span class="cm">// Producer</span>
+cfg.<span class="fn">complete</span>(loadConfig());
+
+<span class="cm">// Java's version is much richer: thenApply,
+// thenCompose, exceptionally, allOf, anyOf...</span>
+<span class="cm">// It's a full async pipeline framework.</span></pre>
+
+        <div class="card" style="margin-top: 14px; border-left: 3px solid var(--amber);">
+          <h4 style="color: var(--amber);">Java: very common</h4>
+          <p style="font-size: 0.84rem;">CompletableFuture is used heavily in Java. It's their main async abstraction - Spring WebFlux, async HTTP clients, and database drivers all return them. Java developers chain operations with thenApply/thenCompose like a monad.</p>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--green);">
+          <h4 style="color: var(--green);">Clojure: rarely used</h4>
+          <p style="font-size: 0.84rem;">Clojure promises are simple and intentionally minimal - just deliver + deref. No chaining, no error handling, no composition. Most Clojure devs reach for <code style="color:var(--green)">future</code> (which handles the computation itself) or core.async channels (which are richer). Promises fill a niche: "I need to hand a value from point A to point B, once." That's it.</p>
+          <p style="font-size: 0.84rem; margin-top: 6px; color: var(--text-dim);">If you need chaining, use <code style="color:var(--amber)">manifold.deferred</code> - a Clojure library that's basically CompletableFuture done right.</p>
+        </div>
+      </div>
+    </div>
+    <span class="slide-num">06 / 16</span>
+  </div>
+
+  <!-- ==================== SLIDE 6: Futures ==================== -->
+  <div class="slide" data-slide="7">
+    <div class="left-heavy">
+      <div class="main">
+        <h3>primitive #4</h3>
+        <h2>Futures</h2>
+        <div class="glow-line"></div>
+        <p style="margin-bottom: 14px;">Compute a value asynchronously. The body runs on a thread pool; deref the result when you need it. The most common concurrency primitive in Clojure.</p>
+
+        <div style="margin-bottom: 10px;"><span class="label label-java">Java</span></div>
+        <pre><span class="type">ExecutorService</span> pool = <span class="type">Executors</span>.<span class="fn">newCachedThreadPool</span>();
+
+<span class="type">Future</span>&lt;<span class="type">String</span>&gt; f = pool.<span class="fn">submit</span>(() -> {
+    <span class="kw">return</span> <span class="fn">httpClient</span>.<span class="fn">send</span>(request).<span class="fn">body</span>();
+});
+
+<span class="type">String</span> result = f.<span class="fn">get</span>();          <span class="cm">// blocks forever</span>
+<span class="type">String</span> result = f.<span class="fn">get</span>(<span class="num">5</span>, <span class="type">SECONDS</span>); <span class="cm">// with timeout</span></pre>
+
+        <div style="margin: 14px 0 10px;"><span class="label label-clj">Clojure - parallel API calls</span></div>
+        <pre><span class="cm">;; Fetch 3 APIs concurrently - total time = max(3)</span>
+(<span class="kw">let</span> [users    (<span class="kw">future</span> (<span class="fn">http/get</span> <span class="str">"/api/users"</span>))
+      orders   (<span class="kw">future</span> (<span class="fn">http/get</span> <span class="str">"/api/orders"</span>))
+      products (<span class="kw">future</span> (<span class="fn">http/get</span> <span class="str">"/api/products"</span>))]
+  <span class="cm">;; All 3 are running right now on separate threads.</span>
+  <span class="cm">;; Deref blocks until each one completes.</span>
+  {<span class="str">:users</span>    <span class="fn">@users</span>
+   <span class="str">:orders</span>   <span class="fn">@orders</span>
+   <span class="str">:products</span> <span class="fn">@products</span>})
+
+<span class="cm">;; Check without blocking</span>
+(<span class="fn">realized?</span> users) <span class="cm">;=> true/false</span>
+
+<span class="cm">;; Timeout: return :timeout after 5s</span>
+(<span class="fn">deref</span> users <span class="num">5000</span> <span class="str">:timeout</span>)</pre>
+      </div>
+      <div class="aside">
+        <div class="card" style="border-left: 3px solid var(--cyan);">
+          <h4 style="color: var(--cyan);">Future vs Promise</h4>
+          <p style="font-size: 0.84rem;">
+            <strong style="color:var(--text-bright)">Future</strong>: owns its computation. You give it code, it runs it, you get the result.<br><br>
+            <strong style="color:var(--text-bright)">Promise</strong>: just a mailbox. Someone else delivers the value. The promise doesn't do any work itself.
+          </p>
+          <p style="font-size: 0.84rem; margin-top: 8px; color:var(--text-dim);">
+            Internally, a Clojure future IS a promise (backed by java.util.concurrent.FutureTask). The <code style="color:var(--green)">future</code> macro submits a FutureTask to the cached thread pool, and deref calls <code style="color:var(--amber)">.get()</code> on it.
+          </p>
+        </div>
+        <div class="card" style="background: var(--bg-highlight);">
+          <h4 style="color: var(--red);">Gotcha: exceptions</h4>
+          <p style="font-size: 0.84rem;">If the future's body throws, the exception is captured silently. It only re-throws when you deref. If you never deref, the error vanishes.</p>
+<pre style="font-size: 0.76rem; margin-top: 8px;">
+<span class="cm">;; This error is invisible!</span>
+(<span class="kw">future</span> (<span class="kw">throw</span> (<span class="type">Exception.</span> <span class="str">"boom"</span>)))
+
+<span class="cm">;; Only surfaces on deref:</span>
+@(<span class="kw">future</span> (<span class="kw">throw</span> (<span class="type">Exception.</span> <span class="str">"boom"</span>)))
+<span class="cm">;; => ExecutionException: boom</span></pre>
+        </div>
+      </div>
+    </div>
+    <span class="slide-num">07 / 16</span>
+  </div>
+
+  <!-- ==================== SLIDE 7: Locks ==================== -->
+  <div class="slide" data-slide="8">
+    <div class="split">
+      <div class="col">
+        <h3>primitive #5</h3>
+        <h2>Locks</h2>
+        <div class="glow-line"></div>
+        <p style="margin-bottom: 14px;">Mutual exclusion. Only one thread enters the critical section at a time. The bluntest tool - use when nothing else fits.</p>
+
+        <div style="margin-bottom: 10px;"><span class="label label-deep">Where does the lock "live"?</span></div>
+        <div class="diagram-box" style="font-size: 0.76rem; line-height: 1.6; margin-bottom: 14px;">
+<span style="color:var(--amber)">Lock = shared object on the heap</span>
+
+Both threads have a reference to the <span style="color:var(--green)">same lock object</span>.
+The lock has internal state: <span style="color:var(--cyan)">owner thread + count</span>.
+
+<span style="color:var(--green)">Thread A</span>                     <span style="color:var(--cyan)">Thread B</span>
+    │                             │
+    ├─ .lock() ─────────┐        │
+    │   <span style="color:var(--green)">acquired! ◄──────┘</span>        │
+    │   owner = A                 ├─ .lock() ────┐
+    │   doing work...             │  <span style="color:var(--amber)">BLOCKED ◄────┘</span>
+    │   ...                       │  (OS parks thread,
+    ├─ .unlock()                  │   zero CPU used)
+    │   owner = none              │
+    │                             ├─ <span style="color:var(--cyan)">acquired!</span>
+    │                             │  owner = B
+    │                             ├─ .unlock()</div>
+
+        <div style="margin-bottom: 10px;"><span class="label label-clj">Real example: database migration lock</span></div>
+        <pre><span class="cm">;; Only one thread should run migrations at startup</span>
+(<span class="kw">def</span> migration-lock (<span class="type">Object.</span>))
+
+(<span class="kw">defn</span> <span class="fn">run-migrations!</span> [db]
+  (<span class="fn">locking</span> migration-lock  <span class="cm">; synchronized block</span>
+    (<span class="kw">when-not</span> (<span class="fn">migrations-done?</span> db)
+      (<span class="fn">log/info</span> <span class="str">"Running migrations..."</span>)
+      (<span class="fn">jdbc/execute!</span> db [<span class="str">"CREATE TABLE IF NOT EXISTS..."</span>])
+      (<span class="fn">jdbc/execute!</span> db [<span class="str">"ALTER TABLE..."</span>])
+      (<span class="fn">mark-migrations-done!</span> db))))
+
+<span class="cm">;; Multiple web server threads call this at startup.</span>
+<span class="cm">;; Only the first one runs migrations.</span>
+<span class="cm">;; The rest block, then see migrations-done? = true.</span></pre>
+      </div>
+      <div class="col">
+        <div class="card" style="border-left: 3px solid var(--amber);">
+          <h4 style="color: var(--amber);">What is "reentrant"?</h4>
+          <p style="font-size: 0.84rem;">A reentrant lock can be acquired <em>again</em> by the thread that already holds it. It keeps a count.</p>
+<pre style="font-size: 0.76rem; margin-top: 8px;">
+<span class="cm">// Thread A already holds the lock</span>
+lock.<span class="fn">lock</span>();   <span class="cm">// count = 1</span>
+  lock.<span class="fn">lock</span>(); <span class="cm">// count = 2 (same thread, OK!)</span>
+  lock.<span class="fn">unlock</span>(); <span class="cm">// count = 1</span>
+lock.<span class="fn">unlock</span>();   <span class="cm">// count = 0, released</span></pre>
+          <p style="font-size: 0.84rem; margin-top: 8px;">Without reentrancy, if method A holds a lock and calls method B which also needs the lock - <span style="color:var(--red)">deadlock</span>. The thread blocks waiting for itself.</p>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--cyan);">
+          <h4 style="color: var(--cyan);">Other Java lock types</h4>
+          <ul style="font-size: 0.84rem;">
+            <li><strong style="color:var(--text-bright)">ReentrantReadWriteLock</strong> - multiple readers OR one writer. Great for caches.</li>
+            <li><strong style="color:var(--text-bright)">StampedLock</strong> - optimistic reads (try reading without locking, verify after). Fastest for read-heavy workloads.</li>
+            <li><strong style="color:var(--text-bright)">synchronized</strong> - built into every Java object. Simpler but less flexible than ReentrantLock (no tryLock, no fairness).</li>
+            <li><strong style="color:var(--text-bright)">Semaphore</strong> - not exactly a lock, but limits concurrency to N threads (see appendix).</li>
+          </ul>
+        </div>
+        <div class="card" style="background: var(--bg-highlight);">
+          <h4 style="color: var(--green);">Why use locks over atoms?</h4>
+          <p style="font-size: 0.84rem;">Atoms retry - so your swap function must be <em>pure</em> (no side effects). If your critical section writes to a database, writes to a file, or sends a network request, retrying would do it twice. Locks run the body exactly once.</p>
+        </div>
+      </div>
+    </div>
+    <span class="slide-num">08 / 16</span>
+  </div>
+
+  <!-- ==================== SLIDE 8: Queues ==================== -->
+  <div class="slide" data-slide="9">
+    <div class="right-heavy">
+      <div class="aside">
+        <h3>primitive #6</h3>
+        <h2>Queues</h2>
+        <div class="glow-line amber"></div>
+        <p style="margin-bottom: 14px;">Thread-safe data structures for passing work between producers and consumers. The backbone of pipeline architectures.</p>
+
+        <div class="card" style="border-left: 3px solid var(--green);">
+          <h4 style="color: var(--green);">PersistentQueue - a red herring?</h4>
+          <p style="font-size: 0.84rem;">Clojure does have <code style="color:var(--green)">clojure.lang.PersistentQueue</code> - an immutable FIFO queue. But it's a <em>data structure</em>, not a concurrency primitive.</p>
+<pre style="font-size: 0.76rem; margin-top: 8px;">
+(<span class="kw">def</span> q (<span class="fn">conj</span> clojure.lang.PersistentQueue/EMPTY
+            <span class="str">:a</span> <span class="str">:b</span> <span class="str">:c</span>))
+(<span class="fn">peek</span> q)  <span class="cm">;=> :a</span>
+(<span class="fn">pop</span> q)   <span class="cm">;=> #queue[:b :c]</span></pre>
+          <p style="font-size: 0.84rem; margin-top: 8px;">You <em>could</em> wrap it in an atom: <code style="color:var(--green)">(swap! q-atom pop)</code>. But you lose blocking behavior - a consumer can't "wait for the next item." You'd have to busy-poll. That's why BlockingQueue and core.async channels exist.</p>
+        </div>
+      </div>
+      <div class="main">
+        <div style="margin-bottom: 10px;"><span class="label label-java">Java BlockingQueue</span></div>
+        <pre><span class="type">BlockingQueue</span>&lt;<span class="type">Job</span>&gt; q = <span class="kw">new</span> <span class="type">LinkedBlockingQueue</span>&lt;&gt;(<span class="num">100</span>);
+
+<span class="cm">// Producer thread - blocks if queue is full (backpressure)</span>
+q.<span class="fn">put</span>(<span class="kw">new</span> <span class="type">Job</span>(<span class="str">"process-order-123"</span>));
+
+<span class="cm">// Consumer thread - blocks if queue is empty</span>
+<span class="type">Job</span> job = q.<span class="fn">take</span>();  <span class="cm">// thread sleeps until work arrives</span>
+<span class="fn">process</span>(job);</pre>
+
+        <div style="margin: 14px 0 10px;"><span class="label label-clj">Clojure - core.async pipeline</span></div>
+        <pre>(<span class="kw">require</span> '[clojure.core.async <span class="str">:as</span> a])
+
+<span class="cm">;; Channels are like BlockingQueues with superpowers</span>
+(<span class="kw">def</span> jobs    (<span class="fn">a/chan</span> <span class="num">100</span>))  <span class="cm">; buffered channel</span>
+(<span class="kw">def</span> results (<span class="fn">a/chan</span> <span class="num">100</span>))
+
+<span class="cm">;; 4 parallel workers consuming jobs</span>
+(<span class="fn">a/pipeline</span> <span class="num">4</span> results
+  (<span class="fn">map</span> process-job) jobs)
+
+<span class="cm">;; Producer</span>
+(<span class="fn">a/go</span>
+  (<span class="kw">doseq</span> [order orders]
+    (<span class="fn">a/&gt;!</span> jobs order)) <span class="cm">; park if buffer full</span>
+  (<span class="fn">a/close!</span> jobs))
+
+<span class="cm">;; Channels can also: select (alt!), timeout,</span>
+<span class="cm">;; transduce, split, merge, pub/sub</span></pre>
+
+        <div style="margin: 14px 0 10px;"><span class="label label-clj">Or just use Java directly</span></div>
+        <pre>(<span class="kw">import</span> '[java.util.concurrent <span class="type">LinkedBlockingQueue</span>])
+
+(<span class="kw">def</span> q (<span class="type">LinkedBlockingQueue.</span> <span class="num">100</span>))
+(<span class="fn">.put</span> q <span class="str">"job"</span>)   <span class="cm">; blocks if full</span>
+(<span class="fn">.take</span> q)        <span class="cm">; blocks if empty</span>
+
+<span class="cm">;; Perfectly fine for simple producer-consumer.</span>
+<span class="cm">;; Use core.async when you need go blocks,</span>
+<span class="cm">;; select, or complex pipeline topology.</span></pre>
+      </div>
+    </div>
+    <span class="slide-num">09 / 16</span>
+  </div>
+
+  <!-- ==================== SLIDE 9: Cyclic Barriers ==================== -->
+  <div class="slide" data-slide="10">
+    <div class="left-heavy">
+      <div class="main">
+        <h3>primitive #7</h3>
+        <h2>Cyclic Barriers</h2>
+        <div class="glow-line"></div>
+        <p style="margin-bottom: 14px;">A synchronization point where N threads wait for each other. When all arrive, they all proceed. Then the barrier resets and can be reused.</p>
+
+        <div class="diagram-box" style="font-size: 0.76rem; line-height: 1.6; margin-bottom: 14px;">
+<span style="color:var(--amber)">CyclicBarrier(3) - three threads must sync</span>
+
+<span style="color:var(--green)">Worker A</span>        <span style="color:var(--cyan)">Worker B</span>        <span style="color:var(--purple)">Worker C</span>
+    │               │               │
+    ├─ phase 1      │               │
+    ├─ <span style="color:var(--amber)">await()</span>      ├─ phase 1      │
+    │  <span style="color:var(--text-dim)">waiting...</span>   ├─ <span style="color:var(--amber)">await()</span>      ├─ phase 1
+    │  <span style="color:var(--text-dim)">waiting...</span>   │  <span style="color:var(--text-dim)">waiting...</span>   ├─ <span style="color:var(--amber)">await()</span>
+    │               │               │
+    ╞═══════════════╪═══════════════╡ <span style="color:var(--green)">ALL 3 ARRIVED!</span>
+    │               │               │  <span style="color:var(--green)">barrier resets</span>
+    ├─ phase 2      ├─ phase 2      ├─ phase 2
+    ├─ <span style="color:var(--amber)">await()</span>      ...             ...
+    │  <span style="color:var(--text-dim)">waiting...</span>
+    (cycle repeats)</div>
+
+        <div style="margin-bottom: 10px;"><span class="label label-clj">Example: parallel matrix row computation</span></div>
+        <pre>(<span class="kw">import</span> '[java.util.concurrent <span class="type">CyclicBarrier</span>])
+
+<span class="cm">;; 4 workers compute their chunk of a matrix,</span>
+<span class="cm">;; then sync so everyone sees all results</span>
+<span class="cm">;; before starting the next iteration.</span>
+(<span class="kw">def</span> barrier (<span class="type">CyclicBarrier.</span> <span class="num">4</span>
+              #(<span class="fn">println</span> <span class="str">"iteration complete"</span>)))
+
+(<span class="kw">dotimes</span> [worker-id <span class="num">4</span>]
+  (<span class="kw">future</span>
+    (<span class="kw">dotimes</span> [iter <span class="num">100</span>]
+      (<span class="fn">compute-rows!</span> matrix worker-id)
+      (<span class="fn">.await</span> barrier))))</pre>
+      </div>
+      <div class="aside">
+        <div class="card" style="border-left: 3px solid var(--cyan);">
+          <h4 style="color: var(--cyan);">CountDownLatch explained</h4>
+          <p style="font-size: 0.84rem;"><strong style="color:var(--text-bright)">Asymmetric</strong> means the threads have different roles:</p>
+          <div class="diagram-box" style="font-size: 0.74rem; line-height: 1.6; margin-top: 8px; padding: 12px;">
+<span style="color:var(--amber)">CountDownLatch(3)</span>
+
+<span style="color:var(--text-dim)">Counters (count down):</span>
+  Worker A: done! <span style="color:var(--green)">countDown()</span> -> 2
+  Worker B: done! <span style="color:var(--green)">countDown()</span> -> 1
+  Worker C: done! <span style="color:var(--green)">countDown()</span> -> 0
+
+<span style="color:var(--text-dim)">Waiters (block until 0):</span>
+  Main thread: <span style="color:var(--cyan)">await()</span> -> unblocked!</div>
+          <p style="font-size: 0.84rem; margin-top: 8px;">The counters and waiters are <em>different threads with different jobs</em>. That's asymmetric. With a CyclicBarrier, everyone is a peer - everyone waits, everyone proceeds.</p>
+          <p style="font-size: 0.84rem; margin-top: 6px; color: var(--text-dim);">Also: CountDownLatch is one-shot. Once it hits 0, it's done. CyclicBarrier resets.</p>
+        </div>
+        <div class="card" style="background: var(--bg-highlight);">
+          <h4 style="color: var(--green);">No Clojure wrapper - and that's fine</h4>
+          <p style="font-size: 0.84rem;">Barriers and latches are niche enough that a Clojure wrapper would add nothing. Java's API is already clean. Import and use directly.</p>
+        </div>
+      </div>
+    </div>
+    <span class="slide-num">10 / 16</span>
+  </div>
+
+  <!-- ==================== SLIDE 10: Refs & STM ==================== -->
+  <div class="slide" data-slide="11">
+    <div class="split">
+      <div class="col">
+        <h3>clojure-only</h3>
+        <h2>Refs & STM</h2>
+        <div class="glow-line"></div>
+        <p style="margin-bottom: 14px;">Coordinated, synchronous state. Multiple refs change together atomically. Like a database transaction, but for in-memory values.</p>
+
+        <div class="card" style="border-left: 3px solid var(--amber); margin-bottom: 14px;">
+          <h4 style="color: var(--amber);">Why not bank transfers?</h4>
+          <p style="font-size: 0.84rem;">You're right - real bank transfers happen against a database with ACID transactions. The "bank account" example is academically correct but practically useless. STM is for <strong>in-process, in-memory</strong> coordination.</p>
+        </div>
+
+        <div style="margin-bottom: 10px;"><span class="label label-clj">Real example: game state</span></div>
+        <pre><span class="cm">;; An entity's position and the world's grid</span>
+<span class="cm">;; must stay consistent with each other</span>
+(<span class="kw">def</span> player-pos (<span class="fn">ref</span> {<span class="str">:x</span> <span class="num">5</span> <span class="str">:y</span> <span class="num">3</span>}))
+(<span class="kw">def</span> world-grid (<span class="fn">ref</span> (make-grid)))
+
+(<span class="kw">defn</span> <span class="fn">move-player!</span> [dx dy]
+  (<span class="fn">dosync</span>  <span class="cm">; transaction: both change or neither</span>
+    (<span class="kw">let</span> [old-pos <span class="fn">@player-pos</span>
+          new-pos {<span class="str">:x</span> (+ (<span class="str">:x</span> old-pos) dx)
+                   <span class="str">:y</span> (+ (<span class="str">:y</span> old-pos) dy)}]
+      (<span class="kw">when</span> (<span class="fn">walkable?</span> <span class="fn">@world-grid</span> new-pos)
+        (<span class="fn">alter</span> world-grid <span class="fn">remove-entity</span> old-pos)
+        (<span class="fn">alter</span> world-grid <span class="fn">place-entity</span> new-pos)
+        (<span class="fn">ref-set</span> player-pos new-pos)))))</pre>
+        <p style="font-size: 0.82rem; color: var(--text-dim); margin-top: 8px;">If another thread modifies world-grid during this transaction, STM detects the conflict and retries automatically. The player never ends up in an invalid state - never on an unwalkable tile, never at one position while the grid shows them at another.</p>
+      </div>
+      <div class="col">
+        <div class="card" style="border-left: 3px solid var(--cyan);">
+          <h4 style="color: var(--cyan);">When do you need coordination?</h4>
+          <p style="font-size: 0.84rem;">Anytime you have <strong>two or more values with an invariant between them</strong>:</p>
+          <ul style="margin-top: 8px; font-size: 0.84rem;">
+            <li><strong style="color:var(--text-bright)">Game state</strong>: entity position + world grid must agree</li>
+            <li><strong style="color:var(--text-bright)">Resource pools</strong>: available count + assigned set must sum to total</li>
+            <li><strong style="color:var(--text-bright)">Cache + index</strong>: if a value is in the cache, its key must be in the index (and vice versa)</li>
+            <li><strong style="color:var(--text-bright)">Order book</strong>: bids list + asks list + matched trades must stay consistent</li>
+          </ul>
+          <p style="font-size: 0.84rem; margin-top: 8px; color: var(--text-dim);">If you could use separate atoms for each, you'd get a window where one is updated and the other isn't. Other threads reading during that window see inconsistent state.</p>
+        </div>
+        <div class="card" style="border-left: 3px solid var(--amber);">
+          <h4 style="color: var(--amber);">Why doesn't Java have this?</h4>
+          <p style="font-size: 0.84rem;">STM requires immutable data to work. When a transaction retries, it needs the old value to still be intact. Java's mutable objects can't provide this guarantee - if you put a HashMap in a ref and someone mutates it from outside the transaction, everything breaks.</p>
+          <p style="font-size: 0.84rem; margin-top: 6px; color: var(--text-dim);">Clojure's persistent data structures make STM possible. The old value is always available for free (structural sharing). This is why immutability is foundational to Clojure's whole concurrency model.</p>
+        </div>
+        <div class="card" style="background: var(--bg-highlight);">
+          <h4 style="color: var(--text-dim);">Honest take</h4>
+          <p style="font-size: 0.84rem;">Refs are rarely used in production Clojure. Most apps have single independent values (atoms) or use a database for coordination. But when you genuinely need in-memory multi-value consistency - an order matching engine, a simulation, a game - refs are elegant.</p>
+        </div>
+      </div>
+    </div>
+    <span class="slide-num">11 / 16</span>
+  </div>
+
+  <!-- ==================== SLIDE 11: Comparison Matrix ==================== -->
+  <div class="slide" data-slide="12" style="padding: 36px 50px;">
+    <div style="width: 100%; display: flex; flex-direction: column; justify-content: center;">
+      <h3>reference</h3>
+      <h2>Comparison Matrix</h2>
+      <div class="glow-line" style="margin-bottom: 16px;"></div>
+      <p style="font-size: 0.82rem; color: var(--text-dim); margin-bottom: 16px;">Colors indicate category: <span class="dot dot-green"></span><span style="color:var(--green)">Clojure managed refs</span> &nbsp; <span class="dot dot-cyan"></span><span style="color:var(--cyan)">async value producers</span> &nbsp; <span class="dot dot-amber"></span><span style="color:var(--amber)">JVM building blocks</span> &nbsp; <span class="dot dot-purple"></span><span style="color:var(--purple)">coordination / message passing</span></p>
+
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Primitive</th>
+              <th>Java</th>
+              <th>Clojure</th>
+              <th>Coordination</th>
+              <th>Blocking?</th>
+              <th>Best For</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="dot dot-green"></span>Atom</td>
+              <td style="font-family:var(--font-sans)">AtomicReference + CAS</td>
+              <td style="color:var(--green)">atom, swap!, reset!</td>
+              <td>Uncoordinated</td>
+              <td>No (CAS retry)</td>
+              <td style="font-family:var(--font-sans)">Single independent values</td>
+            </tr>
+            <tr>
+              <td><span class="dot dot-green"></span>Ref</td>
+              <td style="font-family:var(--font-sans);color:var(--text-dim)">No equivalent (needs immutability)</td>
+              <td style="color:var(--green)">ref, dosync, alter</td>
+              <td>Coordinated (STM)</td>
+              <td>No (retry)</td>
+              <td style="font-family:var(--font-sans)">Multiple related values</td>
+            </tr>
+            <tr>
+              <td><span class="dot dot-cyan"></span>Future</td>
+              <td style="font-family:var(--font-sans)">ExecutorService.submit</td>
+              <td style="color:var(--green)">future</td>
+              <td>N/A (async compute)</td>
+              <td>On deref</td>
+              <td style="font-family:var(--font-sans)">Parallel I/O, async work</td>
+            </tr>
+            <tr>
+              <td><span class="dot dot-cyan"></span>Promise</td>
+              <td style="font-family:var(--font-sans)">CompletableFuture</td>
+              <td style="color:var(--green)">promise, deliver</td>
+              <td>N/A (value handoff)</td>
+              <td>On deref</td>
+              <td style="font-family:var(--font-sans)">One-shot value delivery</td>
+            </tr>
+            <tr>
+              <td><span class="dot dot-amber"></span>Thread</td>
+              <td style="font-family:var(--font-sans)">Thread / VirtualThread</td>
+              <td style="color:var(--green)">Thread. / future</td>
+              <td>N/A (execution unit)</td>
+              <td>On join</td>
+              <td style="font-family:var(--font-sans)">Long-lived workers</td>
+            </tr>
+            <tr>
+              <td><span class="dot dot-amber"></span>Lock</td>
+              <td style="font-family:var(--font-sans)">ReentrantLock / synchronized</td>
+              <td style="color:var(--green)">locking / interop</td>
+              <td>Mutual exclusion</td>
+              <td>Yes</td>
+              <td style="font-family:var(--font-sans)">Side effects, Java interop</td>
+            </tr>
+            <tr>
+              <td><span class="dot dot-purple"></span>Queue</td>
+              <td style="font-family:var(--font-sans)">BlockingQueue</td>
+              <td style="color:var(--green)">core.async chan / interop</td>
+              <td>Producer-consumer</td>
+              <td>Configurable</td>
+              <td style="font-family:var(--font-sans)">Work pipelines</td>
+            </tr>
+            <tr>
+              <td><span class="dot dot-purple"></span>Barrier</td>
+              <td style="font-family:var(--font-sans)">CyclicBarrier</td>
+              <td style="color:var(--green)">interop only</td>
+              <td>N-way sync</td>
+              <td>Yes</td>
+              <td style="font-family:var(--font-sans)">Phased computation</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <span class="slide-num">12 / 16</span>
+  </div>
+
+  <!-- ==================== SLIDE 12: Summary ==================== -->
+  <div class="slide centered" data-slide="13">
+    <div style="max-width: 750px;">
+      <h3>takeaway</h3>
+      <h2>The Pragmatic Middle Ground</h2>
+      <div class="glow-line center"></div>
+
+      <div style="text-align: left; margin-top: 24px;">
+        <div class="card" style="margin-bottom: 12px;">
+          <p style="font-size: 0.95rem; color: var(--text-bright);"><strong>Immutability is the real hero.</strong></p>
+          <p style="font-size: 0.88rem; margin-top: 6px;">Most concurrency bugs vanish when data can't be mutated. Clojure's persistent data structures mean you almost never need synchronization for reads.</p>
+        </div>
+        <div class="card" style="margin-bottom: 12px;">
+          <p style="font-size: 0.95rem; color: var(--text-bright);"><strong>Managed references for the rest.</strong></p>
+          <p style="font-size: 0.88rem; margin-top: 6px;">When you do need mutable state, atoms (95%), refs (4%), and agents (1%) handle it with clear semantics. No manual lock ordering, no forgotten unlocks.</p>
+        </div>
+        <div class="card" style="margin-bottom: 12px;">
+          <p style="font-size: 0.95rem; color: var(--text-bright);"><strong>The JVM is always there.</strong></p>
+          <p style="font-size: 0.88rem; margin-top: 6px;">CyclicBarrier? CountDownLatch? Phaser? Semaphore? StampedLock? All one import away. Clojure wraps the common cases and lets you interop for the rest.</p>
+        </div>
+      </div>
+
+      <div class="quote" style="margin-top: 24px; text-align: left;">
+        "I also considered languages (like Haskell) with more rigorous control over side effects, but decided that Clojure's less-dogmatic approach was preferable."
+      </div>
+
+      <p style="margin-top: 14px; font-size: 0.82rem; color: var(--text-dim);">Less dogmatic doesn't mean less safe. It means safety by default (immutability) with escape hatches when you need them (managed references, j.u.c. interop). No type-system tax. No monad tutorials required.</p>
+    </div>
+    <span class="slide-num">13 / 16</span>
+  </div>
+
+  <!-- ==================== SLIDE 13: Appendix - Semaphore ==================== -->
+  <div class="slide" data-slide="14">
+    <div class="split">
+      <div class="col">
+        <h3>appendix a</h3>
+        <h2>Semaphore</h2>
+        <div class="glow-line amber"></div>
+        <p style="margin-bottom: 14px;">A counter that limits how many threads can access a resource concurrently. Like a lock, but for N threads instead of 1.</p>
+
+        <div class="diagram-box" style="font-size: 0.76rem; line-height: 1.6; margin-bottom: 14px;">
+<span style="color:var(--amber)">Semaphore(3) - allow 3 concurrent connections</span>
+
+<span style="color:var(--green)">permits = 3</span>
+
+Thread A: <span style="color:var(--green)">acquire()</span> -> permits = 2, proceed
+Thread B: <span style="color:var(--green)">acquire()</span> -> permits = 1, proceed
+Thread C: <span style="color:var(--green)">acquire()</span> -> permits = 0, proceed
+Thread D: <span style="color:var(--amber)">acquire()</span> -> permits = 0, <span style="color:var(--red)">BLOCKED</span>
+
+Thread A: <span style="color:var(--cyan)">release()</span> -> permits = 1
+Thread D: <span style="color:var(--green)">unblocked!</span> -> permits = 0, proceed</div>
+
+        <div style="margin-bottom: 10px;"><span class="label label-clj">Real example: database connection limiter</span></div>
+        <pre>(<span class="kw">import</span> '[java.util.concurrent <span class="type">Semaphore</span>])
+
+<span class="cm">;; Only allow 10 concurrent DB queries</span>
+<span class="cm">;; (our connection pool has 10 connections)</span>
+(<span class="kw">def</span> db-permits (<span class="type">Semaphore.</span> <span class="num">10</span>))
+
+(<span class="kw">defn</span> <span class="fn">query-db</span> [sql]
+  (<span class="fn">.acquire</span> db-permits)
+  (<span class="kw">try</span>
+    (<span class="fn">jdbc/execute!</span> ds [sql])
+    (<span class="kw">finally</span>
+      (<span class="fn">.release</span> db-permits))))
+
+<span class="cm">;; 100 threads can call query-db, but only 10</span>
+<span class="cm">;; will actually hit the DB at once. The rest</span>
+<span class="cm">;; queue up politely instead of overwhelming</span>
+<span class="cm">;; the connection pool.</span></pre>
+      </div>
+      <div class="col">
+        <div class="card" style="border-left: 3px solid var(--purple);">
+          <h4 style="color: var(--purple);">When to use</h4>
+          <ul style="font-size: 0.84rem;">
+            <li><strong style="color:var(--text-bright)">Connection limiting</strong> - cap concurrent DB/API/file connections</li>
+            <li><strong style="color:var(--text-bright)">Rate limiting</strong> - only N concurrent requests to an external API</li>
+            <li><strong style="color:var(--text-bright)">Resource pools</strong> - manage access to a fixed set of expensive resources</li>
+            <li><strong style="color:var(--text-bright)">Throttling</strong> - prevent overwhelming a downstream service</li>
+          </ul>
+        </div>
+        <div class="card" style="background: var(--bg-highlight);">
+          <h4 style="color: var(--cyan);">Semaphore(1) = Lock</h4>
+          <p style="font-size: 0.84rem;">A semaphore with 1 permit behaves like a mutex/lock. But unlike ReentrantLock, it's <em>not</em> reentrant and not thread-owned - any thread can release it, not just the one that acquired it. This makes it useful for asymmetric producer-consumer patterns.</p>
+        </div>
+        <div class="card">
+          <h4 style="color: var(--amber);">Java API</h4>
+<pre style="font-size: 0.76rem;">
+<span class="type">Semaphore</span> s = <span class="kw">new</span> <span class="type">Semaphore</span>(<span class="num">10</span>);
+s.<span class="fn">acquire</span>();         <span class="cm">// block until permit</span>
+s.<span class="fn">tryAcquire</span>();      <span class="cm">// non-blocking, returns bool</span>
+s.<span class="fn">tryAcquire</span>(<span class="num">5</span>, <span class="type">SECONDS</span>); <span class="cm">// with timeout</span>
+s.<span class="fn">release</span>();          <span class="cm">// return permit</span>
+s.<span class="fn">availablePermits</span>(); <span class="cm">// how many left?</span></pre>
+        </div>
+      </div>
+    </div>
+    <span class="slide-num">14 / 16</span>
+  </div>
+
+  <!-- ==================== SLIDE 14: Appendix - Phaser ==================== -->
+  <div class="slide" data-slide="15">
+    <div class="split">
+      <div class="col">
+        <h3>appendix b</h3>
+        <h2>Phaser</h2>
+        <div class="glow-line amber"></div>
+        <p style="margin-bottom: 14px;">A flexible barrier where threads can register and deregister dynamically. Like CyclicBarrier, but threads can join and leave mid-computation.</p>
+
+        <div class="diagram-box" style="font-size: 0.76rem; line-height: 1.6; margin-bottom: 14px;">
+<span style="color:var(--amber)">Phaser vs CyclicBarrier</span>
+
+<span style="color:var(--cyan)">CyclicBarrier(3):</span> always exactly 3 threads
+  Thread count is fixed at creation. If one
+  thread dies, the other 2 wait forever.
+
+<span style="color:var(--green)">Phaser:</span> threads come and go
+  Phase 0: A, B, C registered (3 parties)
+  Phase 1: D joins (<span style="color:var(--green)">register()</span>), now 4 parties
+  Phase 2: B leaves (<span style="color:var(--amber)">arriveAndDeregister()</span>), now 3
+  Phase 3: only A, C, D need to sync</div>
+
+        <div style="margin-bottom: 10px;"><span class="label label-clj">Real example: dynamic web scraper</span></div>
+        <pre>(<span class="kw">import</span> '[java.util.concurrent <span class="type">Phaser</span>])
+
+<span class="cm">;; Scrape pages in waves. Each wave discovers</span>
+<span class="cm">;; new links -> new workers join the next wave.</span>
+(<span class="kw">def</span> phaser (<span class="type">Phaser.</span> <span class="num">1</span>)) <span class="cm">; main thread is party 0</span>
+
+(<span class="kw">defn</span> <span class="fn">scrape-page!</span> [url]
+  (<span class="fn">.register</span> phaser)  <span class="cm">; join the party</span>
+  (<span class="kw">future</span>
+    (<span class="kw">let</span> [links (<span class="fn">extract-links</span> (<span class="fn">http/get</span> url))]
+      (<span class="kw">doseq</span> [link links]
+        (<span class="fn">scrape-page!</span> link))  <span class="cm">; spawn more</span>
+      (<span class="fn">.arriveAndDeregister</span> phaser))))
+
+(<span class="fn">scrape-page!</span> <span class="str">"https://example.com"</span>)
+
+<span class="cm">;; Wait for current wave to complete</span>
+(<span class="fn">.arriveAndAwaitAdvance</span> phaser)</pre>
+      </div>
+      <div class="col">
+        <div class="card" style="border-left: 3px solid var(--purple);">
+          <h4 style="color: var(--purple);">When to use</h4>
+          <ul style="font-size: 0.84rem;">
+            <li><strong style="color:var(--text-bright)">Dynamic work pools</strong> - workers can join and leave between phases</li>
+            <li><strong style="color:var(--text-bright)">Iterative algorithms</strong> - where the number of participants changes per iteration</li>
+            <li><strong style="color:var(--text-bright)">Multi-wave processing</strong> - phase 1 discovers work, phase 2 processes it</li>
+            <li><strong style="color:var(--text-bright)">Test harnesses</strong> - coordinate variable numbers of test actors</li>
+          </ul>
+        </div>
+        <div class="card" style="background: var(--bg-highlight);">
+          <h4 style="color: var(--cyan);">Phaser replaces both</h4>
+          <p style="font-size: 0.84rem;">Phaser can act as a CyclicBarrier (fixed parties, reusable) or a CountDownLatch (arrive without waiting). It's the most general synchronizer in j.u.c. but also the most complex. Use the simpler tools when they suffice.</p>
+        </div>
+        <div class="card">
+          <h4 style="color: var(--amber);">Phase number</h4>
+          <p style="font-size: 0.84rem;">Every time all parties arrive, the phase number increments. You can query it with <code style="color:var(--amber)">.getPhase()</code> to know which iteration you're on. Useful for termination conditions: "stop after phase 10" or "stop when no new work was discovered."</p>
+        </div>
+      </div>
+    </div>
+    <span class="slide-num">15 / 16</span>
+  </div>
+
+  <!-- ==================== SLIDE 15: Appendix - Unwrapped JUC ==================== -->
+  <div class="slide" data-slide="16" style="padding: 36px 50px;">
+    <div style="width: 100%; display: flex; flex-direction: column; justify-content: center;">
+      <h3>appendix c</h3>
+      <h2>java.util.concurrent Without Clojure Wrappers</h2>
+      <div class="glow-line amber" style="margin-bottom: 16px;"></div>
+      <p style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 18px;">All of these are used via direct Java interop in Clojure. No wrappers needed - the Java APIs are clean enough.</p>
+
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Class</th>
+              <th>What It Does</th>
+              <th>Real Use Case</th>
+              <th>Clojure Usage</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="color:var(--amber)">CountDownLatch</td>
+              <td style="font-family:var(--font-sans)">N threads count down, waiters unblock at 0</td>
+              <td style="font-family:var(--font-sans)">Wait for all services to initialize before accepting traffic</td>
+              <td><code>(.await latch)</code></td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">CyclicBarrier</td>
+              <td style="font-family:var(--font-sans)">N threads sync up, then all proceed. Reusable.</td>
+              <td style="font-family:var(--font-sans)">Parallel simulation steps (cellular automata, physics ticks)</td>
+              <td><code>(.await barrier)</code></td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">Phaser</td>
+              <td style="font-family:var(--font-sans)">Dynamic barrier - threads join/leave between phases</td>
+              <td style="font-family:var(--font-sans)">Web crawler waves, dynamic worker pools</td>
+              <td><code>(.arriveAndAwaitAdvance p)</code></td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">Semaphore</td>
+              <td style="font-family:var(--font-sans)">Limit concurrency to N threads</td>
+              <td style="font-family:var(--font-sans)">Cap DB connections, rate limit API calls</td>
+              <td><code>(.acquire s)</code> / <code>(.release s)</code></td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">Exchanger</td>
+              <td style="font-family:var(--font-sans)">Two threads swap objects at a meeting point</td>
+              <td style="font-family:var(--font-sans)">Double buffering (one fills, one drains, swap)</td>
+              <td><code>(.exchange ex obj)</code></td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">StampedLock</td>
+              <td style="font-family:var(--font-sans)">Optimistic reads + write lock. Fastest for read-heavy.</td>
+              <td style="font-family:var(--font-sans)">In-memory caches with rare updates</td>
+              <td><code>(.tryOptimisticRead sl)</code></td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">ForkJoinPool</td>
+              <td style="font-family:var(--font-sans)">Work-stealing pool for recursive divide-and-conquer</td>
+              <td style="font-family:var(--font-sans)">Parallel sort, tree traversal (<code>pmap</code> uses this)</td>
+              <td>Clojure's <code>pmap</code> / <code>r/fold</code></td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">ScheduledExecutorService</td>
+              <td style="font-family:var(--font-sans)">Run tasks on a schedule or with delays</td>
+              <td style="font-family:var(--font-sans)">Periodic cache refresh, delayed retries</td>
+              <td><code>(.scheduleAtFixedRate ses ...)</code></td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber)">CompletableFuture</td>
+              <td style="font-family:var(--font-sans)">Rich async pipeline (thenApply, compose, allOf)</td>
+              <td style="font-family:var(--font-sans)">Chaining async HTTP calls with error handling</td>
+              <td>Usually use <code>manifold</code> instead</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size: 0.8rem; color: var(--text-dim); margin-top: 14px;">All available via <code style="color:var(--green)">(import '[java.util.concurrent ClassName])</code>. These are battle-tested, heavily optimized, and well-documented. Don't reinvent them.</p>
+    </div>
+    <span class="slide-num">16 / 16</span>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="nav">
+  <button onclick="prev()">← Prev</button>
+  <span id="counter">1 / 16</span>
+  <button onclick="next()">Next →</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  function show(n) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(total - 1, n));
+    slides[current].classList.add('active');
+    document.getElementById('counter').textContent = `${current + 1} / ${total}`;
+    document.getElementById('progress').style.width = `${((current + 1) / total) * 100}%`;
+  }
+
+  function next() { show(current + 1); }
+  function prev() { show(current - 1); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+    if (e.key === 'Home') { e.preventDefault(); show(0); }
+    if (e.key === 'End') { e.preventDefault(); show(total - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) { diff > 0 ? next() : prev(); }
+  });
+
+  show(0);
+</script>
+
+</body>
+</html>

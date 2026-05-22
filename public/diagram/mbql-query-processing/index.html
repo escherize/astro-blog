@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MBQL Query Processing — Nested Card Compilation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Instrument Serif', Georgia, serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #faf9f6;
+    --surface: #ffffff;
+    --surface2: #f3f1ec;
+    --surface-elevated: #ffffff;
+    --border: rgba(0, 0, 0, 0.07);
+    --border-bright: rgba(0, 0, 0, 0.14);
+    --text: #1c1917;
+    --text-dim: #78716c;
+
+    --accent: #7c3aed;
+    --accent-dim: rgba(124, 58, 237, 0.07);
+    --phase-pre: #0891b2;
+    --phase-pre-dim: rgba(8, 145, 178, 0.08);
+    --phase-compile: #7c3aed;
+    --phase-compile-dim: rgba(124, 58, 237, 0.08);
+    --phase-exec: #059669;
+    --phase-exec-dim: rgba(5, 150, 105, 0.08);
+    --phase-post: #d97706;
+    --phase-post-dim: rgba(217, 119, 6, 0.08);
+    --card-resolve: #e11d48;
+    --card-resolve-dim: rgba(225, 29, 72, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1412;
+      --surface: #231e1a;
+      --surface2: #2e2720;
+      --surface-elevated: #2e2720;
+      --border: rgba(255, 255, 255, 0.07);
+      --border-bright: rgba(255, 255, 255, 0.13);
+      --text: #f5f0eb;
+      --text-dim: #a8a29e;
+
+      --accent: #a78bfa;
+      --accent-dim: rgba(167, 139, 250, 0.12);
+      --phase-pre: #22d3ee;
+      --phase-pre-dim: rgba(34, 211, 238, 0.12);
+      --phase-compile: #a78bfa;
+      --phase-compile-dim: rgba(167, 139, 250, 0.12);
+      --phase-exec: #34d399;
+      --phase-exec-dim: rgba(52, 211, 153, 0.12);
+      --phase-post: #fbbf24;
+      --phase-post-dim: rgba(251, 191, 36, 0.12);
+      --card-resolve: #fb7185;
+      --card-resolve-dim: rgba(251, 113, 133, 0.12);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(at 15% 10%, var(--phase-pre-dim) 0%, transparent 45%),
+      radial-gradient(at 85% 50%, var(--phase-compile-dim) 0%, transparent 45%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .animate {
+    animation: fadeUp 0.45s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.06s);
+  }
+  .animate-scale {
+    animation: fadeScale 0.35s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.06s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+    .mermaid-wrap .mermaid { transition: none; }
+  }
+
+  /* ============ NAV LAYOUT ============ */
+  .wrap {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 170px 1fr;
+    gap: 0 40px;
+  }
+  .main { min-width: 0; }
+
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    padding: 14px 0;
+    grid-row: 1 / -1;
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+  }
+  .toc::-webkit-scrollbar { width: 3px; }
+  .toc::-webkit-scrollbar-thumb { background: var(--surface-elevated); border-radius: 2px; }
+
+  .toc-title {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    padding: 0 0 10px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toc a {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 4px 8px;
+    border-radius: 5px;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+    line-height: 1.4;
+    margin-bottom: 1px;
+  }
+  .toc a:hover { color: var(--text); background: var(--surface2); }
+  .toc a.active { color: var(--text); border-left-color: var(--accent); }
+
+  @media (max-width: 1000px) {
+    .wrap { grid-template-columns: 1fr; padding-top: 0; }
+    body { padding-top: 0; }
+    .toc {
+      position: sticky; top: 0; z-index: 200;
+      max-height: none; display: flex; gap: 4px; align-items: center;
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      background: var(--bg); border-bottom: 1px solid var(--border);
+      padding: 10px 0; margin: 0 -40px; padding-left: 40px; padding-right: 40px;
+      grid-row: auto;
+    }
+    .toc::-webkit-scrollbar { display: none; }
+    .toc-title { display: none; }
+    .toc a {
+      white-space: nowrap; flex-shrink: 0; border-left: none;
+      border-bottom: 2px solid transparent; border-radius: 4px 4px 0 0;
+      padding: 6px 10px; font-size: 10px;
+    }
+    .toc a.active { border-left: none; border-bottom-color: var(--accent); background: var(--surface); }
+    .main { padding-top: 20px; }
+    .sec-head { scroll-margin-top: 52px; }
+  }
+
+  /* ============ CONTENT ============ */
+  h1 {
+    font-size: 42px;
+    font-weight: 400;
+    font-style: italic;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+    text-wrap: balance;
+    line-height: 1.15;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    margin-bottom: 32px;
+  }
+
+  .description {
+    font-size: 18px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    margin-bottom: 28px;
+    max-width: 740px;
+  }
+  .description code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  .sec-head {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    margin: 40px 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sec-head::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+
+  .sec-head--pre { background: var(--phase-pre-dim); color: var(--phase-pre); }
+  .sec-head--compile { background: var(--phase-compile-dim); color: var(--phase-compile); }
+  .sec-head--exec { background: var(--phase-exec-dim); color: var(--phase-exec); }
+  .sec-head--card { background: var(--card-resolve-dim); color: var(--card-resolve); }
+  .sec-head--post { background: var(--phase-post-dim); color: var(--phase-post); }
+
+  .prose {
+    font-size: 17px;
+    line-height: 1.75;
+    margin-bottom: 20px;
+    max-width: 740px;
+  }
+  .prose code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  /* ============ MERMAID ============ */
+  .mermaid-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    overflow: auto;
+    margin-bottom: 24px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .mermaid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .mermaid-wrap::-webkit-scrollbar-track { background: transparent; }
+  .mermaid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .mermaid-wrap::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  .mermaid-wrap .mermaid {
+    display: flex;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    transform-origin: top center;
+  }
+
+  .zoom-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 2px;
+    z-index: 10;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+  }
+  .zoom-controls button {
+    width: 28px; height: 28px; border: none; background: transparent;
+    color: var(--text-dim); font-family: var(--font-mono); font-size: 14px;
+    cursor: pointer; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .zoom-controls button:hover { background: var(--border); color: var(--text); }
+
+  .mermaid-wrap.is-zoomed { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+  .mermaid .nodeLabel { color: var(--text) !important; }
+  .mermaid .edgeLabel { color: var(--text-dim) !important; background-color: var(--bg) !important; }
+  .mermaid .edgeLabel rect { fill: var(--bg) !important; }
+  .mermaid .nodeLabel {
+    font-family: var(--font-mono) !important;
+    font-size: 13px !important;
+  }
+  .mermaid .edgeLabel {
+    font-family: var(--font-mono) !important;
+    font-size: 11px !important;
+  }
+  .mermaid .node rect,
+  .mermaid .node circle,
+  .mermaid .node polygon { stroke-width: 1.5px !important; }
+  .mermaid .edge-pattern-solid { stroke-width: 1.5px !important; }
+
+  .diagram-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+  }
+
+  /* ============ CALLOUTS ============ */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px;
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--text-dim);
+    margin: 16px 0 24px;
+    max-width: 740px;
+  }
+  .callout strong { color: var(--text); }
+  .callout code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .callout--pre { border-left-color: var(--phase-pre); }
+  .callout--compile { border-left-color: var(--phase-compile); }
+  .callout--card { border-left-color: var(--card-resolve); }
+
+  /* ============ CODE BLOCKS ============ */
+  .code-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    overflow-x: auto;
+    margin: 12px 0 24px;
+    color: var(--text);
+  }
+  .code-block .comment { color: var(--text-dim); }
+  .code-block .highlight { color: var(--accent); font-weight: 600; }
+  .code-block .str { color: var(--phase-exec); }
+  .code-block .kw { color: var(--card-resolve); }
+
+  /* ============ LEGEND ============ */
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin: 16px 0 32px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  /* ============ COLLAPSIBLE ============ */
+  details.collapsible {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 12px 0 24px;
+  }
+  details.collapsible summary {
+    padding: 14px 20px;
+    background: var(--surface);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+    transition: background 0.15s ease;
+  }
+  details.collapsible summary:hover { background: var(--surface-elevated); }
+  details.collapsible summary::-webkit-details-marker { display: none; }
+  details.collapsible summary::before {
+    content: '\25B8';
+    font-size: 11px;
+    color: var(--text-dim);
+    transition: transform 0.15s ease;
+  }
+  details.collapsible[open] summary::before { transform: rotate(90deg); }
+  details.collapsible .collapsible__body {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  details.collapsible .collapsible__body code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ============ STEP LIST ============ */
+  .step-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 24px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 2;
+    max-width: 740px;
+  }
+  .step-list li {
+    padding-left: 28px;
+    position: relative;
+  }
+  .step-list li::before {
+    position: absolute;
+    left: 0;
+    font-weight: 700;
+    width: 20px;
+    text-align: right;
+    color: var(--text-dim);
+  }
+  .step-list li:nth-child(1)::before { content: '01'; }
+  .step-list li:nth-child(2)::before { content: '02'; }
+  .step-list li:nth-child(3)::before { content: '03'; }
+  .step-list li:nth-child(4)::before { content: '04'; }
+  .step-list li:nth-child(5)::before { content: '05'; }
+  .step-list li:nth-child(6)::before { content: '06'; }
+  .step-list li:nth-child(7)::before { content: '07'; }
+  .step-list li:nth-child(8)::before { content: '08'; }
+  .step-list li:nth-child(9)::before { content: '09'; }
+  .step-list li:nth-child(n+10)::before { content: counter(step-counter, decimal-leading-zero); }
+
+  .step-list li .tag {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 4px;
+  }
+
+  .tag--key { background: var(--card-resolve-dim); color: var(--card-resolve); }
+  .tag--ee { background: var(--phase-post-dim); color: var(--phase-post); }
+
+  /* ============ SQL OUTPUT ============ */
+  .sql-output {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 12px 0 24px;
+  }
+  .sql-output-header {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 10px 20px;
+    background: var(--surface2);
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+  }
+  .sql-output pre {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.7;
+    padding: 16px 20px;
+    overflow-x: auto;
+    color: var(--text);
+  }
+  .sql-output .sql-kw { color: var(--phase-compile); font-weight: 600; }
+  .sql-output .sql-comment { color: var(--text-dim); font-style: italic; }
+  .sql-output .sql-alias { color: var(--phase-pre); }
+  .sql-output .sql-str { color: var(--phase-exec); }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 768px) {
+    body { padding: 16px; }
+    h1 { font-size: 28px; }
+    .mermaid-wrap { padding: 16px 12px; }
+    .description { font-size: 16px; }
+    .prose { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <nav class="toc" id="toc">
+    <div class="toc-title">Sections</div>
+    <a href="#s1">1. Big Picture</a>
+    <a href="#s2">2. Preprocessing</a>
+    <a href="#s3">3. Card Resolution</a>
+    <a href="#s4">4. Compilation</a>
+    <a href="#s5">5. SQL Output</a>
+    <a href="#s6">6. Execution</a>
+    <a href="#s7">7. Performance</a>
+    <a href="#s8">8. File Map</a>
+  </nav>
+
+  <div class="main">
+
+    <h1 class="animate" style="--i:0">How MBQL Becomes SQL</h1>
+    <p class="subtitle animate" style="--i:1">metabase query processor &middot; nested card compilation</p>
+
+    <p class="description animate" style="--i:2">
+      When you build a question in Metabase, it becomes an <code>MBQL</code> query &mdash;
+      a Clojure data structure describing what you want. When that question uses
+      <strong>another saved question as its source</strong>, the QP must recursively resolve and
+      inline the inner query, then compile the whole thing to a single SQL statement with subqueries.
+      Here&rsquo;s exactly how that works.
+    </p>
+
+    <div class="legend animate" style="--i:3">
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--phase-pre)"></div> Preprocess</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--card-resolve)"></div> Card Resolution</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--phase-compile)"></div> Compile</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--phase-exec)"></div> Execute</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--phase-post)"></div> Post-process</div>
+    </div>
+
+    <!-- ========== SECTION 1: BIG PICTURE ========== -->
+    <div id="s1" class="sec-head sec-head--compile animate" style="--i:4">1 &mdash; The Big Picture</div>
+
+    <p class="prose animate" style="--i:5">
+      Every query flows through four major phases. The entry point is
+      <code>query-processor/process-query</code>, which orchestrates them all.
+    </p>
+
+    <div class="mermaid-wrap animate" style="--i:6">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+graph LR
+  A["process-query"] --> B["Preprocess"]
+  B --> C["Compile"]
+  C --> D["Execute"]
+  D --> E["Post-process"]
+
+  B -.- B1["43 middleware fns<br/>normalize, resolve,<br/>enrich, validate"]
+  C -.- C1["MBQL to HoneySQL<br/>HoneySQL to SQL string"]
+  D -.- D1["permissions check<br/>cache check<br/>driver execution"]
+  E -.- E1["format rows<br/>add column info<br/>limit results"]
+
+  classDef phase fill:#7c3aed22,stroke:#7c3aed,stroke-width:2px
+  classDef detail fill:#00000008,stroke:#00000022,stroke-width:1px
+
+  class A,B,C,D,E phase
+  class B1,C1,D1,E1 detail
+      </pre>
+    </div>
+
+    <div class="callout animate" style="--i:7">
+      <strong>Key insight:</strong> Preprocessing runs ~43 middleware functions that transform the MBQL query
+      <em>before</em> compilation. Card resolution happens here &mdash; the inner card&rsquo;s query stages
+      get prepended to the outer query&rsquo;s stage pipeline. By the time compilation starts, there
+      are no more <code>:source-card</code> references &mdash; everything is pure MBQL stages.
+    </div>
+
+    <!-- ========== SECTION 2: PREPROCESSING ========== -->
+    <div id="s2" class="sec-head sec-head--pre animate" style="--i:8">2 &mdash; Preprocessing Pipeline</div>
+
+    <p class="prose animate" style="--i:9">
+      The preprocessor in <code>query_processor/preprocess.clj</code> runs a chain of middleware
+      functions via <code>transduce</code>. Each function transforms the query map and passes it on.
+      Here are the critical steps, in order:
+    </p>
+
+    <div class="mermaid-wrap animate" style="--i:10">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+graph TD
+  N["normalize"] --> V["validate-query"]
+  V --> SC["resolve-source-cards"]
+  SC --> EA["expand-aggregations"]
+  EA --> EM["expand-macros"]
+  EM --> SP["substitute-parameters"]
+  SP --> RST["resolve-source-tables"]
+  RST --> AB["auto-bucket-datetimes"]
+  AB --> SB["apply-sandboxing"]
+  SB --> AI["add-implicit-clauses"]
+  AI --> RJ["resolve-joins"]
+  RJ --> RF["resolve-fields"]
+  RF --> DS["desugar"]
+  DS --> AIJ["add-implicit-joins"]
+  AIJ --> SB2["apply-sandboxing again"]
+  SB2 --> WVL["wrap-value-literals"]
+  WVL --> OT["optimize-temporal-filters"]
+  OT --> LIM["add-default-limit"]
+
+  classDef critical fill:#e11d4822,stroke:#e11d48,stroke-width:2px
+  classDef normal fill:#0891b222,stroke:#0891b2,stroke-width:1.5px
+  classDef ee fill:#d9770622,stroke:#d97706,stroke-width:1.5px
+
+  class SC critical
+  class N,V,EA,EM,SP,RST,AB,AI,RJ,RF,DS,AIJ,WVL,OT,LIM normal
+  class SB,SB2 ee
+      </pre>
+    </div>
+
+    <details class="collapsible animate" style="--i:11">
+      <summary>Full middleware list (43 functions)</summary>
+      <div class="collapsible__body">
+        <ol class="step-list" style="counter-reset: step-counter 0;">
+          <li><code>normalize-preprocessing-middleware</code></li>
+          <li><code>remove-permissions-key</code></li>
+          <li><code>remove-source-card-keys</code></li>
+          <li><code>remove-sandboxed-table-keys</code></li>
+          <li><code>maybe-add-default-userland-constraints</code></li>
+          <li><code>validate-query</code></li>
+          <li><code>resolve-source-cards</code> <span class="tag tag--key">card resolution</span></li>
+          <li><code>drop-fields-in-summaries</code></li>
+          <li><code>expand-aggregations</code></li>
+          <li><code>metrics/adjust</code></li>
+          <li><code>measures/adjust</code></li>
+          <li><code>expand-macros</code></li>
+          <li><code>resolve-referenced-card-resources</code></li>
+          <li><code>substitute-parameters</code></li>
+          <li><code>resolve-source-tables</code> <span class="tag tag--key">table metadata</span></li>
+          <li><code>auto-bucket-datetimes</code></li>
+          <li><code>reconcile-breakout-and-order-by-bucketing</code></li>
+          <li><code>apply-impersonation</code> <span class="tag tag--ee">EE</span></li>
+          <li><code>attach-destination-db-middleware</code> <span class="tag tag--ee">EE</span></li>
+          <li><code>apply-sandboxing</code> <span class="tag tag--ee">EE</span></li>
+          <li><code>substitute-persisted-query</code></li>
+          <li><code>add-implicit-clauses</code></li>
+          <li><code>resolve-joins</code></li>
+          <li><code>add-remapped-columns</code></li>
+          <li><code>resolve-fields</code></li>
+          <li><code>update-binning-strategy</code></li>
+          <li><code>desugar</code></li>
+          <li><code>add-default-temporal-unit</code></li>
+          <li><code>add-implicit-joins</code></li>
+          <li><code>resolve-joins</code> (2nd pass)</li>
+          <li><code>add-implicit-clauses</code> (2nd pass)</li>
+          <li><code>fix-bad-field-id-refs</code></li>
+          <li><code>remove-inactive-field-refs</code></li>
+          <li><code>apply-sandboxing</code> (2nd pass) <span class="tag tag--ee">EE</span></li>
+          <li><code>rewrite-cumulative-aggregations</code></li>
+          <li><code>wrap-value-literals</code></li>
+          <li><code>auto-parse-filter-values</code></li>
+          <li><code>validate-temporal-bucketing</code></li>
+          <li><code>optimize-temporal-filters</code></li>
+          <li><code>add-default-limit</code></li>
+          <li><code>apply-download-limit</code> <span class="tag tag--ee">EE</span></li>
+          <li><code>apply-workspace-remapping</code> <span class="tag tag--ee">EE</span></li>
+          <li><code>check-features</code></li>
+        </ol>
+      </div>
+    </details>
+
+    <!-- ========== SECTION 3: CARD RESOLUTION ========== -->
+    <div id="s3" class="sec-head sec-head--card animate" style="--i:12">3 &mdash; Source Card Resolution</div>
+
+    <p class="prose animate" style="--i:13">
+      This is the heart of nested queries. When Card B uses Card A as its source,
+      the MBQL looks like <code>{:source-card 42}</code>. The <code>resolve-source-cards</code>
+      middleware in <code>fetch_source_query.clj</code> replaces that reference with Card A&rsquo;s
+      actual query stages.
+    </p>
+
+    <div class="mermaid-wrap animate" style="--i:14">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+graph TD
+  subgraph INPUT ["Card B query before resolution"]
+    Q1["{:stages [{:source-card 42,<br/> :filter [:> [:field 5] 100]}]}"]
+  end
+
+  Q1 -->|"resolve-source-cards"| FETCH
+
+  subgraph FETCH ["fetch_source_query.clj"]
+    F1["resolve-source-cards*"] -->|"walk stages"| F2["resolve-source-cards-in-stage"]
+    F2 -->|"has :source-card?"| F3["card fn: fetch Card 42"]
+    F3 --> F4["normalize-card-query"]
+    F4 -->|"mark stages with<br/>:qp/stage-is-from-source-card"| F5["prepend Card A stages"]
+  end
+
+  F5 --> OUTPUT
+
+  subgraph OUTPUT ["Card B query after resolution"]
+    Q2["{:stages [{:source-table 7,<br/> :fields [...],<br/> :qp/stage-is-from-source-card 42}<br/> {:filter [:> [:field 5] 100]}]}"]
+  end
+
+  classDef inputNode fill:#e11d4822,stroke:#e11d48,stroke-width:2px
+  classDef fetchNode fill:#7c3aed22,stroke:#7c3aed,stroke-width:1.5px
+  classDef outputNode fill:#05966922,stroke:#059669,stroke-width:2px
+
+  class Q1 inputNode
+  class F1,F2,F3,F4,F5 fetchNode
+  class Q2 outputNode
+      </pre>
+    </div>
+
+    <div class="callout callout--card animate" style="--i:15">
+      <strong>Recursion &amp; safety:</strong> If Card A itself references Card C as <em>its</em> source,
+      <code>resolve-source-cards*</code> recurses up to <strong>50 levels deep</strong>. It uses a
+      dependency graph (via <code>com.stuartsierra/dependency</code>) to detect circular references
+      and throws an error if found.
+    </div>
+
+    <p class="prose animate" style="--i:16">
+      After resolution, the query has <strong>two stages</strong>: the first is Card A&rsquo;s
+      query (with <code>:source-table</code> pointing at the real DB table), and the second
+      is Card B&rsquo;s operations (filters, aggregations, etc.). The compilation step
+      will turn this multi-stage pipeline into nested SQL subqueries.
+    </p>
+
+    <!-- ========== SECTION 4: COMPILATION ========== -->
+    <div id="s4" class="sec-head sec-head--compile animate" style="--i:17">4 &mdash; MBQL to SQL Compilation</div>
+
+    <p class="prose animate" style="--i:18">
+      After preprocessing, <code>compile.clj</code> calls <code>driver/mbql-&gt;native</code>,
+      which dispatches to the SQL query processor. The compilation has two phases:
+      MBQL &rarr; HoneySQL &rarr; SQL string.
+    </p>
+
+    <div class="mermaid-wrap animate" style="--i:19">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+graph TD
+  A["compile-preprocessed"] --> B["driver/mbql->native"]
+  B --> C["mbql->honeysql"]
+  C --> D{"has :source-query?"}
+  D -->|"Yes"| E["apply-source-query"]
+  D -->|"No"| F["apply-top-level-clauses"]
+  E -->|"recursive!"| C2["apply-clauses on inner query"]
+  C2 --> G["wrap in FROM subselect"]
+  G --> F
+  F --> H["apply clauses in order:<br/>:source-table, :breakout,<br/>:aggregation, :fields,<br/>:filter, :joins,<br/>:order-by, :page, :limit"]
+  H --> I["HoneySQL map"]
+  I --> J["format-honeysql"]
+  J --> K["{:query SQL, :params [...]}"]
+
+  classDef compile fill:#7c3aed22,stroke:#7c3aed,stroke-width:1.5px
+  classDef recurse fill:#e11d4822,stroke:#e11d48,stroke-width:2px
+  classDef output fill:#05966922,stroke:#059669,stroke-width:2px
+  classDef decision fill:#d9770622,stroke:#d97706,stroke-width:2px
+
+  class A,B,C,F,H,I,J compile
+  class E,C2,G recurse
+  class K output
+  class D decision
+      </pre>
+    </div>
+
+    <div class="callout callout--compile animate" style="--i:20">
+      <strong>The recursion:</strong> When the outer query has a <code>:source-query</code> (from the
+      multi-stage pipeline), <code>apply-source-query</code> calls <code>apply-clauses</code>
+      <em>recursively</em> on the inner query. This produces a nested HoneySQL form that
+      <code>format-honeysql</code> renders as <code>SELECT ... FROM (SELECT ...) AS "source"</code>.
+    </div>
+
+    <p class="prose animate" style="--i:21">
+      The <code>-&gt;honeysql</code> multimethod dispatches on <code>[driver, clause-type]</code>,
+      so each database driver can customize how any MBQL clause compiles to SQL.
+      For example, Postgres, MySQL, and BigQuery all have their own temporal bucketing,
+      string function, and type-casting implementations.
+    </p>
+
+    <details class="collapsible animate" style="--i:22">
+      <summary>Clause application order</summary>
+      <div class="collapsible__body">
+        <p style="margin-bottom:12px;">
+          Top-level clauses are applied in a strict order because the <code>SELECT</code> clause
+          is built progressively &mdash; breakout columns must appear before aggregation columns:
+        </p>
+        <ol class="step-list">
+          <li><code>:source-table</code> &rarr; <code>FROM</code></li>
+          <li><code>:breakout</code> &rarr; <code>GROUP BY</code> + <code>SELECT</code></li>
+          <li><code>:aggregation</code> &rarr; <code>SELECT</code> aggregate exprs</li>
+          <li><code>:fields</code> &rarr; <code>SELECT</code></li>
+          <li><code>:filter</code> &rarr; <code>WHERE</code></li>
+          <li><code>:joins</code> &rarr; <code>JOIN</code></li>
+          <li><code>:order-by</code> &rarr; <code>ORDER BY</code></li>
+          <li><code>:page</code> / <code>:limit</code> &rarr; <code>LIMIT</code> / <code>OFFSET</code></li>
+        </ol>
+      </div>
+    </details>
+
+    <!-- ========== SECTION 5: SQL OUTPUT ========== -->
+    <div id="s5" class="sec-head sec-head--exec animate" style="--i:23">5 &mdash; The Final SQL</div>
+
+    <p class="prose animate" style="--i:24">
+      For our example &mdash; Card A selects from the <code>ORDERS</code> table with some fields,
+      and Card B filters Card A&rsquo;s results where <code>TOTAL &gt; 100</code> &mdash; the compiled
+      SQL looks like this:
+    </p>
+
+    <div class="sql-output animate" style="--i:25">
+      <div class="sql-output-header">Compiled SQL Output</div>
+      <pre><span class="sql-comment">-- Card B's outer query</span>
+<span class="sql-kw">SELECT</span>
+  <span class="sql-alias">"source"</span>.<span class="sql-str">"ID"</span>,
+  <span class="sql-alias">"source"</span>.<span class="sql-str">"USER_ID"</span>,
+  <span class="sql-alias">"source"</span>.<span class="sql-str">"PRODUCT_ID"</span>,
+  <span class="sql-alias">"source"</span>.<span class="sql-str">"TOTAL"</span>
+<span class="sql-kw">FROM</span> (
+  <span class="sql-comment">-- Card A's inner query (inlined as subquery)</span>
+  <span class="sql-kw">SELECT</span>
+    <span class="sql-str">"ORDERS"</span>.<span class="sql-str">"ID"</span>     <span class="sql-kw">AS</span> <span class="sql-str">"ID"</span>,
+    <span class="sql-str">"ORDERS"</span>.<span class="sql-str">"USER_ID"</span> <span class="sql-kw">AS</span> <span class="sql-str">"USER_ID"</span>,
+    <span class="sql-str">"ORDERS"</span>.<span class="sql-str">"PRODUCT_ID"</span> <span class="sql-kw">AS</span> <span class="sql-str">"PRODUCT_ID"</span>,
+    <span class="sql-str">"ORDERS"</span>.<span class="sql-str">"TOTAL"</span>  <span class="sql-kw">AS</span> <span class="sql-str">"TOTAL"</span>
+  <span class="sql-kw">FROM</span> <span class="sql-str">"PUBLIC"</span>.<span class="sql-str">"ORDERS"</span>
+) <span class="sql-kw">AS</span> <span class="sql-alias">"source"</span>
+<span class="sql-kw">WHERE</span> <span class="sql-alias">"source"</span>.<span class="sql-str">"TOTAL"</span> > <span class="sql-str">100</span>
+<span class="sql-kw">LIMIT</span> <span class="sql-str">2000</span></pre>
+    </div>
+
+    <div class="callout animate" style="--i:26">
+      <strong>The <code>"source"</code> alias:</strong> All nested subqueries are aliased as
+      <code>"source"</code> (defined as <code>source-query-alias</code> in the SQL QP).
+      The outer query references columns via <code>"source"."COLUMN"</code>. If there are
+      ambiguous column names, a <code>WITH</code> clause is used instead to rename them.
+    </div>
+
+    <!-- ========== SECTION 6: EXECUTION ========== -->
+    <div id="s6" class="sec-head sec-head--exec animate" style="--i:27">6 &mdash; Execution &amp; Post-Processing</div>
+
+    <p class="prose animate" style="--i:28">
+      The compiled <code>{:query sql, :params [...]}</code> flows through execution middleware,
+      then the driver runs it against the database. Results flow back through post-processing.
+    </p>
+
+    <div class="mermaid-wrap animate" style="--i:29">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+graph TD
+  subgraph exec ["Execution middleware"]
+    E1["check-query-permissions"]
+    E2["maybe-return-cached-results"]
+    E3["update-used-cards!"]
+    E1 --> E2 --> E3
+  end
+
+  E3 --> RUN["pipeline/*run*<br/>driver executes SQL"]
+
+  RUN --> P1
+
+  subgraph post ["Post-processing"]
+    P1["annotate/add-column-info"]
+    P2["cumulative-aggregation sums"]
+    P3["remap-results"]
+    P4["limit-result-rows"]
+    P5["format-rows"]
+    P1 --> P2 --> P3 --> P4 --> P5
+  end
+
+  P5 --> RESULT["Final result map<br/>{:data {:rows [...], :cols [...]}}"]
+
+  classDef execNode fill:#05966922,stroke:#059669,stroke-width:1.5px
+  classDef postNode fill:#d9770622,stroke:#d97706,stroke-width:1.5px
+  classDef runNode fill:#7c3aed22,stroke:#7c3aed,stroke-width:2px
+  classDef resultNode fill:#05966922,stroke:#059669,stroke-width:2px
+
+  class E1,E2,E3 execNode
+  class P1,P2,P3,P4,P5 postNode
+  class RUN runNode
+  class RESULT resultNode
+      </pre>
+    </div>
+
+    <p class="prose animate" style="--i:30">
+      The result is a streaming reduction &mdash; rows flow through the post-processing
+      middleware as transducers, so Metabase never holds the entire result set in memory.
+      The <code>rff</code> (reducing function function) pattern lets each middleware layer
+      transform rows one at a time.
+    </p>
+
+    <!-- ========== SECTION 7: PERFORMANCE ========== -->
+    <div id="s7" class="sec-head sec-head--pre animate" style="--i:31">7 &mdash; Performance: 10M Rows, LIMIT 1</div>
+
+    <p class="prose animate" style="--i:32">
+      What happens when Card A selects from a table with 10 million rows, and Card B
+      is based on Card A with <code>LIMIT 1</code>? The compiled SQL is:
+    </p>
+
+    <div class="sql-output animate" style="--i:33">
+      <div class="sql-output-header">The 10M Row Scenario</div>
+      <pre><span class="sql-kw">SELECT</span> *
+<span class="sql-kw">FROM</span> (
+  <span class="sql-comment">-- Card A: no limit here! Full 10M row table.</span>
+  <span class="sql-kw">SELECT</span> * <span class="sql-kw">FROM</span> <span class="sql-str">"PUBLIC"</span>.<span class="sql-str">"BIG_TABLE"</span>
+) <span class="sql-kw">AS</span> <span class="sql-alias">"source"</span>
+<span class="sql-kw">LIMIT</span> <span class="sql-str">1</span></pre>
+    </div>
+
+    <p class="prose animate" style="--i:34">
+      The <code>LIMIT</code> does <strong>not</strong> propagate into the subquery &mdash; it only
+      appears on the outer <code>SELECT</code>. So how does this stay fast? There are
+      <strong>three layers of defense</strong>, from the database all the way up to Clojure transducers.
+    </p>
+
+    <div class="mermaid-wrap animate" style="--i:35">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+graph TD
+  subgraph layer1 ["Layer 1: Database Query Optimizer"]
+    DB1["DB sees outer LIMIT 1"]
+    DB2["Optimizer pushes limit<br/>into execution plan"]
+    DB3["Inner scan stops after<br/>1 row is produced"]
+    DB1 --> DB2 --> DB3
+  end
+
+  subgraph layer2 ["Layer 2: JDBC Streaming"]
+    J1["TYPE_FORWARD_ONLY cursor"]
+    J2["Configurable fetch-size<br/>via sql-jdbc-fetch-size"]
+    J3["Rows fetched in batches,<br/>not all at once"]
+    J1 --> J2 --> J3
+  end
+
+  subgraph layer3 ["Layer 3: Clojure Transducers"]
+    T1["limit-result-rows uses<br/>take transducer"]
+    T2["After 1 row, returns<br/>reduced to signal done"]
+    T3["reducible-rows loop<br/>checks reduced? each row"]
+    T4["Loop exits, Statement<br/>is canceled"]
+    T1 --> T2 --> T3 --> T4
+  end
+
+  layer1 -.->|"rows stream<br/>over JDBC"| layer2
+  layer2 -.->|"rows flow into<br/>transducer chain"| layer3
+
+  classDef dbLayer fill:#05966922,stroke:#059669,stroke-width:1.5px
+  classDef jdbcLayer fill:#0891b222,stroke:#0891b2,stroke-width:1.5px
+  classDef cljLayer fill:#7c3aed22,stroke:#7c3aed,stroke-width:1.5px
+
+  class DB1,DB2,DB3 dbLayer
+  class J1,J2,J3 jdbcLayer
+  class T1,T2,T3,T4 cljLayer
+      </pre>
+    </div>
+
+    <div class="callout callout--pre animate" style="--i:36">
+      <strong>Layer 1 &mdash; Database optimizer.</strong>
+      Most databases (Postgres, MySQL, SQL Server, etc.) are smart enough to recognize
+      <code>SELECT * FROM (...) LIMIT 1</code> and stop the inner scan after producing
+      one row. The subquery never materializes all 10M rows. This is the primary
+      performance guarantee &mdash; the database does the heavy lifting.
+    </div>
+
+    <div class="callout callout--compile animate" style="--i:37">
+      <strong>Layer 2 &mdash; JDBC streaming.</strong>
+      Even if the database sends more data than expected, the JDBC driver in
+      <code>sql_jdbc/execute.clj</code> uses <code>ResultSet.TYPE_FORWARD_ONLY</code>
+      with a configurable <code>fetchSize</code>. Rows arrive in small batches rather
+      than being buffered entirely in memory. The connection is set to read-only
+      with auto-commit enabled to avoid holding transactions open.
+    </div>
+
+    <div class="callout callout--card animate" style="--i:38">
+      <strong>Layer 3 &mdash; Transducer early termination.</strong>
+      The <code>limit-result-rows</code> post-processing middleware wraps the reducing
+      function with Clojure&rsquo;s <code>(take n)</code> transducer. After receiving 1 row,
+      <code>take</code> returns <code>(reduced acc)</code>. The <code>reducible-rows</code>
+      loop in <code>reducible.clj</code> checks <code>reduced?</code> on every iteration
+      and exits immediately. The JDBC <code>Statement</code> is then canceled to tell the
+      database to stop working.
+    </div>
+
+    <p class="prose animate" style="--i:39">
+      Here&rsquo;s the actual code flow that makes early termination work:
+    </p>
+
+    <div class="mermaid-wrap animate" style="--i:40">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+sequenceDiagram
+  participant QP as Query Processor
+  participant LIM as limit-result-rows
+  participant RED as reducible-rows loop
+  participant JDBC as JDBC ResultSet
+  participant DB as Database
+
+  QP->>DB: Execute SQL with LIMIT 1
+  DB-->>JDBC: Open cursor
+  QP->>RED: Start transduce
+  RED->>JDBC: Fetch row 1
+  JDBC-->>RED: Row data
+  RED->>LIM: rf(acc, row)
+  Note over LIM: take(1) counts down
+  LIM-->>RED: reduced(acc)
+  Note over RED: reduced? = true
+  RED-->>QP: Return result
+  QP->>JDBC: Statement.cancel()
+  Note over DB: Database stops work
+      </pre>
+    </div>
+
+    <details class="collapsible animate" style="--i:41">
+      <summary>Default row limits by context</summary>
+      <div class="collapsible__body">
+        <p style="margin-bottom: 12px;">
+          Metabase adds default limits via <code>constraints.clj</code> even when the user
+          doesn&rsquo;t specify one. These are the &ldquo;userland constraints&rdquo;:
+        </p>
+        <ul class="step-list" style="line-height: 2.4;">
+          <li><strong>Unaggregated queries:</strong> <code>2,000</code> rows (browsing a table)</li>
+          <li><strong>Aggregated queries:</strong> <code>10,000</code> rows (grouped results)</li>
+          <li><strong>Downloads:</strong> Configurable via <code>download-row-limit</code> setting</li>
+          <li><strong>Subscriptions:</strong> Configurable via <code>attachment-row-limit</code> setting</li>
+          <li><strong>Absolute maximum:</strong> <code>1,048,576</code> rows (Excel sheet limit)</li>
+        </ul>
+        <p style="margin-top: 12px;">
+          The effective limit is always the <strong>minimum</strong> of the user&rsquo;s explicit limit,
+          the context-specific limit, and the absolute max. Computed by
+          <code>determine-query-max-rows</code> in <code>limit.clj</code>.
+        </p>
+      </div>
+    </details>
+
+    <details class="collapsible animate" style="--i:42">
+      <summary>What about persisted models?</summary>
+      <div class="collapsible__body">
+        <p>
+          If Card A is a <strong>persisted model</strong> (materialized to a real table via
+          <code>substitute-persisted-query</code> middleware), the subquery is replaced with a
+          direct <code>SELECT</code> from the cached table. The SQL becomes
+          <code>SELECT * FROM "metabase_cache_abcdef" LIMIT 1</code> &mdash; no subquery at all.
+          This is the fastest path for frequently-used base models.
+        </p>
+      </div>
+    </details>
+
+    <!-- ========== SECTION 8: FILE MAP ========== -->
+    <div id="s8" class="sec-head sec-head--post animate" style="--i:43">8 &mdash; File Map</div>
+
+    <details class="collapsible animate" style="--i:32" open>
+      <summary>Critical source files</summary>
+      <div class="collapsible__body">
+        <ul class="step-list" style="line-height: 2.2;">
+          <li><code>src/metabase/query_processor.clj</code> &mdash; entry point, around-middleware</li>
+          <li><code>src/metabase/query_processor/preprocess.clj</code> &mdash; 43-step preprocessing chain</li>
+          <li><code>src/metabase/query_processor/compile.clj</code> &mdash; compile coordination</li>
+          <li><code>src/metabase/query_processor/execute.clj</code> &mdash; execution middleware</li>
+          <li><code>src/metabase/query_processor/postprocess.clj</code> &mdash; result post-processing</li>
+          <li><code>src/metabase/query_processor/middleware/fetch_source_query.clj</code> &mdash; <strong>card resolution</strong></li>
+          <li><code>src/metabase/driver/sql/query_processor.clj</code> &mdash; <strong>MBQL &rarr; HoneySQL &rarr; SQL</strong></li>
+          <li><code>src/metabase/query_processor/middleware/permissions.clj</code> &mdash; permission checks</li>
+          <li><code>src/metabase/query_processor/middleware/limit.clj</code> &mdash; <strong>limit &amp; early termination</strong></li>
+          <li><code>src/metabase/query_processor/middleware/constraints.clj</code> &mdash; default row limits</li>
+          <li><code>src/metabase/query_processor/reducible.clj</code> &mdash; <strong>streaming reducible-rows</strong></li>
+          <li><code>src/metabase/query_processor/pipeline.clj</code> &mdash; transduce execution pipeline</li>
+          <li><code>src/metabase/driver/sql_jdbc/execute.clj</code> &mdash; <strong>JDBC streaming config</strong></li>
+          <li><code>src/metabase/query_processor/util/nest_query.clj</code> &mdash; expression nesting</li>
+        </ul>
+      </div>
+    </details>
+
+  </div><!-- /main -->
+</div><!-- /wrap -->
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  mermaid.registerLayoutLoaders(elkLayouts);
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    look: 'classic',
+    layout: 'elk',
+    themeVariables: {
+      primaryColor: isDark ? '#2e2720' : '#f3f1ec',
+      primaryBorderColor: isDark ? '#a78bfa' : '#7c3aed',
+      primaryTextColor: isDark ? '#f5f0eb' : '#1c1917',
+      secondaryColor: isDark ? '#1a2e28' : '#ecfdf5',
+      secondaryBorderColor: isDark ? '#34d399' : '#059669',
+      secondaryTextColor: isDark ? '#f5f0eb' : '#1c1917',
+      tertiaryColor: isDark ? '#2e2318' : '#fef3c7',
+      tertiaryBorderColor: isDark ? '#fbbf24' : '#d97706',
+      tertiaryTextColor: isDark ? '#f5f0eb' : '#1c1917',
+      lineColor: isDark ? '#a8a29e' : '#78716c',
+      fontSize: '14px',
+      fontFamily: "'JetBrains Mono', 'SF Mono', Consolas, monospace",
+      noteBkgColor: isDark ? '#2e2720' : '#fefce8',
+      noteTextColor: isDark ? '#f5f0eb' : '#1c1917',
+      noteBorderColor: isDark ? '#fbbf24' : '#d97706',
+    }
+  });
+</script>
+<script>
+  function updateZoomState(wrap) {
+    var target = wrap.querySelector('.mermaid');
+    var zoom = parseFloat(target.dataset.zoom || '1');
+    wrap.classList.toggle('is-zoomed', zoom > 1);
+  }
+
+  function zoomDiagram(btn, factor) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    var current = parseFloat(target.dataset.zoom || '1');
+    var next = Math.min(Math.max(current * factor, 0.3), 5);
+    target.dataset.zoom = next;
+    target.style.transform = 'scale(' + next + ')';
+    updateZoomState(wrap);
+  }
+
+  function resetZoom(btn) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    target.dataset.zoom = '1';
+    target.style.transform = 'scale(1)';
+    updateZoomState(wrap);
+  }
+
+  document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+    wrap.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      var target = wrap.querySelector('.mermaid');
+      var current = parseFloat(target.dataset.zoom || '1');
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var next = Math.min(Math.max(current * factor, 0.3), 5);
+      target.dataset.zoom = next;
+      target.style.transform = 'scale(' + next + ')';
+      updateZoomState(wrap);
+    }, { passive: false });
+
+    var startX, startY, scrollL, scrollT;
+    wrap.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.zoom-controls')) return;
+      var target = wrap.querySelector('.mermaid');
+      if (parseFloat(target.dataset.zoom || '1') <= 1) return;
+      wrap.classList.add('is-panning');
+      startX = e.clientX;
+      startY = e.clientY;
+      scrollL = wrap.scrollLeft;
+      scrollT = wrap.scrollTop;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!wrap.classList.contains('is-panning')) return;
+      wrap.scrollLeft = scrollL - (e.clientX - startX);
+      wrap.scrollTop = scrollT - (e.clientY - startY);
+    });
+    window.addEventListener('mouseup', function() {
+      wrap.classList.remove('is-panning');
+    });
+  });
+
+  // Scroll spy for TOC
+  (function() {
+    const toc = document.getElementById('toc');
+    const links = toc.querySelectorAll('a');
+    const sections = [];
+
+    links.forEach(link => {
+      const id = link.getAttribute('href').slice(1);
+      const el = document.getElementById(id);
+      if (el) sections.push({ id, el, link });
+    });
+
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          links.forEach(l => l.classList.remove('active'));
+          const match = sections.find(s => s.el === entry.target);
+          if (match) {
+            match.link.classList.add('active');
+            if (window.innerWidth <= 1000) {
+              match.link.scrollIntoView({
+                behavior: 'smooth', block: 'nearest', inline: 'center'
+              });
+            }
+          }
+        }
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+
+    sections.forEach(s => observer.observe(s.el));
+
+    links.forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        const id = link.getAttribute('href').slice(1);
+        const el = document.getElementById(id);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          history.replaceState(null, '', '#' + id);
+        }
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>

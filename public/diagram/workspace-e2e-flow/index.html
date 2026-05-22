@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>workspace-full-e2e-test — flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700;9..144,900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ============ THEME (paper / ink — warm cream) ============ */
+  :root {
+    --font-body: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #f5efe1;
+    --surface: #fbf6e9;
+    --surface2: #ede2c4;
+    --border: rgba(60, 40, 20, 0.12);
+    --border-bright: rgba(60, 40, 20, 0.22);
+    --text: #2b1d12;
+    --text-dim: #6c5942;
+
+    --primary: #7b3f00;       /* burnt sienna — setup steps */
+    --primary-dim: rgba(123, 63, 0, 0.10);
+    --secondary: #2e6b4a;     /* moss — assertions */
+    --secondary-dim: rgba(46, 107, 74, 0.10);
+    --tertiary: #b08300;      /* mustard — provisioning */
+    --tertiary-dim: rgba(176, 131, 0, 0.10);
+    --quaternary: #5a3a8a;    /* aubergine — transform / action */
+    --quaternary-dim: rgba(90, 58, 138, 0.10);
+    --danger: #a83232;        /* brick — teardown / failure */
+    --danger-dim: rgba(168, 50, 50, 0.10);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1410;
+      --surface: #221a14;
+      --surface2: #2c2218;
+      --border: rgba(245, 240, 220, 0.10);
+      --border-bright: rgba(245, 240, 220, 0.22);
+      --text: #f3e9d2;
+      --text-dim: #b3a386;
+
+      --primary: #e29a4d;
+      --primary-dim: rgba(226, 154, 77, 0.14);
+      --secondary: #84c9a3;
+      --secondary-dim: rgba(132, 201, 163, 0.14);
+      --tertiary: #f0c652;
+      --tertiary-dim: rgba(240, 198, 82, 0.14);
+      --quaternary: #b89bdb;
+      --quaternary-dim: rgba(184, 155, 219, 0.14);
+      --danger: #e57b7b;
+      --danger-dim: rgba(229, 123, 123, 0.14);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(176,131,0,0.07), transparent 40%),
+      radial-gradient(circle at 85% 92%, rgba(90,58,138,0.06), transparent 45%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 56px 40px;
+    min-height: 100vh;
+    line-height: 1.55;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate { animation: fadeUp 0.45s ease-out both; animation-delay: calc(var(--i, 0) * 0.07s); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  h1 {
+    font-family: var(--font-body);
+    font-weight: 900;
+    font-size: 56px;
+    letter-spacing: -1.5px;
+    line-height: 1.02;
+    margin-bottom: 14px;
+    text-wrap: balance;
+    font-variation-settings: "opsz" 144;
+  }
+
+  h1 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--quaternary);
+  }
+
+  .lede {
+    font-size: 18px;
+    color: var(--text-dim);
+    margin-bottom: 38px;
+    max-width: 760px;
+    text-wrap: pretty;
+  }
+
+  .lede code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: var(--primary-dim);
+    color: var(--primary);
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  .stage-group {
+    margin-bottom: 30px;
+  }
+
+  .stage-title {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .stage-title strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .mermaid-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 36px 24px 28px;
+    overflow: auto;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 0 var(--border), 4px 4px 0 var(--surface2);
+  }
+
+  .mermaid-wrap .mermaid {
+    display: flex;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    transform-origin: top center;
+  }
+
+  .zoom-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 2px;
+    z-index: 10;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 2px;
+  }
+
+  .zoom-controls button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .zoom-controls button:hover { background: var(--border); color: var(--text); }
+
+  .mermaid-wrap { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  .mermaid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .mermaid-wrap::-webkit-scrollbar-track { background: transparent; }
+  .mermaid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .mermaid-wrap::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+  .mermaid-wrap.is-zoomed { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+  .mermaid .nodeLabel {
+    font-family: var(--font-mono) !important;
+    font-size: 13px !important;
+  }
+  .mermaid .edgeLabel {
+    font-family: var(--font-mono) !important;
+    font-size: 11px !important;
+  }
+  .mermaid .node rect,
+  .mermaid .node circle,
+  .mermaid .node polygon,
+  .mermaid .node path {
+    stroke-width: 1.5px !important;
+  }
+
+  .legend {
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+    padding: 16px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 36px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .legend-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    border: 1px solid var(--border-bright);
+  }
+
+  .narrative {
+    columns: 2 320px;
+    column-gap: 36px;
+    margin-bottom: 40px;
+  }
+
+  .narrative h2 {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 22px;
+    margin-top: 18px;
+    margin-bottom: 8px;
+    letter-spacing: -0.4px;
+    break-after: avoid;
+  }
+
+  .narrative h2:first-child { margin-top: 0; }
+
+  .narrative p {
+    font-size: 15px;
+    color: var(--text);
+    margin-bottom: 12px;
+    text-wrap: pretty;
+  }
+
+  .narrative p code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--secondary);
+    background: var(--secondary-dim);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+
+  .narrative h2 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-left: 10px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+    vertical-align: middle;
+  }
+
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--quaternary);
+    border-radius: 0 4px 4px 0;
+    padding: 18px 22px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-dim);
+  }
+
+  .callout strong { color: var(--text); }
+  .callout code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--quaternary-dim);
+    color: var(--quaternary);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+
+  hr.rule {
+    border: 0;
+    border-top: 1px solid var(--border-bright);
+    margin: 40px 0 28px;
+  }
+
+  @media (max-width: 768px) {
+    body { padding: 24px 16px; }
+    h1 { font-size: 36px; }
+    .lede { font-size: 16px; }
+    .narrative { columns: 1; }
+    .mermaid-wrap { padding: 20px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="eyebrow animate" style="--i:0">enterprise/backend/test/metabase_enterprise/workspaces/e2e_test.clj</div>
+  <h1 class="animate" style="--i:1">workspace-full-e2e-test &mdash; <em>what it does</em></h1>
+  <p class="lede animate" style="--i:2">
+    Stands up a real warehouse + Metabase Database, provisions an isolated workspace,
+    runs a transform whose target gets rewritten to the isolation schema, then asserts
+    that the canonical input schema is the only thing visible from Metabase&rsquo;s perspective.
+    Runs once per driver in <code>workspaces-supported-dwh-drivers</code>.
+  </p>
+
+  <div class="legend animate" style="--i:3">
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--primary)"></div> setup &middot; warehouse DDL</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--tertiary)"></div> provisioning &middot; YAML loader</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--quaternary)"></div> action &middot; transform run</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--secondary)"></div> assertions</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--danger)"></div> teardown</div>
+  </div>
+
+  <div class="stage-group animate" style="--i:4">
+    <div class="stage-title"><strong>The flow</strong> &middot; setup &rarr; provision &rarr; load YAML &rarr; transform &rarr; assert &rarr; teardown</div>
+
+    <div class="mermaid-wrap">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+graph TD
+  START([test-drivers loop: pick driver])
+  START --> S1
+
+  subgraph SETUP[" 1. SETUP &middot; warehouse DDL via admin-spec "]
+    S1[create canonical schema<br/>canonical_schema_&lt;run-id&gt;]
+    S2[create source table<br/>id, v with rows 1a 2b 3c]
+    S3[create OUTPUT table pre-seeded<br/>rows 99 pre-existing, 98 still-pre-existing]
+    S4{{warehouse SELECT 1<br/>sanity check}}
+    S1 --> S2 --> S3 --> S4
+  end
+
+  S4 --> P1
+
+  subgraph PROVISION[" 2. PROVISION &middot; workspace + isolation schema "]
+    P1[mt/with-temp Database ws-db<br/>admin creds]
+    P2[ws/create-workspace!]
+    P3[ws/add-database!<br/>calls init-workspace-isolation!]
+    P4[driver creates iso schema, role, user<br/>writes :output_schema and :database_details]
+    P5{{assert :status = :provisioned<br/>:output_schema non-empty}}
+    P1 --> P2 --> P3 --> P4 --> P5
+  end
+
+  P5 --> Y1
+
+  subgraph YAML[" 3. CONFIG.YML &middot; round-trip + initialize! "]
+    Y1[build-workspace-config<br/>returns :databases + :workspace map]
+    Y2[generate-string &rarr; parse-string<br/>collapses keywords to strings]
+    Y3[bind advanced-config.file/*config*<br/>and call initialize!]
+    Y4[loader rewrites Database :details<br/>to workspace-user creds]
+    Y5[apply-workspace-section!<br/>populates ws/workspace-instance-config atom]
+    Y6{{assert ws/workspace-mode? = true<br/>and :db slot preserved on Database}}
+    Y1 --> Y2 --> Y3 --> Y4 --> Y5 --> Y6
+  end
+
+  Y6 --> A1
+
+  subgraph ACTION[" 4. ACTION &middot; sync + run transform "]
+    A1[mt/with-db ws-db<br/>sync-database! :scan :schema]
+    A2[assert sync surfaced canonical src-name<br/>under tbl-schema]
+    A3[mt/with-temp Transform<br/>target = canonical main-schema . output-table-name]
+    A4[transforms.execute/execute!<br/>:run-method :manual]
+    A5[transform-hook rewrites :schema<br/>to isolation-schema before dispatch]
+    A6[transform writes rows 1a 2b 3c<br/>to ISO output table]
+    A1 --> A2 --> A3 --> A4 --> A5 --> A6
+  end
+
+  A6 --> V1
+
+  subgraph VERIFY[" 5. ASSERT &middot; remap engaged + canonical untouched "]
+    V1[Table rows confined to input schema<br/>no app-db Table at iso schema]
+    V2[TableRemapping row exists<br/>from main_schema -> iso schema]
+    V3[describe-database returns<br/>only input-schema tables]
+    V4[Card MBQL query on canonical name<br/>returns 1a 2b 3c via remap]
+    V5[Card native SELECT on iso schema<br/>returns 1a 2b 3c directly]
+    V6[Card native SELECT on canonical schema<br/>returns 1a 2b 3c via remap]
+    V7[admin-spec direct SELECT canonical<br/>still has 99 98 pre-existing]
+    V8[final Table-rows check after card runs<br/>still no iso leak]
+    V1 --> V2 --> V3 --> V4 --> V5 --> V6 --> V7 --> V8
+  end
+
+  V8 --> T1
+
+  subgraph TEARDOWN[" 6. TEARDOWN &middot; finally "]
+    T1[ws/clear-instance-workspace!]
+    T2[restore admin :details on Database<br/>destroy needs admin privs]
+    T3[ws/delete-workspace!<br/>deprovision-workspace! &rarr; destroy-workspace-isolation!]
+    T4[mt/with-temp Database cleanup<br/>before-delete refuses if WSD provisioned]
+    T5[drop-canonical-schema!<br/>outer finally]
+    T1 --> T2 --> T3 --> T4 --> T5
+  end
+
+  T5 --> END([next driver])
+
+  classDef setupCls fill:#fde7d3,stroke:#7b3f00,color:#2b1d12;
+  classDef provCls  fill:#fbedc4,stroke:#b08300,color:#2b1d12;
+  classDef yamlCls  fill:#fbedc4,stroke:#b08300,color:#2b1d12;
+  classDef actCls   fill:#e8def4,stroke:#5a3a8a,color:#2b1d12;
+  classDef verCls   fill:#dcebe2,stroke:#2e6b4a,color:#2b1d12;
+  classDef tearCls  fill:#f3d6d6,stroke:#a83232,color:#2b1d12;
+  classDef ioCls    fill:#fbf6e9,stroke:#6c5942,color:#2b1d12,stroke-dasharray: 4 3;
+
+  class S1,S2,S3 setupCls
+  class P1,P2,P3,P4 provCls
+  class Y1,Y2,Y3,Y4,Y5 yamlCls
+  class A1,A2,A3,A4,A5,A6 actCls
+  class V1,V2,V3,V4,V5,V6,V7,V8 verCls
+  class T1,T2,T3,T4,T5 tearCls
+  class S4,P5,Y6 ioCls
+      </pre>
+    </div>
+  </div>
+
+  <hr class="rule">
+
+  <div class="narrative animate" style="--i:5">
+
+    <h2>Why this test exists <em>the &ldquo;lie&rdquo; model</em></h2>
+    <p>
+      Workspace mode says: <code>:model/Table</code> rows always live at the canonical
+      identity (e.g. <code>main_schema.orders</code>); isolation is a physical-storage
+      detail revealed only at driver-call boundaries. Sync, describe-database, and
+      the data-picker all see the canonical names. The <em>warehouse</em> sees the
+      remapped <code>iso.orders</code>.
+    </p>
+    <p>
+      A driver can break this in dozens of subtle ways: leaking the iso schema into
+      <code>:model/Table</code>, retiring canonical Tables that have no warehouse
+      backing, populating the iso DB into <code>:db</code> on the connection. The
+      e2e flexes every layer at once so any leak shows up as a single red assertion.
+    </p>
+
+    <h2>The transform redirect <em>load-bearing</em></h2>
+    <p>
+      The transform&rsquo;s <code>:target</code> points at the canonical
+      <code>main_schema.output-table-name</code>. The workspace transform-hook
+      rewrites <code>:schema</code> to the isolation schema before dispatch. So
+      the warehouse sees <code>INSERT INTO iso.&lt;name&gt;</code>; the app-db
+      <code>:model/Table</code> stays at <code>(main-schema, name)</code>.
+    </p>
+    <p>
+      The pre-seeded canonical output table is the trap. It exists with rows
+      <code>(99 pre-existing) (98 still-pre-existing)</code>. If the redirect
+      ever fails, the transform overwrites those rows. The final
+      <code>admin-spec</code> SELECT proves it didn&rsquo;t.
+    </p>
+
+    <h2>What each Card asserts <em>three angles</em></h2>
+    <p>
+      <strong>MBQL on canonical Table id</strong> &mdash; routes through the QP
+      and the workspace remap middleware. Returns the iso rows.
+    </p>
+    <p>
+      <strong>Native on iso schema</strong> &mdash; user typed the iso name
+      themselves; the QP shouldn&rsquo;t touch it. Returns the iso rows.
+    </p>
+    <p>
+      <strong>Native on canonical schema</strong> &mdash; user typed the
+      canonical name; the SQL rewriter swaps it. Returns the iso rows.
+    </p>
+
+    <h2>Cleanup ordering <em>fragile but correct</em></h2>
+    <p>
+      The inner <code>finally</code> at <code>e2e_test.clj:490</code> does three
+      things in order: clear the workspace atom, restore admin creds on
+      <code>:model/Database</code>, then call <code>ws/delete-workspace!</code>.
+      Restoring admin creds is critical &mdash; the loader rewrote
+      <code>:details</code> to workspace-user creds, but
+      <code>destroy-workspace-isolation!</code> needs admin to drop the iso
+      role and user. Skip this step and the destroy throws, the WSD stays
+      provisioned, and <code>mt/with-temp</code>&rsquo;s Database delete
+      throws because of the <code>:model/Database</code> before-delete hook.
+    </p>
+
+  </div>
+
+  <div class="callout animate" style="--i:6">
+    <strong>Why it&rsquo;s a single deftest, not split.</strong>
+    The provisioning state and the workspace-instance-config atom are both
+    process-wide; splitting the test into smaller deftests would force each
+    to redo the full <code>initialize!</code> + provision dance, multiplying
+    runtime against the warehouse. <code>^:synchronized</code> protects the
+    atom from cross-test pollution within the JVM. The driver loop
+    (<code>mt/test-drivers</code>) is the only thing that runs the body
+    multiple times.
+  </div>
+
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  mermaid.registerLayoutLoaders(elkLayouts);
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    look: 'classic',
+    layout: 'elk',
+    themeVariables: {
+      primaryColor:        isDark ? '#2c2218' : '#fbf6e9',
+      primaryBorderColor:  isDark ? '#b3a386' : '#6c5942',
+      primaryTextColor:    isDark ? '#f3e9d2' : '#2b1d12',
+      lineColor:           isDark ? '#b3a386' : '#6c5942',
+      fontSize:            '13px',
+      fontFamily:          "'JetBrains Mono', 'SF Mono', Consolas, monospace",
+      clusterBkg:          isDark ? '#1a1410' : '#f5efe1',
+      clusterBorder:       isDark ? '#5a4a36' : '#b3a386',
+      titleColor:          isDark ? '#f3e9d2' : '#2b1d12',
+    }
+  });
+</script>
+<script>
+  function updateZoomState(wrap) {
+    var target = wrap.querySelector('.mermaid');
+    var zoom = parseFloat(target.dataset.zoom || '1');
+    wrap.classList.toggle('is-zoomed', zoom > 1);
+  }
+  function zoomDiagram(btn, factor) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    var current = parseFloat(target.dataset.zoom || '1');
+    var next = Math.min(Math.max(current * factor, 0.3), 5);
+    target.dataset.zoom = next;
+    target.style.transform = 'scale(' + next + ')';
+    updateZoomState(wrap);
+  }
+  function resetZoom(btn) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    target.dataset.zoom = '1';
+    target.style.transform = 'scale(1)';
+    updateZoomState(wrap);
+  }
+  document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+    wrap.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      var target = wrap.querySelector('.mermaid');
+      var current = parseFloat(target.dataset.zoom || '1');
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var next = Math.min(Math.max(current * factor, 0.3), 5);
+      target.dataset.zoom = next;
+      target.style.transform = 'scale(' + next + ')';
+      updateZoomState(wrap);
+    }, { passive: false });
+    var startX, startY, scrollL, scrollT;
+    wrap.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.zoom-controls')) return;
+      var target = wrap.querySelector('.mermaid');
+      if (parseFloat(target.dataset.zoom || '1') <= 1) return;
+      wrap.classList.add('is-panning');
+      startX = e.clientX; startY = e.clientY;
+      scrollL = wrap.scrollLeft; scrollT = wrap.scrollTop;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!wrap.classList.contains('is-panning')) return;
+      wrap.scrollLeft = scrollL - (e.clientX - startX);
+      wrap.scrollTop = scrollT - (e.clientY - startY);
+    });
+    window.addEventListener('mouseup', function() {
+      wrap.classList.remove('is-panning');
+    });
+  });
+</script>
+
+</body>
+</html>

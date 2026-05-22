@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Field Ref Normalization — Force Name-Based, Then Re-Resolve</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Fraunces', Georgia, serif;
+    --font-mono: 'Source Code Pro', 'SF Mono', Consolas, monospace;
+
+    --bg: #faf8f5;
+    --surface: #ffffff;
+    --surface2: #f3f0eb;
+    --border: rgba(0, 0, 0, 0.08);
+    --border-bright: rgba(0, 0, 0, 0.15);
+    --text: #2c1810;
+    --text-dim: #8b7355;
+
+    --accent: #b57614;
+    --accent-dim: rgba(181, 118, 20, 0.08);
+    --green: #427b58;
+    --green-dim: rgba(66, 123, 88, 0.08);
+    --red: #9d0006;
+    --red-dim: rgba(157, 0, 6, 0.08);
+    --blue: #076678;
+    --blue-dim: rgba(7, 102, 120, 0.08);
+    --purple: #8f3f71;
+    --purple-dim: rgba(143, 63, 113, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1d2021;
+      --surface: #282828;
+      --surface2: #3c3836;
+      --border: rgba(255, 255, 255, 0.07);
+      --border-bright: rgba(255, 255, 255, 0.14);
+      --text: #ebdbb2;
+      --text-dim: #a89984;
+
+      --accent: #fabd2f;
+      --accent-dim: rgba(250, 189, 47, 0.12);
+      --green: #b8bb26;
+      --green-dim: rgba(184, 187, 38, 0.12);
+      --red: #fb4934;
+      --red-dim: rgba(251, 73, 52, 0.12);
+      --blue: #83a598;
+      --blue-dim: rgba(131, 165, 152, 0.12);
+      --purple: #d3869b;
+      --purple-dim: rgba(211, 134, 155, 0.12);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--bg);
+    background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+    background-size: 20px 20px;
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate { animation: fadeUp 0.4s ease-out both; animation-delay: calc(var(--i, 0) * 0.06s); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; transition-duration: 0.01ms !important; }
+    .mermaid-wrap .mermaid { transition: none; }
+  }
+
+  .container { max-width: 960px; margin: 0 auto; }
+
+  h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 6px; text-wrap: balance; }
+  .subtitle { color: var(--text-dim); font-family: var(--font-mono); font-size: 12px; margin-bottom: 36px; }
+
+  h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+
+  .badge {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    padding: 3px 9px; border-radius: 6px; letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .badge-problem { background: var(--red-dim); color: var(--red); }
+  .badge-algo { background: var(--green-dim); color: var(--green); }
+  .badge-force { background: var(--accent-dim); color: var(--accent); }
+  .badge-code { background: var(--purple-dim); color: var(--purple); }
+  .badge-why { background: var(--blue-dim); color: var(--blue); }
+
+  .description {
+    font-size: 15px; line-height: 1.8; color: var(--text-dim);
+    margin-bottom: 20px; max-width: 720px;
+  }
+  .description strong { color: var(--text); }
+  .description code {
+    font-family: var(--font-mono); font-size: 12px;
+    background: var(--accent-dim); color: var(--accent);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  .section { margin-bottom: 44px; }
+
+  /* Mermaid */
+  .mermaid-wrap {
+    position: relative; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 32px 24px; overflow: auto; margin-bottom: 16px;
+    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  }
+  .mermaid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .mermaid-wrap::-webkit-scrollbar-track { background: transparent; }
+  .mermaid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .mermaid-wrap .mermaid {
+    display: flex; justify-content: center;
+    transition: transform 0.2s ease; transform-origin: top center;
+  }
+  .zoom-controls {
+    position: absolute; top: 8px; right: 8px;
+    display: flex; gap: 2px; z-index: 10;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 2px;
+  }
+  .zoom-controls button {
+    width: 28px; height: 28px; border: none; background: transparent;
+    color: var(--text-dim); font-family: var(--font-mono); font-size: 14px;
+    cursor: pointer; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .zoom-controls button:hover { background: var(--border); color: var(--text); }
+  .mermaid-wrap.is-zoomed { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+  .mermaid .nodeLabel { font-family: var(--font-mono) !important; font-size: 13px !important; color: var(--text) !important; }
+  .mermaid .edgeLabel { font-family: var(--font-mono) !important; font-size: 11px !important; color: var(--text-dim) !important; background-color: var(--surface) !important; }
+  .mermaid .edgeLabel rect { fill: var(--surface) !important; }
+  .mermaid .node rect, .mermaid .node circle, .mermaid .node polygon { stroke-width: 1.5px !important; }
+  .mermaid .edge-pattern-solid { stroke-width: 1.5px !important; }
+
+  /* Code block */
+  .code-block {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden; margin-bottom: 16px;
+  }
+  .code-header {
+    background: var(--surface2); padding: 10px 16px;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--text-dim); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .code-header::before { content: ''; width: 8px; height: 8px; border-radius: 50%; }
+  .code-header.ch-blue::before { background: var(--blue); }
+  .code-header.ch-green::before { background: var(--green); }
+  .code-header.ch-amber::before { background: var(--accent); }
+  .code-header.ch-purple::before { background: var(--purple); }
+  .code-header.ch-red::before { background: var(--red); }
+  .code-body {
+    padding: 16px 20px; font-family: var(--font-mono); font-size: 12.5px;
+    line-height: 1.7; overflow-x: auto; white-space: pre; color: var(--text);
+  }
+  .code-body .cm { color: var(--text-dim); }
+  .code-body .kw { color: var(--purple); }
+  .code-body .fn { color: var(--blue); }
+  .code-body .sp { color: var(--accent); }
+  .code-body .hl {
+    background: var(--accent-dim); display: inline-block;
+    width: calc(100% + 40px); margin: 0 -20px; padding: 0 20px;
+  }
+  .code-body .hl-green {
+    background: var(--green-dim); display: inline-block;
+    width: calc(100% + 40px); margin: 0 -20px; padding: 0 20px;
+  }
+  .code-body .hl-blue {
+    background: var(--blue-dim); display: inline-block;
+    width: calc(100% + 40px); margin: 0 -20px; padding: 0 20px;
+  }
+  .code-body .hl-red {
+    background: var(--red-dim); display: inline-block;
+    width: calc(100% + 40px); margin: 0 -20px; padding: 0 20px;
+  }
+
+  /* Callout */
+  .callout {
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0;
+    padding: 16px 20px; font-size: 14px; line-height: 1.7; color: var(--text-dim);
+    margin-top: 20px;
+  }
+  .callout strong { color: var(--text); }
+  .callout code {
+    font-family: var(--font-mono); font-size: 11px;
+    background: var(--accent-dim); color: var(--accent);
+    padding: 1px 5px; border-radius: 3px;
+  }
+  .callout.callout-green { border-left-color: var(--green); }
+  .callout.callout-blue { border-left-color: var(--blue); }
+  .callout.callout-red { border-left-color: var(--red); }
+
+  /* Table */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 1.5; }
+  .data-table thead { position: sticky; top: 0; z-index: 2; }
+  .data-table th {
+    background: var(--surface2); font-family: var(--font-mono);
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-dim); text-align: left;
+    padding: 12px 16px; border-bottom: 2px solid var(--border-bright); white-space: nowrap;
+  }
+  .data-table td {
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+    vertical-align: middle; color: var(--text);
+  }
+  .data-table tbody tr:nth-child(even) { background: var(--accent-dim); }
+  .data-table tbody tr { transition: background 0.15s ease; }
+  .data-table tbody tr:hover { background: var(--border); }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table code {
+    font-family: var(--font-mono); font-size: 11px;
+    background: var(--accent-dim); color: var(--accent);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  .tag {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+    padding: 2px 8px; border-radius: 4px; white-space: nowrap;
+  }
+  .tag-name { background: var(--purple-dim); color: var(--purple); }
+  .tag-id { background: var(--accent-dim); color: var(--accent); }
+  .tag-ok { background: var(--green-dim); color: var(--green); }
+  .tag-fail { background: var(--red-dim); color: var(--red); }
+
+  /* Option cards */
+  .options-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  }
+  .options-grid > * { min-width: 0; }
+  .option-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; transition: border-color 0.15s ease;
+  }
+  .option-card:hover { border-color: var(--border-bright); }
+  .option-card h3 {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
+  }
+  .option-card h3::before { content: ''; width: 8px; height: 8px; border-radius: 50%; }
+  .option-card.opt-a h3::before { background: var(--blue); }
+  .option-card.opt-b h3::before { background: var(--green); }
+  .option-card.opt-c h3::before { background: var(--purple); }
+  .option-card p {
+    font-size: 13px; line-height: 1.6; color: var(--text-dim);
+  }
+  .option-card code {
+    font-family: var(--font-mono); font-size: 11px;
+    background: var(--accent-dim); color: var(--accent);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  @media (max-width: 768px) {
+    body { padding: 16px; }
+    h1 { font-size: 24px; }
+    .mermaid-wrap { padding: 16px 12px; }
+    .code-body { font-size: 11px; }
+    .options-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1 class="animate" style="--i:0">Force Name-Based, Then Re-Resolve</h1>
+  <p class="subtitle animate" style="--i:1">two loops &mdash; first forces everything to strings, second resolves for new source</p>
+
+  <!-- Section 1: The asymmetry problem -->
+  <div class="section">
+    <h2 class="animate" style="--i:2"><span class="badge badge-problem">Problem</span> lib.equality is asymmetric</h2>
+    <p class="description animate" style="--i:3">
+      <code>lib.equality/find-matching-column</code> can match a <strong>name-based ref against ID-having columns</strong>
+      (name &rarr; ID works). But it <strong>cannot</strong> match an <strong>ID-based ref against name-only columns</strong>
+      (ID &rarr; name fails). This means we can't just call <code>upgrade-ref</code> naively &mdash; if Phase 1 produces
+      ID-based refs, Phase 2 can't re-resolve them against the new source.
+    </p>
+
+    <div class="code-block animate" style="--i:4">
+      <div class="code-header ch-red">The asymmetry</div>
+      <div class="code-body"><span class="cm">;; This FAILS with lib.equality:</span>
+<span class="hl-red"><span class="fn">ID-based ref</span> &rarr; name-based columns  <span class="cm">;; can't match</span></span>
+[:field {} 42] against [{:name "ID"}]   <span class="cm">;; no :id to match on</span>
+
+<span class="cm">;; This WORKS fine with lib.equality:</span>
+<span class="hl-green"><span class="fn">Name-based ref</span> &rarr; ID-based columns  <span class="cm">;; matches by name</span></span>
+[:field {} "ID"] against [{:id 99, :name "ID"}]  <span class="cm">;; finds it</span></div>
+    </div>
+
+    <div class="callout callout-red animate" style="--i:5">
+      <strong>The consequence:</strong> Phase 1 <em>must</em> produce name-based refs for all transitive dependents.
+      If it leaves any refs as ID-based, Phase 2 won't be able to re-resolve them against the new source's columns.
+      This means Phase 1 needs to <strong>force</strong> name-based output regardless of source type.
+    </div>
+  </div>
+
+  <!-- Section 2: The two-loop design -->
+  <div class="section">
+    <h2 class="animate" style="--i:6"><span class="badge badge-algo">Design</span> Two loops: force name-based, then re-resolve</h2>
+    <p class="description animate" style="--i:7">
+      <strong>Loop 1:</strong> Force all refs to be name-based (even for table &rarr; table swaps).
+      This creates a universal intermediate format that <code>lib.equality</code> can always match from.
+      <strong>Loop 2:</strong> Change the source, then call <code>upgrade-ref</code> normally. Since refs are
+      now name-based, <code>lib.equality</code> can find matching columns and <code>lib.ref/ref</code> produces
+      the correct format.
+    </p>
+
+    <div class="mermaid-wrap animate" style="--i:8">
+      <div class="zoom-controls">
+        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      </div>
+      <pre class="mermaid">
+        graph TD
+          input["Query with old source"]
+
+          subgraph loop1 ["Loop 1: Force name-based"]
+            force["Force: make lib.ref/ref<br/>emit name-based refs"]
+            up1["upgrade-ref with old columns"]
+            r1["ALL refs are now name-based<br/>regardless of source type"]
+          end
+
+          subgraph change ["Change source"]
+            chg["source-table 1 -> source-table 2<br/>or source-card -> source-table"]
+          end
+
+          subgraph loop2 ["Loop 2: Normal upgrade"]
+            up2["upgrade-ref with new columns<br/>lib.equality matches by name"]
+            r2["lib.ref/ref produces correct<br/>format for new source"]
+          end
+
+          result["Final: refs match new source"]
+
+          input --> force
+          force --> up1
+          up1 --> r1
+          r1 --> chg
+          chg --> up2
+          up2 --> r2
+          r2 --> result
+      </pre>
+    </div>
+
+    <div class="callout callout-green animate" style="--i:9">
+      <strong>Why name-based is the universal pivot.</strong> Name-based refs are the only format that
+      <code>lib.equality</code> can match against <em>any</em> column list (with or without IDs). By forcing everything
+      to name-based in Loop 1, Loop 2 always has a matchable starting point. This also moves us toward a file-based
+      system where field IDs don't exist.
+    </div>
+  </div>
+
+  <!-- Section 3: How to force name-based -->
+  <div class="section">
+    <h2 class="animate" style="--i:10"><span class="badge badge-force">Force</span> Three options for forcing name-based output</h2>
+    <p class="description animate" style="--i:11">
+      The question: how do we make <code>lib.ref/ref</code> emit name-based refs even when the column has an <code>:id</code>?
+      Three approaches, each with different trade-offs.
+    </p>
+
+    <div class="options-grid animate" style="--i:12">
+      <div class="option-card opt-a">
+        <h3>Set :lib/source</h3>
+        <p>
+          Set <code>:lib/source</code> to <code>:source/card</code> on the query context.
+          This tells <code>lib.ref/ref</code> the source is a card, so it emits name-based refs.
+          <br><br>
+          <strong>Pro:</strong> Uses existing mechanism<br>
+          <strong>Con:</strong> Lying about source type may have side effects
+        </p>
+      </div>
+      <div class="option-card opt-b">
+        <h3>Strip :id from columns</h3>
+        <p>
+          Remove <code>:id</code> from column metadata before passing to <code>upgrade-ref</code>.
+          Without an <code>:id</code>, <code>lib.ref/ref</code> naturally produces name-based refs.
+          <br><br>
+          <strong>Pro:</strong> Clean, no lying<br>
+          <strong>Con:</strong> Mutating metadata feels wrong
+        </p>
+      </div>
+      <div class="option-card opt-c">
+        <h3>New dynamic var</h3>
+        <p>
+          Add a var like <code>lib.ref/*force-name-refs*</code>. When bound to <code>true</code>,
+          <code>lib.ref/ref</code> always emits names.
+          <br><br>
+          <strong>Pro:</strong> Explicit intent<br>
+          <strong>Con:</strong> New API surface
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 4: The core algorithm -->
+  <div class="section">
+    <h2 class="animate" style="--i:14"><span class="badge badge-code">Core</span> upgrade-ref: Alexander's implementation</h2>
+
+    <div class="code-block animate" style="--i:15">
+      <div class="code-header ch-green">upgrade-ref</div>
+      <div class="code-body">(<span class="kw">defn-</span> <span class="fn">column-key</span> [column]
+  ((<span class="kw">some-fn</span> <span class="sp">:lib/desired-column-alias</span> <span class="sp">:name</span>) column))
+
+(<span class="kw">defn-</span> <span class="fn">upgrade-ref</span> [query columns ref]
+  (<span class="kw">let</span> [field-id (<span class="fn">lib.ref/field-ref-id</span> ref)
+        field    (<span class="kw">when</span> field-id
+                   (<span class="fn">lib.metadata/field</span> query field-id))
+<span class="hl">        column   (<span class="kw">if</span> field</span>
+<span class="hl">                   <span class="cm">;; ID path: resolve name, match by name</span></span>
+<span class="hl">                   (<span class="fn">m/find-first</span></span>
+<span class="hl">                     #(= (<span class="fn">column-key</span> %) (<span class="fn">column-key</span> field))</span>
+<span class="hl">                     columns)</span>
+<span class="hl">                   <span class="cm">;; Name path: lib.equality structural match</span></span>
+<span class="hl">                   (<span class="fn">lib.equality/find-matching-column</span></span>
+<span class="hl">                     ref columns))]</span>
+<span class="hl-green">    (<span class="kw">if</span> column (<span class="fn">lib.ref/ref</span> column) ref)))</span>
+<span class="cm">;;  Loop 1: lib.ref/ref forced to emit names</span>
+<span class="cm">;;  Loop 2: lib.ref/ref emits natural format</span></div>
+    </div>
+
+    <div class="callout animate" style="--i:16">
+      <strong>Same function, two behaviors.</strong> In Loop 1, <code>lib.ref/ref</code> is forced to emit name-based
+      refs (via one of the three options above). In Loop 2, it runs normally and produces whatever the new source
+      expects. The <code>upgrade-ref</code> function itself doesn't change &mdash; only the forcing context around it.
+    </div>
+  </div>
+
+  <!-- Section 5: Trace through examples -->
+  <div class="section">
+    <h2 class="animate" style="--i:17"><span class="badge badge-code">Traces</span> Step-by-step for each swap type</h2>
+
+    <div class="code-block animate" style="--i:18">
+      <div class="code-header ch-blue">Table &rarr; Table (the non-obvious case)</div>
+      <div class="code-body"><span class="cm">;; Loop 1: force name-based (old source = table 1)</span>
+[:field {} 10]
+<span class="cm">;; ID path: lookup field 10 -> name "ID"</span>
+<span class="cm">;; match column by name -> col -> lib.ref/ref (FORCED name)</span>
+<span class="hl">[:field {} 10] <span class="fn">&rarr;</span> [:field {} <span class="fn">"ID"</span>]  <span class="cm">;; forced to name</span></span>
+
+<span class="cm">;; Change source: table 1 -> table 2</span>
+
+<span class="cm">;; Loop 2: normal upgrade (new source = table 2)</span>
+[:field {} "ID"]
+<span class="cm">;; Name path: lib.equality matches -> {:id 20, :name "ID"}</span>
+<span class="cm">;; lib.ref/ref (normal) -> ID-based because table has :id</span>
+<span class="hl-green">[:field {} "ID"] <span class="fn">&rarr;</span> [:field {} <span class="fn">20</span>]  <span class="cm">;; correct!</span></span></div>
+    </div>
+
+    <div class="code-block animate" style="--i:19">
+      <div class="code-header ch-blue">Model &rarr; Table (Eric's problem case)</div>
+      <div class="code-body"><span class="cm">;; Loop 1: force name-based (old source = model)</span>
+[:field {} "PRICE"]
+<span class="cm">;; Name path: lib.equality matches -> col</span>
+<span class="cm">;; lib.ref/ref (FORCED name) -> still name-based</span>
+<span class="hl">[:field {} "PRICE"] <span class="fn">&rarr;</span> [:field {} <span class="fn">"PRICE"</span>]  <span class="cm">;; no-op</span></span>
+
+<span class="cm">;; Change source: model -> table</span>
+
+<span class="cm">;; Loop 2: normal upgrade (new source = table)</span>
+[:field {} "PRICE"]
+<span class="cm">;; Name path: lib.equality matches -> {:id 42, :name "PRICE"}</span>
+<span class="cm">;; lib.ref/ref (normal) -> ID-based for table</span>
+<span class="hl-green">[:field {} "PRICE"] <span class="fn">&rarr;</span> [:field {} <span class="fn">42</span>]  <span class="cm">;; correct!</span></span></div>
+    </div>
+
+    <div class="code-block animate" style="--i:20">
+      <div class="code-header ch-blue">Table &rarr; Model (refs upgrade to names)</div>
+      <div class="code-body"><span class="cm">;; Loop 1: force name-based (old source = table)</span>
+[:field {} 10]
+<span class="cm">;; ID path: lookup field 10 -> name "ID"</span>
+<span class="cm">;; lib.ref/ref (FORCED name) -> name-based</span>
+<span class="hl">[:field {} 10] <span class="fn">&rarr;</span> [:field {} <span class="fn">"ID"</span>]</span>
+
+<span class="cm">;; Change source: table -> model</span>
+
+<span class="cm">;; Loop 2: normal upgrade (new source = model)</span>
+[:field {} "ID"]
+<span class="cm">;; Name path: lib.equality matches -> {:name "ID"} (no :id)</span>
+<span class="cm">;; lib.ref/ref (normal) -> name-based for model</span>
+<span class="hl-green">[:field {} "ID"] <span class="fn">&rarr;</span> [:field {} <span class="fn">"ID"</span>]  <span class="cm">;; correct!</span></span></div>
+    </div>
+
+    <div class="code-block animate" style="--i:21">
+      <div class="code-header ch-blue">With join-alias</div>
+      <div class="code-body"><span class="cm">;; Loop 1: force name-based</span>
+[:field {<span class="sp">:join-alias</span> "X"} 1]
+<span class="cm">;; old columns: {:id 1, :name "ID", :join-alias "X"}</span>
+<span class="hl">[:field {<span class="sp">:join-alias</span> "X"} 1] <span class="fn">&rarr;</span> [:field {<span class="sp">:join-alias</span> "X"} <span class="fn">"ID"</span>]</span>
+
+<span class="cm">;; Loop 2: normal upgrade</span>
+<span class="cm">;; new columns: {:id 10, :name "ID", :join-alias "X"}</span>
+<span class="cm">;; lib.equality matches on name + join-alias</span>
+<span class="hl-green">[:field {<span class="sp">:join-alias</span> "X"} "ID"] <span class="fn">&rarr;</span> [:field {<span class="sp">:join-alias</span> "X"} <span class="fn">10</span>]</span></div>
+    </div>
+  </div>
+
+  <!-- Section 6: Implicit joins -->
+  <div class="section">
+    <h2 class="animate" style="--i:22"><span class="badge badge-force">FK Joins</span> Implicit join field refs</h2>
+
+    <div class="code-block animate" style="--i:23">
+      <div class="code-header ch-amber">Implicit join: two field IDs, one changes</div>
+      <div class="code-body"><span class="cm">;; source = orders, joined table = products via FK</span>
+[:field {<span class="sp">:source-field</span> &lt;orders.product_id&gt;} &lt;products.category&gt;]
+
+<span class="cm">;; Swap PK table: products -> products_2</span>
+<span class="hl">[:field {<span class="sp">:source-field</span> &lt;unchanged&gt;} &lt;<span class="fn">products_2.category</span>&gt;]</span>
+
+<span class="cm">;; Swap FK table: orders -> orders_2</span>
+<span class="hl-blue">[:field {<span class="sp">:source-field</span> &lt;<span class="fn">orders_2.product_id</span>&gt;} &lt;unchanged&gt;]</span>
+
+<span class="cm">;; IMPOSSIBLE: swap PK table to a card</span>
+<span class="cm">;; Cards don't expose FK relationships</span>
+<span class="hl-red"><span class="cm">;; Detect and throw &mdash; week 3+</span></span></div>
+    </div>
+  </div>
+
+  <!-- Section 7: Why name-based everywhere -->
+  <div class="section">
+    <h2 class="animate" style="--i:24"><span class="badge badge-why">Strategy</span> Why force name-based for all transitive deps</h2>
+    <p class="description animate" style="--i:25">
+      Making all transitive dependents name-based (even for card &rarr; table swaps) is <strong>intentionally permanent</strong>,
+      not just an intermediate step. Name-based refs work with any source type and move the system toward a future where
+      the app-db is replaced with a file-based system where field IDs don't exist.
+    </p>
+
+    <div class="table-wrap animate" style="--i:26">
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Entity Type</th>
+              <th>Loop 1 (Force Names)</th>
+              <th>Loop 2 (Re-Resolve)</th>
+              <th>Final Format</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Direct dependent</strong></td>
+              <td>Force refs to name-based</td>
+              <td>Change source + upgrade normally</td>
+              <td>Correct for new source</td>
+            </tr>
+            <tr>
+              <td><strong>Transitive dependent</strong></td>
+              <td>Force refs to name-based</td>
+              <td>No source change needed</td>
+              <td><span class="tag tag-name">Name-based (stays)</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="callout callout-blue animate" style="--i:27">
+      <strong>The bigger picture:</strong> Name-based refs are strictly more portable than ID-based refs.
+      They work whether the source is a table, model, card, or eventually a file. Loop 1 upgrades the world;
+      Loop 2 only needs to fix up the direct dependents whose source actually changed.
+      Transitive deps just stay name-based &mdash; and that's a feature, not a compromise.
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  mermaid.registerLayoutLoaders(elkLayouts);
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    look: 'handDrawn',
+    layout: 'elk',
+    themeVariables: {
+      primaryColor: isDark ? '#3c3836' : '#fbf1c7',
+      primaryBorderColor: isDark ? '#fabd2f' : '#b57614',
+      primaryTextColor: isDark ? '#ebdbb2' : '#2c1810',
+      secondaryColor: isDark ? '#3c3836' : '#f3f0eb',
+      secondaryBorderColor: isDark ? '#a89984' : '#8b7355',
+      secondaryTextColor: isDark ? '#ebdbb2' : '#2c1810',
+      tertiaryColor: isDark ? '#3c3836' : '#fefce8',
+      tertiaryBorderColor: isDark ? '#fabd2f' : '#b57614',
+      tertiaryTextColor: isDark ? '#ebdbb2' : '#2c1810',
+      lineColor: isDark ? '#a89984' : '#8b7355',
+      fontSize: '13px',
+      fontFamily: "'Source Code Pro', monospace",
+    }
+  });
+</script>
+<script>
+  function updateZoomState(wrap) {
+    var target = wrap.querySelector('.mermaid');
+    var zoom = parseFloat(target.dataset.zoom || '1');
+    wrap.classList.toggle('is-zoomed', zoom > 1);
+  }
+  function zoomDiagram(btn, factor) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    var current = parseFloat(target.dataset.zoom || '1');
+    var next = Math.min(Math.max(current * factor, 0.3), 5);
+    target.dataset.zoom = next;
+    target.style.transform = 'scale(' + next + ')';
+    updateZoomState(wrap);
+  }
+  function resetZoom(btn) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    target.dataset.zoom = '1';
+    target.style.transform = 'scale(1)';
+    updateZoomState(wrap);
+  }
+  document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+    wrap.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      var target = wrap.querySelector('.mermaid');
+      var current = parseFloat(target.dataset.zoom || '1');
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var next = Math.min(Math.max(current * factor, 0.3), 5);
+      target.dataset.zoom = next;
+      target.style.transform = 'scale(' + next + ')';
+      updateZoomState(wrap);
+    }, { passive: false });
+    var startX, startY, scrollL, scrollT;
+    wrap.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.zoom-controls')) return;
+      var target = wrap.querySelector('.mermaid');
+      if (parseFloat(target.dataset.zoom || '1') <= 1) return;
+      wrap.classList.add('is-panning');
+      startX = e.clientX; startY = e.clientY;
+      scrollL = wrap.scrollLeft; scrollT = wrap.scrollTop;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!wrap.classList.contains('is-panning')) return;
+      wrap.scrollLeft = scrollL - (e.clientX - startX);
+      wrap.scrollTop = scrollT - (e.clientY - startY);
+    });
+    window.addEventListener('mouseup', function() { wrap.classList.remove('is-panning'); });
+  });
+</script>
+
+</body>
+</html>

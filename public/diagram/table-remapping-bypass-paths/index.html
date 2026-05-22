@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workspace Table Remapping — Bypass Paths Audit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============ THEME — Nord-inspired (IDE) ============ */
+  :root {
+    --font-body: 'Newsreader', 'Charter', 'Georgia', serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    --font-sans: system-ui, -apple-system, sans-serif;
+
+    --bg: #2e3440;
+    --surface: #3b4252;
+    --surface2: #434c5e;
+    --surface-elevated: #4c566a;
+    --border: rgba(216, 222, 233, 0.08);
+    --border-bright: rgba(216, 222, 233, 0.18);
+
+    --text: #eceff4;
+    --text-dim: #d8dee9;
+    --text-muted: #8896a8;
+
+    --frost1: #8fbcbb; /* teal */
+    --frost2: #88c0d0; /* light blue */
+    --frost3: #81a1c1; /* mid blue */
+    --frost4: #5e81ac; /* deep blue */
+
+    --aurora-red: #bf616a;
+    --aurora-orange: #d08770;
+    --aurora-yellow: #ebcb8b;
+    --aurora-green: #a3be8c;
+    --aurora-purple: #b48ead;
+
+    --green-dim: rgba(163, 190, 140, 0.14);
+    --red-dim: rgba(191, 97, 106, 0.16);
+    --orange-dim: rgba(208, 135, 112, 0.16);
+    --yellow-dim: rgba(235, 203, 139, 0.14);
+    --frost-dim: rgba(136, 192, 208, 0.12);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #eceff4;
+      --surface: #e5e9f0;
+      --surface2: #d8dee9;
+      --surface-elevated: #ffffff;
+      --border: rgba(46, 52, 64, 0.10);
+      --border-bright: rgba(46, 52, 64, 0.20);
+
+      --text: #2e3440;
+      --text-dim: #3b4252;
+      --text-muted: #4c566a;
+
+      --frost1: #5e8a80;
+      --frost2: #5e81ac;
+      --frost3: #4c6e93;
+      --frost4: #3b5878;
+
+      --aurora-red: #a23e47;
+      --aurora-orange: #b56e58;
+      --aurora-yellow: #b8920d;
+      --aurora-green: #5d7949;
+      --aurora-purple: #8e6480;
+
+      --green-dim: rgba(93, 121, 73, 0.10);
+      --red-dim: rgba(162, 62, 71, 0.10);
+      --orange-dim: rgba(181, 110, 88, 0.10);
+      --yellow-dim: rgba(184, 146, 13, 0.10);
+      --frost-dim: rgba(94, 129, 172, 0.10);
+    }
+  }
+
+  /* ============ RESET + BASE ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 20% 0%, var(--frost-dim) 0%, transparent 55%),
+      radial-gradient(ellipse at 90% 80%, var(--red-dim) 0%, transparent 50%);
+    color: var(--text);
+    font-family: var(--font-sans);
+    padding: 48px 32px;
+    min-height: 100vh;
+    line-height: 1.55;
+  }
+
+  /* ============ ANIMATION ============ */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .animate {
+    animation: fadeUp 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.05s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* ============ CONTAINER ============ */
+  .container {
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  /* ============ HEADER ============ */
+  .header { margin-bottom: 36px; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--frost2);
+    margin-bottom: 10px;
+  }
+
+  h1 {
+    font-family: var(--font-body);
+    font-size: 48px;
+    font-weight: 400;
+    letter-spacing: -0.5px;
+    line-height: 1.05;
+    margin-bottom: 8px;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--aurora-red);
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-family: var(--font-body);
+    font-size: 19px;
+    font-style: italic;
+    max-width: 760px;
+    line-height: 1.45;
+  }
+
+  .meta {
+    margin-top: 20px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+
+  .meta span::before {
+    content: '·';
+    margin-right: 18px;
+    color: var(--border-bright);
+  }
+
+  .meta span:first-child::before { content: ''; margin-right: 0; }
+
+  /* ============ SECTION HEADERS ============ */
+  h2 {
+    font-family: var(--font-body);
+    font-size: 28px;
+    font-weight: 400;
+    letter-spacing: -0.3px;
+    margin: 48px 0 4px;
+  }
+
+  h2 .h2-num {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--frost2);
+    margin-right: 12px;
+    vertical-align: 5px;
+  }
+
+  .section-sub {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    margin-bottom: 22px;
+  }
+
+  /* ============ KPI ROW ============ */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kpi-card--hero {
+    background: var(--surface-elevated);
+    border-color: var(--border-bright);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  }
+
+  .kpi-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent-line, var(--frost2));
+  }
+
+  .kpi-card--green::after { background: var(--aurora-green); }
+  .kpi-card--red::after { background: var(--aurora-red); }
+  .kpi-card--orange::after { background: var(--aurora-orange); }
+  .kpi-card--frost::after { background: var(--frost2); }
+  .kpi-card--yellow::after { background: var(--aurora-yellow); }
+
+  .kpi-card__value {
+    font-family: var(--font-body);
+    font-size: 40px;
+    font-weight: 400;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+
+  .kpi-card__value--green { color: var(--aurora-green); }
+  .kpi-card__value--red { color: var(--aurora-red); }
+  .kpi-card__value--orange { color: var(--aurora-orange); }
+  .kpi-card__value--frost { color: var(--frost2); }
+  .kpi-card__value--yellow { color: var(--aurora-yellow); }
+
+  .kpi-card__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+
+  .kpi-card__sub {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* ============ ARCHITECTURE PANEL ============ */
+  .arch-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .arch-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% -10%, var(--frost-dim) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .arch-panel__inner {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  @media (min-width: 880px) {
+    .arch-panel__inner {
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      align-items: stretch;
+    }
+  }
+
+  .arch-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    min-width: 0;
+  }
+
+  .arch-card--input {
+    border-left: 3px solid var(--frost2);
+  }
+
+  .arch-card--phase1 {
+    border-left: 3px solid var(--aurora-yellow);
+  }
+
+  .arch-card--phase2 {
+    border-left: 3px solid var(--aurora-green);
+  }
+
+  .arch-card__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .arch-card__title {
+    font-family: var(--font-body);
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1.15;
+    margin-bottom: 8px;
+  }
+
+  .arch-card__title em {
+    font-style: italic;
+    color: var(--frost2);
+    font-weight: 400;
+  }
+
+  .arch-card__body {
+    font-size: 13.5px;
+    color: var(--text-dim);
+    line-height: 1.55;
+  }
+
+  .arch-card__body code {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    background: var(--frost-dim);
+    color: var(--frost2);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .arch-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 22px;
+  }
+
+  @media (max-width: 879px) {
+    .arch-arrow { transform: rotate(90deg); padding: 4px 0; }
+  }
+
+  /* ============ TABLE WRAPPER ============ */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 36px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10);
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ============ TABLE ============ */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    line-height: 1.55;
+    min-width: 900px;
+  }
+
+  .data-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .data-table th {
+    background: var(--surface2);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: var(--text-muted);
+    text-align: left;
+    padding: 14px 18px;
+    border-bottom: 2px solid var(--border-bright);
+    white-space: nowrap;
+  }
+
+  .data-table th.col-status { text-align: center; width: 110px; }
+  .data-table th.col-risk { width: 130px; }
+  .data-table th.col-fix { width: 240px; }
+
+  .data-table td {
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .data-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .data-table .col-status td,
+  .data-table td.col-status { text-align: center; }
+
+  .data-table .path-name {
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .data-table .path-where {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .data-table .path-where code {
+    background: transparent;
+    color: var(--frost2);
+    padding: 0;
+  }
+
+  .data-table tbody tr {
+    transition: background 0.15s ease;
+    animation: fadeUp 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.05s);
+  }
+
+  .data-table tbody tr:hover {
+    background: var(--frost-dim);
+  }
+
+  .data-table tbody tr.row-leak { background: rgba(191, 97, 106, 0.05); }
+  .data-table tbody tr.row-leak:hover { background: rgba(191, 97, 106, 0.12); }
+
+  .data-table code {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    background: var(--frost-dim);
+    color: var(--frost2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .data-table small {
+    display: block;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 6px;
+    line-height: 1.5;
+    font-style: italic;
+    font-family: var(--font-body);
+  }
+
+  /* ============ STATUS BADGES ============ */
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .status--match { background: var(--green-dim); color: var(--aurora-green); }
+  .status--gap { background: var(--red-dim); color: var(--aurora-red); }
+  .status--partial { background: var(--orange-dim); color: var(--aurora-orange); }
+  .status--watch { background: var(--yellow-dim); color: var(--aurora-yellow); }
+
+  .status::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* ============ RISK PILL ============ */
+  .risk {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+
+  .risk--high { color: var(--aurora-red); font-weight: 700; }
+  .risk--med { color: var(--aurora-orange); }
+  .risk--low { color: var(--text-muted); }
+
+  /* ============ LEGEND ============ */
+  .legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin: 0 0 18px;
+    padding: 12px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .legend-swatch {
+    width: 11px;
+    height: 11px;
+    border-radius: 3px;
+  }
+
+  /* ============ RECOMMENDATIONS LIST ============ */
+  .recs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .rec {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px;
+    position: relative;
+    counter-increment: rec-counter;
+  }
+
+  .rec--priority { border-color: var(--aurora-red); background: linear-gradient(180deg, var(--surface) 0%, rgba(191, 97, 106, 0.05) 100%); }
+
+  .rec__num {
+    position: absolute;
+    top: 16px;
+    right: 18px;
+    font-family: var(--font-body);
+    font-style: italic;
+    font-size: 28px;
+    color: var(--text-muted);
+    opacity: 0.5;
+    line-height: 1;
+  }
+
+  .rec__title {
+    font-family: var(--font-body);
+    font-size: 19px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    padding-right: 36px;
+  }
+
+  .rec__body {
+    font-size: 13.5px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  .rec__body code {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    background: var(--frost-dim);
+    color: var(--frost2);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .rec__effort {
+    margin-top: 10px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-muted);
+  }
+
+  .rec__effort .dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: 1px;
+    background: var(--frost2);
+  }
+  .rec__effort .dot--high { background: var(--aurora-red); }
+
+  /* ============ FOOTER ============ */
+  .footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.6;
+  }
+
+  .footer code {
+    color: var(--frost2);
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 768px) {
+    body { padding: 24px 16px; }
+    h1 { font-size: 32px; }
+    .subtitle { font-size: 16px; }
+    h2 { font-size: 22px; }
+    .data-table th,
+    .data-table td { padding: 12px 14px; }
+    .data-table .path-name { font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- ============ HEADER ============ -->
+  <div class="header">
+    <div class="eyebrow animate" style="--i:0">GHY-3484 follow-up · 2026-04-29</div>
+    <h1 class="animate" style="--i:1">Where can a query <em>still</em> miss the remap?</h1>
+    <p class="subtitle animate" style="--i:2">Workspace table remapping has two enforcement points in the QP. Anything that goes around the QP bypasses Phase&nbsp;2 entirely. This is the inventory of every such path I could find.</p>
+    <div class="meta animate" style="--i:3">
+      <span>branch · feature/workspaces-v2</span>
+      <span>method · grep + clj-surgeon outline</span>
+      <span>scope · src + enterprise/backend</span>
+    </div>
+  </div>
+
+  <!-- ============ ARCHITECTURE PANEL ============ -->
+  <h2 class="animate" style="--i:4"><span class="h2-num">01</span>How the remap engages</h2>
+  <div class="section-sub animate" style="--i:5">two enforcement points wired into the QP pipeline</div>
+
+  <div class="arch-panel animate" style="--i:6">
+    <div class="arch-panel__inner">
+      <div class="arch-card arch-card--input">
+        <div class="arch-card__label">QP entry</div>
+        <div class="arch-card__title"><em>Query</em> arrives</div>
+        <div class="arch-card__body">MBQL or native, from cards, dashboards, embeds, public links, transforms, sync, X-rays.</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-card arch-card--phase1">
+        <div class="arch-card__label">Phase 1 · preprocess</div>
+        <div class="arch-card__title"><em>Mutate</em> table metadata</div>
+        <div class="arch-card__body">Rewrites <code>:metadata/table</code> rows in the cached metadata provider so HoneySQL emits workspace identifiers. Skips native SQL — too early to parse.</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-card arch-card--phase2">
+        <div class="arch-card__label">Phase 2 · execute</div>
+        <div class="arch-card__title"><em>Rewrite</em> compiled SQL</div>
+        <div class="arch-card__body">SQLGlot pass over the final SQL string. Authoritative. Covers MBQL and native. Wired in <code>execute.clj:51</code> only — anything that doesn't go through <code>execute-middleware</code> skips this.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ KPI ROW ============ -->
+  <h2 class="animate" style="--i:7"><span class="h2-num">02</span>The numbers</h2>
+  <div class="section-sub animate" style="--i:8">paths audited and their disposition</div>
+
+  <div class="kpi-row animate" style="--i:9">
+    <div class="kpi-card kpi-card--hero kpi-card--frost">
+      <div class="kpi-card__value kpi-card__value--frost">19</div>
+      <div class="kpi-card__label">Paths Audited</div>
+      <div class="kpi-card__sub">QP, sync, transforms, writeback, upload, persistence, cache</div>
+    </div>
+    <div class="kpi-card kpi-card--green">
+      <div class="kpi-card__value kpi-card__value--green">12</div>
+      <div class="kpi-card__label">Covered</div>
+      <div class="kpi-card__sub">remap engages correctly</div>
+    </div>
+    <div class="kpi-card kpi-card--red">
+      <div class="kpi-card__value kpi-card__value--red">3</div>
+      <div class="kpi-card__label">Active leaks</div>
+      <div class="kpi-card__sub">writeback, upload, stale cache</div>
+    </div>
+    <div class="kpi-card kpi-card--yellow">
+      <div class="kpi-card__value kpi-card__value--yellow">1</div>
+      <div class="kpi-card__label">Footgun</div>
+      <div class="kpi-card__sub"><code style="font-family:var(--font-mono);font-size:11px;background:transparent;color:var(--aurora-yellow);padding:0">*skip-remapping?*</code> unguarded</div>
+    </div>
+  </div>
+
+  <!-- ============ TABLE ============ -->
+  <h2 class="animate" style="--i:10"><span class="h2-num">03</span>Path inventory</h2>
+  <div class="section-sub animate" style="--i:11">every code path that reads or writes warehouse tables, classified by remap coverage</div>
+
+  <div class="legend animate" style="--i:12">
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--aurora-green)"></div> Covered &mdash; remap engages</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--aurora-red)"></div> Gap &mdash; canonical hit when remapped</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--aurora-orange)"></div> Partial &mdash; covered with caveats</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--aurora-yellow)"></div> Watch &mdash; latent risk</div>
+  </div>
+
+  <div class="table-wrap animate" style="--i:13">
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Path</th>
+            <th class="col-fix">Why / Where</th>
+            <th class="col-risk">Risk</th>
+            <th class="col-status">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr style="--i:0">
+            <td>
+              <div class="path-name">Standard QP queries</div>
+              <div class="path-where">MBQL &amp; native via <code>qp/process-query</code></div>
+            </td>
+            <td>Both phases run. Cards, dashboards, public links, embeds.</td>
+            <td><span class="risk risk--low">none</span></td>
+            <td class="col-status"><span class="status status--match">covered</span></td>
+          </tr>
+
+          <tr style="--i:1">
+            <td>
+              <div class="path-name">Sync &mdash; <code>describe-fields</code> / <code>describe-table</code></div>
+              <div class="path-where"><code>fetch_metadata.clj:32</code></div>
+            </td>
+            <td>Routes through the <code>workspace-remap-schema+name</code> hook &mdash; sync asks the driver about the workspace-side table.</td>
+            <td><span class="risk risk--low">none</span></td>
+            <td class="col-status"><span class="status status--match">covered</span></td>
+          </tr>
+
+          <tr style="--i:2">
+            <td>
+              <div class="path-name">Transforms (SQL)</div>
+              <div class="path-where">QP + <code>resolve-transform-target</code></div>
+            </td>
+            <td>Reads via QP. Target schema rewritten to workspace before execution.</td>
+            <td><span class="risk risk--low">none</span></td>
+            <td class="col-status"><span class="status status--match">covered</span></td>
+          </tr>
+
+          <tr style="--i:3">
+            <td>
+              <div class="path-name">Transforms (Python)</div>
+              <div class="path-where">JDBC writes from Python process</div>
+            </td>
+            <td>Bypasses QP entirely &mdash; but <code>resolve-transform-target</code> rewrites <code>:target.schema</code> at dispatch time. Python writes to the workspace location directly.</td>
+            <td><span class="risk risk--low">none</span></td>
+            <td class="col-status"><span class="status status--match">covered</span></td>
+          </tr>
+
+          <tr style="--i:4">
+            <td>
+              <div class="path-name">Field values caching · fingerprinting · X-rays</div>
+              <div class="path-where">internal QP queries</div>
+            </td>
+            <td>All run through <code>qp/process-query</code>. Both phases apply.</td>
+            <td><span class="risk risk--low">none</span></td>
+            <td class="col-status"><span class="status status--match">covered</span></td>
+          </tr>
+
+          <tr style="--i:5">
+            <td>
+              <div class="path-name">Sandboxing &amp; connection impersonation</div>
+              <div class="path-where">QP middleware</div>
+            </td>
+            <td>Both run inside the QP pipeline. Phase 2 fires after sandbox transforms. <small>Worth a targeted test that a sandboxed query against a remapped table emits workspace SQL with the sandbox filter intact.</small></td>
+            <td><span class="risk risk--low">low</span></td>
+            <td class="col-status"><span class="status status--partial">partial</span></td>
+          </tr>
+
+          <tr class="row-leak" style="--i:6">
+            <td>
+              <div class="path-name">Action / writeback execution</div>
+              <div class="path-where"><code>writeback.clj:54</code> &middot; <code>actions/execution.clj:47</code></div>
+            </td>
+            <td>
+              <code>execution-middleware</code> here is <code>[swap-destination-db, check-permissions]</code> &mdash; <strong>no workspace SQL remapping</strong>. Phase 1 runs but doesn't touch native SQL, and actions are required to be native.
+              <small>Action SQL like <code>INSERT INTO public.orders</code> on a workspaced DB writes to canonical orders. <strong>Out of scope per current product policy.</strong></small>
+            </td>
+            <td><span class="risk risk--high">high · prod write</span></td>
+            <td class="col-status"><span class="status status--gap">leak</span></td>
+          </tr>
+
+          <tr class="row-leak" style="--i:7">
+            <td>
+              <div class="path-name">CSV upload &mdash; append / replace</div>
+              <div class="path-where"><code>upload/impl.clj:191</code> &middot; <code>update-csv!</code></div>
+            </td>
+            <td>
+              Uses <code>driver/insert-into!</code> / <code>driver/truncate!</code> directly. Destination built by <code>table-identifier</code> from a <code>:model/Table</code> row &mdash; never consults <code>TableRemapping</code>.
+              <small>User picks "orders" from the UI; remap says canonical &rarr; ws-orders; rows go into canonical. New-table uploads are safe (nothing to remap).</small>
+            </td>
+            <td><span class="risk risk--high">high · prod write</span></td>
+            <td class="col-status"><span class="status status--gap">leak</span></td>
+          </tr>
+
+          <tr class="row-leak" style="--i:8">
+            <td>
+              <div class="path-name">Stale cache hits</div>
+              <div class="path-where"><code>middleware/cache.clj:79</code></div>
+            </td>
+            <td>
+              Cache key hashes the query, <strong>not</strong> the remapping store. A query cached pre-remap returns canonical results forever &mdash; never touches Phase&nbsp;2.
+              <small>Small blast radius today (workspaces are provisioned before queries flow), but the failure mode is silent. Wire a cache invalidator off <code>TableRemapping</code> insert/delete.</small>
+            </td>
+            <td><span class="risk risk--med">med · stale read</span></td>
+            <td class="col-status"><span class="status status--gap">leak</span></td>
+          </tr>
+
+          <tr style="--i:9">
+            <td>
+              <div class="path-name"><code>*skip-remapping?*</code> dynamic var</div>
+              <div class="path-where"><code>remapping/core.clj:77</code></div>
+            </td>
+            <td>
+              Short-circuits both phases when bound true. Intended for display-only endpoints. <strong>No production binders today.</strong>
+              <small>Future footgun: if anyone ever binds it on an execution path, isolation evaporates silently. Either delete it or rename to make misuse obvious.</small>
+            </td>
+            <td><span class="risk risk--med">latent</span></td>
+            <td class="col-status"><span class="status status--watch">watch</span></td>
+          </tr>
+
+          <tr style="--i:10">
+            <td>
+              <div class="path-name">Model persistence DDL</div>
+              <div class="path-where"><code>postgres/ddl.clj</code> &middot; <code>persist_refresh.clj</code></div>
+            </td>
+            <td>Writes to a per-database persistence schema &mdash; doesn't intersect any remapped table. Reads (the model query) go through QP. <small>If workspace isolation ever needs to apply per-workspace persistence caches, separate feature.</small></td>
+            <td><span class="risk risk--low">none</span></td>
+            <td class="col-status"><span class="status status--match">covered</span></td>
+          </tr>
+
+          <tr style="--i:11">
+            <td>
+              <div class="path-name">Sync &mdash; <code>describe-database</code> &middot; <code>syncable-schemas</code></div>
+              <div class="path-where">DB-level introspection</div>
+            </td>
+            <td>Discovers tables (the entry point that <em>creates</em> remap candidates). Doesn't consult the remap by design. <small>Correct &mdash; the remap maps known canonical tables to workspace copies; you can't remap something you haven't discovered yet.</small></td>
+            <td><span class="risk risk--low">none</span></td>
+            <td class="col-status"><span class="status status--match">covered</span></td>
+          </tr>
+
+          <tr style="--i:12">
+            <td>
+              <div class="path-name">Connection / health checks</div>
+              <div class="path-where"><code>can-connect?</code></div>
+            </td>
+            <td>Doesn't reference any table. Cannot leak.</td>
+            <td><span class="risk risk--low">none</span></td>
+            <td class="col-status"><span class="status status--match">covered</span></td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ RECOMMENDATIONS ============ -->
+  <h2 class="animate" style="--i:14"><span class="h2-num">04</span>What to do next</h2>
+  <div class="section-sub animate" style="--i:15">priority order &mdash; smallest change with highest impact first</div>
+
+  <div class="recs">
+
+    <div class="rec rec--priority animate" style="--i:16">
+      <div class="rec__num">1</div>
+      <div class="rec__title">Cache invalidation on <em>TableRemapping</em> change</div>
+      <div class="rec__body">Toucan2 after-insert / after-delete hook on <code>:model/TableRemapping</code> that invalidates cache entries for <code>database_id</code>. Five lines. Highest impact for the smallest change.</div>
+      <div class="rec__effort"><span class="dot"></span>~5 LoC · 1 hook</div>
+    </div>
+
+    <div class="rec animate" style="--i:17">
+      <div class="rec__num">2</div>
+      <div class="rec__title">Decide writeback policy</div>
+      <div class="rec__body">Either add <code>apply-workspace-sql-remapping-middleware</code> to <code>writeback.clj</code>'s <code>execution-middleware</code>, or block actions on workspaced DBs at the API layer with a clear error. Both defensible &mdash; pick one and add a test.</div>
+      <div class="rec__effort"><span class="dot"></span>~10 LoC · policy call</div>
+    </div>
+
+    <div class="rec animate" style="--i:18">
+      <div class="rec__num">3</div>
+      <div class="rec__title">CSV upload remap resolution</div>
+      <div class="rec__body">In <code>update-csv!</code>, resolve the remap before computing <code>table-identifier</code>. Wrap with <code>(or (ws.table-remapping/remap-table&hellip;) [schema name])</code> at every call site &mdash; or block uploads on workspaced DBs at the API layer.</div>
+      <div class="rec__effort"><span class="dot"></span>~15 LoC · 4 call sites</div>
+    </div>
+
+    <div class="rec animate" style="--i:19">
+      <div class="rec__num">4</div>
+      <div class="rec__title">Tighten <em>*skip-remapping?*</em></div>
+      <div class="rec__body">No production binders today. Either delete the dynamic var, or rename to <code>*skip-remapping-for-display?*</code> and add a runtime assertion that it's never active during query execution. Make misuse loud.</div>
+      <div class="rec__effort"><span class="dot dot--high"></span>~30 LoC · API rename</div>
+    </div>
+
+  </div>
+
+  <!-- ============ FOOTER ============ -->
+  <div class="footer">
+    Methodology: grepped all callers of <code>driver/execute-write-query!</code>, <code>driver/insert-into!</code>, <code>driver/create-table!</code>, <code>driver/describe-*</code>, and <code>driver/syncable-schemas</code> outside <code>src/metabase/driver/*</code>. Cross-referenced with the execute-middleware chain in <code>query_processor/execute.clj</code>. Source of truth for what gets Phase&nbsp;2: <code>execute.clj:51</code>. &nbsp;&middot;&nbsp; Full report: <code>~/dv/mb/ai-reports/2026-04-29-table-remapping-bypass-paths.md</code>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workspace Table Addressing — How It Works</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============ THEME — blueprint ============ */
+  :root {
+    --font-body: 'Space Grotesk', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #f0f4f8;
+    --bg-grid: rgba(20, 60, 110, 0.04);
+    --surface: #ffffff;
+    --surface2: #f7faff;
+    --surface-elevated: #ffffff;
+    --border: rgba(20, 60, 110, 0.12);
+    --border-bright: rgba(20, 60, 110, 0.25);
+    --text: #0f1e36;
+    --text-dim: #5b6b80;
+    --blue: #1d4ed8;
+    --blue-dim: rgba(29, 78, 216, 0.08);
+    --teal: #0e7490;
+    --teal-dim: rgba(14, 116, 144, 0.08);
+    --green: #15803d;
+    --green-dim: rgba(21, 128, 61, 0.08);
+    --amber: #b45309;
+    --amber-dim: rgba(180, 83, 9, 0.1);
+    --red: #b91c1c;
+    --red-dim: rgba(185, 28, 28, 0.08);
+    --emerald: #047857;
+    --emerald-dim: rgba(4, 120, 87, 0.08);
+    --violet: #6d28d9;
+    --violet-dim: rgba(109, 40, 217, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0a1424;
+      --bg-grid: rgba(120, 180, 255, 0.04);
+      --surface: #122036;
+      --surface2: #0e1a2c;
+      --surface-elevated: #1a2a44;
+      --border: rgba(120, 180, 255, 0.14);
+      --border-bright: rgba(120, 180, 255, 0.28);
+      --text: #e6edf7;
+      --text-dim: #8aa0bf;
+      --blue: #60a5fa;
+      --blue-dim: rgba(96, 165, 250, 0.14);
+      --teal: #5eead4;
+      --teal-dim: rgba(94, 234, 212, 0.12);
+      --green: #4ade80;
+      --green-dim: rgba(74, 222, 128, 0.12);
+      --amber: #fbbf24;
+      --amber-dim: rgba(251, 191, 36, 0.14);
+      --red: #f87171;
+      --red-dim: rgba(248, 113, 113, 0.14);
+      --emerald: #6ee7b7;
+      --emerald-dim: rgba(110, 231, 183, 0.14);
+      --violet: #c4b5fd;
+      --violet-dim: rgba(196, 181, 253, 0.14);
+    }
+  }
+
+  /* ============ RESET + BASE ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    background-size: 32px 32px;
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 48px 32px;
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  /* ============ ANIMATION ============ */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section, .arrow, .stage {
+    animation: fadeUp 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.05s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+    }
+  }
+
+  /* ============ HEADER ============ */
+  header {
+    max-width: 1200px;
+    margin: 0 auto 32px;
+  }
+
+  .doc-stamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 3px;
+    margin-bottom: 14px;
+    background: var(--surface);
+  }
+  .doc-stamp .pulse {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--blue);
+    box-shadow: 0 0 0 0 var(--blue);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(29, 78, 216, 0.4); }
+    70% { box-shadow: 0 0 0 8px rgba(29, 78, 216, 0); }
+  }
+
+  h1 {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -1.2px;
+    margin-bottom: 8px;
+    text-wrap: balance;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 15px;
+    max-width: 720px;
+  }
+  .subtitle code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: var(--blue-dim);
+    color: var(--blue);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  /* ============ LAYOUT ============ */
+  .diagram {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ============ SECTION ============ */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 28px;
+  }
+
+  .section--hero {
+    background: var(--surface-elevated);
+    border-color: var(--border-bright);
+    box-shadow: 0 4px 24px rgba(20, 60, 110, 0.08);
+    padding: 32px 36px;
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-dim);
+  }
+  .section-label .step-num {
+    background: var(--blue);
+    color: white;
+    width: 22px; height: 22px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+  }
+  .section-label .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--blue);
+  }
+
+  .section h2 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    letter-spacing: -0.4px;
+  }
+
+  .section .lede {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-bottom: 20px;
+    max-width: 760px;
+  }
+
+  .section .lede code,
+  .section .body code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--blue-dim);
+    color: var(--blue);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  /* ============ AST DIAGRAM ============ */
+  .ast-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0 8px;
+  }
+
+  .ast-cell {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    text-align: center;
+  }
+  .ast-cell .slot {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--blue);
+    margin-bottom: 4px;
+  }
+  .ast-cell .ast-pos {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+  .ast-cell .example {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .ast-formula {
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    margin: 16px 0;
+    padding: 14px;
+    background: var(--surface2);
+    border-radius: 8px;
+    color: var(--text-dim);
+  }
+  .ast-formula .literal {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .ast-formula .position {
+    color: var(--blue);
+    font-weight: 600;
+  }
+
+  /* ============ TRUTH TABLE ============ */
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  table.truth {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-body);
+    font-size: 13px;
+    min-width: 760px;
+  }
+
+  table.truth thead {
+    background: var(--surface2);
+    position: sticky;
+    top: 0;
+  }
+
+  table.truth th {
+    text-align: left;
+    padding: 12px 14px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border-bright);
+    white-space: nowrap;
+  }
+
+  table.truth td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  table.truth tr:last-child td { border-bottom: none; }
+
+  table.truth tr:nth-child(even) td { background: var(--surface2); }
+
+  table.truth tr:hover td { background: var(--blue-dim); }
+
+  table.truth td.driver {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  table.truth td.components,
+  table.truth td.value,
+  table.truth td.shape {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .empty {
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
+  .pop-yes {
+    color: var(--green);
+    font-weight: 600;
+  }
+  .pop-no {
+    color: var(--text-dim);
+  }
+
+  .gap-flag {
+    display: inline-block;
+    background: var(--red-dim);
+    color: var(--red);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ============ PIPELINE ============ */
+  .pipeline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    align-items: stretch;
+  }
+
+  .stage {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    position: relative;
+    z-index: 1;
+  }
+  .stage--blue { border-left: 3px solid var(--blue); }
+  .stage--teal { border-left: 3px solid var(--teal); }
+  .stage--violet { border-left: 3px solid var(--violet); }
+  .stage--green { border-left: 3px solid var(--green); }
+
+  .stage .stage-num {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+  }
+  .stage .stage-name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .stage .stage-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  .stage code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--blue-dim);
+    color: var(--blue);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
+  .pipeline-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--border-bright);
+    font-size: 18px;
+    font-family: var(--font-mono);
+  }
+
+  /* ============ INVARIANTS GRID ============ */
+  .inv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+  }
+
+  .inv-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .inv-card .inv-num {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--blue);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .inv-card .inv-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .inv-card .inv-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  .inv-card code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--blue-dim);
+    color: var(--blue);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
+  /* ============ EXAMPLES ============ */
+  .example-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .example-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+  }
+  .example-card .ex-driver {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--blue);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .example-card pre {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.6;
+    background: var(--surface);
+    padding: 10px 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    color: var(--text);
+    margin: 6px 0;
+    border: 1px solid var(--border);
+  }
+  .example-card .arrow-down {
+    text-align: center;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    margin: 4px 0;
+  }
+  .example-card .label {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ============ FIX CALLOUT ============ */
+  .gap-callout {
+    background: var(--emerald-dim);
+    border: 1px solid var(--emerald);
+    border-left: 4px solid var(--emerald);
+    border-radius: 0 8px 8px 0;
+    padding: 18px 22px;
+  }
+  .gap-callout .label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--emerald);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .gap-callout h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .gap-callout p {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .gap-callout code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: rgba(0,0,0,0.05);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ============ FOOTER ============ */
+  footer {
+    max-width: 1200px;
+    margin: 32px auto 0;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 12px;
+    font-family: var(--font-mono);
+    text-align: center;
+  }
+  footer code {
+    background: var(--blue-dim);
+    color: var(--blue);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 900px) {
+    body { padding: 24px 16px; }
+    h1 { font-size: 28px; }
+    .ast-row { grid-template-columns: 1fr; }
+    .pipeline { grid-template-columns: 1fr; gap: 8px; }
+    .pipeline-arrow { display: none; }
+    .example-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="doc-stamp"><span class="pulse"></span> WORKSPACE-V2 / TABLE ADDRESSING / CANONICAL SCHEME</div>
+  <h1>How table addressing works in workspace remap</h1>
+  <p class="subtitle">
+    A canonical <code>::table-spec</code> with three slots — <code>:db</code>, <code>:schema</code>, <code>:table</code> —
+    that maps every supported driver onto SQLGlot's AST positions, regardless of whether the warehouse
+    calls its top level a "schema," a "database," or a "project."
+  </p>
+</header>
+
+<div class="diagram">
+
+  <!-- ========== 1: THE INVARIANT ========== -->
+  <div class="section section--hero" style="--i:0">
+    <div class="section-label"><span class="step-num">1</span> The invariant</div>
+    <h2>Slot names are AST positions, not warehouse vocabulary</h2>
+    <p class="lede">
+      SQL identifier grammar caps at three parts: <code>catalog.db.name</code>. We name those positions
+      <code>:db</code>, <code>:schema</code>, <code>:table</code> after the SQLGlot AST fields they map to —
+      <em>not</em> after what the warehouse vendor calls them.
+    </p>
+
+    <div class="ast-row">
+      <div class="ast-cell">
+        <div class="slot">:db</div>
+        <div class="ast-pos">SQLGlot Table.catalog</div>
+        <div class="example">leftmost</div>
+      </div>
+      <div class="ast-cell">
+        <div class="slot">:schema</div>
+        <div class="ast-pos">SQLGlot Table.db</div>
+        <div class="example">middle</div>
+      </div>
+      <div class="ast-cell">
+        <div class="slot">:table</div>
+        <div class="ast-pos">SQLGlot Table.name</div>
+        <div class="example">always present</div>
+      </div>
+    </div>
+
+    <div class="ast-formula">
+      <span class="position">:db</span> <span class="literal">.</span>
+      <span class="position">:schema</span> <span class="literal">.</span>
+      <span class="position">:table</span>
+    </div>
+
+    <p class="lede" style="margin-top: 12px; margin-bottom: 0;">
+      <strong>Empty string <code>""</code></strong> means "this driver does not emit this AST level." The empty-string
+      sentinel — not <code>NULL</code> — lets storage enforce a real unique constraint on
+      <code>(database_id, db, schema, table_name)</code>.
+    </p>
+  </div>
+
+  <!-- ========== 2: PER-DRIVER TRUTH TABLE ========== -->
+  <div class="section" style="--i:1">
+    <div class="section-label"><span class="step-num">2</span> Per-driver truth table</div>
+    <h2>What each driver populates</h2>
+    <p class="lede">
+      <code>driver/qualified-name-components</code> is authoritative: it returns the AST positions the driver
+      emits natively. <code>spec-for-table</code> populates exactly those slots and zeroes the rest.
+    </p>
+
+    <div class="table-wrap">
+      <table class="truth">
+        <thead>
+          <tr>
+            <th>Driver</th>
+            <th>qualified-name-components</th>
+            <th>:db slot</th>
+            <th>:schema slot</th>
+            <th>warehouse term</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="driver">postgres</td>
+            <td class="components">[:schema]</td>
+            <td><span class="empty">""</span></td>
+            <td class="value">schema name</td>
+            <td class="value">"schema"</td>
+          </tr>
+          <tr>
+            <td class="driver">redshift</td>
+            <td class="components">[:schema]</td>
+            <td><span class="empty">""</span></td>
+            <td class="value">schema name</td>
+            <td class="value">"schema"</td>
+          </tr>
+          <tr>
+            <td class="driver">h2</td>
+            <td class="components">[:schema]</td>
+            <td><span class="empty">""</span></td>
+            <td class="value">schema name (PUBLIC)</td>
+            <td class="value">"schema"</td>
+          </tr>
+          <tr>
+            <td class="driver">mysql</td>
+            <td class="components">[]</td>
+            <td><span class="empty">""</span></td>
+            <td><span class="empty">"" (cardinality upgrade)</span></td>
+            <td class="value">"database" (warehouse)</td>
+          </tr>
+          <tr>
+            <td class="driver">clickhouse</td>
+            <td class="components">[:schema]</td>
+            <td><span class="empty">""</span></td>
+            <td class="value">database name <em>(sic)</em></td>
+            <td class="value">"database" (warehouse)</td>
+          </tr>
+          <tr>
+            <td class="driver">snowflake</td>
+            <td class="components">[:db :schema]</td>
+            <td class="value">database name</td>
+            <td class="value">schema name</td>
+            <td class="value">"database.schema"</td>
+          </tr>
+          <tr>
+            <td class="driver">sqlserver</td>
+            <td class="components">[:db :schema]</td>
+            <td class="value">database name</td>
+            <td class="value">schema name</td>
+            <td class="value">"database.schema"</td>
+          </tr>
+          <tr>
+            <td class="driver">bigquery-cloud-sdk</td>
+            <td class="components">[:db :schema]</td>
+            <td class="value">project id</td>
+            <td class="value">dataset name</td>
+            <td class="value">"project.dataset"</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="lede" style="margin-top: 16px; margin-bottom: 0;">
+      The slot named <code>:schema</code> carries what ClickHouse and MySQL call a "<strong>database</strong>"
+      because that's the AST position those drivers' compiled SQL lands in.
+      <code>:db</code> is reserved for true 3-part identifiers like BigQuery's project.
+    </p>
+  </div>
+
+  <!-- ========== 3: THE PIPELINE ========== -->
+  <div class="section" style="--i:2">
+    <div class="section-label"><span class="step-num">3</span> The funnel</div>
+    <h2>One producer, many consumers</h2>
+    <p class="lede">
+      All addressing flows through <code>spec-for-table</code>. Storage, the rewriter, and YAML config all
+      speak the same <code>{:db, :schema, :table}</code> shape.
+    </p>
+
+    <div class="pipeline">
+      <div class="stage stage--blue" style="--i:3">
+        <div class="stage-num">PRODUCER</div>
+        <div class="stage-name">spec-for-table</div>
+        <div class="stage-desc">Reads <code>:engine</code> + <code>qualified-name-components</code>, emits canonical map.</div>
+      </div>
+      <div class="stage stage--teal" style="--i:4">
+        <div class="stage-num">STORAGE</div>
+        <div class="stage-name">TableRemapping rows</div>
+        <div class="stage-desc">3 columns/side, all <code>NOT NULL DEFAULT ''</code>. Unique on (db_id, db, schema, name).</div>
+      </div>
+      <div class="stage stage--violet" style="--i:5">
+        <div class="stage-num">REWRITER</div>
+        <div class="stage-name">replace-names</div>
+        <div class="stage-desc">Strips <code>""</code> sentinels, hands wildcards to SQLGlot, re-emits SQL.</div>
+      </div>
+      <div class="stage stage--green" style="--i:6">
+        <div class="stage-num">WIRE</div>
+        <div class="stage-name">config.yml</div>
+        <div class="stage-desc">Same shape, slots a driver doesn't populate are <em>missing</em> (not "").</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 4: WORKED EXAMPLES ========== -->
+  <div class="section" style="--i:7">
+    <div class="section-label"><span class="step-num">4</span> Worked examples</div>
+    <h2>Source SQL → spec → rewritten SQL</h2>
+    <p class="lede">
+      Two contrasting cases: MySQL upgrades cardinality (source has no <code>:schema</code>, output adds one),
+      Snowflake preserves it (3 slots in, 3 slots out).
+    </p>
+
+    <div class="example-grid">
+      <div class="example-card">
+        <div class="ex-driver">MySQL — cardinality upgrade</div>
+
+        <div class="label">SOURCE SQL</div>
+        <pre>SELECT * FROM `orders`</pre>
+        <div class="arrow-down">↓ spec-for-table</div>
+
+        <div class="label">SOURCE SPEC</div>
+        <pre>{:db    ""
+ :schema ""
+ :table  "orders"}</pre>
+        <div class="arrow-down">↓ rewriter applies remap</div>
+
+        <div class="label">OUTPUT SPEC</div>
+        <pre>{:db    ""
+ :schema "ws_alice"
+ :table  "orders"}</pre>
+        <div class="arrow-down">↓ re-emit</div>
+
+        <div class="label">OUTPUT SQL</div>
+        <pre>SELECT * FROM `ws_alice`.`orders`</pre>
+      </div>
+
+      <div class="example-card">
+        <div class="ex-driver">Snowflake — 3-part preserved</div>
+
+        <div class="label">SOURCE SQL</div>
+        <pre>SELECT * FROM
+  "ANALYTICS"."PUBLIC"."ORDERS"</pre>
+        <div class="arrow-down">↓ spec-for-table</div>
+
+        <div class="label">SOURCE SPEC</div>
+        <pre>{:db    "ANALYTICS"
+ :schema "PUBLIC"
+ :table  "ORDERS"}</pre>
+        <div class="arrow-down">↓ rewriter applies remap</div>
+
+        <div class="label">OUTPUT SPEC</div>
+        <pre>{:db    "WS_DB"
+ :schema "WS_ALICE"
+ :table  "ORDERS"}</pre>
+        <div class="arrow-down">↓ re-emit</div>
+
+        <div class="label">OUTPUT SQL</div>
+        <pre>SELECT * FROM
+  "WS_DB"."WS_ALICE"."ORDERS"</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 5: INVARIANTS ========== -->
+  <div class="section" style="--i:8">
+    <div class="section-label"><span class="step-num">5</span> Invariants</div>
+    <h2>Five rules that govern the whole scheme</h2>
+
+    <div class="inv-grid">
+      <div class="inv-card">
+        <div class="inv-num">INV-1</div>
+        <div class="inv-title">One address type, one funnel</div>
+        <div class="inv-desc"><code>spec-for-table</code> is the only producer. All consumers accept the same shape.</div>
+      </div>
+      <div class="inv-card">
+        <div class="inv-num">INV-2</div>
+        <div class="inv-title">Slots = AST positions</div>
+        <div class="inv-desc"><code>:db</code> ↔ catalog, <code>:schema</code> ↔ db, <code>:table</code> ↔ name. Not warehouse vocabulary.</div>
+      </div>
+      <div class="inv-card">
+        <div class="inv-num">INV-3</div>
+        <div class="inv-title">"" at storage, missing on wire</div>
+        <div class="inv-desc">Sentinel is a SQL constraint concern, not a contract concern. Loader normalizes.</div>
+      </div>
+      <div class="inv-card">
+        <div class="inv-num">INV-4</div>
+        <div class="inv-title">No 4th slot</div>
+        <div class="inv-desc">Account, region, credentials live in connection details. Crossing them = different Database row.</div>
+      </div>
+      <div class="inv-card">
+        <div class="inv-num">INV-5</div>
+        <div class="inv-title">qualified-name-components is law</div>
+        <div class="inv-desc">"Does this driver populate <code>:db</code>?" is answered by the multimethod, not the spec map.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 6: HOW THE TEST CAUGHT A BUG ========== -->
+  <div class="gap-callout" style="--i:9">
+    <div class="label">✓ FIXED — surfaced by the addressing-truth-table tests</div>
+    <h3>The test caught a real INV-5 violation in production code</h3>
+    <p>
+      Snowflake and SQL Server both declare <code>[:db :schema]</code> in <code>qualified-name-components</code>,
+      but <code>db-position-value</code> in <code>table_remapping.clj</code> only branched on
+      <code>:bigquery-cloud-sdk</code> — so <code>:db</code> fell through to <code>nil</code> and normalized to
+      <code>""</code>. The slot that should hold the warehouse database name stayed empty. The new
+      truth-table tests turned this hidden gap into a loud failure on the all-drivers run, fixed by
+      adding the <code>(:snowflake :sqlserver)</code> arm:
+      <code>(:db (:details database))</code>. 32/32 assertions pass. Doc and code agree.
+    </p>
+  </div>
+
+</div>
+
+<footer>
+  source canonical doc: <code>~/dv/mb/ai-reports/2026-05-01-canonical-table-addressing-scheme.md</code>
+</footer>
+
+</body>
+</html>

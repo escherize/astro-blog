@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>dangerous-claude — Security Audit &amp; Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============ THEME — Neon dashboard (dark-first) ============ */
+  :root {
+    --font-body: 'Sora', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #0c0e14;
+    --surface: #14171f;
+    --surface2: #1a1e28;
+    --surface-elevated: #1e2330;
+    --border: rgba(255, 255, 255, 0.06);
+    --border-bright: rgba(255, 255, 255, 0.12);
+    --text: #e4e8f1;
+    --text-dim: #7a8296;
+
+    --cyan: #22d3ee;
+    --cyan-dim: rgba(34, 211, 238, 0.1);
+    --green: #4ade80;
+    --green-dim: rgba(74, 222, 128, 0.08);
+    --red: #f87171;
+    --red-dim: rgba(248, 113, 113, 0.08);
+    --orange: #fbbf24;
+    --orange-dim: rgba(251, 191, 36, 0.08);
+    --purple: #c4b5fd;
+    --purple-dim: rgba(196, 181, 253, 0.08);
+    --blue: #60a5fa;
+    --blue-dim: rgba(96, 165, 250, 0.08);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --surface2: #eef1f6;
+      --surface-elevated: #ffffff;
+      --border: rgba(0, 0, 0, 0.07);
+      --border-bright: rgba(0, 0, 0, 0.14);
+      --text: #1a1e28;
+      --text-dim: #6b7280;
+
+      --cyan: #0891b2;
+      --cyan-dim: rgba(8, 145, 178, 0.07);
+      --green: #16a34a;
+      --green-dim: rgba(22, 163, 74, 0.07);
+      --red: #dc2626;
+      --red-dim: rgba(220, 38, 38, 0.07);
+      --orange: #d97706;
+      --orange-dim: rgba(217, 119, 6, 0.07);
+      --purple: #7c3aed;
+      --purple-dim: rgba(124, 58, 237, 0.07);
+      --blue: #2563eb;
+      --blue-dim: rgba(37, 99, 235, 0.07);
+    }
+  }
+
+  /* ============ RESET ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; min-width: 0; }
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 15% 5%, var(--cyan-dim) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 90%, var(--purple-dim) 0%, transparent 40%);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-wrap: break-word;
+    padding: 40px;
+  }
+
+  /* ============ ANIMATION ============ */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .anim { animation: fadeUp 0.4s ease-out both; animation-delay: calc(var(--i, 0) * 0.06s); }
+  .anim-scale { animation: fadeScale 0.35s ease-out both; animation-delay: calc(var(--i, 0) * 0.06s); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* ============ NAV LAYOUT ============ */
+  .wrap {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 170px 1fr;
+    gap: 0 40px;
+  }
+  .main { min-width: 0; }
+
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    padding: 14px 0;
+    grid-row: 1 / -1;
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+  }
+  .toc::-webkit-scrollbar { width: 3px; }
+  .toc::-webkit-scrollbar-thumb { background: var(--surface-elevated); border-radius: 2px; }
+  .toc-title {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    padding: 0 0 10px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .toc a {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 4px 8px;
+    border-radius: 5px;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+    line-height: 1.4;
+    margin-bottom: 1px;
+  }
+  .toc a:hover { color: var(--text); background: var(--surface2); }
+  .toc a.active { color: var(--text); border-left-color: var(--cyan); }
+
+  @media (max-width: 1000px) {
+    .wrap { grid-template-columns: 1fr; padding-top: 0; }
+    body { padding: 16px; padding-top: 0; }
+    .toc {
+      position: sticky; top: 0; z-index: 200; max-height: none;
+      display: flex; gap: 4px; align-items: center; overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      background: var(--bg); border-bottom: 1px solid var(--border);
+      padding: 10px 0; margin: 0 -16px; padding-left: 16px; padding-right: 16px;
+      grid-row: auto;
+    }
+    .toc::-webkit-scrollbar { display: none; }
+    .toc-title { display: none; }
+    .toc a {
+      white-space: nowrap; flex-shrink: 0; border-left: none;
+      border-bottom: 2px solid transparent; border-radius: 4px 4px 0 0;
+      padding: 6px 10px; font-size: 10px;
+    }
+    .toc a.active { border-left: none; border-bottom-color: var(--cyan); background: var(--surface); }
+    .main { padding-top: 20px; }
+    .sec-head { scroll-margin-top: 52px; }
+  }
+
+  /* ============ TYPOGRAPHY ============ */
+  h1 { font-size: 36px; font-weight: 700; letter-spacing: -1px; margin-bottom: 6px; text-wrap: balance; }
+  .subtitle { color: var(--text-dim); font-family: var(--font-mono); font-size: 12px; margin-bottom: 32px; }
+  .sec-head {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 20px 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sec-head .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+  /* ============ CARDS ============ */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .card--hero {
+    background: var(--surface-elevated);
+    border-color: color-mix(in srgb, var(--border) 50%, var(--cyan) 50%);
+    box-shadow: 0 0 30px rgba(34, 211, 238, 0.06);
+    padding: 28px 32px;
+  }
+  .card--recessed {
+    background: var(--surface2);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+  .card p { font-size: 13px; line-height: 1.7; color: var(--text-dim); }
+  .card p + p { margin-top: 8px; }
+  .card code {
+    font-family: var(--font-mono); font-size: 11px;
+    background: var(--cyan-dim); color: var(--cyan);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* ============ KPI ROW ============ */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .kpi-card {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  .kpi-card__value {
+    font-size: 28px; font-weight: 700; letter-spacing: -1px; line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-card__label {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--text-dim); margin-top: 6px;
+  }
+
+  /* ============ INNER GRID ============ */
+  .inner-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 768px) { .inner-grid { grid-template-columns: 1fr; } }
+  .inner-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 16px;
+  }
+  .inner-card .title { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+  .inner-card .desc { color: var(--text-dim); font-size: 12px; line-height: 1.6; }
+  .inner-card code {
+    font-family: var(--font-mono); font-size: 11px;
+    background: var(--cyan-dim); color: var(--cyan);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* ============ FLOW ARROW ============ */
+  .flow-arrow {
+    display: flex; justify-content: center; align-items: center; gap: 8px;
+    color: var(--text-dim); font-family: var(--font-mono); font-size: 12px; padding: 6px 0;
+  }
+  .flow-arrow svg {
+    width: 20px; height: 20px; fill: none;
+    stroke: var(--border-bright); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* ============ SECURITY GRID ============ */
+  .sec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  @media (max-width: 768px) { .sec-grid { grid-template-columns: 1fr; } }
+
+  .sec-card {
+    border-radius: 10px; padding: 16px 20px; border: 1px solid;
+  }
+  .sec-card--safe { background: var(--green-dim); border-color: color-mix(in srgb, var(--border) 60%, var(--green) 40%); }
+  .sec-card--risk { background: var(--red-dim); border-color: color-mix(in srgb, var(--border) 60%, var(--red) 40%); }
+  .sec-card--warn { background: var(--orange-dim); border-color: color-mix(in srgb, var(--border) 60%, var(--orange) 40%); }
+  .sec-card__label {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .sec-card--safe .sec-card__label { color: var(--green); }
+  .sec-card--risk .sec-card__label { color: var(--red); }
+  .sec-card--warn .sec-card__label { color: var(--orange); }
+  .sec-card__label::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+  }
+
+  .sec-list { list-style: none; font-size: 12px; line-height: 1.9; }
+  .sec-list li { padding-left: 14px; position: relative; }
+  .sec-list li::before { content: ''; position: absolute; left: 0; top: 9px; width: 5px; height: 5px; border-radius: 50%; }
+  .sec-card--safe .sec-list li::before { background: var(--green); }
+  .sec-card--risk .sec-list li::before { background: var(--red); }
+  .sec-card--warn .sec-list li::before { background: var(--orange); }
+  .sec-list code {
+    font-family: var(--font-mono); font-size: 10px;
+    background: rgba(255,255,255,0.05); padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* ============ OVERLAY DIAGRAM ============ */
+  .overlay-diagram {
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr 60px 1fr;
+    align-items: center;
+    gap: 0;
+    margin: 16px 0;
+  }
+  @media (max-width: 768px) {
+    .overlay-diagram { grid-template-columns: 1fr; gap: 8px; }
+    .overlay-arrow { transform: rotate(90deg); }
+  }
+  .overlay-layer {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; text-align: center;
+  }
+  .overlay-layer__name {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;
+  }
+  .overlay-layer__path { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }
+  .overlay-layer--lower { border-color: color-mix(in srgb, var(--border) 50%, var(--green) 50%); }
+  .overlay-layer--lower .overlay-layer__name { color: var(--green); }
+  .overlay-layer--upper { border-color: color-mix(in srgb, var(--border) 50%, var(--orange) 50%); }
+  .overlay-layer--upper .overlay-layer__name { color: var(--orange); }
+  .overlay-layer--merged { border-color: color-mix(in srgb, var(--border) 50%, var(--cyan) 50%); }
+  .overlay-layer--merged .overlay-layer__name { color: var(--cyan); }
+  .overlay-arrow { text-align: center; color: var(--text-dim); font-size: 20px; }
+
+  /* ============ PIPELINE ============ */
+  .pipeline { display: flex; gap: 0; align-items: stretch; overflow-x: auto; padding-bottom: 4px; }
+  .pipeline-step {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; min-width: 150px; flex-shrink: 0; text-align: center;
+  }
+  .pipeline-step .step-num {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600; margin-bottom: 4px;
+  }
+  .pipeline-step .step-name { font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+  .pipeline-step .step-detail { font-size: 10px; color: var(--text-dim); line-height: 1.5; }
+  .pipeline-arrow { display: flex; align-items: center; padding: 0 4px; color: var(--border-bright); font-size: 18px; flex-shrink: 0; }
+  @media (max-width: 768px) { .pipeline { flex-wrap: wrap; gap: 6px; } .pipeline-arrow { display: none; } }
+
+  .step--cyan { border-color: var(--cyan-dim); }
+  .step--cyan .step-num { color: var(--cyan); }
+  .step--green { border-color: var(--green-dim); }
+  .step--green .step-num { color: var(--green); }
+  .step--purple { border-color: var(--purple-dim); }
+  .step--purple .step-num { color: var(--purple); }
+  .step--orange { border-color: var(--orange-dim); }
+  .step--orange .step-num { color: var(--orange); }
+
+  /* ============ CLI TABLE ============ */
+  .table-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden; margin-bottom: 16px;
+  }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cli-table { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 1.55; }
+  .cli-table th {
+    background: var(--surface2); font-family: var(--font-mono);
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--text-dim); text-align: left; padding: 12px 16px;
+    border-bottom: 2px solid var(--border-bright); white-space: nowrap;
+  }
+  .cli-table td {
+    padding: 10px 16px; border-bottom: 1px solid var(--border); vertical-align: top;
+  }
+  .cli-table tbody tr:nth-child(even) { background: var(--cyan-dim); }
+  .cli-table tbody tr { transition: background 0.15s ease; }
+  .cli-table tbody tr:hover { background: var(--border); }
+  .cli-table tbody tr:last-child td { border-bottom: none; }
+  .cli-table code {
+    font-family: var(--font-mono); font-size: 11px;
+    background: var(--cyan-dim); color: var(--cyan);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* ============ RATING TABLE ============ */
+  .rating-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .rating-table th {
+    background: var(--surface2); font-family: var(--font-mono);
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--text-dim); text-align: left; padding: 12px 16px;
+    border-bottom: 2px solid var(--border-bright);
+  }
+  .rating-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .rating-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+  .rating-table tbody tr:last-child td { border-bottom: none; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    padding: 3px 10px; border-radius: 6px; white-space: nowrap;
+  }
+  .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .badge--good { background: var(--green-dim); color: var(--green); }
+  .badge--ok { background: var(--orange-dim); color: var(--orange); }
+  .badge--bad { background: var(--red-dim); color: var(--red); }
+  .badge--none { background: var(--red-dim); color: var(--red); }
+
+  /* ============ CALLOUT ============ */
+  .callout {
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan); border-radius: 0 10px 10px 0;
+    padding: 16px 20px; font-size: 13px; line-height: 1.6; color: var(--text-dim);
+    margin-top: 8px; margin-bottom: 16px;
+  }
+  .callout strong { color: var(--text); font-weight: 600; }
+  .callout code {
+    font-family: var(--font-mono); font-size: 11px;
+    background: var(--cyan-dim); color: var(--cyan);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* ============ COLLAPSIBLE ============ */
+  details.collapsible { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+  details.collapsible summary {
+    padding: 14px 20px; background: var(--surface); font-family: var(--font-mono);
+    font-size: 12px; font-weight: 600; cursor: pointer; list-style: none;
+    display: flex; align-items: center; gap: 8px; color: var(--text);
+    transition: background 0.15s ease;
+  }
+  details.collapsible summary:hover { background: var(--surface-elevated); }
+  details.collapsible summary::-webkit-details-marker { display: none; }
+  details.collapsible summary::before {
+    content: '\25B8'; font-size: 11px; color: var(--text-dim); transition: transform 0.15s ease;
+  }
+  details.collapsible[open] summary::before { transform: rotate(90deg); }
+  details.collapsible .collapsible__body {
+    padding: 16px 20px; border-top: 1px solid var(--border);
+    font-size: 13px; line-height: 1.6; color: var(--text-dim);
+  }
+  details.collapsible .collapsible__body strong { color: var(--text); }
+  details.collapsible .collapsible__body code {
+    font-family: var(--font-mono); font-size: 11px;
+    background: var(--cyan-dim); color: var(--cyan);
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  /* ============ CRED FLOW ============ */
+  .cred-flow {
+    display: grid; grid-template-columns: 1fr auto 1fr auto 1fr;
+    align-items: center; gap: 0; margin: 16px 0;
+  }
+  @media (max-width: 768px) { .cred-flow { grid-template-columns: 1fr; gap: 8px; } }
+  .cred-node {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px; text-align: center;
+  }
+  .cred-node__name { font-family: var(--font-mono); font-size: 11px; font-weight: 600; margin-bottom: 4px; }
+  .cred-node__detail { font-size: 11px; color: var(--text-dim); }
+  .cred-arrow { text-align: center; color: var(--text-dim); font-family: var(--font-mono); font-size: 14px; padding: 0 8px; }
+
+  .or-divider {
+    display: flex; align-items: center; gap: 12px; margin: 12px 0;
+    font-family: var(--font-mono); font-size: 10px; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .or-divider::before, .or-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <nav class="toc" id="toc">
+    <div class="toc-title">Contents</div>
+    <a href="#s1">1. Overview</a>
+    <a href="#s2">2. CLI Flow</a>
+    <a href="#s3">3. Container</a>
+    <a href="#s4">4. Security Model</a>
+    <a href="#s5">5. Overlay FS</a>
+    <a href="#s6">6. Credentials</a>
+    <a href="#s7">7. CLI Reference</a>
+    <a href="#s8">8. Audit Rating</a>
+  </nav>
+
+  <div class="main">
+
+    <h1 class="anim" style="--i:0">dangerous-claude</h1>
+    <p class="subtitle anim" style="--i:1">security audit &amp; architecture deep-dive &mdash; v1.2.1 &mdash; MattFlower/dangerous-claude</p>
+
+    <!-- ================================ S1: OVERVIEW ================================ -->
+    <div id="s1" class="sec-head anim" style="--i:2; color: var(--cyan)"><span class="dot" style="background:var(--cyan)"></span> Overview</div>
+
+    <div class="card card--hero anim" style="--i:3">
+      <p>
+        <strong style="color:var(--text)">dangerous-claude</strong> wraps Claude Code in a Docker container so you can run
+        <code>--dangerously-skip-permissions</code> without exposing your entire filesystem. You specify which directories
+        to mount - everything else is invisible to the agent.
+      </p>
+      <p>
+        5 stars on GitHub. MIT licensed. Single-author project (MattFlower). Last updated Jan 18, 2026.
+        Honest about limitations - the README explicitly documents what is and isn't protected.
+      </p>
+    </div>
+
+    <div class="kpi-row anim-scale" style="--i:4">
+      <div class="kpi-card">
+        <div class="kpi-card__value" style="color:var(--cyan)">~400</div>
+        <div class="kpi-card__label">Lines of Bash</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-card__value" style="color:var(--green)">4</div>
+        <div class="kpi-card__label">Files (core)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-card__value" style="color:var(--purple)">MIT</div>
+        <div class="kpi-card__label">License</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-card__value" style="color:var(--orange)">1.2.1</div>
+        <div class="kpi-card__label">Version</div>
+      </div>
+    </div>
+
+    <!-- ================================ S2: CLI FLOW ================================ -->
+    <div id="s2" class="sec-head anim" style="--i:5; color: var(--purple)"><span class="dot" style="background:var(--purple)"></span> CLI Startup Flow</div>
+
+    <div class="card anim" style="--i:6">
+      <p>When you run <code>dangerous-claude ./my-project</code>, the script performs four steps before handing off to Docker:</p>
+      <div style="margin-top: 16px;">
+        <div class="pipeline">
+          <div class="pipeline-step step--cyan">
+            <div class="step-num">STEP 1</div>
+            <div class="step-name">Credentials</div>
+            <div class="step-detail">Sync macOS Keychain<br>OAuth tokens to disk</div>
+          </div>
+          <div class="pipeline-arrow">&rarr;</div>
+          <div class="pipeline-step step--green">
+            <div class="step-num">STEP 2</div>
+            <div class="step-name">Volume Mounts</div>
+            <div class="step-detail">Project dirs, ~/.claude,<br>~/.gitconfig, caches</div>
+          </div>
+          <div class="pipeline-arrow">&rarr;</div>
+          <div class="pipeline-step step--purple">
+            <div class="step-num">STEP 3</div>
+            <div class="step-name">Env Vars</div>
+            <div class="step-detail">API key, env.txt vars,<br>flags (continue, resume)</div>
+          </div>
+          <div class="pipeline-arrow">&rarr;</div>
+          <div class="pipeline-step step--orange">
+            <div class="step-num">STEP 4</div>
+            <div class="step-name">docker run</div>
+            <div class="step-detail">Interactive container<br>with security opts</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================ S3: CONTAINER ================================ -->
+    <div id="s3" class="sec-head anim" style="--i:7; color: var(--blue)"><span class="dot" style="background:var(--blue)"></span> Container Architecture</div>
+
+    <div class="card anim" style="--i:8">
+      <div class="inner-grid">
+        <div class="inner-card">
+          <div class="title" style="color:var(--cyan)">Base Image</div>
+          <div class="desc">Ubuntu 24.04 with Node.js 20.x LTS, Docker CLI, ripgrep, fd, jq, git</div>
+        </div>
+        <div class="inner-card">
+          <div class="title" style="color:var(--green)">Claude Code</div>
+          <div class="desc"><code>@anthropic-ai/claude-code</code> installed globally via npm. Auto-updates on each start.</div>
+        </div>
+        <div class="inner-card">
+          <div class="title" style="color:var(--purple)">SDKMAN Tooling</div>
+          <div class="desc">Optional: Java 21 (Zulu), Gradle, Maven. Configurable via <code>sdkman.txt</code>.</div>
+        </div>
+        <div class="inner-card">
+          <div class="title" style="color:var(--orange)">Entrypoint</div>
+          <div class="desc">Runs as root for UID/GID mapping + overlay setup. Drops to <code>claude</code> user via <code>gosu</code>.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-arrow anim" style="--i:9">
+      <svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg>
+      privilege boundary
+    </div>
+
+    <div class="card card--recessed anim" style="--i:10">
+      <p><strong style="color:var(--text)">After entrypoint:</strong> All Claude Code activity runs as the non-root <code>claude</code> user
+      with <code>--security-opt no-new-privileges</code> preventing re-escalation. The working directory is <code>/workspace/&lt;dirname&gt;</code>.</p>
+    </div>
+
+    <!-- ================================ S4: SECURITY MODEL ================================ -->
+    <div id="s4" class="sec-head anim" style="--i:11; color: var(--green)"><span class="dot" style="background:var(--green)"></span> Security Model</div>
+
+    <div class="sec-grid anim" style="--i:12">
+      <div class="sec-card sec-card--safe">
+        <div class="sec-card__label">Protected</div>
+        <ul class="sec-list">
+          <li>Host filesystem invisible (only mounted dirs)</li>
+          <li><code>~/.gradle</code>, <code>~/.m2</code> overlay-protected</li>
+          <li><code>~/.gitconfig</code> mounted read-only</li>
+          <li><code>no-new-privileges</code> blocks escalation</li>
+          <li>Credentials written with atomic ops + symlink checks</li>
+        </ul>
+      </div>
+      <div class="sec-card sec-card--risk">
+        <div class="sec-card__label">Exposed / Risks</div>
+        <ul class="sec-list">
+          <li>Mounted project dirs: full read-write</li>
+          <li><code>~/.claude</code> dir: read-write, no overlay</li>
+          <li>Full outbound network access</li>
+          <li>Docker socket (if <code>--docker</code> flag used)</li>
+          <li><code>CAP_SYS_ADMIN</code> during entrypoint phase</li>
+          <li>Env vars (API keys, tokens) accessible inside</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="sec-grid anim" style="--i:13">
+      <div class="sec-card sec-card--warn" style="grid-column: 1 / -1;">
+        <div class="sec-card__label">Notable Concerns</div>
+        <ul class="sec-list">
+          <li><strong style="color:var(--text)">CAP_SYS_ADMIN</strong> is granted by default for overlay mounts - powerful capability, mitigated by privilege drop</li>
+          <li><strong style="color:var(--text)">npm update -g</strong> runs on every start before interaction - supply chain attack surface</li>
+          <li><strong style="color:var(--text)">Docker socket access</strong> via <code>--docker</code> is effectively host root access</li>
+          <li><strong style="color:var(--text)">curl-pipe-bash installer</strong> - standard risk, but the script just does <code>git clone</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ================================ S5: OVERLAY ================================ -->
+    <div id="s5" class="sec-head anim" style="--i:14; color: var(--orange)"><span class="dot" style="background:var(--orange)"></span> Overlay Filesystem</div>
+
+    <div class="card anim" style="--i:15">
+      <p>Cache directories (<code>~/.gradle</code>, <code>~/.m2</code>) are protected using Linux overlayfs.
+      Writes go to an ephemeral layer; host files are untouched. On container restart, changes vanish.</p>
+
+      <div class="overlay-diagram" style="margin-top: 20px;">
+        <div class="overlay-layer overlay-layer--lower">
+          <div class="overlay-layer__name">Lower (read-only)</div>
+          <div class="overlay-layer__path">Host ~/.m2</div>
+        </div>
+        <div class="overlay-arrow">&rarr;</div>
+        <div class="overlay-layer overlay-layer--upper">
+          <div class="overlay-layer__name">Upper (ephemeral)</div>
+          <div class="overlay-layer__path">/tmp/overlay/m2/upper</div>
+        </div>
+        <div class="overlay-arrow">&rarr;</div>
+        <div class="overlay-layer overlay-layer--merged">
+          <div class="overlay-layer__name">Merged View</div>
+          <div class="overlay-layer__path">/home/claude/.m2</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout anim" style="--i:16">
+      <strong>Key invariant:</strong> Deletions only affect the upper layer. If Claude runs <code>rm -rf ~/.m2/*</code>,
+      the host directory is untouched. On next container start, everything reappears.
+      Use <code>--no-overlay</code> to disable this (writes persist to host, but no deletion protection).
+    </div>
+
+    <!-- ================================ S6: CREDENTIALS ================================ -->
+    <div id="s6" class="sec-head anim" style="--i:17; color: var(--purple)"><span class="dot" style="background:var(--purple)"></span> Credential Flow</div>
+
+    <div class="card anim" style="--i:18">
+      <p style="margin-bottom: 14px;"><strong style="color:var(--text)">Path A: OAuth (Claude Max/Pro)</strong></p>
+      <div class="cred-flow">
+        <div class="cred-node">
+          <div class="cred-node__name" style="color:var(--purple)">macOS Keychain</div>
+          <div class="cred-node__detail">System credential store</div>
+        </div>
+        <div class="cred-arrow">&rarr;</div>
+        <div class="cred-node">
+          <div class="cred-node__name" style="color:var(--cyan)">sync_keychain_credentials()</div>
+          <div class="cred-node__detail">Validates JSON, checks expiry,<br>atomic write with lock</div>
+        </div>
+        <div class="cred-arrow">&rarr;</div>
+        <div class="cred-node">
+          <div class="cred-node__name" style="color:var(--green)">.credentials.json</div>
+          <div class="cred-node__detail">~/.claude/.credentials.json<br>Persists on host</div>
+        </div>
+      </div>
+
+      <div class="or-divider">or</div>
+
+      <p style="margin-bottom: 14px;"><strong style="color:var(--text)">Path B: API Key</strong></p>
+      <div class="cred-flow">
+        <div class="cred-node">
+          <div class="cred-node__name" style="color:var(--orange)">ANTHROPIC_API_KEY</div>
+          <div class="cred-node__detail">Shell env var</div>
+        </div>
+        <div class="cred-arrow">&rarr;</div>
+        <div class="cred-node">
+          <div class="cred-node__name" style="color:var(--cyan)">docker run -e</div>
+          <div class="cred-node__detail">Passed directly to container</div>
+        </div>
+        <div class="cred-arrow">&rarr;</div>
+        <div class="cred-node">
+          <div class="cred-node__name" style="color:var(--green)">Claude Code</div>
+          <div class="cred-node__detail">Reads from env at runtime</div>
+        </div>
+      </div>
+    </div>
+
+    <details class="collapsible anim" style="--i:19">
+      <summary>Credential security details</summary>
+      <div class="collapsible__body">
+        <strong>One-time seed only.</strong> Keychain sync only writes if the file doesn't exist or has invalid JSON.
+        Once a valid file exists, it's never overwritten from Keychain - because the container may have refreshed
+        the token, and it can't write back to Keychain.
+        <br><br>
+        <strong>Safety measures:</strong> symlink check before write, <code>chmod 600</code> on temp file before
+        writing data, <code>mkdir</code>-based file lock with stale lock detection (60s timeout), JSON validation
+        via <code>jq</code>, atomic <code>mv</code> to final location.
+      </div>
+    </details>
+
+    <!-- ================================ S7: CLI REFERENCE ================================ -->
+    <div id="s7" class="sec-head anim" style="--i:20; color: var(--cyan)"><span class="dot" style="background:var(--cyan)"></span> CLI Reference</div>
+
+    <div class="table-wrap anim" style="--i:21">
+      <div class="table-scroll">
+        <table class="cli-table">
+          <thead>
+            <tr>
+              <th>Flag</th>
+              <th>Purpose</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>--continue</code></td><td>Continue most recent conversation</td><td>Sets <code>CLAUDE_CONTINUE=true</code> in container</td></tr>
+            <tr><td><code>--resume ID</code></td><td>Resume specific conversation</td><td>Sets <code>CLAUDE_RESUME</code> env var</td></tr>
+            <tr><td><code>--build</code></td><td>Force rebuild Docker image locally</td><td>Required after editing <code>packages.apt</code> or <code>sdkman.txt</code></td></tr>
+            <tr><td><code>--init</code></td><td>Pull or build image</td><td>Pulls from ghcr.io unless configs are customized</td></tr>
+            <tr><td><code>--upgrade</code></td><td>Update to latest version</td><td>Runs <code>git pull</code> + <code>--init</code></td></tr>
+            <tr><td><code>--shell</code></td><td>Start bash instead of Claude</td><td>For debugging the container</td></tr>
+            <tr><td><code>--login</code></td><td>Run <code>claude login</code></td><td>For Claude Max authentication</td></tr>
+            <tr><td><code>--docker</code></td><td>Enable Docker inside container</td><td>Mounts Docker socket - essentially host root</td></tr>
+            <tr><td><code>--no-overlay</code></td><td>Disable overlay protection</td><td>Writes to ~/.gradle, ~/.m2 persist to host</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ================================ S8: AUDIT RATING ================================ -->
+    <div id="s8" class="sec-head anim" style="--i:22; color: var(--orange)"><span class="dot" style="background:var(--orange)"></span> Audit Summary</div>
+
+    <div class="table-wrap anim" style="--i:23">
+      <div class="table-scroll">
+        <table class="rating-table">
+          <thead>
+            <tr>
+              <th>Aspect</th>
+              <th>Rating</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Filesystem isolation</td>
+              <td><span class="badge badge--good">Good</span></td>
+              <td>Only mounted directories visible inside container</td>
+            </tr>
+            <tr>
+              <td>Network isolation</td>
+              <td><span class="badge badge--none">None</span></td>
+              <td>Full outbound access - can exfiltrate data from mounted dirs</td>
+            </tr>
+            <tr>
+              <td>Privilege model</td>
+              <td><span class="badge badge--ok">Decent</span></td>
+              <td>CAP_SYS_ADMIN + drop to non-root + no-new-privileges</td>
+            </tr>
+            <tr>
+              <td>Credential safety</td>
+              <td><span class="badge badge--ok">Decent</span></td>
+              <td>Careful code, but creds on disk and in env vars</td>
+            </tr>
+            <tr>
+              <td>Code quality</td>
+              <td><span class="badge badge--good">Good</span></td>
+              <td>Clean bash, proper error handling, good comments</td>
+            </tr>
+            <tr>
+              <td>Documentation</td>
+              <td><span class="badge badge--good">Excellent</span></td>
+              <td>Honest about limitations - rare for security tooling</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="callout anim" style="--i:24; border-left-color: var(--green);">
+      <strong>Bottom line:</strong> A solid, honest project that does what it claims. Meaningful improvement over running
+      <code>--dangerously-skip-permissions</code> on bare metal. Main gaps are network isolation and <code>CAP_SYS_ADMIN</code>.
+      Good for individual developers who want autonomy with guardrails. Not a replacement for proper infrastructure
+      sandboxing in team/production contexts.
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /wrap -->
+
+<!-- Scroll spy -->
+<script>
+(function() {
+  var toc = document.getElementById('toc');
+  var links = toc.querySelectorAll('a');
+  var sections = [];
+  links.forEach(function(link) {
+    var id = link.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({ id: id, el: el, link: link });
+  });
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        links.forEach(function(l) { l.classList.remove('active'); });
+        var match = sections.find(function(s) { return s.el === entry.target; });
+        if (match) {
+          match.link.classList.add('active');
+          if (window.innerWidth <= 1000) {
+            match.link.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          }
+        }
+      }
+    });
+  }, { rootMargin: '-10% 0px -80% 0px' });
+  sections.forEach(function(s) { observer.observe(s.el); });
+  links.forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      var id = link.getAttribute('href').slice(1);
+      var el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        history.replaceState(null, '', '#' + id);
+      }
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

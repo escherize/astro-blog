@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Convert to Transform — Before & After</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Sora', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --surface2: #f5f5f4;
+    --border: rgba(0, 0, 0, 0.07);
+    --border-bright: rgba(0, 0, 0, 0.14);
+    --text: #1c1917;
+    --text-dim: #78716c;
+
+    --red: #dc2626;
+    --red-dim: rgba(220, 38, 38, 0.08);
+    --green: #059669;
+    --green-dim: rgba(5, 150, 105, 0.08);
+    --blue: #2563eb;
+    --blue-dim: rgba(37, 99, 235, 0.08);
+    --amber: #d97706;
+    --amber-dim: rgba(217, 119, 6, 0.08);
+    --purple: #7c3aed;
+    --purple-dim: rgba(124, 58, 237, 0.08);
+    --teal: #0d9488;
+    --teal-dim: rgba(13, 148, 136, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0c0a09;
+      --surface: #1c1917;
+      --surface2: #292524;
+      --border: rgba(255, 255, 255, 0.06);
+      --border-bright: rgba(255, 255, 255, 0.12);
+      --text: #fafaf9;
+      --text-dim: #a8a29e;
+
+      --red: #f87171;
+      --red-dim: rgba(248, 113, 113, 0.12);
+      --green: #34d399;
+      --green-dim: rgba(52, 211, 153, 0.12);
+      --blue: #60a5fa;
+      --blue-dim: rgba(96, 165, 250, 0.12);
+      --amber: #fbbf24;
+      --amber-dim: rgba(251, 191, 36, 0.12);
+      --purple: #a78bfa;
+      --purple-dim: rgba(167, 139, 250, 0.12);
+      --teal: #2dd4bf;
+      --teal-dim: rgba(45, 212, 191, 0.12);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(at 20% 10%, var(--red-dim) 0%, transparent 50%),
+      radial-gradient(at 80% 10%, var(--green-dim) 0%, transparent 50%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate {
+    animation: fadeUp 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.06s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  h1 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    margin-bottom: 6px;
+    text-wrap: balance;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    margin-bottom: 32px;
+  }
+
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    margin-bottom: 16px;
+    margin-top: 40px;
+  }
+
+  /* ============ SIDE-BY-SIDE ============ */
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+
+  .comparison > * { min-width: 0; overflow-wrap: break-word; }
+
+  .panel-header {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-header--before {
+    background: var(--red-dim);
+    color: var(--red);
+    border-bottom: 2px solid var(--red);
+  }
+
+  .panel-header--after {
+    background: var(--green-dim);
+    color: var(--green);
+    border-bottom: 2px solid var(--green);
+    border-left: 1px solid var(--border);
+  }
+
+  .panel-body {
+    padding: 20px;
+    background: var(--surface);
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-dim);
+  }
+
+  .panel-body + .panel-body { border-left: 1px solid var(--border); }
+
+  .panel-body h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+    margin-top: 14px;
+  }
+
+  .panel-body h3:first-child { margin-top: 0; }
+
+  .panel-body code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--blue-dim);
+    color: var(--blue);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .panel-body .removed {
+    text-decoration: line-through;
+    opacity: 0.5;
+  }
+
+  .panel-body .added {
+    background: var(--green-dim);
+    border-radius: 3px;
+    padding: 0 3px;
+  }
+
+  /* ============ MERMAID ============ */
+  .mermaid-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    overflow: auto;
+    margin-bottom: 24px;
+  }
+
+  .mermaid-wrap .mermaid {
+    display: flex;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    transform-origin: top center;
+  }
+
+  .zoom-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 2px;
+    z-index: 10;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+  }
+
+  .zoom-controls button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .zoom-controls button:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .mermaid-wrap { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  .mermaid-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+  .mermaid-wrap::-webkit-scrollbar-track { background: transparent; }
+  .mermaid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .mermaid-wrap.is-zoomed { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+  .mermaid .nodeLabel { font-family: var(--font-body) !important; font-size: 14px !important; color: var(--text) !important; }
+  .mermaid .edgeLabel { font-family: var(--font-mono) !important; font-size: 12px !important; color: var(--text-dim) !important; background-color: var(--surface) !important; }
+  .mermaid .edgeLabel rect { fill: var(--surface) !important; }
+  .mermaid .node rect, .mermaid .node circle, .mermaid .node polygon { stroke-width: 1.5px !important; }
+  .mermaid .edge-pattern-solid { stroke-width: 1.5px !important; }
+
+  .diagram-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .diagram-label--before { color: var(--red); }
+  .diagram-label--after { color: var(--green); }
+
+  .diagram-label::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* ============ CALLOUT ============ */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--amber);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    margin-top: 24px;
+  }
+
+  .callout strong { color: var(--text); }
+  .callout code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--amber-dim);
+    color: var(--amber);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ============ FIX BOX ============ */
+  .fix-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--purple);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    margin-top: 16px;
+  }
+
+  .fix-box strong { color: var(--text); }
+  .fix-box code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--purple-dim);
+    color: var(--purple);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .fix-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--purple);
+    margin-bottom: 8px;
+  }
+
+  /* ============ LEGEND ============ */
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  @media (max-width: 768px) {
+    body { padding: 16px; }
+    h1 { font-size: 24px; }
+    .comparison { grid-template-columns: 1fr; }
+    .panel-header--after { border-left: none; border-top: 1px solid var(--border); }
+    .panel-body + .panel-body { border-left: none; border-top: 1px solid var(--border); }
+    .mermaid-wrap { padding: 16px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1 class="animate" style="--i:0">Convert Model to Transform</h1>
+  <p class="subtitle animate" style="--i:1">before &amp; after &mdash; api redesign per alexander's feedback</p>
+
+  <!-- ============ ENDPOINT COMPARISON ============ -->
+  <div class="comparison animate" style="--i:2">
+    <div class="panel-header panel-header--before">Before</div>
+    <div class="panel-header panel-header--after">After</div>
+    <div class="panel-body">
+      <h3>Endpoint</h3>
+      <code>POST /api/ee/replacement/convert-card-to-transform</code>
+
+      <h3>Request Body</h3>
+      <code>card_id</code>, <code>transform_name</code>, <code>transform_target</code>
+
+      <h3>Who Creates the Transform?</h3>
+      Backend &mdash; the endpoint creates the transform from the model's query, names it, picks the output table.
+
+      <h3>Source Entity</h3>
+      Cards only (must be <code>type = "model"</code>)
+
+      <h3>Backend Phases</h3>
+      4 phases in one endpoint:
+      <br>1. Create transform
+      <br>2. Execute transform
+      <br>3. Find output table
+      <br>4. Replace usages
+
+      <h3>Cancellation</h3>
+      Only during phase 4 (replacement). Phases 1&ndash;3 run unchecked.
+    </div>
+    <div class="panel-body">
+      <h3>Endpoint</h3>
+      <code>POST /api/ee/replacement/replace-source-with-transform</code>
+
+      <h3>Request Body</h3>
+      <code>source_entity_id</code>, <code>source_entity_type</code>, <code>transform_id</code>
+
+      <h3>Who Creates the Transform?</h3>
+      <span class="added">Frontend</span> &mdash; calls existing <code>POST /api/transform</code> API first. Handles naming, errors, table conflicts natively.
+
+      <h3>Source Entity</h3>
+      <span class="added">Any entity type</span> (card or table)
+
+      <h3>Backend Phases</h3>
+      3 phases (transform already exists):
+      <br>1. Execute/re-run transform
+      <br>2. Find output table
+      <br>3. Replace usages
+
+      <h3>Cancellation</h3>
+      <span class="added">Checked between every phase</span>, plus during replacement.
+    </div>
+  </div>
+
+  <!-- ============ BEFORE FLOW ============ -->
+  <div class="diagram-label diagram-label--before animate" style="--i:3">Before &mdash; Single Monolithic Endpoint</div>
+  <div class="mermaid-wrap animate" style="--i:4">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+    </div>
+    <pre class="mermaid">
+      graph LR
+        FE["Frontend"]
+        subgraph BE["Backend: /convert-card-to-transform"]
+          direction LR
+          P1["Create Transform"]
+          P2["Execute Transform"]
+          P3["Find Output Table"]
+          P4["Replace Usages"]
+          P1 --> P2 --> P3 --> P4
+        end
+        FE -->|"card_id, name, target"| BE
+        FE -.->|"poll /runs/:id"| BE
+
+        classDef feNode fill:#2563eb22,stroke:#2563eb,stroke-width:2px
+        classDef beNode fill:#dc262622,stroke:#dc2626,stroke-width:1.5px
+        class FE feNode
+        class P1,P2,P3,P4 beNode
+    </pre>
+  </div>
+
+  <!-- ============ AFTER FLOW ============ -->
+  <div class="diagram-label diagram-label--after animate" style="--i:5">After &mdash; Split Responsibilities</div>
+  <div class="mermaid-wrap animate" style="--i:6">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+    </div>
+    <pre class="mermaid">
+      graph LR
+        FE["Frontend"]
+        TAPI["Transforms API"]
+        subgraph BE["Backend: /replace-source-with-transform"]
+          direction LR
+          P1["Execute Transform"]
+          CK1{"Canceled?"}
+          P2["Find Output Table"]
+          CK2{"Canceled?"}
+          P3["Replace Usages"]
+          P1 --> CK1 -->|No| P2 --> CK2 -->|No| P3
+          CK1 -->|Yes| STOP1["Stop"]
+          CK2 -->|Yes| STOP2["Stop"]
+        end
+        FE -->|"1. Create transform"| TAPI
+        TAPI -->|"transform_id"| FE
+        FE -->|"2. source + transform_id"| BE
+        FE -.->|"3. poll /runs/:id"| BE
+
+        classDef feNode fill:#2563eb22,stroke:#2563eb,stroke-width:2px
+        classDef tNode fill:#0d948822,stroke:#0d9488,stroke-width:1.5px
+        classDef beNode fill:#05966922,stroke:#059669,stroke-width:1.5px
+        classDef checkNode fill:#d9770622,stroke:#d97706,stroke-width:1.5px
+        classDef stopNode fill:#dc262622,stroke:#dc2626,stroke-width:1.5px
+        class FE feNode
+        class TAPI tNode
+        class P1,P2,P3 beNode
+        class CK1,CK2 checkNode
+        class STOP1,STOP2 stopNode
+    </pre>
+  </div>
+
+  <div class="legend animate" style="--i:7">
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--blue)"></div> Frontend</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--teal)"></div> Transforms API</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--green)"></div> Replacement module</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--amber)"></div> Cancellation check</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--red)"></div> Canceled path</div>
+  </div>
+
+  <!-- ============ FIX: RACE CONDITION ============ -->
+  <h2 class="animate" style="--i:8">Bug Fix: Race Condition in execute-async!</h2>
+
+  <div class="fix-box animate" style="--i:9">
+    <div class="fix-label">Fix #1 &mdash; Clean 409 on concurrent starts</div>
+    <strong>Problem:</strong> <code>execute-async!</code> does a check-then-act: checks <code>active-run</code>, then calls <code>start-run!</code>. Two concurrent requests can both pass the check. The DB unique constraint on <code>is_active=true</code> catches the second, but it surfaces as a <strong>500</strong> (constraint violation) instead of a clean <strong>409</strong>.
+    <br><br>
+    <strong>Fix:</strong> Wrap <code>start-run!</code> in try-catch. On constraint violation, throw a clean 409 with <code>"A source replacement is already running"</code>. The unique constraint is the real mutex; the pre-check is just a fast-path optimization.
+  </div>
+
+  <div class="fix-box animate" style="--i:10">
+    <div class="fix-label">Fix #2 &mdash; Cancellation between phases</div>
+    <strong>Problem:</strong> In the old <code>convert-card-to-transform!</code>, phases 1&ndash;3 (create, execute, sync) ran without checking for cancellation. A user could cancel a run, but the heavy transform execution would continue until phase 4.
+    <br><br>
+    <strong>Fix:</strong> Added <code>check-canceled!</code> calls between execute and find-table, and between find-table and replace. Uses <code>replacement.protocols/canceled?</code> which polls the DB for the run's <code>is_active</code> status.
+  </div>
+
+  <div class="callout animate" style="--i:11">
+    <strong>Progress model unchanged.</strong> Progress stays <code>null</code> during transform execution/sync (where we can't meaningfully track it), then tracks <code>0&rarr;1</code> during source replacement &mdash; same granularity as a regular replace run.
+  </div>
+
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  mermaid.registerLayoutLoaders(elkLayouts);
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    look: 'classic',
+    layout: 'elk',
+    themeVariables: {
+      primaryColor: isDark ? '#292524' : '#f5f5f4',
+      primaryBorderColor: isDark ? '#a8a29e' : '#78716c',
+      primaryTextColor: isDark ? '#fafaf9' : '#1c1917',
+      secondaryColor: isDark ? '#1c1917' : '#ffffff',
+      secondaryBorderColor: isDark ? '#a8a29e' : '#78716c',
+      secondaryTextColor: isDark ? '#fafaf9' : '#1c1917',
+      tertiaryColor: isDark ? '#292524' : '#fafaf9',
+      tertiaryBorderColor: isDark ? '#a8a29e' : '#78716c',
+      tertiaryTextColor: isDark ? '#fafaf9' : '#1c1917',
+      lineColor: isDark ? '#78716c' : '#a8a29e',
+      fontSize: '14px',
+      fontFamily: "'Sora', system-ui, sans-serif",
+    }
+  });
+</script>
+<script>
+  function updateZoomState(wrap) {
+    var target = wrap.querySelector('.mermaid');
+    var zoom = parseFloat(target.dataset.zoom || '1');
+    wrap.classList.toggle('is-zoomed', zoom > 1);
+  }
+
+  function zoomDiagram(btn, factor) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    var current = parseFloat(target.dataset.zoom || '1');
+    var next = Math.min(Math.max(current * factor, 0.3), 5);
+    target.dataset.zoom = next;
+    target.style.transform = 'scale(' + next + ')';
+    updateZoomState(wrap);
+  }
+
+  function resetZoom(btn) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    target.dataset.zoom = '1';
+    target.style.transform = 'scale(1)';
+    updateZoomState(wrap);
+  }
+
+  document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+    wrap.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      var target = wrap.querySelector('.mermaid');
+      var current = parseFloat(target.dataset.zoom || '1');
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var next = Math.min(Math.max(current * factor, 0.3), 5);
+      target.dataset.zoom = next;
+      target.style.transform = 'scale(' + next + ')';
+      updateZoomState(wrap);
+    }, { passive: false });
+
+    var startX, startY, scrollL, scrollT;
+    wrap.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.zoom-controls')) return;
+      var target = wrap.querySelector('.mermaid');
+      if (parseFloat(target.dataset.zoom || '1') <= 1) return;
+      wrap.classList.add('is-panning');
+      startX = e.clientX;
+      startY = e.clientY;
+      scrollL = wrap.scrollLeft;
+      scrollT = wrap.scrollTop;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!wrap.classList.contains('is-panning')) return;
+      wrap.scrollLeft = scrollL - (e.clientX - startX);
+      wrap.scrollTop = scrollT - (e.clientY - startY);
+    });
+    window.addEventListener('mouseup', function() {
+      wrap.classList.remove('is-panning');
+    });
+  });
+</script>
+
+</body>
+</html>

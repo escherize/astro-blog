@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MySQL workspace iso 1044 — root cause</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Spectral', Georgia, serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #fef9f3;
+    --surface: #ffffff;
+    --surface2: #faf3e8;
+    --border: rgba(80, 50, 20, 0.10);
+    --border-bright: rgba(80, 50, 20, 0.20);
+    --text: #2d1f12;
+    --text-dim: #6b5840;
+
+    --good: #1f7a3a;
+    --good-dim: rgba(31, 122, 58, 0.10);
+    --bad: #c0392b;
+    --bad-dim: rgba(192, 57, 43, 0.10);
+    --warn: #b8740f;
+    --warn-dim: rgba(184, 116, 15, 0.10);
+    --info: #1f5577;
+    --info-dim: rgba(31, 85, 119, 0.10);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #18120a;
+      --surface: #221810;
+      --surface2: #2c2014;
+      --border: rgba(255, 230, 200, 0.10);
+      --border-bright: rgba(255, 230, 200, 0.20);
+      --text: #f1e6d4;
+      --text-dim: #b09680;
+
+      --good: #5dd17b;
+      --good-dim: rgba(93, 209, 123, 0.14);
+      --bad: #ff7a6a;
+      --bad-dim: rgba(255, 122, 106, 0.14);
+      --warn: #f3c060;
+      --warn-dim: rgba(243, 192, 96, 0.14);
+      --info: #7cc7eb;
+      --info-dim: rgba(124, 199, 235, 0.14);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at top left, var(--warn-dim) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom right, var(--info-dim) 0%, transparent 50%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 48px 32px;
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate {
+    animation: fadeUp 0.5s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.07s);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  .container { max-width: 980px; margin: 0 auto; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--bad);
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-size: 44px;
+    font-weight: 600;
+    letter-spacing: -0.8px;
+    line-height: 1.1;
+    margin-bottom: 12px;
+    text-wrap: balance;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 17px;
+    max-width: 700px;
+    margin-bottom: 36px;
+    font-style: italic;
+  }
+
+  h2 {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    margin-top: 48px;
+    margin-bottom: 14px;
+  }
+
+  h2 .label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--text);
+    color: var(--bg);
+    padding: 2px 8px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-right: 10px;
+    letter-spacing: 0.08em;
+    font-weight: 500;
+  }
+
+  p { margin-bottom: 14px; max-width: 720px; }
+
+  code, .mono {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    background: var(--surface2);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+  }
+
+  .error-block {
+    background: var(--bad-dim);
+    border-left: 3px solid var(--bad);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--bad);
+    margin: 16px 0;
+    line-height: 1.5;
+    overflow-x: auto;
+  }
+
+  .grid-compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 20px 0;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 24px;
+    min-width: 0;
+  }
+
+  .card--good { border-top: 3px solid var(--good); }
+  .card--bad  { border-top: 3px solid var(--bad); }
+  .card--info { border-top: 3px solid var(--info); }
+
+  .card h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card h3 .badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 99px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .badge--good { background: var(--good-dim); color: var(--good); }
+  .badge--bad  { background: var(--bad-dim);  color: var(--bad); }
+
+  .card .meta {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-bottom: 14px;
+    font-style: italic;
+  }
+
+  pre.yaml {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    line-height: 1.6;
+    color: var(--text);
+    margin: 0;
+  }
+  .yaml .k { color: var(--info); }
+  .yaml .v { color: var(--warn); }
+  .yaml .c { color: var(--text-dim); font-style: italic; }
+
+  .mermaid-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 24px;
+    overflow: auto;
+    margin: 20px 0 30px;
+  }
+  .mermaid-wrap .mermaid {
+    display: flex;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    transform-origin: top center;
+  }
+  .zoom-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 2px;
+    z-index: 10;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+  }
+  .zoom-controls button {
+    width: 28px; height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .zoom-controls button:hover { background: var(--border); color: var(--text); }
+  .mermaid-wrap.is-zoomed { cursor: grab; }
+  .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+  .mermaid .actor { fill: var(--surface2) !important; stroke: var(--border-bright) !important; }
+  .mermaid .actor-line { stroke: var(--border-bright) !important; }
+  .mermaid .messageText, .mermaid .labelText, .mermaid .actor text {
+    font-family: var(--font-body) !important;
+    font-size: 14px !important;
+    fill: var(--text) !important;
+  }
+  .mermaid .noteText { font-family: var(--font-mono) !important; font-size: 12px !important; }
+
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 20px 0;
+    position: relative;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 18px;
+    top: 14px;
+    bottom: 14px;
+    width: 2px;
+    background: var(--border-bright);
+  }
+  .step {
+    position: relative;
+    padding-left: 56px;
+    padding-bottom: 22px;
+  }
+  .step::before {
+    content: attr(data-n);
+    position: absolute;
+    left: 0;
+    top: -2px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--border-bright);
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .step.step--ok::before {
+    border-color: var(--good);
+    color: var(--good);
+    background: var(--good-dim);
+  }
+  .step.step--fail::before {
+    border-color: var(--bad);
+    color: var(--bad);
+    background: var(--bad-dim);
+  }
+  .step h4 {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .step p {
+    color: var(--text-dim);
+    font-size: 14.5px;
+    margin-bottom: 6px;
+  }
+
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--warn);
+    border-radius: 0 10px 10px 0;
+    padding: 18px 22px;
+    margin: 22px 0;
+    line-height: 1.65;
+  }
+  .callout.callout--bad  { border-left-color: var(--bad); }
+  .callout.callout--good { border-left-color: var(--good); }
+  .callout strong { color: var(--text); }
+  .callout .ck {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--warn);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .callout--bad .ck  { color: var(--bad); }
+  .callout--good .ck { color: var(--good); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 14px;
+  }
+  th, td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th {
+    background: var(--surface2);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .dot--good { background: var(--good); }
+  .dot--bad  { background: var(--bad); }
+  .dot--warn { background: var(--warn); }
+
+  .file-ref {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--info);
+    background: var(--info-dim);
+    padding: 2px 7px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+  }
+
+  @media (max-width: 768px) {
+    body { padding: 24px 16px; }
+    h1 { font-size: 30px; }
+    h2 { font-size: 21px; }
+    .grid-compare { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="eyebrow animate" style="--i:0">CI failure root-cause memo</div>
+  <h1 class="animate" style="--i:1">MySQL/MariaDB workspace iso user gets 1044 at JDBC handshake</h1>
+  <p class="subtitle animate" style="--i:2">
+    `Access denied for user 'mb__isolation_*'@'%' to database 'test-data'` — not a permission bug, a test-shape divergence.
+    Three things have to align: bound DB, input list, and the grant the iso user actually receives.
+  </p>
+
+  <div class="error-block animate" style="--i:3">
+java.sql.SQLSyntaxErrorException:<br>
+&nbsp;&nbsp;(conn=388) Access denied for user 'mb__isolation_6f4a3_968578356'@'%' to database 'test-data'<br>
+SQLState: "42000"&nbsp;&nbsp;errorCode: 1044
+  </div>
+
+  <h2 class="animate" style="--i:4"><span class="label">1</span>What happens at JDBC connect</h2>
+  <p class="animate" style="--i:5">
+    MySQL Connector/J sends a connect packet with username, password, AND a default database (from <code>jdbc:mysql://host/test-data</code>).
+    The server runs <strong>two</strong> ACL checks before the handshake completes:
+  </p>
+
+  <div class="mermaid-wrap animate" style="--i:6">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+    </div>
+    <pre class="mermaid">
+sequenceDiagram
+    participant J as JDBC driver
+    participant S as MySQL server
+    participant U as mysql.user
+    participant D as mysql.db
+
+    J->>S: handshake: user=iso, password=***, db=test-data
+    S->>U: lookup ('iso', '%')
+    U-->>S: found, password ok
+    Note over S: user auth: ✓
+    S->>D: lookup row for ('iso', 'test-data', '%')
+    D-->>S: NO row exists
+    Note over S: DB-access: ✗
+    S-->>J: ERROR 1044 (42000): Access denied to db 'test-data'
+    Note over J,S: connection rejected before any USE / query
+    </pre>
+  </div>
+
+  <p class="animate" style="--i:7">
+    The DB-access check passes if <strong>any row exists in <code>mysql.db</code></strong> for that (user, host, db) tuple — flag values don't matter, presence does. No row → 1044. The grant logic is what either writes that row or doesn't.
+  </p>
+
+  <h2 class="animate" style="--i:8"><span class="label">2</span>Production shape: input == bound</h2>
+  <p class="animate" style="--i:9">
+    The canonical workspace config for MySQL — shipped as a test fixture, mirroring real customer shape — lists the bound DB as the workspace input:
+  </p>
+
+  <div class="grid-compare animate" style="--i:10">
+    <div class="card card--good">
+      <h3><span class="badge badge--good">prod shape</span>connects fine</h3>
+      <div class="meta">from <span class="file-ref">workspace_config_mysql.yml</span></div>
+<pre class="yaml"><span class="k">databases</span>:
+- <span class="k">name</span>: <span class="v">test-data (mysql)</span>
+  <span class="k">engine</span>: <span class="v">mysql</span>
+  <span class="k">details</span>:
+    <span class="k">host</span>: <span class="v">localhost</span>
+    <span class="k">db</span>: <span class="v">prod_db</span>            <span class="c"># bound</span>
+    <span class="k">user</span>: <span class="v">mb__isolation_*</span>   <span class="c"># iso</span>
+<span class="k">workspace</span>:
+  <span class="k">databases</span>:
+    <span class="k">test-data (mysql)</span>:
+      <span class="k">input_schemas</span>: [<span class="v">prod_db</span>]  <span class="c"># == bound</span>
+      <span class="k">output_namespace</span>: <span class="v">ws_alice</span></pre>
+    </div>
+    <div class="card card--info">
+      <h3>what the server sees</h3>
+      <div class="meta">grants emitted at provision time</div>
+<pre class="yaml"><span class="c"># init-workspace-isolation!:</span>
+CREATE DATABASE <span class="v">mb__isolation_44490_1</span>;
+CREATE USER <span class="v">mb__isolation_*</span>@'%' IDENTIFIED BY '...';
+GRANT ALL ON <span class="v">mb__isolation_44490_1</span>.* TO <span class="v">mb__isolation_*</span>@'%';
+
+<span class="c"># grant-workspace-read-access! (input == prod_db):</span>
+GRANT SELECT ON <span class="v">prod_db</span>.* TO <span class="v">mb__isolation_*</span>@'%';
+
+<span class="c"># mysql.db now has rows for BOTH:</span>
+<span class="c">#   (iso, mb__isolation_44490_1)  all=Y</span>
+<span class="c">#   (iso, prod_db)                Select_priv=Y</span>
+<span class="c"># Connect with db=prod_db → row found → handshake passes ✓</span></pre>
+    </div>
+  </div>
+
+  <h2 class="animate" style="--i:11"><span class="label">3</span>Test shape: input != bound</h2>
+  <p class="animate" style="--i:12">
+    The driver-isolation tests create a <em>fresh</em> per-run MySQL DB (<code>mb_iso_in_&lt;run-id&gt;</code>) as the workspace input.
+    That divergence exists for a Redshift reason — Redshift's <code>public</code> schema has <code>CREATE</code> granted to <code>PUBLIC</code> by default, breaking the input-deny contract — but MySQL has no analogous default-grant problem.
+  </p>
+
+  <div class="grid-compare animate" style="--i:13">
+    <div class="card card--bad">
+      <h3><span class="badge badge--bad">test shape</span>diverges</h3>
+      <div class="meta">at <span class="file-ref">driver_isolation_test.clj:685</span></div>
+<pre class="yaml"><span class="c"># From mt/db:</span>
+<span class="c">#   :details.db = "test-data"  ← bound</span>
+
+<span class="c"># Test creates a separate DB:</span>
+CREATE DATABASE <span class="v">mb_iso_in_6f4a3</span>;
+<span class="c"># source tables live there:</span>
+CREATE TABLE <span class="v">mb_iso_in_6f4a3</span>.ws_iso_src_a (...);
+
+<span class="c"># Workspace pretends input is the fresh DB:</span>
+grant-workspace-read-access!
+  <span class="v">[mb_iso_in_6f4a3]</span>   <span class="c"># input != bound</span></pre>
+    </div>
+    <div class="card card--bad">
+      <h3>what the server sees</h3>
+      <div class="meta">grants emitted at provision time</div>
+<pre class="yaml"><span class="c"># init-workspace-isolation!:</span>
+GRANT ALL ON <span class="v">mb__isolation_*</span>.* TO <span class="v">iso</span>@'%';
+
+<span class="c"># grant-workspace-read-access! (input = fresh DB):</span>
+GRANT SELECT ON <span class="v">mb_iso_in_6f4a3</span>.* TO <span class="v">iso</span>@'%';
+
+<span class="c"># mysql.db has rows for:</span>
+<span class="c">#   (iso, mb__isolation_*)     ✓</span>
+<span class="c">#   (iso, mb_iso_in_6f4a3)     ✓</span>
+<span class="c">#   (iso, test-data)           ✗ no row</span>
+<span class="c"># Connect with db=test-data → no row → 1044 ✗</span></pre>
+    </div>
+  </div>
+
+  <h2 class="animate" style="--i:14"><span class="label">4</span>Why my <code>GRANT USAGE</code> fix didn't take</h2>
+  <p class="animate" style="--i:15">
+    Commit <code>64959c0083c</code> added one statement to <code>init-workspace-isolation!</code> intending to write a placeholder <code>mysql.db</code> row covering the bound DB:
+  </p>
+
+  <pre class="yaml animate" style="--i:16; margin: 16px 0;"><span class="c">;; in init-workspace-isolation! :mysql</span>
+(format <span class="v">"GRANT USAGE ON %s.* TO `%s`@'%%'"</span>
+        (sql.u/quote-name :mysql :schema bound-db) user)</pre>
+
+  <div class="callout callout--bad animate" style="--i:17">
+    <span class="ck">why this is a no-op</span>
+    <strong>MySQL treats <code>GRANT USAGE</code> at db scope as "no privileges" — and writes nothing.</strong>
+    The server does not insert a <code>mysql.db</code> row when every flag would be <code>N</code>. The grant statement succeeds, but <code>SHOW GRANTS</code> and <code>mysql.db</code> are unchanged.
+    The 1044 still fires at handshake because the DB-access check still finds nothing for <code>(iso, test-data)</code>.
+    My comment in that commit was factually wrong on this point.
+  </div>
+
+  <p class="animate" style="--i:18">
+    The only way <code>USAGE</code> creates a row is at <strong>global scope</strong> (<code>GRANT USAGE ON *.*</code>), which is set implicitly by <code>CREATE USER</code> anyway — and a global USAGE row doesn't satisfy a per-DB ACL check. There's no syntax for "no-op grant on one specific db."
+  </p>
+
+  <h2 class="animate" style="--i:19"><span class="label">5</span>Why the production path doesn't have this problem</h2>
+
+  <table class="animate" style="--i:20">
+    <thead>
+      <tr>
+        <th style="width: 30%;">Stage</th>
+        <th>Prod (workspace_config_mysql.yml)</th>
+        <th>Driver-isolation test</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Bound DB</strong><br><small>from <code>:details.db</code></small></td>
+        <td><code>prod_db</code></td>
+        <td><code>test-data</code></td>
+      </tr>
+      <tr>
+        <td><strong>Workspace input</strong><br><small>from <code>:input_schemas</code></small></td>
+        <td><code>[prod_db]</code></td>
+        <td><code>[mb_iso_in_&lt;run&gt;]</code></td>
+      </tr>
+      <tr>
+        <td><strong>Bound == input?</strong></td>
+        <td><span class="dot dot--good"></span>yes</td>
+        <td><span class="dot dot--bad"></span>no</td>
+      </tr>
+      <tr>
+        <td><strong>Grant on bound DB</strong></td>
+        <td><code>GRANT SELECT ON prod_db.*</code></td>
+        <td><em>none</em></td>
+      </tr>
+      <tr>
+        <td><strong>mysql.db row for bound</strong></td>
+        <td><span class="dot dot--good"></span>yes (Select_priv=Y)</td>
+        <td><span class="dot dot--bad"></span>no</td>
+      </tr>
+      <tr>
+        <td><strong>JDBC handshake</strong></td>
+        <td><span class="dot dot--good"></span>passes</td>
+        <td><span class="dot dot--bad"></span>1044</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="animate" style="--i:21">
+    The MySQL "schema" concept doesn't exist — a MySQL <code>input_schemas</code> entry IS a database name. The only meaningful prod case is "the customer's bound DB is also their workspace input," because there's no schema-within-DB to narrow further. So <strong>input == bound is the only shape MySQL/MariaDB customers can ship.</strong>
+  </p>
+
+  <h2 class="animate" style="--i:22"><span class="label">6</span>The fix</h2>
+
+  <div class="timeline animate" style="--i:23">
+    <div class="step step--ok" data-n="A">
+      <h4>Revert the USAGE grant</h4>
+      <p>
+        Drop the <code>cond-&gt;</code> branch in <code>init-workspace-isolation! :mysql</code>. The statement is a no-op; the explanatory comment is factually wrong. Restore the original 3-statement shape (CREATE DATABASE / CREATE USER / GRANT ALL ON iso-db).
+      </p>
+      <p><span class="file-ref">src/metabase/driver/mysql.clj:1293-1336</span></p>
+    </div>
+    <div class="step step--ok" data-n="B">
+      <h4>Make the test mirror prod: input = bound on MySQL</h4>
+      <p>
+        Four call sites at <code>driver_isolation_test.clj</code> L321 / L617 / L685 / L808 set <code>in-schema = "mb_iso_in_&lt;run&gt;"</code>. For <code>:mysql</code> (and MariaDB, which uses the mysql driver), make that <code>in-schema = (-&gt; database :details :db)</code> — the bound DB. Source tables get created in the bound DB with per-run names; the grant runs on bound; <code>mysql.db</code> gets the row; handshake passes.
+      </p>
+      <p>
+        Skip <code>create-input-namespace-sql</code> / <code>drop-input-namespace-sqls</code> on MySQL (bound DB already exists; don't create or drop it). Replace with explicit per-table <code>DROP TABLE IF EXISTS</code> cleanup.
+      </p>
+      <p><span class="file-ref">enterprise/backend/test/metabase_enterprise/workspaces/driver_isolation_test.clj</span></p>
+    </div>
+    <div class="step" data-n="C">
+      <h4>Don't touch <code>grant-workspace-read-access!</code></h4>
+      <p>
+        Already correct on MySQL — grants <code>SELECT ON &lt;db&gt;.*</code> for whatever DB list it receives. With the test fix, the list contains the bound DB, and the right <code>mysql.db</code> row gets written.
+      </p>
+      <p><span class="file-ref">src/metabase/driver/mysql.clj:1350-1361</span></p>
+    </div>
+  </div>
+
+  <div class="callout callout--good animate" style="--i:24">
+    <span class="ck">why mirroring prod is the right call</span>
+    <strong>Tests should exercise the wire shape the product actually ships.</strong>
+    The fresh-input-namespace divergence has a legit reason on Redshift, none on MySQL. Aligning the test with the canonical config file removes the bug, removes the wrong "USAGE saves us" code, and removes the test's claim that MySQL supports an unsupported config (input ≠ bound). Net: ~10 lines removed in <code>mysql.clj</code>, ~20 lines changed across 4 test sites, no production behavior change.
+  </div>
+
+  <h2 class="animate" style="--i:25"><span class="label">7</span>Where this leaves us</h2>
+
+  <table class="animate" style="--i:26">
+    <thead>
+      <tr><th>Driver</th><th>input ≠ bound supported?</th><th>Test shape</th><th>CI today</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Postgres / Redshift / Snowflake / SQL Server</td>
+        <td><span class="dot dot--good"></span>yes (multi-schema-per-DB)</td>
+        <td>fresh schema inside bound DB</td>
+        <td><span class="dot dot--good"></span>green</td>
+      </tr>
+      <tr>
+        <td>ClickHouse</td>
+        <td><span class="dot dot--warn"></span>nominally yes</td>
+        <td>fresh DB (schema=DB on ClickHouse)</td>
+        <td><span class="dot dot--warn"></span>separate failure (MergeTree)</td>
+      </tr>
+      <tr>
+        <td><strong>MySQL / MariaDB</strong></td>
+        <td><span class="dot dot--bad"></span>no (no schema layer)</td>
+        <td><strong>fresh DB (wrong — diverges from prod)</strong></td>
+        <td><span class="dot dot--bad"></span>1044 on every iso-test</td>
+      </tr>
+      <tr>
+        <td>BigQuery</td>
+        <td>n/a (IAM-based)</td>
+        <td>fresh dataset</td>
+        <td><span class="dot dot--good"></span>green</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="animate" style="--i:27" style="margin-top: 40px; color: var(--text-dim); font-style: italic;">
+    Memo prepared 2026-05-13 while CI iter on <code>feature/workspaces-v2</code> kept burning over the same 7 errors × 4 driver jobs.
+  </p>
+
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: isDark ? '#2c2014' : '#faf3e8',
+      primaryBorderColor: isDark ? '#b09680' : '#6b5840',
+      primaryTextColor: isDark ? '#f1e6d4' : '#2d1f12',
+      lineColor: isDark ? '#b09680' : '#6b5840',
+      actorBkg: isDark ? '#221810' : '#ffffff',
+      actorBorder: isDark ? '#b09680' : '#6b5840',
+      actorTextColor: isDark ? '#f1e6d4' : '#2d1f12',
+      signalColor: isDark ? '#b09680' : '#6b5840',
+      signalTextColor: isDark ? '#f1e6d4' : '#2d1f12',
+      labelBoxBkgColor: isDark ? '#2c2014' : '#faf3e8',
+      labelBoxBorderColor: isDark ? '#b09680' : '#6b5840',
+      labelTextColor: isDark ? '#f1e6d4' : '#2d1f12',
+      noteBkgColor: isDark ? '#2c2014' : '#fff8e8',
+      noteBorderColor: isDark ? '#f3c060' : '#b8740f',
+      noteTextColor: isDark ? '#f1e6d4' : '#2d1f12',
+      fontFamily: "'Spectral', Georgia, serif",
+      fontSize: '15px',
+    }
+  });
+</script>
+<script>
+  function zoomDiagram(btn, factor) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    var current = parseFloat(target.dataset.zoom || '1');
+    var next = Math.min(Math.max(current * factor, 0.3), 5);
+    target.dataset.zoom = next;
+    target.style.transform = 'scale(' + next + ')';
+    wrap.classList.toggle('is-zoomed', next > 1);
+  }
+  function resetZoom(btn) {
+    var wrap = btn.closest('.mermaid-wrap');
+    var target = wrap.querySelector('.mermaid');
+    target.dataset.zoom = '1';
+    target.style.transform = 'scale(1)';
+    wrap.classList.remove('is-zoomed');
+  }
+  document.querySelectorAll('.mermaid-wrap').forEach(function(wrap) {
+    wrap.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      var target = wrap.querySelector('.mermaid');
+      var current = parseFloat(target.dataset.zoom || '1');
+      var factor = e.deltaY < 0 ? 1.1 : 0.9;
+      var next = Math.min(Math.max(current * factor, 0.3), 5);
+      target.dataset.zoom = next;
+      target.style.transform = 'scale(' + next + ')';
+      wrap.classList.toggle('is-zoomed', next > 1);
+    }, { passive: false });
+    var startX, startY, scrollL, scrollT;
+    wrap.addEventListener('mousedown', function(e) {
+      if (e.target.closest('.zoom-controls')) return;
+      var target = wrap.querySelector('.mermaid');
+      if (parseFloat(target.dataset.zoom || '1') <= 1) return;
+      wrap.classList.add('is-panning');
+      startX = e.clientX; startY = e.clientY;
+      scrollL = wrap.scrollLeft; scrollT = wrap.scrollTop;
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!wrap.classList.contains('is-panning')) return;
+      wrap.scrollLeft = scrollL - (e.clientX - startX);
+      wrap.scrollTop = scrollT - (e.clientY - startY);
+    });
+    window.addEventListener('mouseup', function() {
+      wrap.classList.remove('is-panning');
+    });
+  });
+</script>
+
+</body>
+</html>

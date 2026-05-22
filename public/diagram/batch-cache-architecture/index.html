@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Batch Cache Architecture - Serdes Export</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============ THEME - Nord-inspired ============ */
+  :root {
+    --font-body: 'Sora', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2333;
+    --surface-elevated: #21283b;
+    --border: rgba(255, 255, 255, 0.06);
+    --border-bright: rgba(255, 255, 255, 0.13);
+    --text: #c9d1d9;
+    --text-dim: #6e7681;
+
+    --field: #58a6ff;
+    --field-dim: rgba(88, 166, 255, 0.10);
+    --table: #3fb950;
+    --table-dim: rgba(63, 185, 80, 0.10);
+    --db: #d2a8ff;
+    --db-dim: rgba(210, 168, 255, 0.10);
+    --caller: #ffa657;
+    --caller-dim: rgba(255, 166, 87, 0.10);
+    --hit: #3fb950;
+    --hit-dim: rgba(63, 185, 80, 0.12);
+    --miss: #f85149;
+    --miss-dim: rgba(248, 81, 73, 0.10);
+    --preload: #79c0ff;
+    --preload-dim: rgba(121, 192, 255, 0.08);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f6f8fa;
+      --surface: #ffffff;
+      --surface2: #f0f3f6;
+      --surface-elevated: #ffffff;
+      --border: rgba(0, 0, 0, 0.08);
+      --border-bright: rgba(0, 0, 0, 0.15);
+      --text: #1f2328;
+      --text-dim: #656d76;
+
+      --field: #0550ae;
+      --field-dim: rgba(5, 80, 174, 0.07);
+      --table: #116329;
+      --table-dim: rgba(17, 99, 41, 0.07);
+      --db: #8250df;
+      --db-dim: rgba(130, 80, 223, 0.07);
+      --caller: #bc4c00;
+      --caller-dim: rgba(188, 76, 0, 0.07);
+      --hit: #116329;
+      --hit-dim: rgba(17, 99, 41, 0.08);
+      --miss: #cf222e;
+      --miss-dim: rgba(207, 34, 46, 0.07);
+      --preload: #0550ae;
+      --preload-dim: rgba(5, 80, 174, 0.05);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 25% 0%, var(--field-dim) 0%, transparent 45%),
+      radial-gradient(ellipse at 75% 0%, var(--db-dim) 0%, transparent 45%),
+      radial-gradient(ellipse at 50% 100%, var(--table-dim) 0%, transparent 35%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 40px;
+    min-height: 100vh;
+    overflow-wrap: break-word;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.94); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .section, .flow-arrow, .animate {
+    animation: fadeUp 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.06s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  .diagram {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    margin-bottom: 4px;
+    text-wrap: balance;
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    margin-bottom: 12px;
+    letter-spacing: 0.3px;
+  }
+
+  .description {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text-dim);
+    margin-bottom: 28px;
+    max-width: 720px;
+  }
+
+  .description code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--field-dim);
+    color: var(--field);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ============ SECTIONS ============ */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+  }
+
+  .section--hero {
+    background: var(--surface-elevated);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+    padding: 24px 28px;
+  }
+
+  .section--recessed {
+    background: var(--surface2);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-label .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .section--field { border-left: 3px solid var(--field); }
+  .section--field .section-label { color: var(--field); }
+  .section--field .section-label .dot { background: var(--field); }
+
+  .section--table { border-left: 3px solid var(--table); }
+  .section--table .section-label { color: var(--table); }
+  .section--table .section-label .dot { background: var(--table); }
+
+  .section--db { border-left: 3px solid var(--db); }
+  .section--db .section-label { color: var(--db); }
+  .section--db .section-label .dot { background: var(--db); }
+
+  .section--caller { border-left: 3px solid var(--caller); }
+  .section--caller .section-label { color: var(--caller); }
+  .section--caller .section-label .dot { background: var(--caller); }
+
+  /* ============ FLOW ARROW ============ */
+  .flow-arrow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 2px 0;
+  }
+
+  .flow-arrow svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: var(--border-bright);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .flow-arrow--up svg {
+    transform: rotate(180deg);
+  }
+
+  /* ============ INNER ============ */
+  .inner-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .inner-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  .inner-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    min-width: 0;
+  }
+
+  .inner-card .title {
+    font-weight: 600;
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  .inner-card .desc {
+    color: var(--text-dim);
+    font-size: 11px;
+    line-height: 1.55;
+  }
+
+  .inner-card code {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
+  .code-field { background: var(--field-dim); color: var(--field); }
+  .code-table { background: var(--table-dim); color: var(--table); }
+  .code-db { background: var(--db-dim); color: var(--db); }
+  .code-caller { background: var(--caller-dim); color: var(--caller); }
+  .code-hit { background: var(--hit-dim); color: var(--hit); }
+  .code-miss { background: var(--miss-dim); color: var(--miss); }
+
+  /* ============ CACHE BOX ============ */
+  .cache-box {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 10px;
+  }
+
+  .cache-label {
+    background: var(--surface2);
+    padding: 10px 12px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    border-right: 1px solid var(--border);
+  }
+
+  .cache-entries {
+    padding: 8px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .cache-entry {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .cache-entry--loaded {
+    background: var(--hit-dim);
+    color: var(--hit);
+    border: 1px solid color-mix(in srgb, var(--hit) 30%, transparent);
+  }
+
+  .cache-entry--preloaded {
+    background: var(--preload-dim);
+    color: var(--preload);
+    border: 1px solid color-mix(in srgb, var(--preload) 20%, transparent);
+  }
+
+  .cache-entry--evicted {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px dashed var(--border-bright);
+    text-decoration: line-through;
+    opacity: 0.5;
+  }
+
+  .cache-sep {
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 0 2px;
+  }
+
+  /* ============ CALLER ROWS ============ */
+  .caller-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  .caller-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    min-width: 0;
+  }
+
+  .caller-card .fn-name {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .caller-card .fn-calls {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  .caller-card .fn-calls .arrow {
+    color: var(--border-bright);
+    font-family: var(--font-mono);
+  }
+
+  /* ============ STEP TRACE ============ */
+  .trace {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 2;
+    padding: 12px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-top: 10px;
+    overflow-x: auto;
+  }
+
+  .trace .ln {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+  }
+
+  .trace .ln-num {
+    color: var(--text-dim);
+    min-width: 20px;
+    text-align: right;
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  .trace .ln-content {
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .trace .indent { padding-left: 20px; }
+  .trace .indent-2 { padding-left: 40px; }
+  .trace .indent-3 { padding-left: 60px; }
+
+  .trace .comment { color: var(--text-dim); font-style: italic; }
+  .trace .fn { color: var(--field); }
+  .trace .val { color: var(--table); }
+  .trace .result { color: var(--db); }
+  .trace .kw { color: var(--caller); }
+
+  /* ============ CALLOUT ============ */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--field);
+    border-radius: 0 10px 10px 0;
+    padding: 14px 18px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-dim);
+  }
+
+  .callout strong { color: var(--text); }
+
+  .callout code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--field-dim);
+    color: var(--field);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ============ LEGEND ============ */
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+  }
+
+  /* ============ SECTION TITLE ============ */
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-top: 32px;
+    margin-bottom: 8px;
+  }
+
+  .section-intro {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    margin-bottom: 14px;
+    max-width: 700px;
+  }
+
+  .section-intro code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--field-dim);
+    color: var(--field);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 768px) {
+    body { padding: 16px; }
+    h1 { font-size: 24px; }
+    .inner-grid, .inner-grid-3, .caller-grid { grid-template-columns: 1fr; }
+    .cache-box { grid-template-columns: 1fr; }
+    .cache-label { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<div class="diagram">
+
+  <div>
+    <h1 class="animate" style="--i:0">Batch Cache Architecture</h1>
+    <p class="subtitle animate" style="--i:1">with-cache = with-batch-cache + with-memoize-cache</p>
+    <p class="description animate" style="--i:2">
+      Three composable caches serve three independent entry points into entity resolution.
+      Each cache batch-loads related entities on miss, exploiting FK relationships in the
+      data model for spatial preloading. The caches compose via function calls - field cache
+      delegates to table cache, which delegates to DB cache.
+    </p>
+  </div>
+
+  <!-- ============ CALLERS ============ -->
+
+  <h2 class="animate" style="--i:3">Entry Points</h2>
+  <p class="section-intro animate" style="--i:4">
+    Three dynamic vars, each rebound by <code>with-batch-cache</code> to use the batch caches
+    instead of direct DB queries. The public API is unchanged.
+  </p>
+
+  <div class="section section--caller section--hero" style="--i:5">
+    <div class="section-label"><span class="dot"></span> Callers Into the Cache</div>
+    <div class="caller-grid">
+      <div class="caller-card">
+        <div class="fn-name" style="color:var(--field)">*export-field-fk*</div>
+        <div class="fn-calls">
+          <div>export-result-metadata <code class="code-caller">:id</code></div>
+          <div>export-result-metadata <code class="code-caller">:fk_target_field_id</code></div>
+          <div>export-mbql <code class="code-caller">:source-field</code></div>
+        </div>
+      </div>
+      <div class="caller-card">
+        <div class="fn-name" style="color:var(--table)">*export-table-fk*</div>
+        <div class="fn-calls">
+          <div>export-result-metadata <code class="code-caller">:table_id</code></div>
+          <div>export-mbql <code class="code-caller">:source_table</code></div>
+          <div>generate-path <code class="code-caller">"Table"</code></div>
+        </div>
+      </div>
+      <div class="caller-card">
+        <div class="fn-name" style="color:var(--db)">*export-database-fk*</div>
+        <div class="fn-calls">
+          <div>(serdes/fk <code class="code-caller">:model/Database</code>)</div>
+          <div>generate-path <code class="code-caller">"Table"</code></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow" style="--i:6">
+    <svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg>
+    delegate to inner functions with cache fns
+  </div>
+
+  <!-- ============ COMPOSITION ============ -->
+
+  <h2 class="animate" style="--i:7">Cache Composition</h2>
+  <p class="section-intro animate" style="--i:8">
+    Each inner function accepts lookup fns. <code>with-batch-cache</code> injects the batch
+    caches. Without it, the dynamic vars fall back to direct <code>t2/select-one</code> queries.
+  </p>
+
+  <div class="section section--field" style="--i:9">
+    <div class="section-label"><span class="dot"></span> Field Cache</div>
+    <div class="inner-grid">
+      <div class="inner-card">
+        <div class="title">export-field-fk</div>
+        <div class="desc">
+          <code class="code-field">field-fn(id)</code> <span style="color:var(--border-bright)">-></span> <code class="code-field">{:id :name :parent_id :table_id}</code><br>
+          <code class="code-table">table-fn(table_id)</code> <span style="color:var(--border-bright)">-></span> via table cache<br>
+          <code class="code-db">db-fn(db_id)</code> <span style="color:var(--border-bright)">-></span> via DB cache<br>
+          <code class="code-field">field-name-chain(id, field-fn)</code> <span style="color:var(--border-bright)">-></span> walk parent_id in memory
+        </div>
+      </div>
+      <div class="inner-card">
+        <div class="title">batch-load-fields</div>
+        <div class="desc">
+          1. <code class="code-field">load-field-hierarchy(id)</code> - recursive CTE<br>
+          2. Get <code class="code-caller">table_id</code> from loaded field<br>
+          3. Find FK-connected table IDs via <code class="code-caller">fk_target_field_id</code><br>
+          4. Bulk SELECT fields <code class="code-field">WHERE table_id IN (...)</code><br>
+          Stores: <code class="code-field">{id: {:id :name :parent_id :table_id}}</code>
+        </div>
+      </div>
+    </div>
+    <div class="cache-box">
+      <div class="cache-label">After 1st miss</div>
+      <div class="cache-entries">
+        <span class="cache-entry cache-entry--loaded">field_42 (requested)</span>
+        <span class="cache-entry cache-entry--loaded">field_41 (parent)</span>
+        <span class="cache-sep">+</span>
+        <span class="cache-entry cache-entry--preloaded">field_43</span>
+        <span class="cache-entry cache-entry--preloaded">field_44</span>
+        <span class="cache-entry cache-entry--preloaded">field_45</span>
+        <span class="cache-entry cache-entry--preloaded">...</span>
+        <span class="cache-sep">same table + FK tables</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow" style="--i:10">
+    <svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg>
+    export-field-fk calls export-table-fk
+  </div>
+
+  <div class="section section--table" style="--i:11">
+    <div class="section-label"><span class="dot"></span> Table Cache</div>
+    <div class="inner-grid">
+      <div class="inner-card">
+        <div class="title">export-table-fk</div>
+        <div class="desc">
+          <code class="code-table">table-fn(id)</code> <span style="color:var(--border-bright)">-></span> <code class="code-table">{:id :db_id :name :schema}</code><br>
+          <code class="code-db">db-fn(db_id)</code> <span style="color:var(--border-bright)">-></span> via DB cache<br>
+          Returns <code class="code-table">[db-name schema table-name]</code>
+        </div>
+      </div>
+      <div class="inner-card">
+        <div class="title">batch-load-tables</div>
+        <div class="desc">
+          1. Load target table<br>
+          2. Find FK targets: fields with <code class="code-caller">fk_target_field_id != nil</code><br>
+          3. Resolve their <code class="code-caller">table_id</code> values<br>
+          4. Load FK-connected tables up to limit<br>
+          Stores: <code class="code-table">{id: {:id :db_id :name :schema}}</code>
+        </div>
+      </div>
+    </div>
+    <div class="cache-box">
+      <div class="cache-label">After 1st miss</div>
+      <div class="cache-entries">
+        <span class="cache-entry cache-entry--loaded">table_7 (requested)</span>
+        <span class="cache-sep">+</span>
+        <span class="cache-entry cache-entry--preloaded">table_8 (FK target)</span>
+        <span class="cache-entry cache-entry--preloaded">table_12 (FK target)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow" style="--i:12">
+    <svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12"/></svg>
+    export-table-fk calls export-database-fk
+  </div>
+
+  <div class="section section--db" style="--i:13">
+    <div class="section-label"><span class="dot"></span> Database Cache</div>
+    <div class="inner-grid">
+      <div class="inner-card">
+        <div class="title">export-database-fk</div>
+        <div class="desc">
+          <code class="code-db">db-fn(id)</code> <span style="color:var(--border-bright)">-></span> <code class="code-db">{:id :name}</code><br>
+          Returns <code class="code-db">db-name</code> (string)
+        </div>
+      </div>
+      <div class="inner-card">
+        <div class="title">batch-load-databases</div>
+        <div class="desc">
+          1. Load target database<br>
+          2. Load all other databases up to limit<br>
+          (Most instances have &lt;10 databases)<br>
+          Stores: <code class="code-db">{id: {:id :name}}</code>
+        </div>
+      </div>
+    </div>
+    <div class="cache-box">
+      <div class="cache-label">After 1st miss</div>
+      <div class="cache-entries">
+        <span class="cache-entry cache-entry--loaded">db_1 (requested)</span>
+        <span class="cache-sep">+</span>
+        <span class="cache-entry cache-entry--preloaded">db_2</span>
+        <span class="cache-entry cache-entry--preloaded">db_3</span>
+        <span class="cache-sep">all databases</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TRACE ============ -->
+
+  <h2 class="animate" style="--i:14">Execution Trace</h2>
+  <p class="section-intro animate" style="--i:15">
+    Exporting a card with 3 columns from table_7, which has an FK to table_8.
+    After the first column, everything is cache hits.
+  </p>
+
+  <div class="section section--recessed" style="--i:16">
+    <div class="section-label"><span class="dot" style="background:var(--text-dim)"></span> Full call trace</div>
+    <div class="trace">
+      <div class="ln"><span class="ln-num">1</span><span class="ln-content comment">; Column 1: {:id field_42, :table_id table_7, :fk_target_field_id field_55}</span></div>
+      <div class="ln"><span class="ln-num">2</span><span class="ln-content"></span></div>
+      <div class="ln"><span class="ln-num">3</span><span class="ln-content"><span class="fn">*export-field-fk*</span>(field_42)</span></div>
+      <div class="ln"><span class="ln-num">4</span><span class="ln-content indent"><span class="fn">field-cache</span>(42) <span class="comment">; MISS -> batch-load-fields(42, 50000)</span></span></div>
+      <div class="ln"><span class="ln-num">5</span><span class="ln-content indent-2"><span class="kw">DB:</span> recursive CTE for field_42 hierarchy <span class="comment">; -> {42: {..., table_id: 7}, 41: {parent}}</span></span></div>
+      <div class="ln"><span class="ln-num">6</span><span class="ln-content indent-2"><span class="kw">DB:</span> FK targets from table_7 <span class="comment">; -> table_8</span></span></div>
+      <div class="ln"><span class="ln-num">7</span><span class="ln-content indent-2"><span class="kw">DB:</span> SELECT fields WHERE table_id IN (7, 8) <span class="comment">; -> {42..99: {...}}</span></span></div>
+      <div class="ln"><span class="ln-num">8</span><span class="ln-content indent"><span class="fn">field-name-chain</span>(42, field-cache) <span class="comment">; walks parent_id in memory</span></span></div>
+      <div class="ln"><span class="ln-num">9</span><span class="ln-content indent"><span class="fn">table-cache</span>(7) <span class="comment">; MISS -> batch-load-tables(7, 50000)</span></span></div>
+      <div class="ln"><span class="ln-num">10</span><span class="ln-content indent-2"><span class="kw">DB:</span> table_7 + FK tables <span class="comment">; -> {7: {..., db_id: 1}, 8: {...}, 12: {...}}</span></span></div>
+      <div class="ln"><span class="ln-num">11</span><span class="ln-content indent"><span class="fn">db-cache</span>(1) <span class="comment">; MISS -> batch-load-databases(1, 50000)</span></span></div>
+      <div class="ln"><span class="ln-num">12</span><span class="ln-content indent-2"><span class="kw">DB:</span> all databases <span class="comment">; -> {1: {name: "analytics"}, 2: {...}}</span></span></div>
+      <div class="ln"><span class="ln-num">13</span><span class="ln-content indent"><span class="result">=> ["analytics" "public" "orders" "parent_col" "field_42"]</span></span></div>
+      <div class="ln"><span class="ln-num">14</span><span class="ln-content"></span></div>
+      <div class="ln"><span class="ln-num">15</span><span class="ln-content"><span class="fn">*export-field-fk*</span>(field_55) <span class="comment">; fk_target on table_8</span></span></div>
+      <div class="ln"><span class="ln-num">16</span><span class="ln-content indent"><span class="fn">field-cache</span>(55) <span class="val">; HIT</span> <span class="comment">; preloaded via FK table batch</span></span></div>
+      <div class="ln"><span class="ln-num">17</span><span class="ln-content indent"><span class="fn">table-cache</span>(8) <span class="val">; HIT</span> <span class="comment">; preloaded via FK table batch</span></span></div>
+      <div class="ln"><span class="ln-num">18</span><span class="ln-content indent"><span class="fn">db-cache</span>(1) <span class="val">; HIT</span></span></div>
+      <div class="ln"><span class="ln-num">19</span><span class="ln-content indent"><span class="result">=> ["analytics" "public" "customers" "field_55"]</span></span></div>
+      <div class="ln"><span class="ln-num">20</span><span class="ln-content"></span></div>
+      <div class="ln"><span class="ln-num">21</span><span class="ln-content"><span class="fn">*export-table-fk*</span>(table_7)</span></div>
+      <div class="ln"><span class="ln-num">22</span><span class="ln-content indent"><span class="fn">table-cache</span>(7) <span class="val">; HIT</span></span></div>
+      <div class="ln"><span class="ln-num">23</span><span class="ln-content indent"><span class="fn">db-cache</span>(1) <span class="val">; HIT</span></span></div>
+      <div class="ln"><span class="ln-num">24</span><span class="ln-content indent"><span class="result">=> ["analytics" "public" "orders"]</span></span></div>
+      <div class="ln"><span class="ln-num">25</span><span class="ln-content"></span></div>
+      <div class="ln"><span class="ln-num">26</span><span class="ln-content comment">; Columns 2-3: all cache hits, 0 DB queries</span></div>
+      <div class="ln"><span class="ln-num">27</span><span class="ln-content comment">; Total: 5 DB queries for entire card (vs ~50 before)</span></div>
+    </div>
+  </div>
+
+  <!-- ============ MAKE-BATCH-CACHE ============ -->
+
+  <h2 class="animate" style="--i:17">make-batch-cache Internals</h2>
+  <p class="section-intro animate" style="--i:18">
+    Generic cache factory. Each of the 3 caches is an instance of this.
+    <code>*batch-cache-max-size*</code> (default 50,000) limits memory
+    and SQL fetch size. Matters more for fetch limiting than JVM memory -
+    JSON-unfolded tables can have millions of fields.
+  </p>
+
+  <div class="section section--recessed" style="--i:19">
+    <div class="section-label"><span class="dot" style="background:var(--text-dim)"></span> Cache lifecycle</div>
+    <div class="inner-grid-3">
+      <div class="inner-card">
+        <div class="title" style="color:var(--miss)">On miss</div>
+        <div class="desc">
+          Call <code class="code-miss">load-fn(id, max-batch)</code><br>
+          Returns <code class="code-miss">{id: entity, ...}</code><br>
+          Merge ALL returned entries into cache<br>
+          (Sibling preloading)
+        </div>
+      </div>
+      <div class="inner-card">
+        <div class="title" style="color:var(--hit)">On hit</div>
+        <div class="desc">
+          Return cached entity<br>
+          O(1) atom deref + map lookup<br>
+          No DB queries
+        </div>
+      </div>
+      <div class="inner-card">
+        <div class="title" style="color:var(--text-dim)">Eviction</div>
+        <div class="desc">
+          FIFO via PersistentQueue<br>
+          Old entries dropped when exceeding max<br>
+          New batch entries NEVER evicted<br>
+          (Parent chains stay complete)
+        </div>
+      </div>
+    </div>
+
+    <div class="cache-box" style="margin-top: 14px;">
+      <div class="cache-label">Eviction example</div>
+      <div class="cache-entries">
+        <span class="cache-entry cache-entry--evicted">field_42</span>
+        <span class="cache-entry cache-entry--evicted">field_43</span>
+        <span class="cache-entry cache-entry--loaded">field_44</span>
+        <span class="cache-entry cache-entry--loaded">field_45</span>
+        <span class="cache-sep">|</span>
+        <span class="cache-entry cache-entry--preloaded">field_200 (new batch)</span>
+        <span class="cache-entry cache-entry--preloaded">field_201</span>
+        <span class="cache-entry cache-entry--preloaded">field_202</span>
+        <span class="cache-sep">old entries dropped to make room</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ WHY 3 CACHES ============ -->
+
+  <div class="callout animate" style="--i:20">
+    <strong>Why 3 caches, not 1 joined query?</strong>
+    A joined field+table+db query would help the field path, but
+    <code>*export-table-fk*</code> and <code>*export-database-fk*</code> are called
+    independently from export-mbql and generate-path - they'd still need their own caches.
+    The three-cache design serves all access patterns while keeping each cache simple and
+    independently testable.
+  </div>
+
+  <!-- ============ LEGEND ============ -->
+
+  <div class="animate" style="--i:21; margin-top: 8px;">
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--field)"></div> Field cache</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--table)"></div> Table cache</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--db)"></div> DB cache</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--caller)"></div> Callers</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--hit)"></div> Cache hit</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--miss)"></div> Cache miss</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--preload)"></div> Preloaded</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

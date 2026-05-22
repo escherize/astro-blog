@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workspaces — Safe sandboxes for the AI era of analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Azeret+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============ THEME: Warm Signal ============ */
+  :root {
+    --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-mono: 'Azeret Mono', 'SF Mono', monospace;
+    --bg: #faf6f0;
+    --surface: #ffffff;
+    --surface2: #f5ece0;
+    --surface-elevated: #fffdf5;
+    --border: rgba(60, 40, 20, 0.08);
+    --border-bright: rgba(60, 40, 20, 0.16);
+    --text: #2c2a25;
+    --text-dim: #7c756a;
+    --accent: #c2410c;
+    --accent-soft: #e85d2a;
+    --accent-dim: rgba(194, 65, 12, 0.08);
+    --code-bg: #2c2520;
+    --code-text: #f5ece0;
+    --green: #15803d;
+    --green-dim: rgba(21, 128, 61, 0.08);
+    --red: #b91c1c;
+    --red-dim: rgba(185, 28, 28, 0.08);
+    --blue: #1d4ed8;
+    --blue-dim: rgba(29, 78, 216, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1916;
+      --surface: #262220;
+      --surface2: #302b28;
+      --surface-elevated: #3a3430;
+      --border: rgba(200, 180, 160, 0.08);
+      --border-bright: rgba(200, 180, 160, 0.16);
+      --text: #f0e8dc;
+      --text-dim: #a09888;
+      --accent: #e85d2a;
+      --accent-soft: #f97b4d;
+      --accent-dim: rgba(232, 93, 42, 0.1);
+      --code-bg: #141210;
+      --code-text: #f0e8dc;
+      --green: #4ade80;
+      --green-dim: rgba(74, 222, 128, 0.1);
+      --red: #f87171;
+      --red-dim: rgba(248, 113, 113, 0.1);
+      --blue: #60a5fa;
+      --blue-dim: rgba(96, 165, 250, 0.1);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-body);
+    color: var(--text);
+    background: var(--bg);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ============ DECK ENGINE ============ */
+  .deck {
+    height: 100dvh;
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .slide {
+    height: 100dvh;
+    scroll-snap-align: start;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: clamp(40px, 6vh, 80px) clamp(40px, 8vw, 120px);
+    isolation: isolate;
+    opacity: 0;
+    transform: translateY(40px) scale(0.98);
+    transition:
+      opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .slide.visible { opacity: 1; transform: none; }
+
+  .slide .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition:
+      opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .slide.visible .reveal { opacity: 1; transform: none; }
+  .slide.visible .reveal:nth-child(1) { transition-delay: 0.1s; }
+  .slide.visible .reveal:nth-child(2) { transition-delay: 0.2s; }
+  .slide.visible .reveal:nth-child(3) { transition-delay: 0.3s; }
+  .slide.visible .reveal:nth-child(4) { transition-delay: 0.4s; }
+  .slide.visible .reveal:nth-child(5) { transition-delay: 0.5s; }
+  .slide.visible .reveal:nth-child(6) { transition-delay: 0.6s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slide, .slide .reveal {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
+    }
+  }
+
+  /* ============ NAV CHROME ============ */
+  .deck-progress {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: var(--accent); z-index: 100;
+    transition: width 0.3s ease; pointer-events: none;
+  }
+
+  .deck-dots {
+    position: fixed; right: clamp(12px, 2vw, 24px); top: 50%;
+    transform: translateY(-50%); display: flex; flex-direction: column;
+    gap: 8px; z-index: 100; padding: 8px;
+    background: color-mix(in srgb, var(--bg) 60%, transparent 40%);
+    border-radius: 20px;
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  }
+  .deck-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--text-dim); opacity: 0.3; border: none; padding: 0;
+    cursor: pointer; transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .deck-dot:hover { opacity: 0.6; }
+  .deck-dot.active { opacity: 1; transform: scale(1.5); background: var(--accent); }
+
+  .deck-counter {
+    position: fixed; bottom: clamp(12px, 2vh, 24px); right: clamp(12px, 2vw, 24px);
+    font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+    z-index: 100; font-variant-numeric: tabular-nums;
+  }
+
+  .deck-hints {
+    position: fixed; bottom: clamp(12px, 2vh, 24px); left: 50%;
+    transform: translateX(-50%); font-family: var(--font-mono);
+    font-size: 11px; color: var(--text-dim); opacity: 0.6; z-index: 100;
+    transition: opacity 0.5s ease; white-space: nowrap;
+  }
+  .deck-hints.faded { opacity: 0; pointer-events: none; }
+
+  /* ============ SHARED ============ */
+  .slide__display {
+    font-size: clamp(48px, 9vw, 112px);
+    font-weight: 800;
+    letter-spacing: -3px;
+    line-height: 0.95;
+    text-wrap: balance;
+  }
+
+  .slide__heading {
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    text-wrap: balance;
+  }
+
+  .slide__body {
+    font-size: clamp(16px, 2.2vw, 22px);
+    line-height: 1.6;
+    color: var(--text-dim);
+    text-wrap: pretty;
+  }
+
+  .slide__subtitle {
+    font-family: var(--font-mono);
+    font-size: clamp(12px, 1.5vw, 18px);
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .slide__label {
+    font-family: var(--font-mono);
+    font-size: clamp(10px, 1.2vw, 13px);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .slide__decor { position: absolute; pointer-events: none; z-index: 0; }
+
+  /* ============ TITLE ============ */
+  .slide--title {
+    justify-content: center;
+    align-items: flex-start;
+    text-align: left;
+    background:
+      radial-gradient(ellipse at 15% 85%, var(--accent-dim) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 15%, rgba(232, 93, 42, 0.06) 0%, transparent 50%);
+  }
+  .slide--title .slide__display { color: var(--text); }
+  .slide--title .slide__display .hl { color: var(--accent); font-style: italic; }
+
+  /* ============ DIVIDER ============ */
+  .slide--divider { justify-content: center; }
+  .slide--divider .slide__number {
+    font-size: clamp(120px, 26vw, 320px);
+    font-weight: 200;
+    line-height: 0.8;
+    opacity: 0.08;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -55%);
+    pointer-events: none;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+  }
+
+  /* ============ CONTENT ============ */
+  .slide--content .slide__inner {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: clamp(24px, 4vw, 60px);
+    align-items: center;
+    width: 100%;
+  }
+  .slide--content--right .slide__inner { grid-template-columns: 2fr 3fr; }
+
+  .slide__bullets { list-style: none; padding: 0; }
+  .slide__bullets li {
+    padding: 12px 0 12px 28px;
+    position: relative;
+    font-size: clamp(16px, 2vw, 22px);
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .slide__bullets li strong { color: var(--accent); font-weight: 700; }
+  .slide__bullets li::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 22px;
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    background: var(--accent);
+    transform: rotate(45deg);
+  }
+
+  .slide__aside {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 200px;
+  }
+
+  /* persona cards */
+  .persona-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(16px, 2.5vw, 32px);
+    margin-top: clamp(24px, 4vh, 48px);
+  }
+  .persona {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 4px solid var(--accent);
+    border-radius: 14px;
+    padding: clamp(20px, 3vh, 32px) clamp(18px, 2vw, 28px);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .persona__icon { font-size: 32px; line-height: 1; }
+  .persona__title {
+    font-size: clamp(18px, 2.2vw, 24px);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .persona__body {
+    font-size: clamp(13px, 1.5vw, 17px);
+    line-height: 1.5;
+    color: var(--text-dim);
+  }
+
+  /* ============ SPLIT ============ */
+  .slide--split { padding: 0; }
+  .slide--split .slide__panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100%;
+  }
+  .slide--split .slide__panel {
+    padding: clamp(40px, 6vh, 80px) clamp(32px, 4vw, 60px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+  }
+  .slide--split .slide__panel--primary { background: var(--surface2); }
+  .slide--split .slide__panel--secondary {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .slide--split .slide__panel--secondary .slide__label { color: rgba(255,255,255,0.7); }
+  .slide--split .slide__panel--secondary .slide__heading { color: #fff; }
+  .slide--split .slide__panel--secondary .slide__body { color: rgba(255,255,255,0.85); }
+  .slide--split .slide__panel--secondary .slide__bullets li { color: rgba(255,255,255,0.92); }
+  .slide--split .slide__panel--secondary .slide__bullets li::before { background: #fff; }
+
+  /* ============ PIPELINE ============ */
+  .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
+    margin-top: clamp(16px, 2.5vh, 32px);
+  }
+  .pipeline__step {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    border-radius: 12px;
+    padding: clamp(16px, 2.8vh, 32px) clamp(14px, 1.6vw, 22px);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+  .pipeline__num {
+    font-size: clamp(10px, 1.1vw, 13px);
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 1.5px;
+    font-family: var(--font-mono);
+  }
+  .pipeline__name {
+    font-size: clamp(15px, 1.8vw, 22px);
+    font-weight: 700;
+    margin: clamp(4px, 0.8vh, 8px) 0;
+    line-height: 1.2;
+    letter-spacing: -0.3px;
+  }
+  .pipeline__desc {
+    font-size: clamp(12px, 1.2vw, 15px);
+    color: var(--text-dim);
+    line-height: 1.5;
+    flex: 1;
+  }
+  .pipeline__role {
+    font-family: var(--font-mono);
+    font-size: clamp(10px, 1vw, 11px);
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-top: clamp(8px, 1.4vh, 14px);
+    align-self: flex-start;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+  .pipeline__arrow {
+    display: flex; align-items: center;
+    padding: 0 clamp(3px, 0.4vw, 6px);
+    color: var(--accent);
+    flex-shrink: 0;
+    opacity: 0.45;
+  }
+  @media (max-width: 900px) {
+    .pipeline { flex-direction: column; }
+    .pipeline__arrow { justify-content: center; padding: 4px 0; transform: rotate(90deg); }
+  }
+
+  /* ============ DASHBOARD ============ */
+  .slide--dashboard .slide__kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(clamp(160px, 22vw, 240px), 1fr));
+    gap: clamp(14px, 2vw, 24px);
+    margin-top: clamp(16px, 2vh, 28px);
+  }
+  .slide__kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: clamp(20px, 3.2vh, 36px) clamp(18px, 2vw, 28px);
+    min-width: 0;
+    overflow: hidden;
+    position: relative;
+  }
+  .slide__kpi-val {
+    font-size: clamp(36px, 5.5vw, 60px);
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--accent);
+  }
+  .slide__kpi-label {
+    font-family: var(--font-mono);
+    font-size: clamp(10px, 1.2vw, 13px);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-top: 10px;
+  }
+  .slide__kpi-body {
+    font-size: clamp(12px, 1.3vw, 15px);
+    color: var(--text-dim);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  /* ============ TABLE ============ */
+  .slide--table { padding: clamp(24px, 4vh, 48px) clamp(24px, 4vw, 60px); }
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    flex: 1;
+    min-height: 0;
+  }
+  .table-scroll { overflow-x: auto; }
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th {
+    background: var(--surface2);
+    font-family: var(--font-mono);
+    font-size: clamp(10px, 1.3vw, 14px);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    text-align: left;
+    padding: clamp(12px, 1.8vh, 18px) clamp(16px, 2.4vw, 28px);
+    border-bottom: 2px solid var(--border-bright);
+    white-space: nowrap;
+  }
+  .data-table td {
+    padding: clamp(12px, 1.8vh, 18px) clamp(16px, 2.4vw, 28px);
+    border-bottom: 1px solid var(--border);
+    font-size: clamp(14px, 1.8vw, 19px);
+    vertical-align: middle;
+  }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table tbody tr:nth-child(even) { background: var(--surface2); }
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .badge--ok { background: var(--green-dim); color: var(--green); }
+  .badge--no { background: var(--red-dim); color: var(--red); }
+  .badge--soon { background: var(--accent-dim); color: var(--accent); }
+
+  /* ============ STATUS SLIDE TWO-COL ============ */
+  .status-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(20px, 3vw, 48px);
+    margin-top: clamp(20px, 3vh, 36px);
+  }
+  .status-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: clamp(20px, 3vh, 36px) clamp(20px, 2.4vw, 32px);
+  }
+  .status-col--in { border-top: 4px solid var(--green); }
+  .status-col--out { border-top: 4px solid var(--text-dim); }
+  .status-col h3 {
+    font-size: clamp(18px, 2.4vw, 26px);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 12px;
+  }
+  .status-col .label-in { color: var(--green); }
+  .status-col .label-out { color: var(--text-dim); }
+  .status-col ul { list-style: none; padding: 0; }
+  .status-col li {
+    padding: 8px 0 8px 24px;
+    position: relative;
+    font-size: clamp(14px, 1.6vw, 18px);
+    color: var(--text);
+    line-height: 1.45;
+  }
+  .status-col--in li::before {
+    content: '✓';
+    position: absolute; left: 0; top: 8px;
+    color: var(--green); font-weight: 700;
+  }
+  .status-col--out li::before {
+    content: '–';
+    position: absolute; left: 0; top: 8px;
+    color: var(--text-dim); font-weight: 700;
+  }
+
+  /* ============ QUOTE ============ */
+  .slide--quote {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: clamp(60px, 10vh, 120px) clamp(60px, 12vw, 200px);
+    background: radial-gradient(ellipse at 50% 50%, var(--accent-dim) 0%, transparent 50%);
+  }
+  .slide__quote-mark {
+    font-size: clamp(80px, 14vw, 180px);
+    line-height: 0.5;
+    opacity: 0.12;
+    font-family: Georgia, serif;
+    pointer-events: none;
+    margin-bottom: -20px;
+    color: var(--accent);
+  }
+  .slide--quote blockquote {
+    font-size: clamp(24px, 4vw, 44px);
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  .slide--quote blockquote em { color: var(--accent); font-style: italic; }
+  .slide--quote cite {
+    font-family: var(--font-mono);
+    font-size: clamp(11px, 1.4vw, 14px);
+    font-style: normal;
+    margin-top: clamp(20px, 3vh, 36px);
+    display: block;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  /* ============ FULL-BLEED ============ */
+  .slide--bleed {
+    padding: 0;
+    justify-content: flex-end;
+  }
+  .slide__bg {
+    position: absolute; inset: 0;
+    background-size: cover; background-position: center;
+    z-index: 0;
+  }
+  .slide__bg--gradient-warm {
+    background:
+      radial-gradient(ellipse at 30% 30%, var(--accent-soft) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 70%, var(--accent) 0%, transparent 55%),
+      linear-gradient(135deg, #c2410c 0%, #7c2d12 50%, #431407 100%);
+  }
+  .slide__scrim {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 50%, transparent 100%);
+    z-index: 1;
+  }
+  .slide--bleed .slide__content {
+    position: relative; z-index: 2;
+    padding: clamp(40px, 6vh, 80px) clamp(40px, 8vw, 120px);
+    color: #ffffff;
+  }
+  .slide--bleed .slide__heading { color: #ffffff; }
+  .slide--bleed .slide__display { color: #ffffff; }
+  .slide--bleed .slide__subtitle { color: rgba(255,255,255,0.75); }
+  .slide--bleed .slide__label { color: rgba(255,255,255,0.7); }
+
+  /* corner mark accents */
+  .corner-mark {
+    position: absolute; pointer-events: none; z-index: 0;
+    opacity: 0.5;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-height: 720px) {
+    .slide { padding: clamp(24px, 4vh, 40px) clamp(32px, 6vw, 80px); }
+    .slide__display { font-size: clamp(36px, 7.5vw, 72px); }
+    .slide--divider .slide__number { font-size: clamp(100px, 20vw, 200px); }
+    .persona-grid { gap: clamp(12px, 2vw, 20px); }
+    .persona { padding: clamp(14px, 2vh, 20px) clamp(14px, 1.6vw, 18px); }
+  }
+  @media (max-height: 600px) {
+    .slide__decor, .corner-mark { display: none; }
+    .slide--quote { padding: clamp(32px, 6vh, 60px) clamp(40px, 8vw, 100px); }
+    .slide__quote-mark { display: none; }
+  }
+  @media (max-height: 500px) {
+    .slide { padding: clamp(16px, 3vh, 24px) clamp(24px, 5vw, 48px); }
+    .deck-dots { display: none; }
+    .slide__display { font-size: clamp(28px, 7vw, 48px); }
+  }
+  @media (max-width: 900px) {
+    .slide--content .slide__inner,
+    .slide--content--right .slide__inner { grid-template-columns: 1fr; }
+    .slide--content .slide__aside { display: none; }
+    .slide--split .slide__panels { grid-template-columns: 1fr; }
+    .persona-grid { grid-template-columns: 1fr; }
+    .status-cols { grid-template-columns: 1fr; }
+    .slide--dashboard .slide__kpis { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- SLIDE 1: TITLE -->
+  <section class="slide slide--title">
+    <svg class="corner-mark" style="top:clamp(24px,4vh,48px);right:clamp(24px,4vw,48px);" width="140" height="140" viewBox="0 0 140 140">
+      <circle cx="100" cy="40" r="32" fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.25"/>
+      <circle cx="100" cy="40" r="20" fill="none" stroke="var(--accent)" stroke-width="1.5" opacity="0.4"/>
+      <circle cx="100" cy="40" r="6" fill="var(--accent)" opacity="0.6"/>
+    </svg>
+    <div class="reveal">
+      <p class="slide__subtitle" style="margin-bottom:clamp(20px,3vh,40px);">Metabase · Internal alpha · May 2026</p>
+    </div>
+    <h1 class="slide__display reveal">Workspaces.<br><span class="hl">Safe sandboxes</span><br>for the AI era<br>of analytics.</h1>
+    <div class="reveal">
+      <p class="slide__subtitle" style="margin-top:clamp(28px,4vh,48px);">A sales, success &amp; marketing primer</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 2: QUOTE / HOOK -->
+  <section class="slide slide--quote">
+    <div class="slide__quote-mark reveal">&ldquo;</div>
+    <blockquote class="reveal">
+      Modeling on production data is&nbsp;scary.<br>Letting an <em>AI agent</em> do it&nbsp;is&nbsp;terrifying.
+    </blockquote>
+    <cite class="reveal">— Every data team in 2026</cite>
+  </section>
+
+  <!-- SLIDE 3: SECTION 01 -->
+  <section class="slide slide--divider" style="background-image:radial-gradient(ellipse at 80% 60%, var(--accent-dim) 0%, transparent 45%);">
+    <span class="slide__number">01</span>
+    <div>
+      <p class="slide__subtitle reveal">The problem</p>
+      <h2 class="slide__heading reveal" style="margin-top:12px;">Production is a&nbsp;crowded&nbsp;room.</h2>
+    </div>
+  </section>
+
+  <!-- SLIDE 4: CONTENT — three pain points -->
+  <section class="slide slide--content" style="background-image:radial-gradient(ellipse at 15% 80%, var(--accent-dim) 0%, transparent 45%);">
+    <div class="slide__inner">
+      <div>
+        <p class="slide__label reveal">Today</p>
+        <h2 class="slide__heading reveal">Analysts share one&nbsp;warehouse.</h2>
+        <ul class="slide__bullets" style="margin-top:clamp(16px,2vh,28px);">
+          <li class="reveal"><strong>One slip</strong> and you've overwritten the schema everyone depends on.</li>
+          <li class="reveal"><strong>Modeling work</strong> happens in spreadsheets, then gets rebuilt by data engineers.</li>
+          <li class="reveal"><strong>AI agents</strong> write SQL faster than humans &mdash; and against the same production tables.</li>
+        </ul>
+      </div>
+      <div class="slide__aside reveal">
+        <svg viewBox="0 0 200 200" width="200" height="200">
+          <rect x="40" y="40" width="120" height="120" rx="10" fill="none" stroke="var(--accent)" stroke-width="2" opacity="0.25"/>
+          <circle cx="70" cy="70" r="6" fill="var(--accent)" opacity="0.5"/>
+          <circle cx="100" cy="80" r="6" fill="var(--accent)" opacity="0.5"/>
+          <circle cx="130" cy="70" r="6" fill="var(--accent)" opacity="0.5"/>
+          <circle cx="80" cy="110" r="6" fill="var(--accent)" opacity="0.5"/>
+          <circle cx="115" cy="115" r="6" fill="var(--accent)" opacity="0.5"/>
+          <circle cx="100" cy="140" r="6" fill="var(--accent)" opacity="0.5"/>
+          <circle cx="70" cy="135" r="6" fill="var(--accent)" opacity="0.5"/>
+          <circle cx="135" cy="140" r="6" fill="var(--accent)" opacity="0.5"/>
+          <text x="100" y="180" text-anchor="middle" font-family="var(--font-mono)" font-size="11" fill="var(--text-dim)" letter-spacing="1">EVERYONE IN ONE ROOM</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 5: SECTION 02 -->
+  <section class="slide slide--divider" style="background-image:radial-gradient(ellipse at 25% 30%, var(--accent-dim) 0%, transparent 45%);">
+    <span class="slide__number">02</span>
+    <div>
+      <p class="slide__subtitle reveal">The idea</p>
+      <h2 class="slide__heading reveal" style="margin-top:12px;">Give every analyst their own&nbsp;room.</h2>
+    </div>
+  </section>
+
+  <!-- SLIDE 6: CONTENT (right-heavy) — what it is -->
+  <section class="slide slide--content slide--content--right" style="background-image:radial-gradient(ellipse at 80% 80%, var(--accent-dim) 0%, transparent 45%);">
+    <div class="slide__inner">
+      <div class="slide__aside reveal">
+        <svg viewBox="0 0 220 220" width="220" height="220">
+          <!-- main warehouse circle -->
+          <circle cx="110" cy="110" r="80" fill="none" stroke="var(--text-dim)" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.4"/>
+          <text x="110" y="115" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--text-dim)" letter-spacing="1">WAREHOUSE</text>
+          <!-- sandboxes -->
+          <circle cx="55" cy="60" r="22" fill="var(--accent)" opacity="0.85"/>
+          <text x="55" y="64" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="#fff" font-weight="700">A</text>
+          <circle cx="170" cy="55" r="22" fill="var(--accent-soft)" opacity="0.85"/>
+          <text x="170" y="59" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="#fff" font-weight="700">B</text>
+          <circle cx="60" cy="170" r="22" fill="var(--accent-soft)" opacity="0.85"/>
+          <text x="60" y="174" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="#fff" font-weight="700">C</text>
+          <circle cx="170" cy="170" r="22" fill="var(--accent)" opacity="0.85"/>
+          <text x="170" y="174" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="#fff" font-weight="700">D</text>
+        </svg>
+      </div>
+      <div>
+        <p class="slide__label reveal">A Workspace is&hellip;</p>
+        <h2 class="slide__heading reveal">A private copy of Metabase pointed at a&nbsp;private corner of your&nbsp;warehouse.</h2>
+        <ul class="slide__bullets" style="margin-top:clamp(16px,2vh,28px);">
+          <li class="reveal">Same data sources, scoped down.</li>
+          <li class="reveal">Reads production. <strong>Can only write to its own sandbox.</strong></li>
+          <li class="reveal">Lives on the analyst's laptop, not in the shared environment.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 7: SPLIT — engineering vs analytics metaphor -->
+  <section class="slide slide--split">
+    <div class="slide__panel slide__panel--primary">
+      <p class="slide__label reveal">What engineers already&nbsp;have</p>
+      <h2 class="slide__heading reveal">Git&nbsp;branches.</h2>
+      <p class="slide__body reveal" style="margin-top:14px;">
+        Every developer gets their own branch. They build, break, and rebuild safely. Code only reaches production through review.
+      </p>
+      <ul class="slide__bullets reveal" style="margin-top:18px;">
+        <li>Isolated copy of the codebase</li>
+        <li>Test freely without affecting others</li>
+        <li>Merge back via pull request</li>
+      </ul>
+    </div>
+    <div class="slide__panel slide__panel--secondary">
+      <p class="slide__label reveal">What analysts get&nbsp;now</p>
+      <h2 class="slide__heading reveal">Workspaces.</h2>
+      <p class="slide__body reveal" style="margin-top:14px;">
+        Every analyst gets their own sandbox. They model, test, and iterate &mdash; alongside an AI agent if they want. Changes only reach production through review.
+      </p>
+      <ul class="slide__bullets reveal" style="margin-top:18px;">
+        <li>Isolated copy of the warehouse view</li>
+        <li>Build models freely without affecting others</li>
+        <li>Merge back via the same git workflow</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SLIDE 8: SECTION 03 -->
+  <section class="slide slide--divider" style="background-image:radial-gradient(ellipse at 50% 70%, var(--accent-dim) 0%, transparent 50%);">
+    <span class="slide__number">03</span>
+    <div>
+      <p class="slide__subtitle reveal">How it feels</p>
+      <h2 class="slide__heading reveal" style="margin-top:12px;">A&nbsp;link, a&nbsp;command, a&nbsp;pull request.</h2>
+    </div>
+  </section>
+
+  <!-- SLIDE 9: PIPELINE — workflow -->
+  <section class="slide" style="background-image:radial-gradient(ellipse at 20% 20%, var(--accent-dim) 0%, transparent 40%);">
+    <p class="slide__label reveal">End-to-end workflow</p>
+    <h2 class="slide__heading reveal">From&nbsp;idea to&nbsp;production in&nbsp;five steps.</h2>
+    <div class="pipeline reveal">
+      <div class="pipeline__step">
+        <div class="pipeline__num">01</div>
+        <div class="pipeline__name">Create</div>
+        <div class="pipeline__desc">Admin clicks "new workspace" in Metabase, picks the databases to expose.</div>
+        <div class="pipeline__role">Admin</div>
+      </div>
+      <div class="pipeline__arrow">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="pipeline__step">
+        <div class="pipeline__num">02</div>
+        <div class="pipeline__name">Share link</div>
+        <div class="pipeline__desc">A one-line setup link gets sent to the analyst over Slack, email, or paste.</div>
+        <div class="pipeline__role">Admin</div>
+      </div>
+      <div class="pipeline__arrow">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="pipeline__step">
+        <div class="pipeline__num">03</div>
+        <div class="pipeline__name">Spin up</div>
+        <div class="pipeline__desc">Analyst runs one command. A local Metabase boots, pre-wired to their sandbox.</div>
+        <div class="pipeline__role">Analyst</div>
+      </div>
+      <div class="pipeline__arrow">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="pipeline__step">
+        <div class="pipeline__num">04</div>
+        <div class="pipeline__name">Iterate</div>
+        <div class="pipeline__desc">Analyst builds models, runs queries, optionally with an AI agent doing the typing.</div>
+        <div class="pipeline__role">Analyst + AI</div>
+      </div>
+      <div class="pipeline__arrow">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M5 12h14m-4-4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="pipeline__step">
+        <div class="pipeline__num">05</div>
+        <div class="pipeline__name">Merge back</div>
+        <div class="pipeline__desc">Open a pull request. Reviewed and approved changes flow to the production instance.</div>
+        <div class="pipeline__role">Team</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 10: SECTION 04 -->
+  <section class="slide slide--divider" style="background-image:radial-gradient(ellipse at 75% 40%, var(--accent-dim) 0%, transparent 45%);">
+    <span class="slide__number">04</span>
+    <div>
+      <p class="slide__subtitle reveal">Why it's safe</p>
+      <h2 class="slide__heading reveal" style="margin-top:12px;">The&nbsp;safety net is&nbsp;structural.</h2>
+    </div>
+  </section>
+
+  <!-- SLIDE 11: DASHBOARD — safety guarantees -->
+  <section class="slide slide--dashboard" style="background-image:radial-gradient(ellipse at 80% 20%, var(--accent-dim) 0%, transparent 40%);">
+    <p class="slide__label reveal">Built-in guardrails</p>
+    <h2 class="slide__heading reveal">What the sandbox actually&nbsp;prevents.</h2>
+    <div class="slide__kpis">
+      <div class="slide__kpi reveal">
+        <div class="slide__kpi-val">0</div>
+        <div class="slide__kpi-label">Writes to production</div>
+        <div class="slide__kpi-body">The sandbox user literally lacks permission to touch your canonical tables.</div>
+      </div>
+      <div class="slide__kpi reveal">
+        <div class="slide__kpi-val">1:1</div>
+        <div class="slide__kpi-label">Workspace per analyst</div>
+        <div class="slide__kpi-body">No two analysts share a sandbox. No two sandboxes share a writeable namespace.</div>
+      </div>
+      <div class="slide__kpi reveal">
+        <div class="slide__kpi-val">∞</div>
+        <div class="slide__kpi-label">AI retries, zero risk</div>
+        <div class="slide__kpi-body">Let an agent regenerate SQL all day. Worst case: a broken sandbox table. Production is untouched.</div>
+      </div>
+      <div class="slide__kpi reveal">
+        <div class="slide__kpi-val">Git</div>
+        <div class="slide__kpi-label">Review before merge</div>
+        <div class="slide__kpi-body">Every change to production schemas is a pull request. Approve, reject, or comment &mdash; like code.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 12: SECTION 05 -->
+  <section class="slide slide--divider" style="background-image:radial-gradient(ellipse at 40% 70%, var(--accent-dim) 0%, transparent 45%);">
+    <span class="slide__number">05</span>
+    <div>
+      <p class="slide__subtitle reveal">Who it's for</p>
+      <h2 class="slide__heading reveal" style="margin-top:12px;">Three people, one&nbsp;sandbox.</h2>
+    </div>
+  </section>
+
+  <!-- SLIDE 13: CONTENT — personas -->
+  <section class="slide">
+    <p class="slide__label reveal">Personas</p>
+    <h2 class="slide__heading reveal">Workspaces speaks to&nbsp;three&nbsp;rooms.</h2>
+    <div class="persona-grid reveal">
+      <div class="persona">
+        <div class="persona__icon">📈</div>
+        <div class="persona__title">Data analyst</div>
+        <div class="persona__body">"I have an idea. I want to model it end-to-end and show the team before touching anything real."</div>
+      </div>
+      <div class="persona">
+        <div class="persona__icon">🛠️</div>
+        <div class="persona__title">Data engineer</div>
+        <div class="persona__body">"I want analysts to ship more without paging me &mdash; and without breaking the warehouse."</div>
+      </div>
+      <div class="persona">
+        <div class="persona__icon">🤖</div>
+        <div class="persona__title">AI-assisted team</div>
+        <div class="persona__body">"We're letting AI write SQL. We need a place where 'oops' isn't a P0 incident."</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 14: QUOTE -->
+  <section class="slide slide--quote">
+    <div class="slide__quote-mark reveal">&ldquo;</div>
+    <blockquote class="reveal">
+      Workspaces is the answer to <em>"what if the AI gets&nbsp;it&nbsp;wrong?"</em><br>The answer is: nothing&nbsp;happens.
+    </blockquote>
+    <cite class="reveal">— The pitch in one sentence</cite>
+  </section>
+
+  <!-- SLIDE 15: TABLE — supported warehouses -->
+  <section class="slide slide--table">
+    <p class="slide__label reveal">Coverage at alpha</p>
+    <h2 class="slide__heading reveal">Which warehouses are&nbsp;in.</h2>
+    <div class="table-wrap reveal" style="margin-top:clamp(12px,2vh,24px);">
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr><th>Warehouse</th><th>Status</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Postgres</td><td><span class="badge badge--ok">Supported</span></td><td>Most-used in customer base</td></tr>
+            <tr><td>Snowflake</td><td><span class="badge badge--ok">Supported</span></td><td>Validated end-to-end</td></tr>
+            <tr><td>BigQuery</td><td><span class="badge badge--ok">Supported</span></td><td>Project + dataset isolation</td></tr>
+            <tr><td>SQL Server</td><td><span class="badge badge--ok">Supported</span></td><td>Schema-level isolation</td></tr>
+            <tr><td>Redshift</td><td><span class="badge badge--ok">Supported</span></td><td>Schema-level isolation</td></tr>
+            <tr><td>MySQL</td><td><span class="badge badge--ok">Supported</span></td><td>Uses separate databases as sandboxes</td></tr>
+            <tr><td>ClickHouse</td><td><span class="badge badge--soon">Bonus</span></td><td>Working; not a launch commitment</td></tr>
+            <tr><td>MongoDB</td><td><span class="badge badge--no">Not in v1</span></td><td>No transform model yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 16: STATUS — what's in / not in v1 -->
+  <section class="slide" style="background-image:radial-gradient(ellipse at 20% 80%, var(--accent-dim) 0%, transparent 40%);">
+    <p class="slide__label reveal">Where we are</p>
+    <h2 class="slide__heading reveal">Internal alpha. Early access&nbsp;next.</h2>
+    <div class="status-cols reveal">
+      <div class="status-col status-col--in">
+        <p class="slide__label label-in" style="color:var(--green);">In v1</p>
+        <h3>What works today</h3>
+        <ul>
+          <li>Isolated sandboxes on the top six cloud warehouses</li>
+          <li>One-command setup from a shared config link</li>
+          <li>AI-agent-friendly: full CLI for safe automation</li>
+          <li>Pull-request-style merge back to production</li>
+          <li>Per-warehouse safety: restricted user, can't break&nbsp;prod</li>
+        </ul>
+      </div>
+      <div class="status-col status-col--out">
+        <p class="slide__label label-out" style="color:var(--text-dim);">Not in v1</p>
+        <h3>What's coming later</h3>
+        <ul>
+          <li>Polished workspace creation UI (design in&nbsp;progress)</li>
+          <li>Field-value previews inside the sandbox</li>
+          <li>MongoDB support</li>
+          <li>Public availability date &mdash; alpha first, then early&nbsp;access</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 17: FULL-BLEED — call to action -->
+  <section class="slide slide--bleed">
+    <div class="slide__bg slide__bg--gradient-warm"></div>
+    <div class="slide__scrim"></div>
+    <div class="slide__content">
+      <p class="slide__label reveal">Next</p>
+      <h1 class="slide__display reveal" style="font-size:clamp(40px,7vw,88px); letter-spacing:-2px;">A safe place<br>for fast&nbsp;analysts<br>(and their agents).</h1>
+      <p class="slide__subtitle reveal" style="margin-top:clamp(24px,3vh,36px);">Bryan Maass · Graphy · workspaces@metabase</p>
+    </div>
+  </section>
+
+</div><!-- /deck -->
+
+<script>
+  // Auto-fit safety
+  function autoFit() {
+    document.querySelectorAll('.slide__kpi-val').forEach(function(el) {
+      if (el.scrollWidth > el.clientWidth) {
+        var s = el.clientWidth / el.scrollWidth;
+        el.style.transform = 'scale(' + s + ')';
+        el.style.transformOrigin = 'left top';
+      }
+    });
+    document.querySelectorAll('.slide--quote blockquote').forEach(function(el) {
+      var len = el.textContent.trim().length;
+      if (len > 100) {
+        var scale = Math.max(0.5, 100 / len);
+        var fs = parseFloat(getComputedStyle(el).fontSize);
+        el.style.fontSize = Math.max(16, Math.round(fs * scale)) + 'px';
+      }
+    });
+  }
+
+  // SlideEngine
+  function SlideEngine(){
+    this.deck = document.querySelector('.deck');
+    this.slides = [].slice.call(document.querySelectorAll('.slide'));
+    this.current = 0;
+    this.total = this.slides.length;
+    this.buildChrome();
+    this.bindEvents();
+    this.observe();
+    this.update();
+  }
+  SlideEngine.prototype.buildChrome = function(){
+    var bar = document.createElement('div'); bar.className = 'deck-progress';
+    document.body.appendChild(bar); this.bar = bar;
+    var dots = document.createElement('div'); dots.className = 'deck-dots';
+    var self = this;
+    this.slides.forEach(function(_, i){
+      var d = document.createElement('button'); d.className = 'deck-dot';
+      d.title = 'Slide ' + (i+1);
+      d.onclick = function(){ self.goTo(i); };
+      dots.appendChild(d);
+    });
+    document.body.appendChild(dots);
+    this.dots = [].slice.call(dots.children);
+    var ctr = document.createElement('div'); ctr.className = 'deck-counter';
+    document.body.appendChild(ctr); this.counter = ctr;
+    var hints = document.createElement('div'); hints.className = 'deck-hints';
+    hints.textContent = '← → or scroll to navigate';
+    document.body.appendChild(hints); this.hints = hints;
+    this.hintTimer = setTimeout(function(){ hints.classList.add('faded'); }, 4000);
+  };
+  SlideEngine.prototype.bindEvents = function(){
+    var self = this;
+    document.addEventListener('keydown', function(e){
+      if (e.target.closest('input, textarea, [contenteditable]')) return;
+      if (['ArrowDown','ArrowRight',' ','PageDown'].indexOf(e.key) > -1) { e.preventDefault(); self.next(); }
+      else if (['ArrowUp','ArrowLeft','PageUp'].indexOf(e.key) > -1) { e.preventDefault(); self.prev(); }
+      else if (e.key === 'Home') { e.preventDefault(); self.goTo(0); }
+      else if (e.key === 'End') { e.preventDefault(); self.goTo(self.total-1); }
+      self.fadeHints();
+    });
+    var tY;
+    this.deck.addEventListener('touchstart', function(e){ tY = e.touches[0].clientY; }, { passive: true });
+    this.deck.addEventListener('touchend', function(e){
+      var dy = tY - e.changedTouches[0].clientY;
+      if (Math.abs(dy) > 50) { dy > 0 ? self.next() : self.prev(); }
+    });
+  };
+  SlideEngine.prototype.observe = function(){
+    var self = this;
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          self.current = self.slides.indexOf(entry.target);
+          self.update();
+        }
+      });
+    }, { threshold: 0.5 });
+    this.slides.forEach(function(s){ obs.observe(s); });
+  };
+  SlideEngine.prototype.goTo = function(i){
+    this.slides[Math.max(0, Math.min(i, this.total-1))].scrollIntoView({ behavior: 'smooth' });
+  };
+  SlideEngine.prototype.next = function(){ if (this.current < this.total - 1) this.goTo(this.current + 1); };
+  SlideEngine.prototype.prev = function(){ if (this.current > 0) this.goTo(this.current - 1); };
+  SlideEngine.prototype.update = function(){
+    this.bar.style.width = ((this.current + 1) / this.total * 100) + '%';
+    var c = this.current;
+    this.dots.forEach(function(d, i){ d.classList.toggle('active', i === c); });
+    this.counter.textContent = (this.current + 1) + ' / ' + this.total;
+  };
+  SlideEngine.prototype.fadeHints = function(){ clearTimeout(this.hintTimer); this.hints.classList.add('faded'); };
+
+  document.addEventListener('DOMContentLoaded', function(){
+    autoFit();
+    new SlideEngine();
+  });
+</script>
+
+</body>
+</html>
