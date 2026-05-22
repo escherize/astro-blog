@@ -1,0 +1,74 @@
+---
+import fs from 'node:fs';
+import path from 'node:path';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const diagramDir = path.resolve('./public/diagram');
+let slugs: string[] = [];
+try {
+  slugs = fs
+    .readdirSync(diagramDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name)
+    .sort();
+} catch {
+  slugs = [];
+}
+---
+
+<BaseLayout
+  title="Diagrams"
+  description="Standalone HTML diagrams and previews."
+>
+  <style>
+    .page {
+      max-width: var(--container-max);
+      margin: 0 auto;
+      padding: var(--space-8) var(--space-6);
+    }
+    h1 {
+      font-family: var(--font-display);
+      font-size: var(--font-size-4xl);
+      margin: 0 0 var(--space-6);
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      display: grid;
+      gap: var(--space-3);
+    }
+    li a {
+      display: block;
+      padding: var(--space-4) var(--space-5);
+      border: 2px solid var(--color-ink);
+      border-radius: var(--radius-md);
+      background: var(--color-bg);
+      box-shadow: 4px 4px 0 var(--color-ink);
+      font-family: var(--font-display);
+      text-decoration: none;
+      color: var(--color-ink);
+      transition: transform var(--transition-fast) var(--ease-out-expo);
+    }
+    li a:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0 var(--color-accent);
+    }
+    .empty {
+      font-family: var(--font-body);
+      opacity: 0.7;
+    }
+  </style>
+
+  <div class="page">
+    <h1>Diagrams</h1>
+    {slugs.length === 0 ? (
+      <p class="empty">No diagrams yet.</p>
+    ) : (
+      <ul>
+        {slugs.map((slug) => (
+          <li><a href={`/diagram/${slug}/`}>{slug}</a></li>
+        ))}
+      </ul>
+    )}
+  </div>
+</BaseLayout>
