@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robo-DE on EKS — what we're doing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Newsreader', Georgia, serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #f3efe7;
+    --surface: #fbf8f2;
+    --surface2: #ece5d8;
+    --border: rgba(55, 45, 35, 0.12);
+    --border-bright: rgba(55, 45, 35, 0.22);
+    --text: #2a2620;
+    --text-dim: #726a5c;
+
+    --ink: #2f5d62;          /* teal-ink */
+    --ink-dim: rgba(47, 93, 98, 0.10);
+    --rust: #a8553a;         /* rust */
+    --rust-dim: rgba(168, 85, 58, 0.12);
+    --moss: #5e7245;         /* moss green */
+    --moss-dim: rgba(94, 114, 69, 0.12);
+    --gold: #b5852f;         /* ochre */
+    --gold-dim: rgba(181, 133, 47, 0.13);
+
+    --accent: var(--ink);
+    --accent-dim: var(--ink-dim);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1b1814;
+      --surface: #242019;
+      --surface2: #2d2820;
+      --border: rgba(225, 215, 198, 0.12);
+      --border-bright: rgba(225, 215, 198, 0.22);
+      --text: #ece5d6;
+      --text-dim: #a39a86;
+      --ink: #6fa9af;
+      --ink-dim: rgba(111, 169, 175, 0.15);
+      --rust: #d4836a;
+      --rust-dim: rgba(212, 131, 106, 0.15);
+      --moss: #9cb37a;
+      --moss-dim: rgba(156, 179, 122, 0.15);
+      --gold: #d6a548;
+      --gold-dim: rgba(214, 165, 72, 0.15);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  .grid > * { min-width: 0; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 12% 0%, var(--ink-dim) 0%, transparent 42%),
+      radial-gradient(ellipse at 88% 8%, var(--rust-dim) 0%, transparent 40%);
+    color: var(--text);
+    font-family: var(--font-body);
+    line-height: 1.6;
+    overflow-wrap: break-word;
+    padding: 44px 40px 64px;
+  }
+  .container { max-width: 1040px; margin: 0 auto; }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+  .animate { animation: fadeUp .5s ease-out both; animation-delay: calc(var(--i,0)*.06s); }
+  @media (prefers-reduced-motion: reduce){ *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0!important;transition-duration:.01ms!important} .mermaid-wrap .mermaid{transition:none} }
+
+  .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--ink); margin-bottom: 10px; }
+  h1 { font-size: 46px; font-weight: 600; letter-spacing: -1px; line-height: 1.05; margin-bottom: 12px; text-wrap: balance; }
+  h1 em { font-style: italic; color: var(--rust); }
+  .lede { font-size: 18px; color: var(--text-dim); max-width: 680px; margin-bottom: 14px; }
+  .meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); display:flex; flex-wrap:wrap; gap:6px 16px; margin-bottom: 34px; }
+  .meta b { color: var(--text); }
+
+  h2 { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); margin: 44px 0 16px; padding-bottom: 9px; border-bottom: 1px solid var(--border); display:flex; align-items:baseline; gap:10px; }
+  h2 .n { color: var(--ink); font-weight: 700; }
+  h2 .t { color: var(--text); font-family: var(--font-body); font-size: 19px; text-transform: none; letter-spacing: -.2px; font-weight: 600; }
+
+  /* mermaid */
+  .mermaid-wrap {
+    position: relative; background: color-mix(in srgb, var(--surface) 88%, var(--ink) 12%);
+    border: 1px solid color-mix(in srgb, var(--border) 50%, var(--ink) 30%); border-radius: 14px;
+    padding: 34px 26px; overflow: auto; box-shadow: 0 4px 26px rgba(45,35,25,.08);
+    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  }
+  .mermaid-wrap::-webkit-scrollbar{width:6px;height:6px}
+  .mermaid-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  .mermaid-wrap .mermaid{display:flex;justify-content:center;transition:transform .2s ease;transform-origin:top center}
+  .mermaid-wrap.is-zoomed{cursor:grab}.mermaid-wrap.is-panning{cursor:grabbing;user-select:none}
+  .mermaid .messageText{font-family:var(--font-mono)!important;font-size:12px!important;fill:var(--text-dim)!important}
+  .mermaid .loopText,.mermaid .noteText{font-family:var(--font-mono)!important;font-size:11.5px!important}
+  .mermaid .actor{stroke-width:1.5px!important}
+  .mermaid text.actor>tspan{font-family:var(--font-body)!important;font-size:14px!important;font-weight:600!important}
+  .zoom-controls{position:absolute;top:8px;right:8px;display:flex;gap:2px;z-index:10;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px}
+  .zoom-controls button{width:28px;height:28px;border:none;background:transparent;color:var(--text-dim);font-family:var(--font-mono);font-size:14px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+  .zoom-controls button:hover{background:var(--border);color:var(--text)}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px}
+  .legend-item{display:flex;align-items:center;gap:7px;font-family:var(--font-mono);font-size:11px;color:var(--text-dim)}
+  .legend-sw{width:24px;height:0;border-top-width:2px;border-top-style:solid}
+
+  .callout{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--ink);border-radius:0 12px 12px 0;padding:16px 22px;font-size:15px;line-height:1.65;color:var(--text-dim);margin:18px 0}
+  .callout strong{color:var(--text)}
+  code{font-family:var(--font-mono);font-size:.82em;background:var(--ink-dim);color:var(--ink);padding:1px 6px;border-radius:4px}
+
+  /* status cards */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+  .cards > *{min-width:0}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;position:relative}
+  .card.done{border-left:4px solid var(--moss)}
+  .card.now{border-left:4px solid var(--gold)}
+  .card.next{border-left:4px solid var(--ink)}
+  .card.block{border-left:4px solid var(--rust)}
+  .tag{font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:5px;color:#fff}
+  .done .tag{background:var(--moss)} .now .tag{background:var(--gold)} .next .tag{background:var(--ink)} .block .tag{background:var(--rust)}
+  .card h3{font-size:15px;font-weight:600;margin:8px 0 5px}
+  .card p{font-size:13.5px;color:var(--text-dim);line-height:1.55}
+  .card code{font-size:11px}
+
+  .foot{margin-top:50px;padding-top:18px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:11px;color:var(--text-dim);line-height:1.7}
+
+  @media (max-width:640px){ body{padding:20px 16px} h1{font-size:32px} .lede{font-size:16px} }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="eyebrow animate" style="--i:0">Robo-Data-Engineer · Internal Alpha</div>
+  <h1 class="animate" style="--i:1">What we're <em>actually doing</em> here</h1>
+  <p class="lede animate" style="--i:2">Hosting the agent infra on our own cloud: one pod in the CoreDev EKS cluster running Metabase + an OpenCode agent, reaching a dev warehouse over the VPC. Right now we're proving the plumbing with a throwaway spike pod.</p>
+  <div class="meta animate" style="--i:3">
+    <span><b>Cluster:</b> coredev-coredev-1 (us-east-1)</span>
+    <span><b>Account:</b> CoreDev 488208231899</span>
+    <span><b>Branch:</b> robo-de-eks-alpha</span>
+    <span><b>Mode:</b> alpha — OK if it breaks</span>
+  </div>
+
+  <h2 class="animate" style="--i:4"><span class="n">A</span><span class="t">The flow we're building (target end-state)</span></h2>
+  <p style="font-size:14.5px;color:var(--text-dim);margin-bottom:16px;max-width:680px">A user asks the robot for analytics work; the control plane routes it to the in-cluster pod; the agent drives Metabase via the <code>mb</code> CLI; Metabase queries the warehouse natively over the VPC; results stream back. This is what "running the agent infra on our cloud" means, concretely.</p>
+
+  <div class="mermaid-wrap animate" style="--i:5">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this,1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this,0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset">&#8634;</button>
+    </div>
+    <pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor U as User (chat)
+  participant CP as Control Plane<br/>(metabot-app)
+  box rgba(47,93,98,0.07) CoreDev EKS pod (namespace metabot)
+    participant AG as OpenCode agent<br/>+ bridge
+    participant MB as Metabase<br/>(localhost:3000)
+  end
+  participant WH as Dev warehouse<br/>(StarRocks, in-cluster)
+
+  Note over CP,MB: one long-lived pod, single tenant — no Modal, no snapshots
+
+  U->>CP: "build me a dashboard for X"
+  CP->>AG: send prompt (HTTP)
+  activate AG
+  AG->>MB: mb db list / query (CLI over localhost)
+  MB->>WH: SQL over the VPC (no tunnel)
+  WH-->>MB: rows
+  MB-->>AG: result
+  AG-->>CP: stream events (created card, ran query)
+  deactivate AG
+  CP-->>U: live transcript + Metabase iframe
+
+  Note over U,WH: write isolation = scoped DB user / workspace mode (still to wire)
+    </pre>
+  </div>
+  <div class="legend animate" style="--i:6">
+    <div class="legend-item"><span class="legend-sw" style="border-color:var(--ink)"></span> request / prompt</div>
+    <div class="legend-item"><span class="legend-sw" style="border-color:var(--moss)"></span> in-pod (localhost)</div>
+    <div class="legend-item"><span class="legend-sw" style="border-color:var(--rust)"></span> VPC to warehouse</div>
+  </div>
+
+  <h2 class="animate" style="--i:7"><span class="n">B</span><span class="t">What we're doing right now — the spike</span></h2>
+  <p style="font-size:14.5px;color:var(--text-dim);margin-bottom:16px;max-width:680px">Before any of that, we prove the two boring-but-critical facts: can we schedule a pod in this cluster, and can a pod reach a warehouse over the VPC. That's the throwaway <code>metabase-spike-pod.yaml</code> — plain Metabase + a netshoot shell, no agent yet.</p>
+
+  <div class="mermaid-wrap animate" style="--i:8">
+    <div class="zoom-controls">
+      <button onclick="zoomDiagram(this,1.2)" title="Zoom in">+</button>
+      <button onclick="zoomDiagram(this,0.8)" title="Zoom out">&minus;</button>
+      <button onclick="resetZoom(this)" title="Reset">&#8634;</button>
+    </div>
+    <pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor Me as Me (kubectl)
+  participant K as EKS API<br/>coredev-coredev-1
+  participant KP as Karpenter
+  participant POD as metabot-spike pod
+  participant WH as Warehouse<br/>(starrocks.starrocks)
+
+  Me->>K: kubectl apply (pod + ns)
+  K->>KP: no capacity — need a node
+  KP-->>K: provision fresh node (~40s)
+  K->>POD: schedule + pull images
+  POD-->>K: 1/2 Running (metabase booting)
+  Note over KP,POD: ❌ FIRST TRY: Karpenter evicted it<br/>"Underutilized" at 2m13s
+  Me->>POD: re-apply with karpenter.sh/do-not-disrupt
+  POD-->>K: 2/2 Running (survives)
+  Me->>POD: kubectl exec -c tools
+  POD->>POD: curl localhost:3000/api/health
+  POD->>WH: nc -vz starrocks.starrocks 9030
+  WH-->>POD: reachable?  ← the answer we want
+    </pre>
+  </div>
+
+  <h2 class="animate" style="--i:9"><span class="n">C</span><span class="t">Where each step stands</span></h2>
+  <div class="cards animate" style="--i:10">
+    <div class="card done"><span class="tag">Done</span><h3>AWS + cluster access</h3><p>SSO into CoreDev, <code>kubectl</code> works, <code>can-i create pods</code> = yes. Right region was us-east-1 (not us-west-2).</p></div>
+    <div class="card done"><span class="tag">Done</span><h3>Pod schedules &amp; survives</h3><p>Karpenter spins a node; first pod got culled "Underutilized" — fixed with <code>do-not-disrupt</code>. Now stays up.</p></div>
+    <div class="card now"><span class="tag">Now</span><h3>Prove warehouse reach</h3><p><code>exec</code> into the pod, <code>nc -vz</code> the in-cluster StarRocks. If it answers, the whole VPC-native story is validated.</p></div>
+    <div class="card next"><span class="tag">Next</span><h3>Real agent image → ECR</h3><p>Port the sandbox image recipe to a Dockerfile (drop Modal snapshot), push to CoreDev ECR.</p></div>
+    <div class="card next"><span class="tag">Next</span><h3>2-container pod + wire app</h3><p>Metabase + OpenCode side-by-side; point the control plane at it instead of Modal.</p></div>
+    <div class="card block"><span class="tag">Blocked</span><h3>Warehouse cred · write isolation · git push</h3><p>Need: which dev warehouse + creds (Oreon); scoped DB user / workspace mode (unwired); push access to the repo (<code>escherize</code> is read-only).</p></div>
+  </div>
+
+  <div class="callout animate" style="--i:11">
+    <strong>The one-line answer:</strong> we're moving the robot off Modal and onto our own EKS cluster as a single pod, because for one tenant that's simpler and the pod can reach our warehouses natively. Right now we're at the very first proof — "can a pod here even talk to a warehouse." Everything else hangs off that yes.
+  </div>
+
+  <div class="foot">
+    Robo-DE EKS alpha · 2026-06-12 · branch robo-de-eks-alpha<br>
+    Diagram 1 = target flow (user → control plane → pod → warehouse). Diagram 2 = today's spike (kubectl → Karpenter → pod → warehouse reach test).<br>
+    Spike pod: infra/k8s-spike/metabase-spike-pod.yaml · Plan: plan/eks-alpha.md
+  </div>
+
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({
+    startOnLoad: true, theme: 'base', look: 'handDrawn',
+    themeVariables: {
+      primaryColor: isDark ? '#2a3a3c' : '#dde9ea',
+      primaryBorderColor: isDark ? '#6fa9af' : '#2f5d62',
+      primaryTextColor: isDark ? '#ece5d6' : '#2a2620',
+      lineColor: isDark ? '#a39a86' : '#8a8070',
+      actorBkg: isDark ? '#2a3a3c' : '#dde9ea',
+      actorBorder: isDark ? '#6fa9af' : '#2f5d62',
+      actorTextColor: isDark ? '#ece5d6' : '#2a2620',
+      signalColor: isDark ? '#a39a86' : '#726a5c',
+      signalTextColor: isDark ? '#a39a86' : '#726a5c',
+      noteBkgColor: isDark ? '#39301f' : '#f5ecd6',
+      noteTextColor: isDark ? '#ece5d6' : '#2a2620',
+      noteBorderColor: isDark ? '#d6a548' : '#b5852f',
+      activationBkgColor: isDark ? '#3a2a24' : '#f0ddd5',
+      fontSize: '14px',
+      fontFamily: "'Newsreader', Georgia, serif",
+    }
+  });
+</script>
+<script>
+  function updateZoomState(w){var t=w.querySelector('.mermaid');var z=parseFloat(t.dataset.zoom||'1');w.classList.toggle('is-zoomed',z>1)}
+  function zoomDiagram(b,f){var w=b.closest('.mermaid-wrap');var t=w.querySelector('.mermaid');var c=parseFloat(t.dataset.zoom||'1');var n=Math.min(Math.max(c*f,.3),5);t.dataset.zoom=n;t.style.transform='scale('+n+')';updateZoomState(w)}
+  function resetZoom(b){var w=b.closest('.mermaid-wrap');var t=w.querySelector('.mermaid');t.dataset.zoom='1';t.style.transform='scale(1)';updateZoomState(w)}
+  document.querySelectorAll('.mermaid-wrap').forEach(function(w){
+    w.addEventListener('wheel',function(e){if(!e.ctrlKey&&!e.metaKey)return;e.preventDefault();var t=w.querySelector('.mermaid');var c=parseFloat(t.dataset.zoom||'1');var f=e.deltaY<0?1.1:.9;var n=Math.min(Math.max(c*f,.3),5);t.dataset.zoom=n;t.style.transform='scale('+n+')';updateZoomState(w)},{passive:false});
+    var sx,sy,sl,st;
+    w.addEventListener('mousedown',function(e){if(e.target.closest('.zoom-controls'))return;var t=w.querySelector('.mermaid');if(parseFloat(t.dataset.zoom||'1')<=1)return;w.classList.add('is-panning');sx=e.clientX;sy=e.clientY;sl=w.scrollLeft;st=w.scrollTop});
+    window.addEventListener('mousemove',function(e){if(!w.classList.contains('is-panning'))return;w.scrollLeft=sl-(e.clientX-sx);w.scrollTop=st-(e.clientY-sy)});
+    window.addEventListener('mouseup',function(){w.classList.remove('is-panning')});
+  });
+</script>
+</body>
+</html>
