@@ -232,6 +232,18 @@
   .mermaid-pan { cursor: grab; transition: transform 0.05s linear; transform-origin: 0 0; }
   .mermaid-pan.dragging { cursor: grabbing; }
   .mermaid { display: flex; justify-content: center; }
+  .mermaid span.nodeLabel { color: #000; }
+  /* ER diagram: attribute-row rects are styled inline via theme vars
+     (attributeBackgroundColorOdd/Even); here we only force the TEXT readable,
+     since row fills are dark via those vars. Class names = mermaid 11 ER output. */
+  .mermaid .er .attribute-name text,
+  .mermaid .er .attribute-keys text,
+  .mermaid .er .attribute-type text,
+  .mermaid .er .attribute-comment text,
+  .mermaid text.attribute-name,
+  .mermaid text.attribute-keys,
+  .mermaid text.attribute-type { fill: var(--text) !important; }
+  .mermaid .er.entityLabel, .mermaid text.entityLabel { fill: var(--text) !important; }
 
   /* table */
   .tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; margin-top: 0.4rem; }
@@ -393,28 +405,28 @@ flowchart TB
       <div class="mermaid-pan"><div class="mermaid">
 sequenceDiagram
   participant UI
-  participant CP as Control Plane (HM)
+  participant CP as Control Plane HM
   participant SUP as Supervisor
-  participant BOX as Agent box (EKS pod)
+  participant SBX as Sandbox
   participant GIT as GitHub
 
-  UI->>CP: POST /sessions (project)
+  UI->>CP: POST /sessions for a project
   CP->>SUP: provision
-  SUP->>BOX: write Metabase CRD -> pod boots (~90s cold)
-  BOX-->>SUP: poll / heartbeat (box dials out)
+  SUP->>SBX: write Metabase CRD, pod boots ~90s cold
+  SBX-->>SUP: poll + heartbeat, sandbox dials out
   SUP-->>CP: ready
-  CP-->>UI: status: ready (+ preview URL)
+  CP-->>UI: status ready, preview URL
   UI->>CP: POST /sessions/:id/message
   CP->>SUP: enqueue prompt
-  BOX->>SUP: GET /agent/poll -> prompt
-  BOX->>SUP: POST /events (text/tool deltas, completion)
-  SUP->>CP: append events (HM DB)
+  SBX->>SUP: GET /agent/poll returns prompt
+  SBX->>SUP: POST /events, text and tool deltas
+  SUP->>CP: append events to HM DB
   CP-->>UI: stream events
-  BOX->>GIT: push to session branch
+  SBX->>GIT: push to session branch
   UI->>CP: DELETE /sessions/:id
   CP->>SUP: deprovision
-  SUP->>BOX: delete CRD -> pod torn down
-  Note over CP,BOX: + drop workspace schema/user (teardown rule)
+  SUP->>SBX: delete CRD, pod torn down
+  Note over CP,SBX: also drop workspace schema and user, teardown rule
       </div></div>
     </div>
   </section>
@@ -562,6 +574,9 @@ erDiagram
       noteBkgColor: dark ? '#16304a' : '#f1f6fa',
       noteTextColor: dark ? '#e8f1f8' : '#122739',
       noteBorderColor: '#f2b441',
+      // ER attribute rows — keep both zebra shades dark so text stays readable
+      attributeBackgroundColorOdd: dark ? '#11253a' : '#ffffff',
+      attributeBackgroundColorEven: dark ? '#16304a' : '#f1f6fa',
     },
   });
 
