@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robo-DE Control Plane in Harbormaster — what we're building</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-head: 'Space Grotesk', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+
+    /* Blueprint: deep ink-blue ground, cyan lines, paper-white text */
+    --bg: #0c1a2b;
+    --bg2: #0a1623;
+    --surface: #11253a;
+    --surface2: #16304a;
+    --border: rgba(120, 190, 230, 0.18);
+    --border-bright: rgba(120, 190, 230, 0.42);
+    --text: #e8f1f8;
+    --text-dim: #8fb0c8;
+
+    --cyan: #4fd2e8;
+    --cyan-dim: rgba(79, 210, 232, 0.12);
+    --amber: #f2b441;
+    --amber-dim: rgba(242, 180, 65, 0.13);
+    --green: #6fdba0;
+    --green-dim: rgba(111, 219, 160, 0.13);
+    --rose: #f0788f;
+    --rose-dim: rgba(240, 120, 143, 0.13);
+    --violet: #a890f0;
+    --violet-dim: rgba(168, 144, 240, 0.13);
+
+    --container-max: 1180px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #eef4f9;
+      --bg2: #e3edf4;
+      --surface: #ffffff;
+      --surface2: #f1f6fa;
+      --border: rgba(20, 60, 95, 0.16);
+      --border-bright: rgba(20, 60, 95, 0.34);
+      --text: #122739;
+      --text-dim: #4a6378;
+      --cyan: #1192ac;
+      --cyan-dim: rgba(17, 146, 172, 0.12);
+      --amber: #b9801a;
+      --amber-dim: rgba(185, 128, 26, 0.13);
+      --green: #1f9c63;
+      --green-dim: rgba(31, 156, 99, 0.13);
+      --rose: #c8415c;
+      --rose-dim: rgba(200, 65, 92, 0.13);
+      --violet: #6b4fc0;
+      --violet-dim: rgba(107, 79, 192, 0.12);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  .grid > * { min-width: 0; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px),
+      radial-gradient(900px 500px at 80% -10%, var(--cyan-dim), transparent 60%);
+    background-size: 38px 38px, 38px 38px, 100% 100%;
+    color: var(--text);
+    font-family: var(--font-mono);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    padding: 0 0 6rem;
+  }
+
+  .wrap { max-width: var(--container-max); margin: 0 auto; padding: 0 1.5rem; }
+
+  header.hero {
+    padding: 4.5rem 0 2.5rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2.5rem;
+  }
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 1rem;
+  }
+  h1 {
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: clamp(1.9rem, 4.6vw, 3.1rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 1rem;
+  }
+  h1 .accent { color: var(--cyan); }
+  .lede {
+    font-size: 1.02rem;
+    color: var(--text-dim);
+    max-width: 62ch;
+  }
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 0.6rem;
+    margin-top: 1.6rem;
+  }
+  .chip {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 0.32rem 0.7rem;
+    border: 1px solid var(--border-bright);
+    border-radius: 4px;
+    color: var(--text-dim);
+    background: var(--surface);
+  }
+  .chip b { color: var(--text); font-weight: 600; }
+
+  h2 {
+    font-family: var(--font-head);
+    font-weight: 600;
+    font-size: 1.5rem;
+    letter-spacing: -0.01em;
+    margin: 3.2rem 0 0.4rem;
+    color: var(--text);
+    display: flex; align-items: baseline; gap: 0.7rem;
+  }
+  h2 .num {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--cyan);
+    border: 1px solid var(--border-bright);
+    border-radius: 4px;
+    padding: 0.1rem 0.5rem;
+  }
+  .section-sub { color: var(--text-dim); font-size: 0.92rem; margin-bottom: 1.4rem; max-width: 70ch; }
+
+  .grid { display: grid; gap: 1rem; }
+  .cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .cols-2 { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 820px) { .cols-3, .cols-2 { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.15rem 1.2rem;
+    position: relative;
+  }
+  .card.accent-cyan { border-top: 3px solid var(--cyan); }
+  .card.accent-amber { border-top: 3px solid var(--amber); }
+  .card.accent-green { border-top: 3px solid var(--green); }
+  .card.accent-rose { border-top: 3px solid var(--rose); }
+  .card.accent-violet { border-top: 3px solid var(--violet); }
+  .card h3 {
+    font-family: var(--font-head);
+    font-size: 1.02rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+  }
+  .card .tag {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    display: block;
+    margin-bottom: 0.6rem;
+  }
+  .card p { font-size: 0.88rem; color: var(--text-dim); }
+  .card ul { list-style: none; margin-top: 0.6rem; }
+  .card li {
+    font-size: 0.84rem; color: var(--text-dim);
+    padding: 0.2rem 0 0.2rem 1.1rem; position: relative;
+  }
+  .card li::before {
+    content: "›"; position: absolute; left: 0; color: var(--cyan); font-weight: 700;
+  }
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.84em;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.05em 0.35em;
+    color: var(--text);
+    overflow-wrap: break-word;
+  }
+
+  /* verbs */
+  .verbs { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; }
+  @media (max-width: 820px){ .verbs { grid-template-columns: 1fr; } }
+  .verb {
+    background: var(--surface); border: 1px solid var(--border-bright);
+    border-radius: 8px; padding: 1.2rem; text-align: left;
+  }
+  .verb .http {
+    font-family: var(--font-mono); font-weight: 600; font-size: 0.78rem;
+    color: var(--bg); background: var(--cyan);
+    border-radius: 4px; padding: 0.15rem 0.5rem; display: inline-block; margin-bottom: 0.7rem;
+  }
+  .verb .http.del { background: var(--rose); }
+  .verb .path { font-family: var(--font-mono); font-size: 0.92rem; color: var(--text); font-weight:600; margin-bottom: 0.4rem; }
+  .verb p { font-size: 0.84rem; color: var(--text-dim); }
+
+  /* mermaid */
+  .mermaid-wrap {
+    position: relative;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem;
+    margin-top: 0.4rem;
+    overflow: hidden;
+  }
+  .mermaid-wrap .zoom {
+    position: absolute; top: 0.6rem; right: 0.6rem; z-index: 5;
+    display: flex; gap: 0.3rem;
+  }
+  .zoom button {
+    font-family: var(--font-mono); font-size: 0.9rem;
+    width: 1.8rem; height: 1.8rem;
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border-bright); border-radius: 4px; cursor: pointer;
+  }
+  .zoom button:hover { border-color: var(--cyan); color: var(--cyan); }
+  .mermaid-pan { cursor: grab; transition: transform 0.05s linear; transform-origin: 0 0; }
+  .mermaid-pan.dragging { cursor: grabbing; }
+  .mermaid { display: flex; justify-content: center; }
+
+  /* table */
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; margin-top: 0.4rem; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+  thead th {
+    background: var(--surface2); color: var(--text);
+    text-align: left; padding: 0.7rem 0.9rem; font-family: var(--font-head); font-weight: 600;
+    border-bottom: 1px solid var(--border-bright); position: sticky; top: 0;
+  }
+  tbody td { padding: 0.65rem 0.9rem; border-bottom: 1px solid var(--border); color: var(--text-dim); vertical-align: top; }
+  tbody tr:nth-child(even) { background: rgba(120,190,230,0.04); }
+  tbody tr:hover { background: var(--cyan-dim); }
+  td b, td strong { color: var(--text); }
+  .pill { font-size: 0.68rem; padding: 0.12rem 0.5rem; border-radius: 999px; font-family: var(--font-mono); white-space: nowrap; }
+  .pill.locked { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+  .pill.open { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
+  .pill.defer { background: var(--violet-dim); color: var(--violet); border: 1px solid var(--violet); }
+
+  .callout {
+    border-left: 3px solid var(--amber); background: var(--amber-dim);
+    border-radius: 0 8px 8px 0; padding: 1rem 1.2rem; margin-top: 1rem;
+  }
+  .callout.rule { border-left-color: var(--rose); background: var(--rose-dim); }
+  .callout .lbl {
+    font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--amber); display: block; margin-bottom: 0.4rem;
+  }
+  .callout.rule .lbl { color: var(--rose); }
+  .callout p { font-size: 0.88rem; color: var(--text); }
+
+  footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 0.78rem; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal { opacity: 0; transform: translateY(14px); animation: fadeUp 0.6s ease forwards; }
+    @keyframes fadeUp { to { opacity: 1; transform: none; } }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">Harbormaster · Robo-Data-Engineer · Tech brief</div>
+    <h1>The <span class="accent">Control Plane</span> we're building inside Harbormaster</h1>
+    <p class="lede">A control plane that provisions disposable agent boxes — each one a Metabase EE
+      instance plus an AI data-engineering agent — on demand, one per session, in our own EKS.
+      The frontend never touches a box; everything flows through Harbormaster.</p>
+    <div class="meta-row">
+      <span class="chip"><b>Scope:</b> 3 verbs — provision · deprovision · message</span>
+      <span class="chip"><b>Runtime:</b> EKS pod (cold boot)</span>
+      <span class="chip"><b>App-db:</b> one shared PG, db-per-session</span>
+      <span class="chip"><b>Stage:</b> internal demo</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- 1. The picture -->
+  <section class="reveal">
+    <h2><span class="num">01</span> The shape of it</h2>
+    <p class="section-sub">UI → Harbormaster control plane → supervisor → sandbox box. Comms are
+      pull-based: the box long-polls the control plane; the box never receives inbound calls for the
+      agent loop. The box reaches the data warehouse directly over the VPC.</p>
+    <div class="mermaid-wrap">
+      <div class="zoom"><button data-z="out">−</button><button data-z="in">+</button><button data-z="reset">⟲</button></div>
+      <div class="mermaid-pan"><div class="mermaid">
+flowchart TB
+  UI["🖥️ UI<br/>(browser)"]
+  subgraph HM["Harbormaster control plane (Clojure / EKS)"]
+    API["/api/v2/agents · sessions/:id/message/"]
+    SUP["Supervisor<br/>brokers commands + streams events"]
+    DB[("HM Postgres<br/>projects · sessions · events")]
+  end
+  subgraph POD["Agent box = one EKS pod (Metabase CRD variant)"]
+    MB["Metabase EE :3000"]
+    AG["Agent<br/>OpenCode + mb CLI"]
+  end
+  APPDB[("Shared app-db pod<br/>database-per-session")]
+  DWH[("Data warehouse<br/>mbdata.metabase.com:5432")]
+  GIT["GitHub<br/>owner/repo · branch"]
+
+  UI -->|"create / status / message"| API
+  API --> SUP
+  API --> DB
+  SUP -->|"writes Metabase CRD"| POD
+  AG -.->|"long-poll: poll / events / heartbeat"| SUP
+  MB -->|"app-db conn"| APPDB
+  MB -->|"SQL"| DWH
+  AG -->|"push to branch"| GIT
+
+  classDef hm fill:#11253a,stroke:#4fd2e8,color:#e8f1f8;
+  classDef pod fill:#16304a,stroke:#6fdba0,color:#e8f1f8;
+  classDef ext fill:#0a1623,stroke:#a890f0,color:#e8f1f8;
+  class API,SUP,DB hm;
+  class MB,AG pod;
+  class APPDB,DWH,GIT ext;
+      </div></div>
+    </div>
+  </section>
+
+  <!-- 2. The three verbs -->
+  <section class="reveal">
+    <h2><span class="num">02</span> The minimal API</h2>
+    <p class="section-sub">Huddle-locked core (Bryan + Sasha, 6/15). PR creation deferred. Everything
+      below is what the UI builds against; sandbox-callbacks (poll/events/heartbeat/scm-credentials)
+      are dialed by the box, never the browser.</p>
+    <div class="verbs">
+      <div class="verb">
+        <span class="http">POST</span>
+        <div class="path">/sessions</div>
+        <p>Provision a box for a project. Writes a Metabase CRD, derives the branch, returns
+          <code>{session-id, status:"creating"}</code>.</p>
+      </div>
+      <div class="verb">
+        <span class="http">POST</span>
+        <div class="path">/sessions/:id/message</div>
+        <p>Send a prompt. The supervisor delivers it to the box; the agent's work streams back as
+          events on the read channel.</p>
+      </div>
+      <div class="verb">
+        <span class="http del">DELETE</span>
+        <div class="path">/sessions/:id</div>
+        <p>Deprovision: tear down the box + archive the session. <b>Plus</b> drop the workspace
+          (teardown rule, §5).</p>
+      </div>
+    </div>
+    <div class="grid cols-2" style="margin-top:1rem;">
+      <div class="card accent-cyan">
+        <span class="tag">read surface</span>
+        <h3>How the UI sees the work</h3>
+        <ul>
+          <li><code>GET /sessions/:id</code> — status, branch, preview URL, messages</li>
+          <li><code>GET /sessions</code> — active session list</li>
+          <li>Event stream — text/tool deltas, completion, entity refs, git pushes</li>
+          <li>Transport: long-poll/SSE for demo (no WS layer in HM yet), WS later</li>
+        </ul>
+      </div>
+      <div class="card accent-violet">
+        <span class="tag">recipes</span>
+        <h3>Projects &amp; models</h3>
+        <ul>
+          <li><code>GET/POST/PUT /projects</code> — a recipe = <code>owner/repo</code> + warehouse conns</li>
+          <li><code>PUT/DELETE /projects/:id/databases</code> — warehouse connections</li>
+          <li><code>GET /models</code> — model catalog for the composer</li>
+          <li>Sessions always run for a project</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Session lifecycle -->
+  <section class="reveal">
+    <h2><span class="num">03</span> Session lifecycle</h2>
+    <p class="section-sub">Create → ready → running → deprovision. The supervisor streams every event
+      into HM's database; the read channel replays it to the UI.</p>
+    <div class="mermaid-wrap">
+      <div class="zoom"><button data-z="out">−</button><button data-z="in">+</button><button data-z="reset">⟲</button></div>
+      <div class="mermaid-pan"><div class="mermaid">
+sequenceDiagram
+  participant UI
+  participant CP as Control Plane (HM)
+  participant SUP as Supervisor
+  participant BOX as Agent box (EKS pod)
+  participant GIT as GitHub
+
+  UI->>CP: POST /sessions (project)
+  CP->>SUP: provision
+  SUP->>BOX: write Metabase CRD -> pod boots (~90s cold)
+  BOX-->>SUP: poll / heartbeat (box dials out)
+  SUP-->>CP: ready
+  CP-->>UI: status: ready (+ preview URL)
+  UI->>CP: POST /sessions/:id/message
+  CP->>SUP: enqueue prompt
+  BOX->>SUP: GET /agent/poll -> prompt
+  BOX->>SUP: POST /events (text/tool deltas, completion)
+  SUP->>CP: append events (HM DB)
+  CP-->>UI: stream events
+  BOX->>GIT: push to session branch
+  UI->>CP: DELETE /sessions/:id
+  CP->>SUP: deprovision
+  SUP->>BOX: delete CRD -> pod torn down
+  Note over CP,BOX: + drop workspace schema/user (teardown rule)
+      </div></div>
+    </div>
+  </section>
+
+  <!-- 4. Locked decisions -->
+  <section class="reveal">
+    <h2><span class="num">04</span> Decisions on record</h2>
+    <p class="section-sub">What's settled, what's still open, what's deliberately deferred.</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Area</th><th>Decision</th><th>Why</th><th>State</th></tr></thead>
+        <tbody>
+          <tr><td><b>Where it lives</b></td><td>Harbormaster control plane</td><td>HM already provisions Metabase pods via the cloud-operator CRD; same muscle. Leadership call.</td><td><span class="pill locked">locked</span></td></tr>
+          <tr><td><b>Box runtime</b></td><td>EKS pod, <b>cold boot</b> (~90s)</td><td>Spike proves it boots + reaches the warehouse. Snapshots solve scale-fork we don't have. Keeps us off Modal.</td><td><span class="pill locked">locked</span></td></tr>
+          <tr><td><b>App-db</b></td><td>One shared in-cluster PG pod, <b>database-per-session</b>, one PVC, no RDS</td><td>Survives box restart → resume works; <code>DROP DATABASE</code> on delete; reuses existing <code>local-postgres</code> provider; instant <code>TEMPLATE</code> clone + stronger isolation than schema-per-session.</td><td><span class="pill locked">locked</span></td></tr>
+          <tr><td><b>Git coords</b></td><td><code>owner/repo</code>, not raw URL</td><td>Consistency with rest of HM.</td><td><span class="pill locked">locked</span></td></tr>
+          <tr><td><b>Identity / auth</b></td><td>Via the customer's Metabase parent instance</td><td>Each customer already has a parent with users/groups/SSO. Mechanism (JWT? token exchange?) unresolved.</td><td><span class="pill open">open</span></td></tr>
+          <tr><td><b>Event transport</b></td><td>Long-poll/SSE for demo</td><td>HM has no WebSocket layer yet; WS is the richer-UX upgrade later.</td><td><span class="pill open">open</span></td></tr>
+          <tr><td><b>Bake/template pipeline</b></td><td>Demo-minimal: empty app-db, cold-migrate once</td><td>Instant-clone needs a golden-image bake; defer until clone latency proves it matters.</td><td><span class="pill defer">deferred</span></td></tr>
+          <tr><td><b>PR creation</b></td><td>Not in v1</td><td>Sasha — defer until product shape settles.</td><td><span class="pill defer">deferred</span></td></tr>
+          <tr><td><b>Pause / resume, sweeps</b></td><td>Not in the 3-verb core</td><td>App-db design keeps resume <em>possible</em>; build when needed.</td><td><span class="pill defer">deferred</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 5. Multi-tenancy + teardown rule -->
+  <section class="reveal">
+    <h2><span class="num">05</span> Multi-tenancy &amp; the teardown rule</h2>
+    <div class="grid cols-2">
+      <div class="card accent-amber">
+        <span class="tag">the hard part</span>
+        <h3>Single-tenant → multi-tenant</h3>
+        <p>The prototype is single-tenant; HM is multi-tenant. Every <code>project</code> /
+          <code>session</code> row carries a <code>tenant_id</code>; reads scope to the caller's
+          tenant. HM's org → subscription → quota → per-namespace isolation is the substrate we
+          slot under. This is the bulk of the HM-side effort.</p>
+      </div>
+      <div class="card accent-rose">
+        <span class="tag">correctness</span>
+        <h3>The teardown rule</h3>
+        <p>Workspaces provisions an isolated schema + scoped warehouse user that live <b>in the
+          warehouse, not the box</b>. Killing the pod does not drop them.</p>
+        <div class="callout rule" style="margin-top:0.8rem;">
+          <span class="lbl">Rule</span>
+          <p>Any phase that adds workspace <b>provisioning</b> must add workspace
+            <b>deprovisioning</b> in the same change. Otherwise every session silently leaks a
+            schema + user into the shared warehouse.</p>
+        </div>
+      </div>
+    </div>
+    <div class="callout">
+      <span class="lbl">Why db-per-session beat schema-per-session</span>
+      <p>Both are one shared Postgres pod. Database-per-session keeps native
+        <code>CREATE DATABASE … TEMPLATE</code> instant clones, stronger isolation (separate catalog,
+        grantable per-db role), and zero new code (existing <code>local-postgres</code> provider).
+        Schema-per-session has no native schema TEMPLATE and weaker isolation — it'd only win at a
+        database-count ceiling we won't hit at ≤5 concurrent / ≤20 a day.</p>
+    </div>
+  </section>
+
+  <!-- 6. HM data model -->
+  <section class="reveal">
+    <h2><span class="num">06</span> What the supervisor streams into</h2>
+    <p class="section-sub">New requirement: the supervisor streams session data into HM's Postgres.
+      So HM needs tables, not just fire-and-forget pods.</p>
+    <div class="mermaid-wrap">
+      <div class="zoom"><button data-z="out">−</button><button data-z="in">+</button><button data-z="reset">⟲</button></div>
+      <div class="mermaid-pan"><div class="mermaid">
+erDiagram
+  ORGANIZATION ||--o{ AGENT_PROJECT : owns
+  ORGANIZATION ||--|| MAIN_INSTANCE : registers
+  AGENT_PROJECT ||--o{ AGENT_SESSION : runs
+  AGENT_SESSION ||--|| AGENT_BOX : has
+  AGENT_SESSION ||--o{ SESSION_EVENT : streams
+  AGENT_SESSION ||--o{ SESSION_PARTICIPANT : includes
+  AGENT_PROJECT {
+    uuid id
+    text github_repo
+    text default_branch
+  }
+  AGENT_SESSION {
+    uuid id
+    uuid tenant_id
+    text status
+    text branch
+    text sandbox_id
+  }
+  AGENT_BOX {
+    text provider_id
+    text image
+    text bearer_hash
+    timestamptz expires_at
+  }
+  SESSION_EVENT {
+    bigint cursor
+    text type
+    jsonb payload
+    text ack_id
+  }
+      </div></div>
+    </div>
+    <p class="section-sub" style="margin-top:0.9rem;"><code>session_event</code> is append-only and
+      cursor-ordered — it powers both the replay stream and the audit trail. The box's app-db
+      (database-per-session) is separate from this and lives in the shared PG pod.</p>
+  </section>
+
+  <!-- 7. What we're NOT building (yet) -->
+  <section class="reveal">
+    <h2><span class="num">07</span> Held back, on purpose</h2>
+    <p class="section-sub">Sasha's gap report mapped the genuinely hard parts metabot-app already
+      solved. They're the <em>risk map</em>, not the <em>build order</em>. Build the 3 verbs first;
+      these are fast-follow once the loop works end-to-end.</p>
+    <div class="grid cols-3">
+      <div class="card"><h3>Golden-image bake</h3><p>Snapshot + ~15s restore. A scale-fork optimization; demo cold-boots fine.</p></div>
+      <div class="card"><h3>Pause / idle / lifetime / health sweeps</h3><p>Cost + liveness machinery. Needed at scale, not for a 5-box demo.</p></div>
+      <div class="card"><h3>WebSocket coordinator</h3><p>Live multiplayer + presence. Long-poll covers the demo.</p></div>
+      <div class="card"><h3>Generation-aware restore</h3><p>App-db schema/version matching on resume. Couples to the bake pipeline.</p></div>
+      <div class="card"><h3>Two-repo git sync</h3><p>Bare sync.git + working clone + ephemeral credential broker. Port when git matters.</p></div>
+      <div class="card"><h3>Cost accounting</h3><p>Per-session spend. HM's quota framework makes it nearly free — later.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    Robo-DE Control Plane · Harbormaster tech brief · sources: 6/15 huddle, gap report v0.3,
+    agent-box requirements. Decisions current as of 2026-06-15.
+  </footer>
+
+</main>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  const dark = !window.matchMedia('(prefers-color-scheme: light)').matches;
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      fontFamily: "'IBM Plex Mono', monospace",
+      primaryColor: dark ? '#16304a' : '#f1f6fa',
+      primaryTextColor: dark ? '#e8f1f8' : '#122739',
+      primaryBorderColor: '#4fd2e8',
+      lineColor: dark ? '#8fb0c8' : '#4a6378',
+      secondaryColor: dark ? '#11253a' : '#ffffff',
+      tertiaryColor: dark ? '#0a1623' : '#e3edf4',
+      noteBkgColor: dark ? '#16304a' : '#f1f6fa',
+      noteTextColor: dark ? '#e8f1f8' : '#122739',
+      noteBorderColor: '#f2b441',
+    },
+  });
+
+  // zoom + pan
+  document.querySelectorAll('.mermaid-wrap').forEach((wrap) => {
+    const pan = wrap.querySelector('.mermaid-pan');
+    let scale = 1, tx = 0, ty = 0, drag = false, sx = 0, sy = 0;
+    const apply = () => { pan.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`; };
+    wrap.querySelectorAll('.zoom button').forEach((b) => b.addEventListener('click', () => {
+      const z = b.dataset.z;
+      if (z === 'in') scale = Math.min(scale * 1.25, 5);
+      else if (z === 'out') scale = Math.max(scale / 1.25, 0.4);
+      else { scale = 1; tx = 0; ty = 0; }
+      apply();
+    }));
+    wrap.addEventListener('wheel', (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      scale = Math.min(Math.max(scale * (e.deltaY < 0 ? 1.1 : 0.9), 0.4), 5);
+      apply();
+    }, { passive: false });
+    pan.addEventListener('mousedown', (e) => { drag = true; sx = e.clientX - tx; sy = e.clientY - ty; pan.classList.add('dragging'); });
+    window.addEventListener('mousemove', (e) => { if (!drag) return; tx = e.clientX - sx; ty = e.clientY - sy; apply(); });
+    window.addEventListener('mouseup', () => { drag = false; pan.classList.remove('dragging'); });
+  });
+</script>
+</body>
+</html>
