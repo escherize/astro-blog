@@ -294,7 +294,7 @@
     <div class="meta-row">
       <span class="chip"><b>Scope:</b> 3 verbs — provision · deprovision · message</span>
       <span class="chip"><b>Runtime:</b> EKS pod (cold boot)</span>
-      <span class="chip"><b>App-db:</b> one shared PG, db-per-session</span>
+      <span class="chip"><b>App-db:</b> in-pod (demo)</span>
       <span class="chip"><b>Stage:</b> internal demo</span>
     </div>
   </div>
@@ -315,32 +315,35 @@ flowchart TB
   UI["🖥️ UI<br/>(browser)"]
   subgraph HM["Harbormaster control plane (Clojure / EKS)"]
     API["/api/v2/agents · sessions/:id/message/"]
-    SUP["Supervisor<br/>brokers commands + streams events"]
+    BROK["Broker<br/>answers polls · fans out events"]
     DB[("HM Postgres<br/>projects · sessions · events")]
   end
-  subgraph POD["Agent box = one EKS pod (Metabase CRD variant)"]
+  subgraph POD["Session pod = 1 EKS pod (Metabase CRD variant)"]
+    SUP["Supervisor"]
     MB["Metabase EE :3000"]
+    APPDB[("app-db<br/>loopback Postgres")]
     AG["Agent<br/>OpenCode + mb CLI"]
   end
-  APPDB[("Shared app-db pod<br/>database-per-session")]
   DWH[("Data warehouse<br/>mbdata.metabase.com:5432")]
   GIT["GitHub<br/>owner/repo · branch"]
 
   UI -->|"create / status / message"| API
-  API --> SUP
+  API --> BROK
   API --> DB
-  SUP -->|"writes Metabase CRD"| POD
-  AG -.->|"long-poll: poll / events / heartbeat"| SUP
-  MB -->|"app-db conn"| APPDB
+  BROK -->|"writes Metabase CRD"| POD
+  SUP --- MB
+  SUP --- AG
+  MB -->|"loopback"| APPDB
+  AG -.->|"long-poll: poll / events / heartbeat"| BROK
   MB -->|"SQL"| DWH
   AG -->|"push to branch"| GIT
 
   classDef hm fill:#11253a,stroke:#4fd2e8,color:#e8f1f8;
   classDef pod fill:#16304a,stroke:#6fdba0,color:#e8f1f8;
   classDef ext fill:#0a1623,stroke:#a890f0,color:#e8f1f8;
-  class API,SUP,DB hm;
-  class MB,AG pod;
-  class APPDB,DWH,GIT ext;
+  class API,BROK,DB hm;
+  class SUP,MB,APPDB,AG pod;
+  class DWH,GIT ext;
       </div></div>
     </div>
   </section>
@@ -441,7 +444,7 @@ sequenceDiagram
         <tbody>
           <tr><td><b>Where it lives</b></td><td>Harbormaster control plane</td><td>HM already provisions Metabase pods via the cloud-operator CRD; same muscle. Leadership call.</td><td><span class="pill locked">locked</span></td></tr>
           <tr><td><b>Box runtime</b></td><td>EKS pod, <b>cold boot</b> (~90s)</td><td>Spike proves it boots + reaches the warehouse. Snapshots solve scale-fork we don't have. Keeps us off Modal.</td><td><span class="pill locked">locked</span></td></tr>
-          <tr><td><b>App-db</b></td><td>One shared in-cluster PG pod, <b>database-per-session</b>, one PVC, no RDS</td><td>Survives box restart → resume works; <code>DROP DATABASE</code> on delete; reuses existing <code>local-postgres</code> provider; instant <code>TEMPLATE</code> clone + stronger isolation than schema-per-session.</td><td><span class="pill locked">locked</span></td></tr>
+          <tr><td><b>App-db</b></td><td><b>In-pod</b> loopback Postgres, 1:1 with the session pod (demo). Shared-PG / database-per-session is the phase-2 path.</td><td>Keeps the session a single disposable unit (session = pod = app-db); demo scope is "get the pod up," not "pod + a new DB tier." No resume in the 3-verb core, so external app-db buys little now. See ADR 0001.</td><td><span class="pill locked">locked</span></td></tr>
           <tr><td><b>Git coords</b></td><td><code>owner/repo</code>, not raw URL</td><td>Consistency with rest of HM.</td><td><span class="pill locked">locked</span></td></tr>
           <tr><td><b>Identity / auth</b></td><td>Via the customer's Metabase parent instance</td><td>Each customer already has a parent with users/groups/SSO. Mechanism (JWT? token exchange?) unresolved.</td><td><span class="pill open">open</span></td></tr>
           <tr><td><b>Event transport</b></td><td>Long-poll/SSE for demo</td><td>HM has no WebSocket layer yet; WS is the richer-UX upgrade later.</td><td><span class="pill open">open</span></td></tr>
@@ -530,8 +533,9 @@ erDiagram
       </div></div>
     </div>
     <p class="section-sub" style="margin-top:0.9rem;"><code>session_event</code> is append-only and
-      cursor-ordered — it powers both the replay stream and the audit trail. The box's app-db
-      (database-per-session) is separate from this and lives in the shared PG pod.</p>
+      cursor-ordered — it powers both the replay stream and the audit trail. The session's
+      Metabase app-db is separate from this and lives <em>in the session pod</em> (loopback PG),
+      1:1 with the session.</p>
   </section>
 
   <!-- 7. What we're NOT building (yet) -->
