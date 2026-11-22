@@ -2128,7 +2128,7 @@ function spawn(id, kind, x, y) {
 }
 function xp_value(kind) {
   if (kind instanceof Dummy) {
-    return 10;
+    return 0;
   } else if (kind instanceof Charger) {
     return 20;
   } else {
@@ -8749,6 +8749,19 @@ function onHurt() {
   hurtFlash = 0.15;
   ghostHold = 0.45;
 }
+var xpEl = document.getElementById("xp");
+var xpFill = document.getElementById("xp-fill");
+var xpText = document.getElementById("xp-text");
+function drawXp(p) {
+  const need = xp_needed(p.lvl);
+  xpFill.style.width = `${100 * p.xp / need}%`;
+  xpText.textContent = `Lv ${p.lvl}   ${p.xp} / ${need} XP` + (p.points ? `   \xB7   ${p.points} tree point${p.points > 1 ? "s" : ""} (T)` : "");
+}
+function onLevelUp() {
+  xpEl.classList.remove("up");
+  void xpEl.offsetWidth;
+  xpEl.classList.add("up");
+}
 function drawHp(p, dt) {
   const max3 = max_hp3(p);
   if (ghostHp === null || p.hp > ghostHp) ghostHp = p.hp;
@@ -8779,6 +8792,7 @@ function frame(now) {
     for (const ev of world.events) {
       if (ev instanceof Hit) floatText(ev.x, ev.y, ev.crit ? `${ev.damage}!` : ev.damage, ev.crit ? "dmg crit" : "dmg");
       if (ev instanceof Blocked) floatText(ev.x, ev.y, "BLOCK", "lvl");
+      if (ev instanceof LevelUp) onLevelUp();
       if (ev instanceof LevelUp) floatText(world.player.x, world.player.y + 2.5, `LEVEL ${ev.level}`, "lvl");
       if (ev instanceof Hurt) {
         floatText(ev.x, ev.y, `-${ev.damage}`, "hurt");
@@ -8803,6 +8817,7 @@ function frame(now) {
   hurtFlash -= frameDt;
   player.material.color.set(hurtFlash > 0 ? 16717636 : p.dash_time > 0 ? 16777215 : p.dashes > 0 ? 5227511 : 2781071);
   drawHp(p, frameDt);
+  drawXp(p);
   player.visible = p.invuln <= 0 || Math.floor(now / 60) % 2 === 0;
   const hb = active_hitbox(p);
   slash.visible = hb instanceof Some;
@@ -8859,7 +8874,7 @@ function frame(now) {
   if (++frames % 15 === 0) {
     const s = p.stats;
     hud.textContent = `${world.depth === 0 ? "Hub" : `Depth ${world.depth}`}${world.pending instanceof Some ? `   clear for: ${reward_label(world.pending)}` : ""}${world.cleared && world.depth > 0 ? "   CLEARED - pick a door" : ""}
-Lv ${p.lvl}  ${class_name(world)}   XP ${p.xp}/${xp_needed(p.lvl)}
+${class_name(world)}
 F ${s.fighter}  R ${s.rogue}  M ${s.mage}   tree points: ${p.points}  (T: tree)
 dmg ${damage2(p)}  targets ${max_targets(s)}  speed ${speed2(p).toFixed(2)}x  moves: ${[p.mods.air_jumps && `${p.mods.air_jumps} air jump`, p.mods.dashes && `${p.mods.dashes} dash`, p.mods.wall_jump && "wall-jump"].filter(Boolean).join(", ") || "jump only"}
 
