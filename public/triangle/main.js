@@ -10748,19 +10748,33 @@ var enemyMeshes = /* @__PURE__ */ new Map();
 var doorLabels = [];
 var npcMeshes = [];
 var npcLabels = [];
+var HUB = { bg: 16512750, solid: 16777215, oneway: 15260879, edge: true };
+var RUN = { bg: 723723, solid: 15263976, oneway: 7829367, edge: false };
+var pal = RUN;
+var edgeMat = new THREE.MeshBasicMaterial({ color: 3877669 });
+function outline(m) {
+  if (!pal.edge) return;
+  const { width: width2, height: height2 } = m.geometry.parameters;
+  const back = new THREE.Mesh(new THREE.BoxGeometry(width2 + 0.14, height2 + 0.14, 1), edgeMat);
+  back.position.z = -0.05;
+  m.add(back);
+}
 function empty2(group2) {
-  group2.children.forEach((m) => {
-    m.geometry.dispose();
-    m.material.dispose();
+  group2.traverse((o) => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material && o.material !== edgeMat) o.material.dispose();
   });
   group2.clear();
 }
 function syncRoom() {
   if (world.depth !== builtDepth || world.level !== builtLevel) {
     [builtDepth, builtLevel] = [world.depth, world.level];
+    pal = world.depth === 0 ? HUB : RUN;
+    scene.background.set(pal.bg);
     empty2(roomGroup);
     for (const r of world.level.toArray()) {
-      const m = box3(r.w, r.h, r.one_way ? 7829367 : 15263976);
+      const m = box3(r.w, r.h, r.one_way ? pal.oneway : pal.solid);
+      outline(m);
       m.position.set(r.x + r.w / 2, r.y + r.h / 2, 0);
       roomGroup.add(m);
     }
@@ -10776,7 +10790,8 @@ function syncRoom() {
     npcLabels.forEach((l) => l.el.remove());
     npcMeshes = world.npcs.toArray().map((n) => {
       const b = npc_box(n), statue = n.role instanceof Statue;
-      const m = box3(b.w, b.h, statue ? 10395294 : 16763432);
+      const m = box3(b.w, b.h, statue ? 16777215 : 14721563);
+      outline(m);
       m.position.set(b.x + b.w / 2, b.y + b.h / 2, -0.3);
       roomGroup.add(m);
       return { m, n, statue };
@@ -10809,6 +10824,7 @@ function syncRoom() {
 }
 var speech = document.createElement("div");
 speech.id = "speech";
+speech.className = "sticker";
 document.body.appendChild(speech);
 var v = new THREE.Vector3();
 function toScreen(x, y) {
@@ -10898,6 +10914,10 @@ var treeScreen = createTreeScreen({ getWorld: () => world, setWorld: (w) => {
   world = w;
 }, onUnlock: saveUnlocks });
 var hud = document.getElementById("hud");
+hud.textContent = "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Up at doors & statues \xB7 T tree";
+var whoEl = document.getElementById("who");
+var whereEl = document.getElementById("where");
+var pointsEl = document.getElementById("points");
 var hpEl = document.getElementById("hp");
 var hpFill = document.getElementById("hp-fill");
 var hpGhost = document.getElementById("hp-ghost");
@@ -10954,7 +10974,7 @@ function drawHp(p, dt) {
   hpText.textContent = `${p.hp} / ${max3}`;
   hpEl.classList.toggle("low", p.hp / max3 < 0.3);
   hpEl.classList.toggle("healed", (healFlash -= dt) > 0);
-  shieldsEl.textContent = "\u25C6".repeat(p.shield);
+  shieldsEl.innerHTML = p.shield ? `<span class="pill teal">\u25C6 ${p.shield} shield${p.shield > 1 ? "s" : ""}</span>` : "";
 }
 var acc = 0;
 var last2 = performance.now();
@@ -11043,7 +11063,7 @@ function frame(now) {
   for (const { m, n, statue } of npcMeshes) {
     if (!statue) continue;
     const k = n.role.keystone;
-    m.material.color.set(k === mine ? 16766287 : unlockedNow.has(k) ? 13684944 : 3815994);
+    m.material.color.set(k === mine ? 14721563 : unlockedNow.has(k) ? 16777215 : 13616829);
   }
   for (const l of npcLabels) {
     const [sx, sy] = toScreen(l.x, l.y);
@@ -11054,7 +11074,7 @@ function frame(now) {
   speech.style.display = near.isOk() ? "block" : "none";
   if (near.isOk()) {
     const lines = npc_lines(world, near[0]).toArray();
-    speech.innerHTML = `<b>${lines[0]}</b><br>` + lines.slice(1).join("<br>");
+    speech.innerHTML = `<b>${lines[0]}</b>` + lines.slice(1).map((l) => `<p>${l}</p>`).join("");
     const [sx, sy] = toScreen(near[0].x, near[0].y + npc_box(near[0]).h + 1.2);
     speech.style.left = `${sx}px`;
     speech.style.top = `${sy}px`;
@@ -11065,15 +11085,12 @@ function frame(now) {
     l.el.style.top = `${sy}px`;
   }
   if (++frames % 15 === 0) {
-    const s = p.stats;
-    hud.textContent = `${world.depth === 0 ? "Hub" : world.depth === boss_depth ? "BOSS" : `Depth ${world.depth} / ${boss_depth}`}${world.cleared && world.depth > 0 ? "   CLEARED - pick a door" : ""}
-${class_name(world)}
-F ${s.fighter}  R ${s.rogue}  M ${s.mage}   tree points: ${p.points}  (T: tree)
-dmg ${damage2(p)}  targets ${max_targets(s)}  speed ${speed2(p).toFixed(2)}x  moves: ${[p.mods.air_jumps && `${p.mods.air_jumps} air jump`, p.mods.dashes && `${p.mods.dashes} dash`, p.mods.wall_jump && "wall-jump"].filter(Boolean).join(", ") || "jump only"}
-
-move WASD/arrows \xB7 jump Space/K (pad X/Y) \xB7 dash Shift/L (pad shoulders)
-doors & statues: stand at one, press up \xB7 attack J (pad A): +up = up swing, +down in air = pogo \xB7 down+jump on grey: drop
-sim step ${stepMs.toFixed(4)} ms \xB7 pad ${navigator.getGamepads().some(Boolean) ? "yes" : "no"}`;
+    whoEl.textContent = class_name(world) === "No class" ? "No class yet" : class_name(world);
+    const boss2 = world.depth === boss_depth, cleared = world.cleared && world.depth > 0;
+    whereEl.textContent = world.depth === 0 ? "Hub" : boss2 ? "Boss" : `Room ${world.depth} / ${boss_depth - 1}`;
+    if (cleared) whereEl.textContent += " \xB7 cleared";
+    whereEl.className = boss2 ? "boss" : cleared ? "cleared" : "";
+    pointsEl.innerHTML = p.points ? `<span class="pill gold">${p.points} point${p.points > 1 ? "s" : ""} \xB7 T</span>` : "";
   }
   treeScreen.draw();
   requestAnimationFrame(frame);

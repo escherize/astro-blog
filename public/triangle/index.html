@@ -7,53 +7,91 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
     <style>
+      /* Sticker style (PRODUCT.md): white cards, chunky ink outlines, Baloo 2 titles, Nunito body */
+      :root {
+        --ink: #3b2b25; --strong: #2b1d18; --body: #5b4a43; --section: #8a766d; --page: #fbf6ee;
+        --red: #d94c43; --green: #4f9e3f; --blue: #5a5fd6; --gold: #e0a21b; --teal: #1f9fb5; --sky: #4fb3d9;
+        --title: 800 1rem/1.2 "Baloo 2", system-ui, sans-serif; --text: 600 0.875rem/1.4 Nunito, system-ui, sans-serif;
+      }
       html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0b0b; }
-      #hud { position: fixed; top: 62px; left: 8px; color: #bbb; font: 12px/1.4 monospace; white-space: pre; }
-      .float { position: fixed; transform: translate(-50%, -100%); font: bold 18px monospace; pointer-events: none;
-               animation: rise 0.8s ease-out forwards; }
-      .dmg { color: #ffd54f; text-shadow: 0 0 3px #000; }
-      .lvl { color: #4fc3f7; font-size: 22px; }
-      .crit { color: #ff9800; font-size: 24px; }
-      .hurt { color: #ef5350; text-shadow: 0 0 3px #000; }
-      /* above every world label (doors, statues, popups) */
-      #tree { position: fixed; inset: 0; width: 100vw; height: 100vh; display: none; z-index: 50; }
-      #speech { position: fixed; transform: translate(-50%, -100%); display: none; max-width: 460px; padding: 10px 12px;
-                background: rgba(20,20,20,0.94); border: 1px solid #444; color: #ccc; font: 13px/1.5 monospace; pointer-events: none; }
-      #speech b { color: #fff; }
-      .npc { color: #aaa; font-size: 12px; }
-      .door { position: fixed; transform: translate(-50%, -100%); color: #4fc3f7; font: bold 13px monospace;
-              pointer-events: none; white-space: nowrap; }
-      .heal { color: #66bb6a; text-shadow: 0 0 3px #000; }
-      .hurt { font-size: 22px; }
-      /* HP bar: red fill, a white chunk that drains after a hit, numbers on top */
-      #hp { position: fixed; top: 26px; left: 8px; width: 280px; height: 26px; background: #2a0d0d; border: 2px solid #555; }
+      .sticker { background: #fff; border: 3px solid var(--ink); border-radius: 14px; color: var(--body); font: var(--text); }
+
+      /* XP: a long bar across the top edge */
+      #xp { position: fixed; top: 0; left: 0; right: 0; height: 20px; background: #efe5d8; border-bottom: 3px solid var(--ink); }
+      #xp-fill { position: absolute; top: 0; bottom: 0; left: 0; background: var(--sky); transition: width 0.25s ease-out; }
+      #xp-text { position: absolute; inset: 0; color: var(--strong); font: 800 12px/20px "Baloo 2", system-ui; text-align: center; }
+      #xp.up #xp-fill { animation: lvlup 0.6s ease-out; }
+      @keyframes lvlup { from { background: var(--gold); } to { background: var(--sky); } }
+
+      /* status card: who you are, where you are, HP */
+      #status { position: fixed; top: 34px; left: 12px; width: 300px; padding: 10px 12px 12px; }
+      #status .row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+      #who { font: 800 1.25rem/1.1 "Baloo 2", system-ui; color: var(--strong); }
+      #where { font: 800 0.8rem/1 Nunito; color: #fff; background: var(--ink); border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+      #where.cleared { background: var(--green); }
+      #where.boss { background: var(--red); }
+      #hp { position: relative; margin-top: 8px; height: 26px; background: #f3d9d6; border: 2px solid var(--ink); border-radius: 9px; overflow: hidden; }
       #hp div { position: absolute; top: 0; bottom: 0; left: 0; }
-      #hp-ghost { background: #f5f5f5; }
-      #hp-fill { background: #e53935; }
-      #hp-text { position: absolute; inset: 0; color: #fff; font: bold 14px/26px monospace; text-align: center; text-shadow: 0 0 3px #000; }
+      #hp-ghost { background: #ffffff; }
+      #hp-fill { background: var(--red); }
+      #hp-text { position: absolute; inset: 0; color: #fff; font: 800 15px/24px "Baloo 2", system-ui; text-align: center;
+                 paint-order: stroke; -webkit-text-stroke: 3px var(--ink); }
       #hp.low { animation: pulse 0.6s ease-in-out infinite alternate; }
-      #hp.healed #hp-fill { background: #66bb6a; }
-      #shields { position: fixed; top: 30px; left: 300px; color: #4fc3f7; font: bold 16px monospace; }
-      /* XP: full width across the top edge */
-      #xp { position: fixed; top: 0; left: 0; right: 0; height: 16px; background: #10202a; border-bottom: 1px solid #333; }
-      #xp-fill { position: absolute; top: 0; bottom: 0; left: 0; background: #4fc3f7; transition: width 0.25s ease-out; }
-      #xp-text { position: absolute; inset: 0; color: #fff; font: bold 11px/16px monospace; text-align: center; text-shadow: 0 0 3px #000; }
-      #xp.up { animation: lvlup 0.6s ease-out; }
-      @keyframes lvlup { from { background: #e1f5fe; } to { background: #10202a; } }
-      #boss { position: fixed; top: 34px; left: 50%; transform: translateX(-50%); width: 50vw; height: 18px;
-              background: #2a1200; border: 2px solid #ff6f00; display: none; }
+      #hp.healed #hp-fill { background: var(--green); }
+      #extras { display: none; gap: 6px; margin-top: 8px; align-items: center; }
+      #extras:has(.pill) { display: flex; }
+      #extras > span:empty { display: none; }
+      .pill { font: 800 0.75rem/1 Nunito; color: #fff; border-radius: 999px; padding: 5px 10px; white-space: nowrap; }
+      .pill.gold { background: var(--gold); color: var(--strong); border: 2px solid var(--ink); }
+      .pill.teal { background: var(--teal); }
+      @keyframes pulse { from { border-color: var(--ink); } to { border-color: #ff1744; } }
+
+      /* controls hint, bottom left */
+      #hud { position: fixed; bottom: 12px; left: 12px; padding: 6px 12px; font: 600 0.75rem/1.4 Nunito; color: var(--body); }
+
+      /* boss bar */
+      #boss { position: fixed; top: 34px; left: 50%; transform: translateX(-50%); width: min(50vw, 560px); padding: 6px 12px 10px; display: none; }
+      #boss b { display: block; font: 800 0.95rem/1.2 "Baloo 2", system-ui; color: var(--strong); margin-bottom: 5px; }
+      #boss .bar { position: relative; height: 16px; background: #f6dcc8; border: 2px solid var(--ink); border-radius: 8px; overflow: hidden; }
       #boss-fill { position: absolute; top: 0; bottom: 0; left: 0; background: #ff6f00; }
-      #boss span { position: absolute; inset: 0; color: #fff; font: bold 12px/18px monospace; text-align: center; text-shadow: 0 0 3px #000; }
-      #summary { position: fixed; top: 22%; left: 50%; transform: translateX(-50%); display: none; padding: 18px 28px;
-                 background: rgba(16,16,16,0.95); border: 2px solid #ffd54f; color: #ddd; font: 15px/1.6 monospace; text-align: center; }
-      #summary h2 { margin: 0 0 8px; color: #ffd54f; }
-      #summary .dim { color: #888; font-size: 13px; }
+
+      /* popups over the world: Baloo with an ink outline so they read on light and dark */
+      .float { position: fixed; transform: translate(-50%, -100%); font: 800 20px/1 "Baloo 2", system-ui; pointer-events: none;
+               paint-order: stroke; -webkit-text-stroke: 4px var(--ink); animation: rise 0.8s ease-out forwards; }
+      .dmg { color: #ffd54f; }
+      .crit { color: #ff9800; font-size: 26px; }
+      .hurt { color: #ff6b6b; font-size: 22px; }
+      .heal { color: #7ee08a; }
+      .lvl { color: #8fd7f2; font-size: 24px; }
+      @keyframes rise { to { transform: translate(-50%, -260%); opacity: 0; } }
+
+      /* world labels: doors and statues as small white pills */
+      .door { position: fixed; transform: translate(-50%, -110%); pointer-events: none; white-space: nowrap;
+              font: 800 0.8rem/1 "Baloo 2", system-ui; color: var(--strong); background: #fff; border: 2px solid var(--ink);
+              border-radius: 999px; padding: 5px 10px 3px; }
+      .door.npc { font-size: 0.72rem; color: var(--body); }
+
+      /* speech: a sticker card with a title bar */
+      #speech { position: fixed; transform: translate(-50%, -100%); display: none; max-width: 440px; overflow: hidden; pointer-events: none; }
+      #speech b { display: block; font: 800 1rem/1.2 "Baloo 2", system-ui; color: #fff; background: var(--teal); padding: 8px 14px; border-bottom: 3px solid var(--ink); }
+      #speech p { margin: 0; padding: 10px 14px 12px; }
+      #speech p + p { padding-top: 0; }
+
+      /* run summary */
+      #summary { position: fixed; top: 22%; left: 50%; transform: translateX(-50%); display: none; min-width: 340px; overflow: hidden; text-align: center; font-size: 1rem; }
+      #summary h2 { margin: 0; padding: 10px 18px; font: 800 1.4rem/1.2 "Baloo 2", system-ui; color: var(--strong); background: var(--gold); border-bottom: 3px solid var(--ink); }
+      #summary p { margin: 10px 18px; }
+      #summary .dim { color: var(--section); font-size: 0.85rem; }
+
+      #tree { position: fixed; inset: 0; width: 100vw; height: 100vh; display: none; z-index: 50; } /* above every world label */
       #vignette { position: fixed; inset: 0; pointer-events: none; opacity: 0;
                   background: radial-gradient(ellipse at center, transparent 55%, rgba(229,57,53,0.7) 100%); }
       #vignette.hit { animation: hit 0.35s ease-out; }
       @keyframes hit { from { opacity: 1; } to { opacity: 0; } }
-      @keyframes pulse { from { border-color: #555; } to { border-color: #ff1744; } }
-      @keyframes rise { to { transform: translate(-50%, -260%); opacity: 0; } }
+      @media (prefers-reduced-motion: reduce) {
+        .float { animation-duration: 0.01s; }
+        #hp.low, #xp.up #xp-fill, #vignette.hit { animation: none; }
+      }
     </style>
     <script type="importmap">
       { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
@@ -61,12 +99,15 @@
   </head>
   <body>
     <div id="xp"><div id="xp-fill"></div><span id="xp-text"></span></div>
-    <div id="hp"><div id="hp-ghost"></div><div id="hp-fill"></div><span id="hp-text"></span></div>
-    <div id="shields"></div>
+    <div id="status" class="sticker">
+      <div class="row"><span id="who"></span><span id="where"></span></div>
+      <div id="hp"><div id="hp-ghost"></div><div id="hp-fill"></div><span id="hp-text"></span></div>
+      <div id="extras"><span id="shields"></span><span id="points"></span></div>
+    </div>
     <div id="vignette"></div>
-    <div id="boss"><div id="boss-fill"></div><span>THE WARDEN</span></div>
-    <div id="summary"></div>
-    <div id="hud"></div>
+    <div id="boss" class="sticker"><b>The Warden</b><div class="bar"><div id="boss-fill"></div></div></div>
+    <div id="summary" class="sticker"></div>
+    <div id="hud" class="sticker"></div>
     <script type="module" src="main.js"></script>
   </body>
 </html>
