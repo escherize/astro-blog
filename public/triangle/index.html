@@ -36,7 +36,7 @@
       #xp-fill { position: absolute; top: 0; bottom: 0; left: 0; background: #4fc3f7; transition: width 0.25s ease-out; }
       #xp-text { position: absolute; inset: 0; color: #fff; font: bold 11px/16px monospace; text-align: center; text-shadow: 0 0 3px #000; }
       #xp.up { animation: lvlup 0.6s ease-out; }
-      @keyframes lvlup { from { background: #e1f5fe; box-shadow: 0 0 18px #4fc3f7; } to { background: #10202a; box-shadow: none; } }
+      @keyframes lvlup { from { background: #e1f5fe; } to { background: #10202a; } }
       #boss { position: fixed; top: 34px; left: 50%; transform: translateX(-50%); width: 50vw; height: 18px;
               background: #2a1200; border: 2px solid #ff6f00; display: none; }
       #boss-fill { position: absolute; top: 0; bottom: 0; left: 0; background: #ff6f00; }
@@ -48,7 +48,7 @@
       #vignette { position: fixed; inset: 0; pointer-events: none; box-shadow: inset 0 0 120px 30px rgba(229,57,53,0.75); opacity: 0; }
       #vignette.hit { animation: hit 0.35s ease-out; }
       @keyframes hit { from { opacity: 1; } to { opacity: 0; } }
-      @keyframes pulse { from { border-color: #555; } to { border-color: #ff1744; box-shadow: 0 0 12px #ff1744; } }
+      @keyframes pulse { from { border-color: #555; } to { border-color: #ff1744; } }
       @keyframes rise { to { transform: translate(-50%, -260%); opacity: 0; } }
     </style>
     <script type="importmap">
