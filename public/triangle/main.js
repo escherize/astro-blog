@@ -3955,13 +3955,15 @@ function between(seed, lo, hi) {
 
 // build/dev/javascript/triangle_platformer/rooms.mjs
 var Template = class extends CustomType {
-  constructor(level, entry, spawns, doors, npcs) {
+  constructor(level, entry, spawns, doors, npcs, air, tier) {
     super();
     this.level = level;
     this.entry = entry;
     this.spawns = spawns;
     this.doors = doors;
     this.npcs = npcs;
+    this.air = air;
+    this.tier = tier;
   }
 };
 var Npc = class extends CustomType {
@@ -3981,6 +3983,7 @@ var Statue = class extends CustomType {
     this.keystone = keystone;
   }
 };
+var tunnel_end = 10;
 function hub() {
   return new Template(
     prepend(
@@ -4028,43 +4031,285 @@ function hub() {
           return new Npc(6 + 3 * identity(i), 0, new Statue(k));
         }
       )
-    )
+    ),
+    [0, 0],
+    0
   );
 }
-function walls(height2) {
+function walls(w, h) {
   return prepend(
-    new Rect(0, -2, 40, 2, false),
+    new Rect(0, -2, w, 2, false),
     prepend(
-      new Rect(-1, -2, 1, height2, false),
-      prepend(new Rect(40, -2, 1, height2, false), List$Empty$const)
+      new Rect(-1, -2, 1, h, false),
+      prepend(new Rect(w, -2, 1, h, false), List$Empty$const)
     )
   );
 }
 function boss_room() {
   return new Template(
     prepend(
-      new Rect(8, 2.2, 6, 0.3, true),
-      prepend(new Rect(26, 2.2, 6, 0.3, true), walls(20))
+      new Rect(13, 2.2, 6, 0.3, true),
+      prepend(new Rect(28, 2.2, 6, 0.3, true), walls(44, 20))
     ),
-    [3, 0],
-    prepend([30, 0, Kind$Boss$const], List$Empty$const),
-    prepend([20, 0], List$Empty$const),
-    List$Empty$const
+    [2, 0],
+    prepend([34, 0, Kind$Boss$const], List$Empty$const),
+    prepend([24, 0], List$Empty$const),
+    List$Empty$const,
+    [0, 0],
+    0
+  );
+}
+function tunnel() {
+  return new Rect(-1, 3.2, 11, 1, false);
+}
+function gate() {
+  return new Rect(9.4, 0, 0.6, 3.2, false);
+}
+function room(level, spawns, doors, air, tier) {
+  return new Template(
+    level,
+    [2, 0],
+    spawns,
+    doors,
+    List$Empty$const,
+    air,
+    tier
+  );
+}
+function gauntlet() {
+  return room(
+    prepend(
+      new Rect(13, 2.2, 6, 0.3, true),
+      prepend(
+        new Rect(21, 4.4, 6, 0.3, true),
+        prepend(
+          new Rect(29, 2.2, 6, 0.3, true),
+          prepend(
+            new Rect(37, 4.4, 6, 0.3, true),
+            prepend(new Rect(45, 2.2, 6, 0.3, true), walls(56, 18))
+          )
+        )
+      )
+    ),
+    prepend(
+      [16, 2.5, Kind$Shooter$const],
+      prepend(
+        [24, 4.7, Kind$Charger$const],
+        prepend(
+          [32, 2.5, Kind$Shooter$const],
+          prepend(
+            [40, 4.7, Kind$Shooter$const],
+            prepend(
+              [48, 2.5, Kind$Charger$const],
+              prepend([52, 0, Kind$Charger$const], List$Empty$const)
+            )
+          )
+        )
+      )
+    ),
+    prepend([50, 0], prepend([53, 0], List$Empty$const)),
+    [30, 8],
+    3
+  );
+}
+function cellar() {
+  return room(
+    prepend(
+      new Rect(-1, 6, 34, 1, false),
+      prepend(
+        new Rect(16, 0, 1.5, 2, false),
+        prepend(new Rect(24, 0, 1.5, 2, false), walls(32, 10))
+      )
+    ),
+    prepend(
+      [13, 0, Kind$Charger$const],
+      prepend(
+        [16.7, 2, Kind$Shooter$const],
+        prepend(
+          [20, 0, Kind$Charger$const],
+          prepend(
+            [24.7, 2, Kind$Shooter$const],
+            prepend(
+              [28, 0, Kind$Charger$const],
+              prepend([30, 0, Kind$Shooter$const], List$Empty$const)
+            )
+          )
+        )
+      )
+    ),
+    prepend([27, 0], prepend([30, 0], List$Empty$const)),
+    [20, 4.5],
+    3
+  );
+}
+function box2() {
+  return room(
+    prepend(
+      new Rect(-1, 8, 28, 1, false),
+      prepend(
+        new Rect(14, 2.2, 5, 0.3, true),
+        prepend(new Rect(19, 4.4, 4, 0.3, true), walls(26, 12))
+      )
+    ),
+    prepend(
+      [15, 2.5, Kind$Shooter$const],
+      prepend(
+        [18, 0, Kind$Charger$const],
+        prepend(
+          [21, 4.7, Kind$Shooter$const],
+          prepend(
+            [23, 0, Kind$Charger$const],
+            prepend(
+              [13, 0, Kind$Charger$const],
+              prepend([24, 0, Kind$Shooter$const], List$Empty$const)
+            )
+          )
+        )
+      )
+    ),
+    prepend([21, 0], prepend([24, 0], List$Empty$const)),
+    [18, 6],
+    3
+  );
+}
+function bridge() {
+  return room(
+    prepend(new Rect(13, 2.2, 26, 0.3, true), walls(52, 18)),
+    prepend(
+      [16, 2.5, Kind$Shooter$const],
+      prepend(
+        [20, 0, Kind$Charger$const],
+        prepend(
+          [26, 2.5, Kind$Shooter$const],
+          prepend(
+            [30, 0, Kind$Charger$const],
+            prepend(
+              [36, 2.5, Kind$Charger$const],
+              prepend([46, 0, Kind$Shooter$const], List$Empty$const)
+            )
+          )
+        )
+      )
+    ),
+    prepend([47, 0], prepend([50, 0], List$Empty$const)),
+    [30, 7],
+    2
+  );
+}
+function long_hall() {
+  return room(
+    prepend(
+      new Rect(20, 4.5, 8, 1, false),
+      prepend(
+        new Rect(40, 4.5, 8, 1, false),
+        prepend(
+          new Rect(31, 0, 2, 1.2, false),
+          prepend(new Rect(51, 0, 2, 1.2, false), walls(64, 16))
+        )
+      )
+    ),
+    prepend(
+      [15, 0, Kind$Charger$const],
+      prepend(
+        [24, 0, Kind$Shooter$const],
+        prepend(
+          [35, 0, Kind$Charger$const],
+          prepend(
+            [44, 0, Kind$Shooter$const],
+            prepend(
+              [55, 0, Kind$Charger$const],
+              prepend([59, 0, Kind$Shooter$const], List$Empty$const)
+            )
+          )
+        )
+      )
+    ),
+    prepend([59, 0], prepend([62, 0], List$Empty$const)),
+    [38, 9],
+    2
+  );
+}
+function stairs() {
+  return room(
+    prepend(
+      new Rect(12, 0, 6, 1.8, false),
+      prepend(
+        new Rect(18, 0, 6, 3.6, false),
+        prepend(
+          new Rect(24, 0, 6, 5.4, false),
+          prepend(
+            new Rect(30, 0, 6, 7.2, false),
+            prepend(
+              new Rect(36, 0, 12, 9, false),
+              walls(48, 22)
+            )
+          )
+        )
+      )
+    ),
+    prepend(
+      [15, 1.8, Kind$Charger$const],
+      prepend(
+        [21, 3.6, Kind$Shooter$const],
+        prepend(
+          [27, 5.4, Kind$Charger$const],
+          prepend(
+            [33, 7.2, Kind$Shooter$const],
+            prepend(
+              [40, 9, Kind$Charger$const],
+              prepend([44, 9, Kind$Shooter$const], List$Empty$const)
+            )
+          )
+        )
+      )
+    ),
+    prepend([42, 9], prepend([45, 9], List$Empty$const)),
+    [22, 11],
+    2
+  );
+}
+function bowl() {
+  return room(
+    prepend(
+      new Rect(12, 0, 6, 2, false),
+      prepend(
+        new Rect(27, 0, 13, 2, false),
+        prepend(new Rect(33, 2, 7, 2.2, false), walls(40, 20))
+      )
+    ),
+    prepend(
+      [15, 2, Kind$Shooter$const],
+      prepend(
+        [21, 0, Kind$Charger$const],
+        prepend(
+          [24, 0, Kind$Charger$const],
+          prepend(
+            [30, 2, Kind$Charger$const],
+            prepend(
+              [36, 4.2, Kind$Shooter$const],
+              prepend([38, 4.2, Kind$Charger$const], List$Empty$const)
+            )
+          )
+        )
+      )
+    ),
+    prepend([35, 4.2], prepend([38, 4.2], List$Empty$const)),
+    [22, 7],
+    2
   );
 }
 function tower() {
-  return new Template(
+  return room(
     prepend(
-      new Rect(6, 2.2, 8, 0.3, true),
+      new Rect(12, 2.2, 6, 0.3, true),
       prepend(
         new Rect(16, 4.4, 8, 0.3, true),
         prepend(
           new Rect(26, 6.6, 8, 0.3, true),
-          prepend(new Rect(16, 8.8, 8, 0.3, true), walls(26))
+          prepend(new Rect(16, 8.8, 8, 0.3, true), walls(40, 26))
         )
       )
     ),
-    [2, 0],
     prepend(
       [14, 0, Kind$Charger$const],
       prepend(
@@ -4074,7 +4319,7 @@ function tower() {
           prepend(
             [30, 6.9, Kind$Shooter$const],
             prepend(
-              [13, 2.5, Kind$Charger$const],
+              [15, 2.5, Kind$Charger$const],
               prepend([20, 9.1, Kind$Shooter$const], List$Empty$const)
             )
           )
@@ -4085,25 +4330,58 @@ function tower() {
       [17.5, 9.1],
       prepend([20, 9.1], prepend([22.5, 9.1], List$Empty$const))
     ),
-    List$Empty$const
+    [24, 12],
+    2
+  );
+}
+function pillars() {
+  return room(
+    prepend(
+      new Rect(14, 0, 2, 2, false),
+      prepend(
+        new Rect(22, 0, 2, 2.4, false),
+        prepend(
+          new Rect(30, 0, 2, 2, false),
+          prepend(
+            new Rect(17, 4.2, 4, 0.3, true),
+            prepend(new Rect(33, 4.2, 4, 0.3, true), walls(44, 20))
+          )
+        )
+      )
+    ),
+    prepend(
+      [18, 0, Kind$Charger$const],
+      prepend(
+        [23, 2.4, Kind$Shooter$const],
+        prepend(
+          [27, 0, Kind$Charger$const],
+          prepend(
+            [31, 2, Kind$Shooter$const],
+            prepend(
+              [38, 0, Kind$Charger$const],
+              prepend([19, 4.5, Kind$Charger$const], List$Empty$const)
+            )
+          )
+        )
+      )
+    ),
+    prepend([38, 0], prepend([41, 0], List$Empty$const)),
+    [28, 8],
+    1
   );
 }
 function mesa() {
-  return new Template(
+  return room(
     prepend(
       new Rect(16, 0, 8, 2.2, false),
       prepend(
         new Rect(10.5, 2.2, 3, 0.3, true),
         prepend(
           new Rect(26.5, 2.2, 3, 0.3, true),
-          prepend(
-            new Rect(5, 4, 5, 0.5, false),
-            prepend(new Rect(30, 4, 5, 0.5, false), walls(20))
-          )
+          prepend(new Rect(30, 4, 5, 0.5, false), walls(40, 20))
         )
       )
     ),
-    [2, 0],
     prepend(
       [14, 0, Kind$Charger$const],
       prepend(
@@ -4114,29 +4392,29 @@ function mesa() {
             [31, 4.5, Kind$Shooter$const],
             prepend(
               [33, 4.5, Kind$Charger$const],
-              prepend([36, 0, Kind$Charger$const], List$Empty$const)
+              prepend([37, 0, Kind$Charger$const], List$Empty$const)
             )
           )
         )
       )
     ),
     prepend(
-      [31, 0],
-      prepend([34.5, 0], prepend([38, 0], List$Empty$const))
+      [30, 0],
+      prepend([34, 0], prepend([38, 0], List$Empty$const))
     ),
-    List$Empty$const
+    [24, 8],
+    1
   );
 }
 function arena() {
-  return new Template(
+  return room(
     prepend(
-      new Rect(8, 2.2, 6, 0.3, true),
+      new Rect(12, 2.2, 6, 0.3, true),
       prepend(
         new Rect(26, 2.2, 6, 0.3, true),
-        prepend(new Rect(15, 4.4, 10, 0.3, true), walls(20))
+        prepend(new Rect(16, 4.4, 9, 0.3, true), walls(40, 20))
       )
     ),
-    [2, 0],
     prepend(
       [16, 0, Kind$Charger$const],
       prepend(
@@ -4144,7 +4422,7 @@ function arena() {
         prepend(
           [30, 0, Kind$Charger$const],
           prepend(
-            [13, 2.5, Kind$Shooter$const],
+            [14, 2.5, Kind$Shooter$const],
             prepend(
               [35, 0, Kind$Charger$const],
               prepend([29, 2.5, Kind$Shooter$const], List$Empty$const)
@@ -4157,14 +4435,24 @@ function arena() {
       [32, 0],
       prepend([35, 0], prepend([38, 0], List$Empty$const))
     ),
-    List$Empty$const
+    [26, 8],
+    1
   );
 }
 function run_rooms() {
-  return prepend(
+  return toList([
     arena(),
-    prepend(mesa(), prepend(tower(), List$Empty$const))
-  );
+    mesa(),
+    pillars(),
+    tower(),
+    bowl(),
+    stairs(),
+    long_hall(),
+    bridge(),
+    box2(),
+    cellar(),
+    gauntlet()
+  ]);
 }
 
 // build/dev/javascript/triangle_platformer/skills.mjs
@@ -4794,15 +5082,15 @@ function nth(items, i) {
       "let_assert",
       FILEPATH,
       "tree",
-      210,
+      222,
       "nth",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 5512,
-        end: 5564,
-        pattern_start: 5523,
-        pattern_end: 5528
+        start: 5942,
+        end: 5994,
+        pattern_start: 5953,
+        pattern_end: 5958
       }
     );
   }
@@ -4835,6 +5123,20 @@ function spur_grant(i) {
     )
   );
   return nth(grants, remainderInt(i, length(grants)));
+}
+function lesser(s) {
+  let $ = s.effect;
+  if ($ instanceof JumpSlash) {
+    return [new SlashPct(10), new DamagePct(5)];
+  } else if ($ instanceof DashStrike) {
+    return [new DamagePct(5), new Iframes(0.1)];
+  } else if ($ instanceof Shockwave) {
+    return [new ShockwavePct(10), new DamagePct(5)];
+  } else if ($ instanceof Knife) {
+    return [new DamagePct(5), new CooldownPct(5)];
+  } else {
+    return [new MaxHp(5), new CooldownPct(5)];
+  }
 }
 function upgrades(s) {
   let $ = s.effect;
@@ -5004,15 +5306,15 @@ function find2(acc2, id) {
       "let_assert",
       FILEPATH,
       "tree",
-      330,
+      342,
       "find",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 8944,
-        end: 9005,
-        pattern_start: 8955,
-        pattern_end: 8960
+        start: 9374,
+        end: 9435,
+        pattern_start: 9385,
+        pattern_end: 9390
       }
     );
   }
@@ -5099,7 +5401,7 @@ function build() {
       let rings2 = state[1];
       let n = ring_size(degree(c));
       let sp = spec(c.name);
-      let $1 = upgrades(sp.skill);
+      let $1 = lesser(sp.skill);
       let up1 = $1[0];
       let up2 = $1[1];
       let $2 = between(acc$12.seed, 6.5, 8);
@@ -5221,15 +5523,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        404,
+        416,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 11817,
-          end: 11863,
-          pattern_start: 11828,
-          pattern_end: 11836
+          start: 12245,
+          end: 12291,
+          pattern_start: 12256,
+          pattern_end: 12264
         }
       );
     }
@@ -5254,15 +5556,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        405,
+        417,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 11868,
-          end: 12042,
-          pattern_start: 11879,
-          pattern_end: 11886
+          start: 12296,
+          end: 12470,
+          pattern_start: 12307,
+          pattern_end: 12314
         }
       );
     } else {
@@ -5329,15 +5631,15 @@ function build() {
               "let_assert",
               FILEPATH,
               "tree",
-              446,
+              458,
               "build",
               "Pattern match failed, no pattern matched the value.",
               {
                 value: chain2,
-                start: 13429,
-                end: 13458,
-                pattern_start: 13440,
-                pattern_end: 13450
+                start: 13857,
+                end: 13886,
+                pattern_start: 13868,
+                pattern_end: 13878
               }
             );
           } else {
@@ -5354,15 +5656,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          449,
+          461,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: chain,
-            start: 13534,
-            end: 13563,
-            pattern_start: 13545,
-            pattern_end: 13555
+            start: 13962,
+            end: 13991,
+            pattern_start: 13973,
+            pattern_end: 13983
           }
         );
       } else {
@@ -5421,32 +5723,48 @@ function build() {
         region(c),
         facing_axis(start.x, start.y, c.x, c.y)
       );
-      let $4 = small(acc$32, axis);
-      let acc$4 = $4[0];
-      let k1 = $4[1];
-      let $5 = add3(acc$4, k1, c.id, start.x + rx * 3, start.y + ry * 3);
-      let acc$5 = $5[0];
-      let s1 = $5[1];
-      let $6 = small(acc$5, axis);
-      let acc$6 = $6[0];
-      let k2 = $6[1];
-      let $7 = add3(acc$6, k2, c.id, start.x + rx * 6, start.y + ry * 6);
-      let acc$7 = $7[0];
+      let $4 = upgrades(spec(c.name).skill);
+      let strong1 = $4[0];
+      let strong2 = $4[1];
+      let $5 = small(acc$32, axis);
+      let acc$4 = $5[0];
+      let k1 = $5[1];
+      let $6 = add3(acc$4, k1, c.id, start.x + rx * 3, start.y + ry * 3);
+      let acc$5 = $6[0];
+      let s1 = $6[1];
+      let $7 = add3(
+        acc$5,
+        new Small(strong1),
+        c.id,
+        start.x + rx * 6,
+        start.y + ry * 6
+      );
+      let acc$6 = $7[0];
       let s2 = $7[1];
-      let g = spur_grant(i);
       let $8 = add3(
-        acc$7,
-        new Notable(grant_name(g), g),
+        acc$6,
+        new Small(strong2),
         c.id,
         start.x + rx * 9,
         start.y + ry * 9
       );
-      let acc$8 = $8[0];
-      let end = $8[1];
+      let acc$7 = $8[0];
+      let s3 = $8[1];
+      let g = spur_grant(i);
+      let $9 = add3(
+        acc$7,
+        new Notable(grant_name(g), g),
+        c.id,
+        start.x + rx * 12,
+        start.y + ry * 12
+      );
+      let acc$8 = $9[0];
+      let end = $9[1];
       let _pipe = acc$8;
       let _pipe$1 = link(_pipe, start.id, s1.id);
       let _pipe$2 = link(_pipe$1, s1.id, s2.id);
-      return link(_pipe$2, s2.id, end.id);
+      let _pipe$3 = link(_pipe$2, s2.id, s3.id);
+      return link(_pipe$3, s3.id, end.id);
     }
   );
   let neighbours = fold2(
@@ -5821,6 +6139,9 @@ var EnteredRoom = class extends CustomType {
     this.depth = depth;
   }
 };
+var GateShut = class extends CustomType {
+};
+var Event$GateShut$const = new GateShut();
 var RunComplete = class extends CustomType {
   constructor(seconds, kills, level) {
     super();
@@ -5920,7 +6241,7 @@ var Mods = class extends CustomType {
   }
 };
 var World = class extends CustomType {
-  constructor(player2, level, enemies, projectiles, strikes, events, depth, cleared, doors, exits, pending, seed, tree, unlocked, npcs, time, kills, room_time, safe_x) {
+  constructor(player2, level, enemies, projectiles, strikes, events, depth, cleared, doors, exits, pending, seed, tree, unlocked, npcs, time, kills, room_time, safe_x, sealed, plan) {
     super();
     this.player = player2;
     this.level = level;
@@ -5941,10 +6262,11 @@ var World = class extends CustomType {
     this.kills = kills;
     this.room_time = room_time;
     this.safe_x = safe_x;
+    this.sealed = sealed;
+    this.plan = plan;
   }
 };
 var no_dash = -1;
-var entry_stretch = 8;
 var boss_depth = 12;
 var sandbox = /* @__PURE__ */ new Mods(
   0,
@@ -6030,22 +6352,22 @@ function load(world2, t, depth, pending) {
     _block = 2 + globalThis.Math.trunc(depth / 2);
   }
   let count2 = _block;
+  let $ = t.air;
+  let ax = $[0];
+  let ay = $[1];
   let _block$1;
-  let $ = depth === boss_depth || depth === 0;
-  let $1 = depth >= 6;
-  let $2 = depth >= 4;
-  if ($) {
+  let $1 = depth === boss_depth || depth === 0;
+  let $2 = depth >= 6;
+  let $3 = depth >= 4;
+  if ($1) {
     _block$1 = List$Empty$const;
-  } else if ($1) {
-    _block$1 = prepend(
-      [26, 8, Kind$Flyer$const],
-      prepend([30, 2, Kind$Bouncer$const], List$Empty$const)
-    );
   } else if ($2) {
     _block$1 = prepend(
-      [26, 8, Kind$Flyer$const],
-      List$Empty$const
+      [ax, ay, Kind$Flyer$const],
+      prepend([ax + 4, ay, Kind$Bouncer$const], List$Empty$const)
     );
+  } else if ($3) {
+    _block$1 = prepend([ax, ay, Kind$Flyer$const], List$Empty$const);
   } else {
     _block$1 = List$Empty$const;
   }
@@ -6060,8 +6382,8 @@ function load(world2, t, depth, pending) {
     (s, i) => {
       let e = spawn(i + 1, s[2], s[0], s[1]);
       let _block$3;
-      let $3 = e.kind;
-      if ($3 instanceof Boss) {
+      let $4 = e.kind;
+      if ($4 instanceof Boss) {
         _block$3 = e.max_hp;
       } else {
         _block$3 = round(identity(e.max_hp) * toughness);
@@ -6128,7 +6450,13 @@ function load(world2, t, depth, pending) {
       p.invuln,
       p.hurt
     ),
-    t.level,
+    (() => {
+      if (depth === 0) {
+        return t.level;
+      } else {
+        return prepend(tunnel(), t.level);
+      }
+    })(),
     enemies,
     List$Empty$const,
     List$Empty$const,
@@ -6145,7 +6473,9 @@ function load(world2, t, depth, pending) {
     world2.time,
     world2.kills,
     0,
-    t.entry[0] + entry_stretch
+    tunnel_end,
+    false,
+    world2.plan
   );
 }
 function new_world(seed) {
@@ -6203,7 +6533,9 @@ function new_world(seed) {
     0,
     0,
     0,
-    0
+    0,
+    false,
+    List$Empty$const
   );
   let world$1 = load(world2, hub(), 0, Option$None$const);
   return new World(
@@ -6230,7 +6562,9 @@ function new_world(seed) {
     world$1.time,
     world$1.kills,
     world$1.room_time,
-    world$1.safe_x
+    world$1.safe_x,
+    world$1.sealed,
+    world$1.plan
   );
 }
 function tick_enemies(world2, dt) {
@@ -6258,7 +6592,9 @@ function tick_enemies(world2, dt) {
     world2.time,
     world2.kills,
     world2.room_time,
-    world2.safe_x
+    world2.safe_x,
+    world2.sealed,
+    world2.plan
   );
 }
 function kit_mods(name) {
@@ -6412,7 +6748,9 @@ function choose_class(world2, keystone) {
       world2.time,
       world2.kills,
       world2.room_time,
-      world2.safe_x
+      world2.safe_x,
+      world2.sealed,
+      world2.plan
     );
   } else {
     return world2;
@@ -6442,8 +6780,86 @@ function talk(world2, up_fresh) {
     return world2;
   }
 }
+function nth_room(i) {
+  let $ = drop(run_rooms(), i);
+  let t;
+  if ($ instanceof Empty) {
+    throw makeError(
+      "let_assert",
+      FILEPATH2,
+      "game",
+      1561,
+      "nth_room",
+      "Pattern match failed, no pattern matched the value.",
+      {
+        value: $,
+        start: 43103,
+        end: 43155,
+        pattern_start: 43114,
+        pattern_end: 43121
+      }
+    );
+  } else {
+    t = $.head;
+  }
+  return t;
+}
 function next2(seed) {
   return next(seed);
+}
+function shuffle(items, seed) {
+  let $ = map_fold(
+    items,
+    seed,
+    (s, x) => {
+      let s$1 = next2(s);
+      return [s$1, [s$1, x]];
+    }
+  );
+  let seed$1 = $[0];
+  let keyed = $[1];
+  let _block;
+  let _pipe = keyed;
+  let _pipe$1 = sort(
+    _pipe,
+    (a, b) => {
+      return compare(a[0], b[0]);
+    }
+  );
+  _block = map3(_pipe$1, (pair) => {
+    return pair[1];
+  });
+  let shuffled = _block;
+  return [shuffled, seed$1];
+}
+function plan_run(seed) {
+  let indexed = index_map(
+    run_rooms(),
+    (t, i) => {
+      return [i, t.tier];
+    }
+  );
+  return fold2(
+    prepend(1, prepend(2, prepend(3, List$Empty$const))),
+    [List$Empty$const, seed],
+    (acc2, tier) => {
+      let plan = acc2[0];
+      let seed$1 = acc2[1];
+      let _block;
+      let _pipe = indexed;
+      let _pipe$1 = filter(_pipe, (p) => {
+        return p[1] === tier;
+      });
+      _block = map3(_pipe$1, (p) => {
+        return p[0];
+      });
+      let ids = _block;
+      let $ = shuffle(ids, seed$1);
+      let shuffled = $[0];
+      let seed$2 = $[1];
+      return [append(plan, shuffled), seed$2];
+    }
+  );
 }
 function door_box(d) {
   return box(d.x, d.y, 1.2, 2);
@@ -6490,94 +6906,112 @@ function use_door(world2, up_fresh) {
         fresh.time,
         fresh.kills,
         fresh.room_time,
-        fresh.safe_x
+        fresh.safe_x,
+        fresh.sealed,
+        fresh.plan
       );
     } else {
       let d = door[0];
       let seed = next2(world2.seed);
       let depth = world2.depth + 1;
       let _block$1;
-      let $1 = depth === boss_depth;
-      if ($1) {
-        _block$1 = boss_room();
+      let $2 = world2.depth;
+      if ($2 === 0) {
+        _block$1 = plan_run(seed);
       } else {
-        let templates = run_rooms();
-        let $2 = drop(
-          templates,
-          remainderInt(seed, length(templates))
-        );
-        let t2;
-        if ($2 instanceof Empty) {
-          throw makeError(
-            "let_assert",
-            FILEPATH2,
-            "game",
-            1190,
-            "use_door",
-            "Pattern match failed, no pattern matched the value.",
-            {
-              value: $2,
-              start: 31927,
-              end: 32011,
-              pattern_start: 31938,
-              pattern_end: 31945
-            }
-          );
-        } else {
-          t2 = $2.head;
-        }
-        _block$1 = t2;
+        _block$1 = [world2.plan, seed];
       }
-      let t = _block$1;
-      let world$1 = load(
+      let $1 = _block$1;
+      let plan = $1[0];
+      let seed$1 = $1[1];
+      let world$1 = new World(
+        world2.player,
+        world2.level,
+        world2.enemies,
+        world2.projectiles,
+        world2.strikes,
+        world2.events,
+        world2.depth,
+        world2.cleared,
+        world2.doors,
+        world2.exits,
+        world2.pending,
+        world2.seed,
+        world2.tree,
+        world2.unlocked,
+        world2.npcs,
+        world2.time,
+        world2.kills,
+        world2.room_time,
+        world2.safe_x,
+        world2.sealed,
+        plan
+      );
+      let _block$2;
+      let $3 = depth === boss_depth;
+      let $4 = drop(plan, depth - 1);
+      if ($3) {
+        _block$2 = boss_room();
+      } else if ($4 instanceof Empty) {
+        _block$2 = nth_room(0);
+      } else {
+        let i = $4.head;
+        _block$2 = nth_room(i);
+      }
+      let t = _block$2;
+      let world$2 = load(
         new World(
-          world2.player,
-          world2.level,
-          world2.enemies,
-          world2.projectiles,
-          world2.strikes,
-          world2.events,
-          world2.depth,
-          world2.cleared,
-          world2.doors,
-          world2.exits,
-          world2.pending,
-          seed,
-          world2.tree,
-          world2.unlocked,
-          world2.npcs,
-          world2.time,
-          world2.kills,
-          world2.room_time,
-          world2.safe_x
+          world$1.player,
+          world$1.level,
+          world$1.enemies,
+          world$1.projectiles,
+          world$1.strikes,
+          world$1.events,
+          world$1.depth,
+          world$1.cleared,
+          world$1.doors,
+          world$1.exits,
+          world$1.pending,
+          seed$1,
+          world$1.tree,
+          world$1.unlocked,
+          world$1.npcs,
+          world$1.time,
+          world$1.kills,
+          world$1.room_time,
+          world$1.safe_x,
+          world$1.sealed,
+          world$1.plan
         ),
         t,
         depth,
         d.reward
       );
       return new World(
-        world$1.player,
-        world$1.level,
-        world$1.enemies,
-        world$1.projectiles,
-        world$1.strikes,
+        world$2.player,
+        world$2.level,
+        world$2.enemies,
+        world$2.projectiles,
+        world$2.strikes,
         append(
-          world$1.events,
+          world$2.events,
           prepend(new EnteredRoom(depth), List$Empty$const)
         ),
-        world$1.depth,
-        world$1.cleared,
-        world$1.doors,
-        world$1.exits,
-        world$1.pending,
-        world$1.seed,
-        world$1.tree,
-        world$1.unlocked,
-        world$1.npcs,
-        world$1.time,
-        world$1.kills,
-        world$1.room_time,
-        world$1.safe_x
+        world$2.depth,
+        world$2.cleared,
+        world$2.doors,
+        world$2.exits,
+        world$2.pending,
+        world$2.seed,
+        world$2.tree,
+        world$2.unlocked,
+        world$2.npcs,
+        world$2.time,
+        world$2.kills,
+        world$2.room_time,
+        world$2.safe_x,
+        world$2.sealed,
+        world$2.plan
       );
     }
   } else {
@@ -6683,31 +7117,6 @@ function apply_reward(p, r) {
     );
   }
 }
-function shuffle(items, seed) {
-  let $ = map_fold(
-    items,
-    seed,
-    (s, x) => {
-      let s$1 = next2(s);
-      return [s$1, [s$1, x]];
-    }
-  );
-  let seed$1 = $[0];
-  let keyed = $[1];
-  let _block;
-  let _pipe = keyed;
-  let _pipe$1 = sort(
-    _pipe,
-    (a, b) => {
-      return compare(a[0], b[0]);
-    }
-  );
-  _block = map3(_pipe$1, (pair) => {
-    return pair[1];
-  });
-  let shuffled = _block;
-  return [shuffled, seed$1];
-}
 function check_clear(world2) {
   let hostile_left = any(
     world2.enemies,
@@ -6811,7 +7220,9 @@ function check_clear(world2) {
       world2.time,
       world2.kills,
       world2.room_time,
-      world2.safe_x
+      world2.safe_x,
+      world2.sealed,
+      world2.plan
     );
   }
 }
@@ -6875,7 +7286,9 @@ function blocked_by_shield(world2, k) {
       world2.time,
       world2.kills,
       world2.room_time,
-      world2.safe_x
+      world2.safe_x,
+      world2.sealed,
+      world2.plan
     );
   } else {
     return k();
@@ -6920,7 +7333,9 @@ function hurt(world2, damage3, from_x) {
           fresh.time,
           fresh.kills,
           fresh.room_time,
-          fresh.safe_x
+          fresh.safe_x,
+          fresh.sealed,
+          fresh.plan
         );
       } else {
         return new World(
@@ -6976,7 +7391,9 @@ function hurt(world2, damage3, from_x) {
           world2.time,
           world2.kills,
           world2.room_time,
-          world2.safe_x
+          world2.safe_x,
+          world2.sealed,
+          world2.plan
         );
       }
     }
@@ -7032,7 +7449,9 @@ function take_damage(world2) {
         world2.time,
         world2.kills,
         world2.room_time,
-        world2.safe_x
+        world2.safe_x,
+        world2.sealed,
+        world2.plan
       ),
       shot_damage,
       s.x - s.vx
@@ -7189,15 +7608,15 @@ function hit_enemies(world2, targets, dmg, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        738,
+        744,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $12,
-          start: 18977,
-          end: 19033,
-          pattern_start: 18988,
-          pattern_end: 18993
+          start: 19200,
+          end: 19256,
+          pattern_start: 19211,
+          pattern_end: 19216
         }
       );
     }
@@ -7321,7 +7740,9 @@ function hit_enemies(world2, targets, dmg, push) {
       }
     ),
     world2.room_time,
-    world2.safe_x
+    world2.safe_x,
+    world2.sealed,
+    world2.plan
   );
 }
 function strikes_act(world2, dt) {
@@ -7347,15 +7768,17 @@ function strikes_act(world2, dt) {
       world2.time,
       world2.kills,
       world2.room_time,
-      world2.safe_x
+      world2.safe_x,
+      world2.sealed,
+      world2.plan
     ),
     (w, s) => {
-      let box3 = strike_box(s, p.x, p.y);
+      let box4 = strike_box(s, p.x, p.y);
       let touching = filter(
         w.enemies,
         (e) => {
           return alive(e) && !contains(s.hit, e.id) && overlaps(
-            box3,
+            box4,
             body(e)
           );
         }
@@ -7429,7 +7852,9 @@ function strikes_act(world2, dt) {
           w$1.time,
           w$1.kills,
           w$1.room_time,
-          w$1.safe_x
+          w$1.safe_x,
+          w$1.sealed,
+          w$1.plan
         );
       } else {
         return w$1;
@@ -7442,9 +7867,9 @@ function damage2(p) {
     identity(damage(p.stats)) * pct(p.mods.damage_pct)
   );
 }
-function strike(world2, a, box3) {
+function strike(world2, a, box4) {
   let p = world2.player;
-  let room = max_targets(p.stats) - length(a.hit);
+  let room2 = max_targets(p.stats) - length(a.hit);
   let dist = (e) => {
     return absolute_value2(e.x - p.x) + absolute_value2(e.y - p.y);
   };
@@ -7454,7 +7879,7 @@ function strike(world2, a, box3) {
     _pipe,
     (e) => {
       return alive(e) && !contains(a.hit, e.id) && overlaps(
-        box3,
+        box4,
         body(e)
       );
     }
@@ -7465,7 +7890,7 @@ function strike(world2, a, box3) {
       return compare2(dist(e1), dist(e2));
     }
   );
-  _block = take(_pipe$2, room);
+  _block = take(_pipe$2, room2);
   let targets = _block;
   if (targets instanceof Empty) {
     return world2;
@@ -7621,7 +8046,9 @@ function strike(world2, a, box3) {
         world2.time,
         world2.kills,
         world2.room_time,
-        world2.safe_x
+        world2.safe_x,
+        world2.sealed,
+        world2.plan
       ),
       targets,
       damage2(p$2),
@@ -7743,13 +8170,15 @@ function combat(world2) {
         world2.time,
         world2.kills,
         world2.room_time,
-        world2.safe_x
+        world2.safe_x,
+        world2.sealed,
+        world2.plan
       );
     } else {
       let $2 = active_hitbox(p);
       if ($2 instanceof Some) {
-        let box3 = $2[0];
-        return strike(world2, a, box3);
+        let box4 = $2[0];
+        return strike(world2, a, box4);
       } else {
         return world2;
       }
@@ -7838,8 +8267,43 @@ function enemies_act(world2, dt) {
     world2.time,
     world2.kills,
     world2.room_time,
-    world2.safe_x
+    world2.safe_x,
+    world2.sealed,
+    world2.plan
   );
+}
+function seal(world2) {
+  let $ = world2.depth > 0 && !world2.sealed && world2.player.x > world2.safe_x + 0.5;
+  if ($) {
+    return new World(
+      world2.player,
+      prepend(gate(), world2.level),
+      world2.enemies,
+      world2.projectiles,
+      world2.strikes,
+      append(
+        world2.events,
+        prepend(Event$GateShut$const, List$Empty$const)
+      ),
+      world2.depth,
+      world2.cleared,
+      world2.doors,
+      world2.exits,
+      world2.pending,
+      world2.seed,
+      world2.tree,
+      world2.unlocked,
+      world2.npcs,
+      world2.time,
+      world2.kills,
+      world2.room_time,
+      world2.safe_x,
+      true,
+      world2.plan
+    );
+  } else {
+    return world2;
+  }
 }
 function boost(p) {
   let m = p.mods;
@@ -8009,7 +8473,9 @@ function fire_skills(world2, before, dt) {
     world2.time,
     world2.kills,
     world2.room_time,
-    world2.safe_x
+    world2.safe_x,
+    world2.sealed,
+    world2.plan
   );
 }
 function move(p, level, dt) {
@@ -8702,17 +9168,20 @@ function step2(world2, input, dt) {
     time,
     world2.kills,
     world2.room_time + dt,
-    world2.safe_x
+    world2.safe_x,
+    world2.sealed,
+    world2.plan
   );
   let _pipe$8 = fire_skills(_pipe$7, before, dt);
-  let _pipe$9 = enemies_act(_pipe$8, dt);
-  let _pipe$10 = combat(_pipe$9);
-  let _pipe$11 = strikes_act(_pipe$10, dt);
-  let _pipe$12 = take_damage(_pipe$11);
-  let _pipe$13 = check_clear(_pipe$12);
-  let _pipe$14 = use_door(_pipe$13, up_fresh);
-  let _pipe$15 = talk(_pipe$14, up_fresh);
-  return tick_enemies(_pipe$15, dt);
+  let _pipe$9 = seal(_pipe$8);
+  let _pipe$10 = enemies_act(_pipe$9, dt);
+  let _pipe$11 = combat(_pipe$10);
+  let _pipe$12 = strikes_act(_pipe$11, dt);
+  let _pipe$13 = take_damage(_pipe$12);
+  let _pipe$14 = check_clear(_pipe$13);
+  let _pipe$15 = use_door(_pipe$14, up_fresh);
+  let _pipe$16 = talk(_pipe$15, up_fresh);
+  return tick_enemies(_pipe$16, dt);
 }
 function apply_node(p, kind) {
   let m = p.mods;
@@ -9405,7 +9874,9 @@ function allocate(world2, id) {
       world2.time,
       world2.kills,
       world2.room_time,
-      world2.safe_x
+      world2.safe_x,
+      world2.sealed,
+      world2.plan
     );
   } else {
     return world2;
@@ -9431,7 +9902,9 @@ function set_unlocked(world2, unlocked) {
     world2.time,
     world2.kills,
     world2.room_time,
-    world2.safe_x
+    world2.safe_x,
+    world2.sealed,
+    world2.plan
   );
 }
 function class_name(world2) {
@@ -9655,15 +10128,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        1508,
+        1522,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 41396,
-          end: 41447,
-          pattern_start: 41407,
-          pattern_end: 41415
+          start: 41912,
+          end: 41963,
+          pattern_start: 41923,
+          pattern_end: 41931
         }
       );
     }
@@ -9676,15 +10149,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        1509,
+        1523,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 41454,
-          end: 41523,
-          pattern_start: 41465,
-          pattern_end: 41490
+          start: 41970,
+          end: 42039,
+          pattern_start: 41981,
+          pattern_end: 42006
         }
       );
     } else {
@@ -9694,15 +10167,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          1509,
+          1523,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 41454,
-            end: 41523,
-            pattern_start: 41465,
-            pattern_end: 41490
+            start: 41970,
+            end: 42039,
+            pattern_start: 41981,
+            pattern_end: 42006
           }
         );
       } else {
@@ -9712,15 +10185,15 @@ function npc_lines(world2, n) {
             "let_assert",
             FILEPATH2,
             "game",
-            1509,
+            1523,
             "npc_lines",
             "Pattern match failed, no pattern matched the value.",
             {
               value: $2,
-              start: 41454,
-              end: 41523,
-              pattern_start: 41465,
-              pattern_end: 41490
+              start: 41970,
+              end: 42039,
+              pattern_start: 41981,
+              pattern_end: 42006
             }
           );
         } else {
@@ -9730,15 +10203,15 @@ function npc_lines(world2, n) {
               "let_assert",
               FILEPATH2,
               "game",
-              1509,
+              1523,
               "npc_lines",
               "Pattern match failed, no pattern matched the value.",
               {
                 value: $2,
-                start: 41454,
-                end: 41523,
-                pattern_start: 41465,
-                pattern_end: 41490
+                start: 41970,
+                end: 42039,
+                pattern_start: 41981,
+                pattern_end: 42006
               }
             );
           } else {
@@ -9748,15 +10221,15 @@ function npc_lines(world2, n) {
                 "let_assert",
                 FILEPATH2,
                 "game",
-                1509,
+                1523,
                 "npc_lines",
                 "Pattern match failed, no pattern matched the value.",
                 {
                   value: $2,
-                  start: 41454,
-                  end: 41523,
-                  pattern_start: 41465,
-                  pattern_end: 41490
+                  start: 41970,
+                  end: 42039,
+                  pattern_start: 41981,
+                  pattern_end: 42006
                 }
               );
             } else if ($6.tail instanceof Empty) {
@@ -9768,15 +10241,15 @@ function npc_lines(world2, n) {
                 "let_assert",
                 FILEPATH2,
                 "game",
-                1509,
+                1523,
                 "npc_lines",
                 "Pattern match failed, no pattern matched the value.",
                 {
                   value: $2,
-                  start: 41454,
-                  end: 41523,
-                  pattern_start: 41465,
-                  pattern_end: 41490
+                  start: 41970,
+                  end: 42039,
+                  pattern_start: 41981,
+                  pattern_end: 42006
                 }
               );
             }
@@ -9835,15 +10308,13 @@ window.game = { get world() {
 }, set world(w) {
   world = w;
 } };
-var box2 = (w, h, color, opts = {}) => new THREE.Mesh(new THREE.BoxGeometry(w, h, 1), new THREE.MeshBasicMaterial({ color, ...opts }));
-var player = box2(width, height, 16777215);
+var box3 = (w, h, color, opts = {}) => new THREE.Mesh(new THREE.BoxGeometry(w, h, 1), new THREE.MeshBasicMaterial({ color, ...opts }));
+var player = box3(width, height, 16777215);
 scene.add(player);
-var slash = box2(1, 1, 16766287, { transparent: true, opacity: 0.55 });
+var slash = box3(1, 1, 16766287, { transparent: true, opacity: 0.55 });
 slash.position.z = 1;
 scene.add(slash);
 var kindColor = (k) => k instanceof Boss ? 16740096 : k instanceof Charger ? 12986408 : k instanceof Shooter ? 9315498 : k instanceof Flyer ? 2541274 : k instanceof Bouncer ? 12634675 : 7162945;
-var entryMark = box2(0.15, 4, 6732650, { transparent: true, opacity: 0.35 });
-scene.add(entryMark);
 var roomGroup = new THREE.Group();
 var doorGroup = new THREE.Group();
 scene.add(roomGroup, doorGroup);
@@ -9866,15 +10337,15 @@ function syncRoom() {
     [builtDepth, builtLevel] = [world.depth, world.level];
     empty2(roomGroup);
     for (const r of world.level.toArray()) {
-      const m = box2(r.w, r.h, r.one_way ? 7829367 : 15263976);
+      const m = box3(r.w, r.h, r.one_way ? 7829367 : 15263976);
       m.position.set(r.x + r.w / 2, r.y + r.h / 2, 0);
       roomGroup.add(m);
     }
     enemyMeshes = new Map(
       world.enemies.toArray().map((e) => {
         const [w, h] = size3(e.kind);
-        const body2 = box2(w, h, kindColor(e.kind));
-        const bar = box2(w, 0.12, 6732650);
+        const body2 = box3(w, h, kindColor(e.kind));
+        const bar = box3(w, 0.12, 6732650);
         roomGroup.add(body2, bar);
         return [e.id, { body: body2, bar, w, h, color: kindColor(e.kind) }];
       })
@@ -9882,7 +10353,7 @@ function syncRoom() {
     npcLabels.forEach((l) => l.el.remove());
     npcMeshes = world.npcs.toArray().map((n) => {
       const b = npc_box(n), statue = n.role instanceof Statue;
-      const m = box2(b.w, b.h, statue ? 10395294 : 16763432);
+      const m = box3(b.w, b.h, statue ? 10395294 : 16763432);
       m.position.set(b.x + b.w / 2, b.y + b.h / 2, -0.3);
       roomGroup.add(m);
       return { m, n, statue };
@@ -9902,7 +10373,7 @@ function syncRoom() {
     doorLabels.forEach((l) => l.el.remove());
     doorLabels = world.doors.toArray().map((d) => {
       const b = door_box(d);
-      const m = box2(b.w, b.h, 5227511, { transparent: true, opacity: 0.35 });
+      const m = box3(b.w, b.h, 5227511, { transparent: true, opacity: 0.35 });
       m.position.set(b.x + b.w / 2, b.y + b.h / 2, -0.5);
       doorGroup.add(m);
       const el = document.createElement("div");
@@ -9925,7 +10396,7 @@ function pool2(color, opts) {
   const meshes = [];
   return (rects) => {
     rects.forEach((r, i) => {
-      if (!meshes[i]) scene.add(meshes[i] = box2(1, 1, color, opts));
+      if (!meshes[i]) scene.add(meshes[i] = box3(1, 1, color, opts));
       meshes[i].visible = true;
       meshes[i].position.set(r.x + r.w / 2, r.y + r.h / 2, 1);
       meshes[i].scale.set(r.w, r.h, 1);
@@ -10221,6 +10692,7 @@ function frame(now) {
         if (ev.depth > 0) floatText(world.player.x, world.player.y + 2.5, ev.depth === boss_depth ? "BOSS" : `DEPTH ${ev.depth}`, ev.depth === boss_depth ? "hurt" : "lvl");
       }
       if (ev instanceof RunComplete) showSummary(ev);
+      if (ev instanceof GateShut) floatText(world.safe_x - 1, 3.6, "the gate shuts", "npc");
       if (ev instanceof Unlocked) {
         floatText(world.player.x, world.player.y + 3, `UNLOCKED ${ev.name}`, "lvl");
         saveUnlocks();
@@ -10259,8 +10731,6 @@ function frame(now) {
     bar.scale.x = Math.max(frac, 1e-3);
     bar.position.set(e.x - w * (1 - frac) / 2, e.y + h + 0.3, 0);
   }
-  entryMark.visible = world.depth > 0 && p.x < world.safe_x;
-  entryMark.position.set(world.safe_x, 2, -0.2);
   drawShots(world.projectiles.toArray().map((s) => ({ x: s.x - shot_size / 2, y: s.y - shot_size / 2, w: shot_size, h: shot_size })));
   drawStrikes(world.strikes.toArray().map((s) => strike_box(s, p.x, p.y)));
   camera.position.x += (p.x - camera.position.x) * 0.15;
