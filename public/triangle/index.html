@@ -3,6 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <title>Triangle Platformer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet" />
     <style>
       html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0b0b; }
       #hud { position: fixed; top: 62px; left: 8px; color: #bbb; font: 12px/1.4 monospace; white-space: pre; }
@@ -45,7 +48,8 @@
                  background: rgba(16,16,16,0.95); border: 2px solid #ffd54f; color: #ddd; font: 15px/1.6 monospace; text-align: center; }
       #summary h2 { margin: 0 0 8px; color: #ffd54f; }
       #summary .dim { color: #888; font-size: 13px; }
-      #vignette { position: fixed; inset: 0; pointer-events: none; box-shadow: inset 0 0 120px 30px rgba(229,57,53,0.75); opacity: 0; }
+      #vignette { position: fixed; inset: 0; pointer-events: none; opacity: 0;
+                  background: radial-gradient(ellipse at center, transparent 55%, rgba(229,57,53,0.7) 100%); }
       #vignette.hit { animation: hit 0.35s ease-out; }
       @keyframes hit { from { opacity: 1; } to { opacity: 0; } }
       @keyframes pulse { from { border-color: #555; } to { border-color: #ff1744; } }

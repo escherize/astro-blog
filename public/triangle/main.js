@@ -1688,31 +1688,6 @@ var Direction$Leading$const = new Leading();
 var Trailing = class extends CustomType {
 };
 var Direction$Trailing$const = new Trailing();
-function join_loop(loop$strings, loop$separator, loop$accumulator) {
-  while (true) {
-    let strings = loop$strings;
-    let separator = loop$separator;
-    let accumulator = loop$accumulator;
-    if (strings instanceof Empty) {
-      return accumulator;
-    } else {
-      let string = strings.head;
-      let strings$1 = strings.tail;
-      loop$strings = strings$1;
-      loop$separator = separator;
-      loop$accumulator = accumulator + separator + string;
-    }
-  }
-}
-function join(strings, separator) {
-  if (strings instanceof Empty) {
-    return "";
-  } else {
-    let first$1 = strings.head;
-    let rest = strings.tail;
-    return join_loop(rest, separator, first$1);
-  }
-}
 
 // build/dev/javascript/gleam_stdlib/gleam/dynamic/decode.mjs
 var Missing = class extends CustomType {
@@ -1840,16 +1815,6 @@ function round(x) {
     return round2(x);
   } else {
     return 0 - round2(negate(x));
-  }
-}
-function to_precision(x, precision) {
-  let $ = precision <= 0;
-  if ($) {
-    let factor = power2(10, identity(-precision));
-    return identity(round(divideFloat(x, factor))) * factor;
-  } else {
-    let factor = power2(10, identity(precision));
-    return divideFloat(identity(round(x * factor)), factor);
   }
 }
 function power(base, exponent) {
@@ -5899,19 +5864,6 @@ function bonus_name(b) {
     return "+1 dash charge";
   }
 }
-function label(n) {
-  let $ = n.kind;
-  if ($ instanceof Keystone) {
-    let name = $.name;
-    return name + " (keystone)";
-  } else if ($ instanceof Small) {
-    let b = $.bonus;
-    return bonus_name(b);
-  } else {
-    let name = $.name;
-    return name;
-  }
-}
 function bfs(loop$t, loop$target, loop$frontier, loop$seen, loop$depth) {
   while (true) {
     let t = loop$t;
@@ -9917,170 +9869,6 @@ function class_name(world2) {
     return "No class";
   }
 }
-function build_summary(world2) {
-  let p = world2.player;
-  let m = p.mods;
-  let _block;
-  let _pipe = prepend(
-    (() => {
-      let $ = m.air_jumps;
-      if ($ === 0) {
-        return "";
-      } else {
-        let n = $;
-        return to_string(n) + " air jump";
-      }
-    })(),
-    prepend(
-      (() => {
-        let $ = m.dashes;
-        if ($ === 0) {
-          return "";
-        } else {
-          let n = $;
-          return to_string(n) + " dash";
-        }
-      })(),
-      prepend(
-        (() => {
-          let $ = m.wall_jump;
-          if ($) {
-            return "wall-jump";
-          } else {
-            return "";
-          }
-        })(),
-        List$Empty$const
-      )
-    )
-  );
-  _block = filter(_pipe, (s) => {
-    return s !== "";
-  });
-  let moves = _block;
-  let pct_line = (label2, n) => {
-    if (n === 0) {
-      return List$Empty$const;
-    } else {
-      return prepend(
-        label2 + " +" + to_string(n) + "%",
-        List$Empty$const
-      );
-    }
-  };
-  return flatten(
-    prepend(
-      prepend(
-        class_name(world2) + "  \xB7  Lv " + to_string(p.lvl) + "  \xB7  " + to_string(
-          p.points
-        ) + " points",
-        prepend(
-          "F " + to_string(p.stats.fighter) + "  R " + to_string(
-            p.stats.rogue
-          ) + "  M " + to_string(p.stats.mage),
-          prepend(
-            "HP " + to_string(max_hp3(p)) + "  dmg " + to_string(
-              damage2(p)
-            ) + "  speed " + float_to_string(
-              to_precision(speed2(p), 2)
-            ) + "x",
-            prepend(
-              "Moves: " + (() => {
-                if (moves instanceof Empty) {
-                  return "jump only";
-                } else {
-                  return join(moves, ", ");
-                }
-              })(),
-              List$Empty$const
-            )
-          )
-        )
-      ),
-      prepend(
-        pct_line("Crit", m.crit_pct),
-        prepend(
-          pct_line("XP", m.xp_pct),
-          prepend(
-            pct_line("Knockback", m.knockback_pct),
-            prepend(
-              pct_line("Reach", m.reach_pct),
-              prepend(
-                (() => {
-                  let $ = m.cooldown_pct;
-                  if ($ === 0) {
-                    return List$Empty$const;
-                  } else {
-                    let n = $;
-                    return prepend(
-                      "Cooldowns -" + to_string(n) + "%",
-                      List$Empty$const
-                    );
-                  }
-                })(),
-                prepend(
-                  (() => {
-                    let $ = m.shields;
-                    if ($ === 0) {
-                      return List$Empty$const;
-                    } else {
-                      let n = $;
-                      return prepend(
-                        "Shields " + to_string(n) + " per room",
-                        List$Empty$const
-                      );
-                    }
-                  })(),
-                  prepend(
-                    prepend("Skills:", List$Empty$const),
-                    prepend(
-                      (() => {
-                        let $ = p.loadout;
-                        if ($ instanceof Empty) {
-                          return prepend("  (none yet)", List$Empty$const);
-                        } else {
-                          let l = $;
-                          return map3(
-                            l,
-                            (s) => {
-                              return "  " + describe(s);
-                            }
-                          );
-                        }
-                      })(),
-                      prepend(
-                        (() => {
-                          let $ = m.rules;
-                          if ($ instanceof Empty) {
-                            return $;
-                          } else {
-                            let rules = $;
-                            return prepend(
-                              "Rules:",
-                              map3(
-                                rules,
-                                (r) => {
-                                  return "  " + grant_name(
-                                    new GrantRule(r)
-                                  );
-                                }
-                              )
-                            );
-                          }
-                        })(),
-                        List$Empty$const
-                      )
-                    )
-                  )
-                )
-              )
-            )
-          )
-        )
-      )
-    )
-  );
-}
 function kit_move(name) {
   let m = kit_mods(name);
   let $ = m.dashes;
@@ -10282,6 +10070,643 @@ function npc_lines(world2, n) {
   }
 }
 
+// treescreen.js
+var W = 1280;
+var H = 720;
+var INK = "#3b2b25";
+var STRONG = "#2b1d18";
+var BODY = "#5b4a43";
+var SECTION = "#8a766d";
+var PAGE = "#fbf6ee";
+var PANE = "#f4ece2";
+var RED = "#d94c43";
+var GREEN = "#4f9e3f";
+var BLUE = "#5a5fd6";
+var GOLD = "#e0a21b";
+var TEAL = "#1f9fb5";
+var KIND = { bonus: "#8a8f99", skill: GOLD, move: TEAL, rule: "#9b59c9" };
+var KIND_NAME = { stat: "Stat", bonus: "Bonus", skill: "Skill", move: "Move", rule: "Rule", key: "Class" };
+var R = { key: 13, skill: 7.5, move: 7.5, rule: 7.5, bonus: 4.6, stat: 4.6 };
+var F = {
+  title: '800 17px "Baloo 2"',
+  chip: "800 12px Nunito",
+  body: "600 14px Nunito",
+  strong: "800 14px Nunito",
+  section: "800 13px Nunito",
+  number: '800 24px "Baloo 2"',
+  small: "700 12px Nunito",
+  label: '800 19px "Baloo 2"',
+  button: "800 13px Nunito",
+  hint: "600 14px Nunito",
+  badge: '800 15px "Baloo 2"',
+  tab: '800 14px "Baloo 2"'
+};
+var BTN = { A: GREEN, B: RED, X: BLUE, Y: GOLD };
+var PANE_AREA = { x: 468, y: 16, w: 796, h: 650 };
+var ZOOM = 2.5;
+function createTreeScreen({ getWorld, setWorld, onUnlock }) {
+  const cv = document.createElement("canvas");
+  cv.id = "tree";
+  document.body.appendChild(cv);
+  const ctx = cv.getContext("2d");
+  let open = false, focusId = null, wholeTree = false, tab = 0, kitIndex = 0;
+  let cam = null;
+  let view = { s: 1, ox: 0, oy: 0 };
+  let lastMove = 0, held = null, padPrev = {};
+  const w0 = getWorld();
+  const nodes2 = nodes(w0.tree).toArray();
+  const byId = new Map(nodes2.map((n) => [n.id, n]));
+  const edges = w0.tree.edges.toArray().map((e) => [e[0], e[1]]);
+  const neighbours = new Map(nodes2.map((n) => [n.id, []]));
+  for (const [a, b] of edges) {
+    neighbours.get(a).push(b);
+    neighbours.get(b).push(a);
+  }
+  const cells2 = w0.tree.cells.toArray();
+  const xs = nodes2.map((n) => n.x), ys = nodes2.map((n) => n.y);
+  const bounds = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+  const kindOf = (n) => {
+    if (n.kind instanceof Keystone) return "key";
+    if (n.kind instanceof Small) return n.kind.bonus instanceof Stat ? "stat" : "bonus";
+    return n.kind.grant instanceof GrantSkill ? "skill" : n.kind.grant instanceof GrantMove ? "move" : "rule";
+  };
+  const AX = (a) => a instanceof Fighter ? RED : a instanceof Rogue ? GREEN : BLUE;
+  const colorOf = (n) => kindOf(n) === "stat" ? AX(n.kind.bonus[0]) : n.kind instanceof Keystone ? INK : KIND[kindOf(n)];
+  const say = (s, x, y, font, color, align = "left") => {
+    ctx.font = font;
+    ctx.fillStyle = color;
+    ctx.textAlign = align;
+    ctx.fillText(s, x, y);
+  };
+  const width2 = (s, font) => {
+    ctx.font = font;
+    return ctx.measureText(s).width;
+  };
+  function fit(s, font, max3) {
+    if (width2(s, font) <= max3) return s;
+    while (s.length > 1 && width2(s + "\u2026", font) > max3) s = s.slice(0, -1);
+    return s + "\u2026";
+  }
+  function shapePath(kind, x, y, r) {
+    ctx.beginPath();
+    if (kind === "skill") {
+      for (let i = 0; i < 10; i++) {
+        const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.5 : r * 1.15;
+        ctx.lineTo(x + rr * Math.cos(a), y + rr * Math.sin(a));
+      }
+      ctx.closePath();
+    } else if (kind === "move") {
+      ctx.moveTo(x, y - r * 1.1);
+      ctx.lineTo(x + r, y + r * 0.8);
+      ctx.lineTo(x - r, y + r * 0.8);
+      ctx.closePath();
+    } else if (kind === "rule") {
+      ctx.moveTo(x, y - r * 1.15);
+      ctx.lineTo(x + r * 1.15, y);
+      ctx.lineTo(x, y + r * 1.15);
+      ctx.lineTo(x - r * 1.15, y);
+      ctx.closePath();
+    } else if (kind === "bonus") ctx.roundRect(x - r * 0.85, y - r * 0.85, r * 1.7, r * 1.7, r * 0.35);
+    else ctx.arc(x, y, r, 0, Math.PI * 2);
+  }
+  function chip(s, x, y, col) {
+    const cw = width2(s, F.chip) + 20;
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.roundRect(x, y - 15, cw, 24, 12);
+    ctx.fill();
+    say(s, x + cw / 2, y + 2, F.chip, "#fff", "center");
+    return cw;
+  }
+  function button(b, x, y) {
+    if (BTN[b]) {
+      ctx.fillStyle = BTN[b];
+      ctx.beginPath();
+      ctx.arc(x + 11, y - 5, 11, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      say(b, x + 11, y, F.button, "#fff", "center");
+      return 26;
+    }
+    const w = width2(b, F.button) + 16;
+    ctx.fillStyle = "#fff";
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(x, y - 16, w, 22, 7);
+    ctx.fill();
+    ctx.stroke();
+    say(b, x + w / 2, y, F.button, INK, "center");
+    return w + 4;
+  }
+  function card(x, y, w, h, fill = "#fff") {
+    ctx.fillStyle = fill;
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 14);
+    ctx.fill();
+    ctx.stroke();
+  }
+  function glyph(g, x, y, col) {
+    ctx.fillStyle = col;
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    if (g === "heart") {
+      ctx.moveTo(x, y + 7);
+      ctx.bezierCurveTo(x - 12, y - 2, x - 6, y - 11, x, y - 4);
+      ctx.bezierCurveTo(x + 6, y - 11, x + 12, y - 2, x, y + 7);
+      ctx.fill();
+    } else if (g === "shield") {
+      ctx.moveTo(x - 8, y - 8);
+      ctx.lineTo(x + 8, y - 8);
+      ctx.lineTo(x + 7, y + 2);
+      ctx.lineTo(x, y + 9);
+      ctx.lineTo(x - 7, y + 2);
+      ctx.closePath();
+      ctx.fill();
+    } else if (g === "sword") {
+      ctx.moveTo(x - 7, y + 7);
+      ctx.lineTo(x + 7, y - 7);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x - 7, y - 1);
+      ctx.lineTo(x - 1, y + 7);
+      ctx.stroke();
+    } else {
+      ctx.arc(x, y, 8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x, y - 5);
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + 4, y + 2);
+      ctx.stroke();
+    }
+  }
+  const pct2 = (v2) => `${v2 > 0 ? "+" : ""}${Math.round(v2)}%`;
+  function mix(f, r, m) {
+    const t = f + r + m || 1, c = (a, b, d) => Math.round((a * f + b * r + d * m) / t);
+    return `rgb(${c(217, 79, 90)},${c(76, 158, 95)},${c(67, 63, 214)})`;
+  }
+  function derive() {
+    const w = getWorld(), p = w.player;
+    const picking = p.class instanceof None;
+    const owned = new Set(p.allocated.toArray());
+    const unlocked = new Set(w.unlocked.toArray());
+    const available = (n) => picking ? n.kind instanceof Keystone && unlocked.has(n.id) && w.depth === 0 : p.points > 0 && can_allocate(w.tree, p.allocated, n.id);
+    return { w, p, picking, owned, unlocked, available };
+  }
+  function defaultFocus() {
+    const { p } = derive();
+    const owned = p.allocated.toArray();
+    return owned.length ? owned[0] : 12;
+  }
+  function moveFocus(dx, dy) {
+    const from = byId.get(focusId);
+    const pick = (ids, cone) => {
+      let best = null, bestScore = -Infinity;
+      for (const id of ids) {
+        const n = byId.get(id), vx = n.x - from.x, vy = n.y - from.y, len = Math.hypot(vx, vy);
+        if (!len) continue;
+        const cos3 = (vx * dx + vy * dy) / len;
+        if (cos3 < cone) continue;
+        const score = cos3 * 2 - len / 40;
+        if (score > bestScore) {
+          bestScore = score;
+          best = id;
+        }
+      }
+      return best;
+    };
+    const next3 = pick(neighbours.get(focusId), 0.35) ?? pick(nodes2.map((n) => n.id), 0.7);
+    if (next3 != null) focusId = next3;
+  }
+  function take3() {
+    const { w, picking } = derive();
+    const n = byId.get(focusId);
+    const after = picking ? choose_class(w, n.id) : allocate(w, n.id);
+    setWorld(after);
+    if (after.events.toArray().some((ev) => ev instanceof Unlocked)) onUnlock();
+  }
+  function jumpClass(step3) {
+    const order = cells2.map((c) => c.id);
+    const cur = byId.get(focusId);
+    const here = cur.kind instanceof Keystone ? cur.id : cur.cell >= 0 ? cur.cell : order[0];
+    const i = order.indexOf(here);
+    focusId = order[(i + step3 + order.length) % order.length];
+  }
+  function toggle() {
+    open = !open;
+    if (open) {
+      if (focusId == null || !byId.has(focusId)) focusId = defaultFocus();
+      cam = null;
+    }
+  }
+  function key2(e) {
+    if (!open) return false;
+    const c = e.code;
+    const dirs = { ArrowLeft: [-1, 0], KeyA: [-1, 0], ArrowRight: [1, 0], KeyD: [1, 0], ArrowUp: [0, 1], KeyW: [0, 1], ArrowDown: [0, -1], KeyS: [0, -1] };
+    if (dirs[c]) moveFocus(...dirs[c]);
+    else if (c === "Enter" || c === "Space" || c === "KeyJ") {
+      if (!e.repeat) take3();
+    } else if (c === "Escape" || c === "KeyT" || c === "Tab") toggle();
+    else if (c === "KeyQ") jumpClass(-1);
+    else if (c === "KeyE") jumpClass(1);
+    else if (c === "KeyZ") tab = (tab + 2) % 3;
+    else if (c === "KeyC") tab = (tab + 1) % 3;
+    else if (c === "KeyX") kitIndex++;
+    else if (c === "KeyY") wholeTree = !wholeTree;
+    else return true;
+    e.preventDefault();
+    return true;
+  }
+  function pad(gp, now) {
+    const pressed = (i) => !!gp?.buttons[i]?.pressed;
+    const edge = (i) => {
+      const on = pressed(i), was = padPrev[i];
+      padPrev[i] = on;
+      return on && !was;
+    };
+    if (!gp) return open;
+    if (edge(8)) toggle();
+    if (!open) {
+      for (const i of [0, 1, 2, 3, 4, 5, 6, 7]) padPrev[i] = pressed(i);
+      return false;
+    }
+    if (edge(0)) take3();
+    if (edge(1)) toggle();
+    if (edge(2)) kitIndex++;
+    if (edge(3)) wholeTree = !wholeTree;
+    if (edge(4)) jumpClass(-1);
+    if (edge(5)) jumpClass(1);
+    if (edge(6)) tab = (tab + 2) % 3;
+    if (edge(7)) tab = (tab + 1) % 3;
+    let dx = gp.axes[0] ?? 0, dy = -(gp.axes[1] ?? 0);
+    if (pressed(14)) dx = -1;
+    if (pressed(15)) dx = 1;
+    if (pressed(12)) dy = 1;
+    if (pressed(13)) dy = -1;
+    const mag = Math.hypot(dx, dy);
+    if (mag > 0.5) {
+      const dirKey = `${Math.round(dx * 2)},${Math.round(dy * 2)}`;
+      const wait = held === dirKey ? 130 : 0;
+      if (held !== dirKey || now - lastMove > wait) {
+        moveFocus(dx / mag, dy / mag);
+        lastMove = now + (held === dirKey ? 0 : 160);
+        held = dirKey;
+      }
+    } else held = null;
+    return true;
+  }
+  const toDesign = (e) => [(e.clientX - view.ox) / view.s, (e.clientY - view.oy) / view.s];
+  let mouseNode = null;
+  cv.addEventListener("mousemove", (e) => {
+    const [mx, my] = toDesign(e);
+    mouseNode = null;
+    for (const n of nodes2) {
+      const [x, y] = project(n.x, n.y);
+      if (Math.hypot(mx - x, my - y) < R[kindOf(n)] * scaleOf() + 6 && inPane(mx, my)) {
+        mouseNode = n.id;
+        break;
+      }
+    }
+    if (mouseNode != null) focusId = mouseNode;
+  });
+  cv.addEventListener("click", () => {
+    if (mouseNode != null) take3();
+  });
+  const scaleOf = () => wholeTree ? 1 : 1.6;
+  function baseScale() {
+    return Math.min(PANE_AREA.w / (bounds.x1 - bounds.x0), PANE_AREA.h / (bounds.y1 - bounds.y0));
+  }
+  function project(x, y) {
+    const zoom = wholeTree ? 0.92 : ZOOM, sc = baseScale() * zoom;
+    const c = wholeTree ? [(bounds.x0 + bounds.x1) / 2, (bounds.y0 + bounds.y1) / 2] : cam;
+    return [PANE_AREA.x + PANE_AREA.w / 2 + (x - c[0]) * sc, PANE_AREA.y + PANE_AREA.h / 2 - (y - c[1]) * sc - (wholeTree ? 0 : 40)];
+  }
+  const inPane = (x, y) => x > PANE_AREA.x && x < PANE_AREA.x + PANE_AREA.w && y > PANE_AREA.y && y < PANE_AREA.y + PANE_AREA.h;
+  function drawPane(d) {
+    const f = byId.get(focusId);
+    const target = [f.x, f.y];
+    cam = cam ? [cam[0] + (target[0] - cam[0]) * 0.18, cam[1] + (target[1] - cam[1]) * 0.18] : target;
+    card(PANE_AREA.x, PANE_AREA.y, PANE_AREA.w, PANE_AREA.h, PANE);
+    const s = scaleOf();
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(PANE_AREA.x + 2, PANE_AREA.y + 2, PANE_AREA.w - 4, PANE_AREA.h - 4, 12);
+    ctx.clip();
+    for (const [a, b] of edges) {
+      const on = d.owned.has(a) && d.owned.has(b);
+      const [ax, ay] = project(byId.get(a).x, byId.get(a).y), [bx, by] = project(byId.get(b).x, byId.get(b).y);
+      ctx.strokeStyle = on ? INK : "rgba(60,40,35,0.32)";
+      ctx.lineWidth = on ? wholeTree ? 2.5 : 4 : wholeTree ? 1 : 1.6;
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(bx, by);
+      ctx.stroke();
+    }
+    for (const n of nodes2) {
+      const [x, y] = project(n.x, n.y);
+      if (x < PANE_AREA.x - 30 || x > PANE_AREA.x + PANE_AREA.w + 30 || y < PANE_AREA.y - 30 || y > PANE_AREA.y + PANE_AREA.h + 30) continue;
+      const k = kindOf(n), r = R[k] * s, has3 = d.owned.has(n.id), can = d.available(n);
+      const col = k === "key" ? d.unlocked.has(n.id) ? INK : "#9a8d86" : colorOf(n);
+      ctx.globalAlpha = has3 || can || k === "key" ? 1 : 0.5;
+      shapePath(k, x, y, r);
+      ctx.fillStyle = has3 ? col : "#fffdf8";
+      ctx.fill();
+      ctx.lineWidth = can ? 3.5 : k === "key" ? 3 : 2;
+      ctx.strokeStyle = can ? TEAL : col;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    for (const c of cells2) {
+      const [x, y] = project(c.x, c.y);
+      ctx.font = wholeTree ? '800 14px "Baloo 2"' : F.label;
+      ctx.textAlign = "center";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = PANE;
+      ctx.lineWidth = 5;
+      const ly = y + (wholeTree ? 26 : 44);
+      ctx.strokeText(c.name, x, ly);
+      ctx.fillStyle = d.unlocked.has(c.id) ? STRONG : "#8a7a73";
+      ctx.fillText(c.name, x, ly);
+    }
+    const [fx, fy] = project(f.x, f.y), fr = R[kindOf(f)] * s + 8;
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 4;
+    shapePath(kindOf(f), fx, fy, fr);
+    ctx.stroke();
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 2.5;
+    shapePath(kindOf(f), fx, fy, fr + 4);
+    ctx.stroke();
+    ctx.restore();
+    button("Y", PANE_AREA.x + PANE_AREA.w - 148, PANE_AREA.y + 34);
+    say(wholeTree ? "Zoom in" : "Whole tree", PANE_AREA.x + PANE_AREA.w - 116, PANE_AREA.y + 34, F.hint, BODY);
+    const lines = details(d.w.tree, f).toArray();
+    const title = lines[0];
+    const body2 = lines.slice(1).filter((l) => !/^(Small node|Notable|Keystone)/.test(l));
+    let status, go = false;
+    if (d.owned.has(f.id)) status = "Owned";
+    else if (f.kind instanceof Keystone) {
+      const [have, of] = ring_progress(d.w.tree, d.p.allocated, f.id);
+      status = d.picking ? d.unlocked.has(f.id) ? (go = true, `Start as ${f.kind.name}`) : "Locked: fill its ring in a run" : `Ring ${have}/${of}${d.unlocked.has(f.id) ? " \xB7 unlocked" : ""}`;
+    } else if (d.picking) status = "Pick a class first";
+    else if (d.available(f)) {
+      status = "Take it";
+      go = true;
+    } else if (d.p.points === 0 && can_allocate(d.w.tree, d.p.allocated, f.id)) status = "Needs a point";
+    else {
+      const dist = distance(d.w.tree, d.p.allocated, f.id);
+      status = dist > 0 ? `${dist} points away` : "Unreachable";
+    }
+    const cw = 560, ch = 64 + Math.min(body2.length, 3) * 20, cx = PANE_AREA.x + 20, cy = PANE_AREA.y + PANE_AREA.h - ch - 20;
+    card(cx, cy, cw, ch);
+    say(fit(title, '800 19px "Baloo 2"', cw - 180), cx + 18, cy + 32, '800 19px "Baloo 2"', STRONG);
+    const kw = chip(KIND_NAME[kindOf(f)], cx + 18, cy + 60, colorOf(f));
+    body2.slice(0, 3).forEach((l, i) => say(fit(l, F.body, cw - kw - 60), cx + 26 + kw, cy + 61 + i * 20, F.body, BODY));
+    if (go) {
+      button("A", cx + cw - 150, cy + 34);
+      say(status, cx + cw - 118, cy + 34, F.strong, "#1d5b2a");
+    } else say(status, cx + cw - 18, cy + 34, F.strong, SECTION, "right");
+  }
+  function kitTiles(p) {
+    const tiles = [];
+    for (const s of p.loadout.toArray()) {
+      const [when, what] = describe(s).split(" -> ");
+      tiles.push({ k: "skill", name: what[0].toUpperCase() + what.slice(1), sub: when, detail: describe(s) });
+    }
+    const m = p.mods;
+    if (m.air_jumps > 0) tiles.push({ k: "move", name: "Air jump", sub: `\xD7${m.air_jumps}`, detail: `${m.air_jumps} extra jump${m.air_jumps > 1 ? "s" : ""} in the air` });
+    if (m.dashes > 0) tiles.push({ k: "move", name: "Dash", sub: `\xD7${m.dashes}`, detail: `${m.dashes} dash charge${m.dashes > 1 ? "s" : ""}; refills on the ground` });
+    if (m.wall_jump) tiles.push({ k: "move", name: "Wall-jump", sub: "move", detail: "Jump off walls" });
+    for (const r of m.rules.toArray()) {
+      const text = grant_name(new GrantRule(r));
+      tiles.push({ k: "rule", name: text.split(" ").slice(0, 2).join(" "), sub: "rule", detail: text });
+    }
+    return tiles;
+  }
+  function drawSheet(d) {
+    const { p, w } = d, x = 16, sw = 436;
+    card(x, 16, sw, 650);
+    const st = p.stats;
+    const name = d.picking ? "No class yet" : class_name(w);
+    ctx.fillStyle = d.picking ? "#c9bdb3" : mix(st.fighter, st.rogue, st.mage);
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(x + 16, 32, 104, 124, 14);
+    ctx.fill();
+    ctx.stroke();
+    say(d.picking ? "?" : name[0], x + 68, 112, '800 60px "Baloo 2"', "#fff", "center");
+    say("portrait", x + 68, 144, F.small, "rgba(255,255,255,0.8)", "center");
+    say(fit(name, '800 32px "Baloo 2"', 280), x + 136, 64, '800 32px "Baloo 2"', STRONG);
+    say(`Level ${p.lvl}`, x + 138, 90, '700 17px "Baloo 2"', "#6b5a52");
+    const need = xp_needed(p.lvl), bx = x + 138, by = 100, bw = 168;
+    ctx.fillStyle = "#efe5d8";
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bw, 10, 5);
+    ctx.fill();
+    ctx.fillStyle = "#4fb3d9";
+    ctx.beginPath();
+    ctx.roundRect(bx, by, Math.max(4, bw * p.xp / need), 10, 5);
+    ctx.fill();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bw, 10, 5);
+    ctx.stroke();
+    say(`${p.xp} / ${need} XP`, bx + bw + 8, by + 10, F.small, SECTION);
+    if (p.points > 0) {
+      const label2 = `${p.points} point${p.points > 1 ? "s" : ""} to spend`, pw = width2(label2, F.badge) + 28;
+      ctx.fillStyle = GOLD;
+      ctx.beginPath();
+      ctx.roundRect(x + 138, 122, pw, 30, 15);
+      ctx.fill();
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      say(label2, x + 152, 143, F.badge, STRONG);
+    } else say(d.picking ? "Talk to a statue to pick a class" : "Level up to earn points", x + 138, 143, F.hint, SECTION);
+    const tx = x + 30, ty = 196, ts = 104, th = ts * Math.sqrt(3) / 2;
+    const top = [tx + ts / 2, ty], bl = [tx, ty + th], br = [tx + ts, ty + th];
+    ctx.beginPath();
+    ctx.moveTo(...top);
+    ctx.lineTo(...br);
+    ctx.lineTo(...bl);
+    ctx.closePath();
+    ctx.fillStyle = "#f7efe6";
+    ctx.fill();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    const corner = (pt, col) => {
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.arc(pt[0], pt[1], 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    };
+    corner(top, RED);
+    corner(bl, GREEN);
+    corner(br, BLUE);
+    const tot = st.fighter + st.rogue + st.mage;
+    if (tot > 0) {
+      const dot = [0, 1].map((i) => (top[i] * st.fighter + bl[i] * st.rogue + br[i] * st.mage) / tot);
+      ctx.fillStyle = INK;
+      ctx.beginPath();
+      ctx.arc(dot[0], dot[1], 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = GOLD;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(dot[0], dot[1], 11, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    say("Where you stand", x + 162, 206, F.section, SECTION);
+    const axes = [["Fighter", st.fighter, RED], ["Rogue", st.rogue, GREEN], ["Mage", st.mage, BLUE]];
+    axes.forEach(([n, v2, c], i) => {
+      const yy = 234 + i * 26;
+      ctx.fillStyle = c;
+      ctx.beginPath();
+      ctx.arc(x + 170, yy - 5, 6, 0, Math.PI * 2);
+      ctx.fill();
+      say(n, x + 184, yy, F.body, BODY);
+      say(String(v2), x + 264, yy, F.strong, STRONG);
+    });
+    const ranked = [...axes].sort((a, b) => b[1] - a[1]);
+    const lean = tot === 0 ? "Untrained" : ranked[0][1] === ranked[2][1] ? "Perfectly balanced" : ranked[1][1] > 0 && ranked[1][1] < ranked[0][1] ? `Leaning ${ranked[0][0]}, a touch of ${ranked[1][0]}` : ranked[1][1] === ranked[0][1] ? `${ranked[0][0]} and ${ranked[1][0]} in step` : `Pure ${ranked[0][0]}`;
+    say(lean, x + 162, 312, F.small, SECTION);
+    const vitals = [
+      ["heart", `${p.hp}`, `HP of ${max_hp3(p)}`, RED],
+      ["shield", `${p.mods.shields}`, "Shield / room", TEAL],
+      ["sword", `${damage2(p)}`, "Damage", INK],
+      ["clock", `${speed2(p).toFixed(2)}\xD7`, "Atk speed", INK]
+    ];
+    vitals.forEach(([g, v2, label2, col], i) => {
+      const vx = x + 16 + i * 102, vy = 330;
+      ctx.fillStyle = "#faf5ee";
+      ctx.strokeStyle = "rgba(59,43,37,0.25)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(vx, vy, 94, 70, 12);
+      ctx.fill();
+      ctx.stroke();
+      glyph(g, vx + 18, vy + 24, col);
+      say(v2, vx + 32, vy + 32, F.number, STRONG);
+      say(label2, vx + 12, vy + 58, F.small, SECTION);
+    });
+    const tiles = kitTiles(p);
+    say("Kit", x + 18, 424, F.section, SECTION);
+    if (tiles.length > 5) say(`${tiles.length} total \xB7 X to browse`, x + sw - 18, 424, F.small, SECTION, "right");
+    if (!tiles.length) say("Nothing yet: skills, moves and rules from the tree land here", x + 18, 466, F.body, SECTION);
+    const ki = tiles.length ? kitIndex % tiles.length : 0;
+    const start = Math.max(0, Math.min(ki - 2, tiles.length - 5));
+    tiles.slice(start, start + 5).forEach((t, j) => {
+      const i = start + j, kx = x + 16 + j * 82, ky = 434, on = i === ki;
+      ctx.fillStyle = "#fff";
+      ctx.strokeStyle = on ? INK : "rgba(59,43,37,0.35)";
+      ctx.lineWidth = on ? 3 : 1.5;
+      ctx.beginPath();
+      ctx.roundRect(kx, ky, 74, 74, 12);
+      ctx.fill();
+      ctx.stroke();
+      shapePath(t.k, kx + 37, ky + 28, 11);
+      ctx.fillStyle = KIND[t.k];
+      ctx.fill();
+      say(fit(t.name, "800 12px Nunito", 68), kx + 37, ky + 56, "800 12px Nunito", STRONG, "center");
+      say(fit(t.sub, "600 10px Nunito", 68), kx + 37, ky + 69, "600 10px Nunito", SECTION, "center");
+    });
+    if (tiles.length) say(fit(tiles[ki].detail, F.body, sw - 36), x + 18, 530, F.body, BODY);
+    const m = p.mods, tabs = ["Offense", "Defense", "Movement"];
+    const rows = [
+      [
+        ["Damage", `${damage2(p)}`, true],
+        ["Attack speed", `${speed2(p).toFixed(2)}\xD7`, speed2(p) > 1.001],
+        ["Crit chance", `${m.crit_pct}%`, m.crit_pct > 0],
+        ["Reach", pct2((reach2(p) - 1) * 100), reach2(p) > 1.001],
+        ["Targets", `${max_targets(st)}`, max_targets(st) > 1],
+        ["Cooldowns", m.cooldown_pct ? `-${m.cooldown_pct}%` : "0%", m.cooldown_pct > 0],
+        ["Knockback", pct2(m.knockback_pct), m.knockback_pct > 0],
+        ["XP gain", pct2(m.xp_pct), m.xp_pct > 0]
+      ],
+      [
+        ["Max HP", `${max_hp3(p)}`, true],
+        ["Bonus HP", `+${m.bonus_hp}`, m.bonus_hp > 0],
+        ["Shields / room", `${m.shields}`, m.shields > 0],
+        ["Extra i-frames", `+${m.iframes.toFixed(1)}s`, m.iframes > 0],
+        ["Level-up heal", "20%", true],
+        ["Dash i-frames", "on", true]
+      ],
+      [
+        ["Air jumps", `${m.air_jumps}`, m.air_jumps > 0],
+        ["Dash charges", `${m.dashes}`, m.dashes > 0],
+        ["Wall-jump", m.wall_jump ? "yes" : "no", m.wall_jump],
+        ["Fast fall", "yes", true],
+        ["Skills", `${p.loadout.toArray().length}`, p.loadout.toArray().length > 0],
+        ["Rules", `${m.rules.toArray().length}`, m.rules.toArray().length > 0]
+      ]
+    ];
+    let tabX = x + 16;
+    const ty2 = 562;
+    tabX += button("LT", tabX, ty2 + 2) + 2;
+    tabs.forEach((t, i) => {
+      const tw = width2(t, F.tab) + 24, on = i === tab;
+      ctx.fillStyle = on ? INK : "#f1e9df";
+      ctx.beginPath();
+      ctx.roundRect(tabX, ty2 - 15, tw, 26, 13);
+      ctx.fill();
+      say(t, tabX + tw / 2, ty2 + 4, F.tab, on ? "#fff" : BODY, "center");
+      tabX += tw + 6;
+    });
+    button("RT", tabX + 2, ty2 + 2);
+    rows[tab].forEach(([label2, v2, raised], i) => {
+      const cx = x + 18 + i % 2 * 206, cy = ty2 + 28 + Math.floor(i / 2) * 20;
+      ctx.globalAlpha = raised ? 1 : 0.45;
+      say(label2, cx, cy, F.body, BODY);
+      say(v2, cx + 186, cy, F.strong, STRONG, "right");
+      ctx.globalAlpha = 1;
+    });
+  }
+  function drawPrompts() {
+    let px = 24;
+    for (const [bs, label2] of [[["A"], "Take"], [["B"], "Close"], [["LB", "RB"], "Jump to class"], [["LT", "RT"], "Stat tabs"], [["X"], "Kit"], [["L"], "Move"]]) {
+      for (const b of bs) px += button(b, px, 704);
+      say(label2, px + 6, 704, F.hint, BODY);
+      px += 6 + width2(label2, F.hint) + 22;
+    }
+    say("Keys: arrows \xB7 Enter \xB7 Esc \xB7 Q/E \xB7 Z/C \xB7 X \xB7 Y", W - 24, 704, F.small, SECTION, "right");
+  }
+  function draw() {
+    cv.style.display = open ? "block" : "none";
+    if (!open) return;
+    const dpr = devicePixelRatio, cw = innerWidth, ch = innerHeight;
+    if (cv.width !== Math.round(cw * dpr) || cv.height !== Math.round(ch * dpr)) {
+      cv.width = Math.round(cw * dpr);
+      cv.height = Math.round(ch * dpr);
+    }
+    const s = Math.min(cw / W, ch / H);
+    view = { s, ox: (cw - W * s) / 2, oy: (ch - H * s) / 2 };
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = PAGE;
+    ctx.fillRect(0, 0, cw, ch);
+    ctx.setTransform(dpr * s, 0, 0, dpr * s, dpr * view.ox, dpr * view.oy);
+    if (focusId == null || !byId.has(focusId)) focusId = defaultFocus();
+    const d = derive();
+    drawPane(d);
+    drawSheet(d);
+    drawPrompts();
+    cv.style.cursor = mouseNode != null && d.available(byId.get(mouseNode)) ? "pointer" : "default";
+  }
+  return { isOpen: () => open, toggle, key: key2, pad, draw };
+}
+
 // main.js
 var DT = 1 / 60;
 var VIEW_H = 16;
@@ -10415,6 +10840,7 @@ var pendJump = false;
 var pendDash = false;
 var pendAttack = false;
 addEventListener("keydown", (e) => {
+  if (treeScreen.key(e)) return;
   keys2.add(e.code);
   if (!e.repeat) {
     pendJump ||= JUMP_KEYS.includes(e.code);
@@ -10422,7 +10848,7 @@ addEventListener("keydown", (e) => {
     pendAttack ||= ATTACK_KEYS.includes(e.code);
     if (e.code === "KeyT" || e.code === "Tab") {
       e.preventDefault();
-      treeOpen = !treeOpen;
+      treeScreen.toggle();
     }
   }
   if (e.code.startsWith("Arrow") || e.code === "Space") e.preventDefault();
@@ -10468,134 +10894,9 @@ function loadUnlocks() {
   }
 }
 loadUnlocks();
-var treeOpen = false;
-var tcv = document.createElement("canvas");
-tcv.id = "tree";
-document.body.appendChild(tcv);
-var tctx = tcv.getContext("2d");
-var tNodes = nodes(world.tree).toArray();
-var tById = new Map(tNodes.map((n) => [n.id, n]));
-var tEdges = world.tree.edges.toArray().map((e) => [e[0], e[1]]);
-var AXIS_COLOR = (a) => a instanceof Fighter ? "#e57373" : a instanceof Rogue ? "#81c784" : "#64b5f6";
-var nodeColor = (k) => k instanceof Small ? k.bonus instanceof Stat ? AXIS_COLOR(k.bonus[0]) : "#bdbdbd" : k.grant instanceof GrantSkill ? "#ffd54f" : k.grant instanceof GrantMove ? "#4dd0e1" : "#ba68c8";
-var mouse = { x: -1, y: -1 };
-var hover = null;
-tcv.addEventListener("mousemove", (e) => {
-  mouse = { x: e.clientX, y: e.clientY };
-});
-tcv.addEventListener("click", () => {
-  if (!hover) return;
-  const p = world.player;
-  world = p.class instanceof None ? choose_class(world, hover.id) : allocate(world, hover.id);
-  for (const ev of world.events) if (ev instanceof Unlocked) saveUnlocks();
-});
-function treeTransform() {
-  const xs = tNodes.map((n) => n.x), ys = tNodes.map((n) => n.y);
-  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-  const sc = Math.min((innerWidth - 80) / (x1 - x0), (innerHeight - 140) / (y1 - y0));
-  const ox = innerWidth / 2 - (x0 + x1) / 2 * sc, oy = innerHeight / 2 + 30 + (y0 + y1) / 2 * sc;
-  return (x, y) => [ox + x * sc, oy - y * sc];
-}
-function drawTree() {
-  tcv.style.display = treeOpen ? "block" : "none";
-  if (!treeOpen) return;
-  const dpr = devicePixelRatio;
-  if (tcv.width !== innerWidth * dpr) {
-    tcv.width = innerWidth * dpr;
-    tcv.height = innerHeight * dpr;
-  }
-  tctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  tctx.fillStyle = "rgba(8,8,8,0.94)";
-  tctx.fillRect(0, 0, innerWidth, innerHeight);
-  const T = treeTransform();
-  const p = world.player;
-  const picking = p.class instanceof None;
-  const owned = new Set(p.allocated.toArray());
-  const unlocked = new Set(world.unlocked.toArray());
-  const avail = (n) => picking ? n.kind instanceof Keystone && unlocked.has(n.id) && world.depth === 0 : p.points > 0 && can_allocate(world.tree, p.allocated, n.id);
-  for (const [a, b] of tEdges) {
-    const [ax, ay] = T(tById.get(a).x, tById.get(a).y), [bx, by] = T(tById.get(b).x, tById.get(b).y);
-    tctx.strokeStyle = owned.has(a) && owned.has(b) ? "#ffd54f" : "#3a3a3a";
-    tctx.lineWidth = owned.has(a) && owned.has(b) ? 2.5 : 1;
-    tctx.beginPath();
-    tctx.moveTo(ax, ay);
-    tctx.lineTo(bx, by);
-    tctx.stroke();
-  }
-  hover = null;
-  for (const n of tNodes) {
-    const [x2, y2] = T(n.x, n.y);
-    const key2 = n.kind instanceof Keystone, notable = n.kind instanceof Notable;
-    const r = key2 ? 11 : notable ? 7 : 4;
-    const color = key2 ? unlocked.has(n.id) ? "#ffffff" : "#555" : nodeColor(n.kind);
-    const has3 = owned.has(n.id), can = avail(n);
-    tctx.globalAlpha = has3 || can ? 1 : 0.35;
-    tctx.fillStyle = has3 ? color : "#111";
-    tctx.strokeStyle = color;
-    tctx.lineWidth = can ? 3 : 1.5;
-    tctx.beginPath();
-    tctx.arc(x2, y2, r, 0, Math.PI * 2);
-    tctx.fill();
-    tctx.stroke();
-    if (key2) {
-      tctx.fillStyle = unlocked.has(n.id) ? "#ddd" : "#666";
-      tctx.font = "11px monospace";
-      tctx.textAlign = "center";
-      tctx.fillText(n.kind.name, x2, y2 + r + 13);
-    }
-    if (Math.hypot(mouse.x - x2, mouse.y - y2) < r + 4) hover = n;
-  }
-  tctx.globalAlpha = 1;
-  tctx.textAlign = "left";
-  tctx.fillStyle = "#ddd";
-  tctx.font = "14px monospace";
-  tctx.fillText(picking ? world.depth === 0 ? "Pick a starting class: click a bright keystone" : "No class" : `${class_name(world)} \xB7 points: ${p.points} \xB7 click a highlighted node \xB7 T/Tab to close`, 20, 30);
-  tctx.fillStyle = "#888";
-  tctx.font = "12px monospace";
-  tctx.fillText("Fill another class's whole ring to unlock it. Red F \xB7 green R \xB7 blue M \xB7 grey bonus \xB7 gold skill \xB7 cyan move \xB7 violet rule", 20, 50);
-  tcv.style.cursor = hover && avail(hover) ? "pointer" : "default";
-  panel(build_summary(world).toArray(), innerWidth - 20, 80, "right");
-  if (!hover) return;
-  const lines = details(world.tree, hover).toArray();
-  let status;
-  if (owned.has(hover.id)) status = "Owned";
-  else if (hover.kind instanceof Keystone) {
-    const [have, of] = ring_progress(world.tree, p.allocated, hover.id);
-    status = picking ? unlocked.has(hover.id) ? "Unlocked: click to start as " + hover.kind.name : "Locked: fill its ring in a run to unlock it" : `Ring ${have}/${of}` + (unlocked.has(hover.id) ? " (already unlocked)" : "");
-  } else if (picking) status = "Pick a class first";
-  else if (avail(hover)) status = "Available: click to take (1 point)";
-  else {
-    const d = distance(world.tree, p.allocated, hover.id);
-    status = d > 0 ? `${d} points away` : "Unreachable";
-  }
-  panel([...lines, "", status], 20, 80, "left", lines[0]);
-  const [x, y] = T(hover.x, hover.y);
-  const tag = label(hover);
-  tctx.font = "12px monospace";
-  tctx.textAlign = "left";
-  const w = tctx.measureText(tag).width + 10;
-  tctx.fillStyle = "#222";
-  tctx.fillRect(x + 12, y - 22, w, 18);
-  tctx.fillStyle = "#fff";
-  tctx.fillText(tag, x + 17, y - 9);
-}
-function panel(lines, x, y, align, title) {
-  tctx.font = "13px monospace";
-  const widths = lines.map((l) => tctx.measureText(l).width);
-  const w = Math.max(...widths, 0) + 20, h = lines.length * 18 + 14;
-  const left = align === "right" ? x - w : x;
-  tctx.fillStyle = "rgba(20,20,20,0.92)";
-  tctx.fillRect(left, y, w, h);
-  tctx.strokeStyle = "#333";
-  tctx.strokeRect(left, y, w, h);
-  lines.forEach((l, i) => {
-    tctx.font = l === title && i === 0 ? "bold 14px monospace" : "13px monospace";
-    tctx.fillStyle = i === 0 ? "#fff" : "#bbb";
-    tctx.textAlign = align;
-    tctx.fillText(l, align === "right" ? x - 10 : x + 10, y + 22 + i * 18);
-  });
-  tctx.textAlign = "left";
-}
+var treeScreen = createTreeScreen({ getWorld: () => world, setWorld: (w) => {
+  world = w;
+}, onUnlock: saveUnlocks });
 var hud = document.getElementById("hud");
 var hpEl = document.getElementById("hp");
 var hpFill = document.getElementById("hp-fill");
@@ -10664,7 +10965,10 @@ function frame(now) {
   acc = Math.min(acc + (now - last2) / 1e3, 0.1);
   last2 = now;
   const { mx, my, jump: jump2 } = readInput();
-  if (treeOpen) acc = 0;
+  if (treeScreen.pad([...navigator.getGamepads()].find(Boolean), now)) {
+    acc = 0;
+    pendJump = pendDash = pendAttack = false;
+  }
   while (acc >= DT) {
     const t0 = performance.now();
     world = step2(world, new Input(mx, my, jump2, pendJump, pendDash, pendAttack), DT);
@@ -10771,7 +11075,7 @@ move WASD/arrows \xB7 jump Space/K (pad X/Y) \xB7 dash Shift/L (pad shoulders)
 doors & statues: stand at one, press up \xB7 attack J (pad A): +up = up swing, +down in air = pogo \xB7 down+jump on grey: drop
 sim step ${stepMs.toFixed(4)} ms \xB7 pad ${navigator.getGamepads().some(Boolean) ? "yes" : "no"}`;
   }
-  drawTree(now);
+  treeScreen.draw();
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
