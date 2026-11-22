@@ -36,6 +36,14 @@
       #xp-text { position: absolute; inset: 0; color: #fff; font: bold 11px/16px monospace; text-align: center; text-shadow: 0 0 3px #000; }
       #xp.up { animation: lvlup 0.6s ease-out; }
       @keyframes lvlup { from { background: #e1f5fe; box-shadow: 0 0 18px #4fc3f7; } to { background: #10202a; box-shadow: none; } }
+      #boss { position: fixed; top: 34px; left: 50%; transform: translateX(-50%); width: 50vw; height: 18px;
+              background: #2a1200; border: 2px solid #ff6f00; display: none; }
+      #boss-fill { position: absolute; top: 0; bottom: 0; left: 0; background: #ff6f00; }
+      #boss span { position: absolute; inset: 0; color: #fff; font: bold 12px/18px monospace; text-align: center; text-shadow: 0 0 3px #000; }
+      #summary { position: fixed; top: 22%; left: 50%; transform: translateX(-50%); display: none; padding: 18px 28px;
+                 background: rgba(16,16,16,0.95); border: 2px solid #ffd54f; color: #ddd; font: 15px/1.6 monospace; text-align: center; }
+      #summary h2 { margin: 0 0 8px; color: #ffd54f; }
+      #summary .dim { color: #888; font-size: 13px; }
       #vignette { position: fixed; inset: 0; pointer-events: none; box-shadow: inset 0 0 120px 30px rgba(229,57,53,0.75); opacity: 0; }
       #vignette.hit { animation: hit 0.35s ease-out; }
       @keyframes hit { from { opacity: 1; } to { opacity: 0; } }
@@ -51,6 +59,8 @@
     <div id="hp"><div id="hp-ghost"></div><div id="hp-fill"></div><span id="hp-text"></span></div>
     <div id="shields"></div>
     <div id="vignette"></div>
+    <div id="boss"><div id="boss-fill"></div><span>THE WARDEN</span></div>
+    <div id="summary"></div>
     <div id="hud"></div>
     <script type="module" src="main.js"></script>
   </body>
