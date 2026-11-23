@@ -11374,18 +11374,6 @@ function min2(a, b) {
     return b;
   }
 }
-function clamp(x, min_bound, max_bound) {
-  let $ = min_bound >= max_bound;
-  if ($) {
-    let _pipe = x;
-    let _pipe$1 = min2(_pipe, min_bound);
-    return max3(_pipe$1, max_bound);
-  } else {
-    let _pipe = x;
-    let _pipe$1 = min2(_pipe, max_bound);
-    return max3(_pipe$1, min_bound);
-  }
-}
 function compare2(a, b) {
   let $ = a === b;
   if ($) {
@@ -14169,17 +14157,20 @@ var OnHardLanding = class extends CustomType {
 };
 var Trigger$OnHardLanding$const = new OnHardLanding();
 var Every = class extends CustomType {
-  constructor(period) {
+  constructor(period2) {
     super();
-    this.period = period;
+    this.period = period2;
   }
 };
 var OnHit = class extends CustomType {
-  constructor(period) {
+  constructor(period2) {
     super();
-    this.period = period;
+    this.period = period2;
   }
 };
+var Always = class extends CustomType {
+};
+var Trigger$Always$const = new Always();
 var JumpSlash = class extends CustomType {
 };
 var Effect$JumpSlash$const = new JumpSlash();
@@ -14245,18 +14236,22 @@ var Boost = class extends CustomType {
     this.level = level;
   }
 };
-var middle = 0.75;
+var orbit_squash = 0.35;
 var orbit_radius = 1.8;
+var middle = 0.75;
 var arrow_ttl = 0.8;
 var arrow_speed = 22;
 var burst_gap = 0.1;
 var firebolt_ttl = 1.2;
-var firebolt_start = 5;
+var firebolt_fall = 20;
+var firebolt_drift = 2;
+var firebolt_height = 7;
+var firebolt_ahead = 2.4;
+var firebolt_wait = 0.5;
 var firebolt_blast = 6;
-var firebolt_top = 18;
-var orbit_squash = 0.35;
 var orbit_speed = 3.9;
 var arrow_far = 6;
+var max_level = 5;
 function upto(from, to2) {
   let $ = from > to2;
   if ($) {
@@ -14421,16 +14416,18 @@ function spawn2(effect, px, py, base, b, aim, facing) {
     );
   } else if (effect instanceof Orb) {
     let d2 = 0.5 * b.reach;
+    let count2 = 1 + b.level;
     return map3(
-      prepend(
-        orbit_radius,
-        prepend(0 - orbit_radius, List$Empty$const)
-      ),
-      (ox) => {
+      upto(0, count2 - 1),
+      (i) => {
+        let a = divideFloat(
+          2 * pi3() * identity(i),
+          identity(count2)
+        );
         return new Strike(
           effect,
-          ox - d2 / 2,
-          middle - d2 / 2,
+          orbit_radius * cos2(a) - d2 / 2,
+          middle + orbit_radius * sin2(a) * orbit_squash - d2 / 2,
           d2,
           d2,
           0,
@@ -14461,16 +14458,16 @@ function spawn2(effect, px, py, base, b, aim, facing) {
       (i) => {
         return new Strike(
           effect,
-          px - d2 / 2,
-          py + middle - d2 / 2,
+          px + dir * firebolt_ahead - d2 / 2,
+          py + firebolt_height,
           d2,
           d2,
-          dir * firebolt_start,
-          0,
+          dir * firebolt_drift,
+          0 - firebolt_fall,
           firebolt_ttl,
           false,
           false,
-          dmg(0.8),
+          dmg(2.5),
           List$Empty$const,
           burst_gap * identity(i)
         );
@@ -14511,12 +14508,42 @@ function describe(s) {
   } else if ($ instanceof Every) {
     let p2 = $.period;
     _block = "every " + float_to_string(p2) + "s";
-  } else {
+  } else if ($ instanceof OnHit) {
     let p2 = $.period;
     _block = "on swing hit (" + float_to_string(p2) + "s recharge)";
+  } else {
+    _block = "always";
   }
   let when = _block;
   return when + " -> " + name(s.effect);
+}
+function period(effect, base, level) {
+  if (effect instanceof Firebolt) {
+    return base + firebolt_wait * identity(level - 1);
+  } else {
+    return base;
+  }
+}
+function level_note(effect) {
+  if (effect instanceof JumpSlash) {
+    return "+30% damage";
+  } else if (effect instanceof DashStrike) {
+    return "+30% damage";
+  } else if (effect instanceof Shockwave) {
+    return "+30% damage";
+  } else if (effect instanceof Knife) {
+    return "+1 per throw";
+  } else if (effect instanceof Bolt) {
+    return "+1 per throw";
+  } else if (effect instanceof Arrow) {
+    return "+1 per throw";
+  } else if (effect instanceof Orb) {
+    return "+1 orb";
+  } else if (effect instanceof Heal) {
+    return "+1% health per heal";
+  } else {
+    return "+1 bolt, +0.5s between casts";
+  }
 }
 function flying_firebolt(s) {
   return s.effect instanceof Firebolt && !s.pierce;
@@ -14531,7 +14558,7 @@ function burst(s) {
     size4,
     size4,
     0,
-    s.vy,
+    0,
     0.15,
     s.follow,
     true,
@@ -14593,25 +14620,13 @@ function advance(s, dt2) {
       )
     );
   } else {
-    let _block;
-    let $2 = flying_firebolt(s);
-    if ($2) {
-      _block = clamp(
-        s.vx * (1 + 3 * dt2),
-        0 - firebolt_top,
-        firebolt_top
-      );
-    } else {
-      _block = s.vx;
-    }
-    let vx = _block;
     let s$1 = new Strike(
       s.effect,
-      s.x + vx * dt2,
+      s.x + s.vx * dt2,
       s.y + s.vy * dt2,
       s.w,
       s.h,
-      vx,
+      s.vx,
       s.vy,
       s.ttl - dt2,
       s.follow,
@@ -14620,8 +14635,8 @@ function advance(s, dt2) {
       s.hit,
       s.wait
     );
-    let $3 = s$1.ttl > 0;
-    if ($3) {
+    let $2 = s$1.ttl > 0;
+    if ($2) {
       return new Ok(s$1);
     } else {
       return new Error2(void 0);
@@ -15294,7 +15309,7 @@ function spec(name3) {
     );
   } else if (name3 === "Sorcerer") {
     return new Spec(
-      new Skill(new Every(1.5), Effect$Bolt$const, 1.5),
+      new Skill(Trigger$Always$const, Effect$Orb$const, 0),
       new GrantMove(Move$Dash$const)
     );
   } else if (name3 === "Bard") {
@@ -15319,6 +15334,52 @@ function spec(name3) {
     );
   }
 }
+function signature(name3) {
+  return spec(name3).skill;
+}
+function signature_node(t2, keystone) {
+  let $ = get(t2.rings, keystone);
+  let first2;
+  if ($ instanceof Ok) {
+    let $1 = $[0];
+    if ($1 instanceof Empty) {
+      throw makeError(
+        "let_assert",
+        FILEPATH,
+        "tree",
+        211,
+        "signature_node",
+        "Pattern match failed, no pattern matched the value.",
+        {
+          value: $,
+          start: 6426,
+          end: 6482,
+          pattern_start: 6437,
+          pattern_end: 6452
+        }
+      );
+    } else {
+      first2 = $1.head;
+    }
+  } else {
+    throw makeError(
+      "let_assert",
+      FILEPATH,
+      "tree",
+      211,
+      "signature_node",
+      "Pattern match failed, no pattern matched the value.",
+      {
+        value: $,
+        start: 6426,
+        end: 6482,
+        pattern_start: 6437,
+        pattern_end: 6452
+      }
+    );
+  }
+  return first2;
+}
 function nth(items, i) {
   let _block;
   let _pipe = drop(items, i);
@@ -15332,15 +15393,15 @@ function nth(items, i) {
       "let_assert",
       FILEPATH,
       "tree",
-      275,
+      287,
       "nth",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 8044,
-        end: 8096,
-        pattern_start: 8055,
-        pattern_end: 8060
+        start: 8446,
+        end: 8498,
+        pattern_start: 8457,
+        pattern_end: 8462
       }
     );
   }
@@ -15572,15 +15633,15 @@ function find2(acc2, id2) {
       "let_assert",
       FILEPATH,
       "tree",
-      395,
+      407,
       "find",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 11476,
-        end: 11537,
-        pattern_start: 11487,
-        pattern_end: 11492
+        start: 11878,
+        end: 11939,
+        pattern_start: 11889,
+        pattern_end: 11894
       }
     );
   }
@@ -15616,7 +15677,7 @@ function grant_name(g) {
     } else if ($ instanceof Bow) {
       return "Bow: attack fires arrows; they crit past 6 tiles";
     } else if ($ instanceof Orbit) {
-      return "Orbit: two orbs circle you and hit what they touch";
+      return "Orbit: your orbs knock enemy shots out of the air";
     } else if ($ instanceof AllRounder) {
       return "All-rounder: raising your lowest stat raises it twice";
     } else if ($ instanceof Aegis) {
@@ -15807,15 +15868,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        469,
+        481,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 14347,
-          end: 14393,
-          pattern_start: 14358,
-          pattern_end: 14366
+          start: 14749,
+          end: 14795,
+          pattern_start: 14760,
+          pattern_end: 14768
         }
       );
     }
@@ -15840,15 +15901,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        470,
+        482,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 14398,
-          end: 14572,
-          pattern_start: 14409,
-          pattern_end: 14416
+          start: 14800,
+          end: 14974,
+          pattern_start: 14811,
+          pattern_end: 14818
         }
       );
     } else {
@@ -15917,15 +15978,15 @@ function build() {
               "let_assert",
               FILEPATH,
               "tree",
-              514,
+              526,
               "build",
               "Pattern match failed, no pattern matched the value.",
               {
                 value: chain2,
-                start: 16187,
-                end: 16216,
-                pattern_start: 16198,
-                pattern_end: 16208
+                start: 16589,
+                end: 16618,
+                pattern_start: 16600,
+                pattern_end: 16610
               }
             );
           } else {
@@ -15942,15 +16003,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          517,
+          529,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: chain,
-            start: 16292,
-            end: 16321,
-            pattern_start: 16303,
-            pattern_end: 16313
+            start: 16694,
+            end: 16723,
+            pattern_start: 16705,
+            pattern_end: 16715
           }
         );
       } else {
@@ -16078,15 +16139,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          575,
+          587,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $4,
-            start: 18549,
-            end: 18769,
-            pattern_start: 18560,
-            pattern_end: 18580
+            start: 18951,
+            end: 19171,
+            pattern_start: 18962,
+            pattern_end: 18982
           }
         );
       }
@@ -16385,7 +16446,7 @@ function details(t2, n) {
             ),
             prepend(
               prepend(
-                "Signature skill (on its ring): " + describe(sp.skill),
+                "Comes with: " + describe(sp.skill),
                 prepend(
                   "Also on its ring: " + grant_name(sp.second),
                   prepend(
@@ -16427,7 +16488,7 @@ function details(t2, n) {
   } else {
     let name3 = $1.name;
     let g = $1.grant;
-    return unique(
+    let _pipe$3 = unique(
       prepend(
         name3,
         prepend(
@@ -16442,11 +16503,26 @@ function details(t2, n) {
           })(),
           prepend(
             grant_name(g),
-            prepend("In " + home + ".", List$Empty$const)
+            prepend(
+              (() => {
+                if (g instanceof GrantSkill) {
+                  let sk = g[0];
+                  return "Each point is a level (max " + to_string(
+                    max_level
+                  ) + "): " + level_note(sk.effect) + ".";
+                } else {
+                  return "";
+                }
+              })(),
+              prepend("In " + home + ".", List$Empty$const)
+            )
           )
         )
       )
     );
+    return filter(_pipe$3, (line) => {
+      return line !== "";
+    });
   }
 }
 function ring_progress(t2, owned, keystone) {
@@ -16578,12 +16654,6 @@ var Point = class extends CustomType {
 var Heal2 = class extends CustomType {
 };
 var Reward$Heal$const = new Heal2();
-var Train = class extends CustomType {
-  constructor($0) {
-    super();
-    this[0] = $0;
-  }
-};
 var Door = class extends CustomType {
   constructor(x, y2, reward) {
     super();
@@ -16728,7 +16798,6 @@ var bare = /* @__PURE__ */ new Mods(
 );
 var height = 1.5;
 var width = 0.75;
-var max_skill_level = 5;
 var hurt_time = 0.3;
 var knockback_y = 9;
 var knockback_x = 8;
@@ -17190,7 +17259,7 @@ function choose_class(world2, keystone) {
   let cell = find(world2.tree.cells, (c) => {
     return c.id === keystone;
   });
-  let free = p2.class instanceof None || length(p2.allocated) <= 1;
+  let free = p2.class instanceof None || length(p2.allocated) <= 2 && p2.trained instanceof Empty;
   let $ = world2.depth;
   let $1 = contains(world2.unlocked, keystone);
   if (free && $1 && cell instanceof Ok && $ === 0) {
@@ -17220,10 +17289,16 @@ function choose_class(world2, keystone) {
         p2.plunged,
         p2.grudge,
         of(c.name),
-        p2.loadout,
-        p2.trained,
+        prepend(signature(c.name), List$Empty$const),
+        List$Empty$const,
         new Some(keystone),
-        prepend(keystone, List$Empty$const),
+        prepend(
+          keystone,
+          prepend(
+            signature_node(world2.tree, keystone),
+            List$Empty$const
+          )
+        ),
         (() => {
           let _record = kit_mods(c.name);
           return new Mods(
@@ -17322,11 +17397,8 @@ function reward_label(r) {
       } else {
         return "+1 Mage";
       }
-    } else if ($ instanceof Heal2) {
-      return "Full heal";
     } else {
-      let e = $[0];
-      return "Level up " + name(e);
+      return "Full heal";
     }
   } else {
     return "Start run";
@@ -17391,7 +17463,7 @@ function apply_reward(p2, r) {
       p2.invuln,
       p2.hurt
     );
-  } else if (r instanceof Heal2) {
+  } else {
     return new Player(
       p2.x,
       p2.y,
@@ -17433,49 +17505,6 @@ function apply_reward(p2, r) {
       p2.invuln,
       p2.hurt
     );
-  } else {
-    let e = r[0];
-    return new Player(
-      p2.x,
-      p2.y,
-      p2.vx,
-      p2.vy,
-      p2.grounded,
-      p2.on_platform,
-      p2.wall,
-      p2.facing,
-      p2.coyote,
-      p2.jump_buffer,
-      p2.air_jumps,
-      p2.dash_time,
-      p2.dashes,
-      p2.drop_time,
-      p2.can_cut,
-      p2.up_held,
-      p2.jumped,
-      p2.dashed,
-      p2.struck,
-      p2.plunged,
-      p2.grudge,
-      p2.weapon,
-      p2.loadout,
-      prepend(e, p2.trained),
-      p2.class,
-      p2.allocated,
-      p2.mods,
-      p2.shield,
-      p2.block_charge,
-      p2.crash_wait,
-      p2.swings,
-      p2.attack,
-      p2.stats,
-      p2.lvl,
-      p2.xp,
-      p2.points,
-      p2.hp,
-      p2.invuln,
-      p2.hurt
-    );
   }
 }
 function nth_room(i) {
@@ -17486,15 +17515,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      1857,
+      1913,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 54389,
-        end: 54441,
-        pattern_start: 54400,
-        pattern_end: 54407
+        start: 56598,
+        end: 56650,
+        pattern_start: 56609,
+        pattern_end: 56616
       }
     );
   } else {
@@ -17756,36 +17785,6 @@ function use_door(world2, up_fresh) {
     return world2;
   }
 }
-function nth_or_first(items, n) {
-  let first2;
-  if (items instanceof Empty) {
-    throw makeError(
-      "let_assert",
-      FILEPATH2,
-      "game",
-      1694,
-      "nth_or_first",
-      "Pattern match failed, no pattern matched the value.",
-      {
-        value: items,
-        start: 49879,
-        end: 49909,
-        pattern_start: 49890,
-        pattern_end: 49901
-      }
-    );
-  } else {
-    first2 = items.head;
-  }
-  let _pipe = drop(items, remainderInt(n, length(items)));
-  let _pipe$1 = first(_pipe);
-  return unwrap2(_pipe$1, first2);
-}
-function skill_level(p2, effect) {
-  return 1 + count(p2.trained, (e) => {
-    return isEqual(e, effect);
-  });
-}
 function check_clear(world2) {
   let hostile_left = any(
     world2.enemies,
@@ -17823,35 +17822,15 @@ function check_clear(world2) {
     let $2 = shuffle(offers, world2.seed);
     let rewards = $2[0];
     let seed = $2[1];
-    let p2 = world2.player;
-    let _block$1;
-    let _pipe = map3(p2.loadout, (s) => {
-      return s.effect;
-    });
-    let _pipe$1 = unique(_pipe);
-    _block$1 = filter(
-      _pipe$1,
-      (e) => {
-        return skill_level(p2, e) < max_skill_level;
-      }
-    );
-    let trainable = _block$1;
-    let _block$2;
-    if (trainable instanceof Empty) {
-      _block$2 = rewards;
-    } else {
-      _block$2 = prepend(new Train(nth_or_first(trainable, seed)), rewards);
-    }
-    let rewards$1 = _block$2;
     let n = 2 + seed % 2;
-    let _block$3;
+    let _block$1;
     let $4 = world2.depth === boss_depth;
     if ($4) {
-      _block$3 = [
+      _block$1 = [
         (() => {
-          let _pipe$2 = take(world2.exits, 1);
+          let _pipe = take(world2.exits, 1);
           return map3(
-            _pipe$2,
+            _pipe,
             (e) => {
               return new Door(e[0], e[1], Option$None$const);
             }
@@ -17863,14 +17842,14 @@ function check_clear(world2) {
         )
       ];
     } else {
-      _block$3 = [
+      _block$1 = [
         (() => {
-          let _pipe$2 = zip(
+          let _pipe = zip(
             take(world2.exits, n),
-            take(rewards$1, n)
+            take(rewards, n)
           );
           return map3(
-            _pipe$2,
+            _pipe,
             (pair) => {
               return new Door(pair[0][0], pair[0][1], new Some(pair[1]));
             }
@@ -17879,7 +17858,7 @@ function check_clear(world2) {
         List$Empty$const
       ];
     }
-    let $3 = _block$3;
+    let $3 = _block$1;
     let doors = $3[0];
     let finale = $3[1];
     let $5 = [world2.player, List$Empty$const];
@@ -18440,15 +18419,15 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        841,
+        836,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $12,
-          start: 22978,
-          end: 23034,
-          pattern_start: 22989,
-          pattern_end: 22994
+          start: 22874,
+          end: 22930,
+          pattern_start: 22885,
+          pattern_end: 22890
         }
       );
     }
@@ -19617,6 +19596,11 @@ function seal(world2) {
     return world2;
   }
 }
+function skill_level(p2, effect) {
+  return 1 + count(p2.trained, (e) => {
+    return isEqual(e, effect);
+  });
+}
 function orbit(world2) {
   let p2 = world2.player;
   let $ = partition(
@@ -19628,14 +19612,30 @@ function orbit(world2) {
   let orbs = $[0];
   let rest = $[1];
   let _block;
-  let $1 = has2(p2, Rule$Orbit$const);
+  let $1 = any(
+    p2.loadout,
+    (s) => {
+      return s.effect instanceof Orb;
+    }
+  );
   if ($1) {
     _block = spawn2(
       Effect$Orb$const,
       p2.x,
       p2.y,
       damage(p2.stats),
-      boost(p2),
+      (() => {
+        let _record = boost(p2);
+        return new Boost(
+          _record.damage,
+          _record.reach,
+          _record.slash,
+          _record.shockwave,
+          _record.knives,
+          _record.pierce,
+          skill_level(p2, Effect$Orb$const)
+        );
+      })(),
       [1, 0],
       p2.facing
     );
@@ -19649,14 +19649,56 @@ function orbit(world2) {
       return pair[0].damage === pair[1].damage && pair[0].w === pair[1].w;
     }
   );
+  let _block$1;
+  let $2 = has2(p2, Rule$Orbit$const);
+  if ($2) {
+    _block$1 = filter(
+      world2.projectiles,
+      (shot2) => {
+        return !any(
+          orbs,
+          (o) => {
+            return overlaps(
+              strike_box(o, p2.x, p2.y),
+              shot_box(shot2)
+            );
+          }
+        );
+      }
+    );
+  } else {
+    _block$1 = world2.projectiles;
+  }
+  let projectiles = _block$1;
   if (current) {
-    return world2;
+    return new World(
+      world2.player,
+      world2.level,
+      world2.enemies,
+      projectiles,
+      world2.strikes,
+      world2.events,
+      world2.depth,
+      world2.cleared,
+      world2.doors,
+      world2.exits,
+      world2.seed,
+      world2.tree,
+      world2.unlocked,
+      world2.npcs,
+      world2.time,
+      world2.kills,
+      world2.room_time,
+      world2.safe_x,
+      world2.sealed,
+      world2.plan
+    );
   } else {
     return new World(
       world2.player,
       world2.level,
       world2.enemies,
-      world2.projectiles,
+      projectiles,
       append(rest, want),
       world2.events,
       world2.depth,
@@ -19675,6 +19717,64 @@ function orbit(world2) {
       world2.plan
     );
   }
+}
+function under_the_ceiling(s, level, feet) {
+  let $ = s.effect instanceof Firebolt;
+  if ($) {
+    let _block;
+    let _pipe = level;
+    let _pipe$1 = filter(
+      _pipe,
+      (r) => {
+        return !r.one_way && r.y > feet + 1 && r.x < s.x + s.w && r.x + r.w > s.x;
+      }
+    );
+    _block = fold2(
+      _pipe$1,
+      s.y + s.h,
+      (low, r) => {
+        return min2(low, r.y);
+      }
+    );
+    let lowest2 = _block;
+    return new Strike(
+      s.effect,
+      s.x,
+      min2(s.y, lowest2 - s.h - 0.05),
+      s.w,
+      s.h,
+      s.vx,
+      s.vy,
+      s.ttl,
+      s.follow,
+      s.pierce,
+      s.damage,
+      s.hit,
+      s.wait
+    );
+  } else {
+    return s;
+  }
+}
+function skill_period(p2, s) {
+  let _block;
+  let $ = s.trigger;
+  if ($ instanceof Every) {
+    let period2 = $.period;
+    _block = period2;
+  } else if ($ instanceof OnHit) {
+    let period2 = $.period;
+    _block = period2;
+  } else {
+    _block = 0;
+  }
+  let base = _block;
+  return max3(
+    0.3,
+    period(s.effect, base, skill_level(p2, s.effect)) * (1 - identity(
+      p2.mods.cooldown_pct
+    ) / 100)
+  );
 }
 function aim_at_nearest(world2) {
   let p2 = world2.player;
@@ -19790,12 +19890,8 @@ function fire_skills(world2, before, dt2) {
       } else if ($52 instanceof OnHardLanding) {
         _block$22 = [hard_landing, w2];
       } else if ($52 instanceof Every) {
-        let period = $52.period;
         let t2 = w2.timer - dt2;
-        let period$1 = max3(
-          0.3,
-          period * (1 - identity(p$1.mods.cooldown_pct) / 100)
-        );
+        let period2 = skill_period(p$1, w2);
         let _block$32;
         let $6 = w2.trigger;
         if ($6 instanceof OnHit) {
@@ -19808,41 +19904,40 @@ function fire_skills(world2, before, dt2) {
         if ($7) {
           _block$22 = [
             true,
-            new Skill(w2.trigger, w2.effect, max3(t2, 0 - dt2) + period$1)
+            new Skill(w2.trigger, w2.effect, max3(t2, 0 - dt2) + period2)
+          ];
+        } else {
+          _block$22 = [false, new Skill(w2.trigger, w2.effect, t2)];
+        }
+      } else if ($52 instanceof OnHit) {
+        let t2 = w2.timer - dt2;
+        let period2 = skill_period(p$1, w2);
+        let _block$32;
+        let $6 = w2.trigger;
+        if ($6 instanceof OnHit) {
+          _block$32 = p$1.struck;
+        } else {
+          _block$32 = true;
+        }
+        let go2 = _block$32;
+        let $7 = t2 <= 0 && go2;
+        if ($7) {
+          _block$22 = [
+            true,
+            new Skill(w2.trigger, w2.effect, max3(t2, 0 - dt2) + period2)
           ];
         } else {
           _block$22 = [false, new Skill(w2.trigger, w2.effect, t2)];
         }
       } else {
-        let period = $52.period;
-        let t2 = w2.timer - dt2;
-        let period$1 = max3(
-          0.3,
-          period * (1 - identity(p$1.mods.cooldown_pct) / 100)
-        );
-        let _block$32;
-        let $6 = w2.trigger;
-        if ($6 instanceof OnHit) {
-          _block$32 = p$1.struck;
-        } else {
-          _block$32 = true;
-        }
-        let go2 = _block$32;
-        let $7 = t2 <= 0 && go2;
-        if ($7) {
-          _block$22 = [
-            true,
-            new Skill(w2.trigger, w2.effect, max3(t2, 0 - dt2) + period$1)
-          ];
-        } else {
-          _block$22 = [false, new Skill(w2.trigger, w2.effect, t2)];
-        }
+        _block$22 = [false, w2];
       }
       let $42 = _block$22;
       let fires = $42[0];
       let w$1 = $42[1];
       if (fires) {
-        let strikes = spawn2(
+        let _block$32;
+        let _pipe = spawn2(
           w$1.effect,
           p$1.x,
           p$1.y,
@@ -19862,14 +19957,21 @@ function fire_skills(world2, before, dt2) {
           aim,
           p$1.facing
         );
-        let _block$32;
+        _block$32 = map3(
+          _pipe,
+          (_capture) => {
+            return under_the_ceiling(_capture, world2.level, p$1.y);
+          }
+        );
+        let strikes = _block$32;
+        let _block$4;
         let $6 = w$1.effect;
         if ($6 instanceof Heal) {
-          _block$32 = 1;
+          _block$4 = 2 + skill_level(p$1, w$1.effect);
         } else {
-          _block$32 = 0;
+          _block$4 = 0;
         }
-        let heal = _block$32;
+        let heal = _block$4;
         return [[append(strikes, acc2[0]), acc2[1] + heal], w$1];
       } else {
         return [acc2, w$1];
@@ -19883,14 +19985,11 @@ function fire_skills(world2, before, dt2) {
   new$2 = $3[0][0];
   heals = $3[0][1];
   let _block$2;
-  let $4 = has2(p$1, Rule$Bloodlust$const);
+  let $4 = has2(p$1, Rule$Bloodlust$const) || heals === 0;
   if ($4) {
     _block$2 = 0;
   } else {
-    _block$2 = heals * max(
-      2,
-      globalThis.Math.trunc(max_hp3(p$1) * 3 / 100)
-    );
+    _block$2 = max(2, globalThis.Math.trunc(max_hp3(p$1) * heals / 100));
   }
   let amount = _block$2;
   let healed = min(max_hp3(p$1), p$1.hp + amount) - p$1.hp;
@@ -21381,6 +21480,108 @@ function apply_node(p2, kind) {
     }
   }
 }
+function can_level(world2, id2) {
+  let p2 = world2.player;
+  let $ = get(world2.tree.nodes, id2);
+  if ($ instanceof Ok) {
+    let $1 = $[0].kind;
+    if ($1 instanceof Notable) {
+      let $2 = $1.grant;
+      if ($2 instanceof GrantSkill) {
+        let s = $2[0];
+        return contains(p2.allocated, id2) && skill_level(p2, s.effect) < max_level;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+function level_up(world2, id2, otherwise) {
+  let p2 = world2.player;
+  let $ = p2.points > 0 && can_level(world2, id2);
+  let $1 = get(world2.tree.nodes, id2);
+  if ($ && $1 instanceof Ok) {
+    let $2 = $1[0].kind;
+    if ($2 instanceof Notable) {
+      let $3 = $2.grant;
+      if ($3 instanceof GrantSkill) {
+        let s = $3[0];
+        return new World(
+          new Player(
+            p2.x,
+            p2.y,
+            p2.vx,
+            p2.vy,
+            p2.grounded,
+            p2.on_platform,
+            p2.wall,
+            p2.facing,
+            p2.coyote,
+            p2.jump_buffer,
+            p2.air_jumps,
+            p2.dash_time,
+            p2.dashes,
+            p2.drop_time,
+            p2.can_cut,
+            p2.up_held,
+            p2.jumped,
+            p2.dashed,
+            p2.struck,
+            p2.plunged,
+            p2.grudge,
+            p2.weapon,
+            p2.loadout,
+            prepend(s.effect, p2.trained),
+            p2.class,
+            p2.allocated,
+            p2.mods,
+            p2.shield,
+            p2.block_charge,
+            p2.crash_wait,
+            p2.swings,
+            p2.attack,
+            p2.stats,
+            p2.lvl,
+            p2.xp,
+            p2.points - 1,
+            p2.hp,
+            p2.invuln,
+            p2.hurt
+          ),
+          world2.level,
+          world2.enemies,
+          world2.projectiles,
+          world2.strikes,
+          world2.events,
+          world2.depth,
+          world2.cleared,
+          world2.doors,
+          world2.exits,
+          world2.seed,
+          world2.tree,
+          world2.unlocked,
+          world2.npcs,
+          world2.time,
+          world2.kills,
+          world2.room_time,
+          world2.safe_x,
+          world2.sealed,
+          world2.plan
+        );
+      } else {
+        return otherwise();
+      }
+    } else {
+      return otherwise();
+    }
+  } else {
+    return otherwise();
+  }
+}
 function allocate(world2, id2) {
   let p2 = world2.player;
   let ok = p2.points > 0 && !(p2.class instanceof None) && can_allocate(
@@ -21388,97 +21589,103 @@ function allocate(world2, id2) {
     p2.allocated,
     id2
   );
-  let $ = get(world2.tree.nodes, id2);
-  if (ok && $ instanceof Ok) {
-    let node = $[0];
-    let p$1 = new Player(
-      p2.x,
-      p2.y,
-      p2.vx,
-      p2.vy,
-      p2.grounded,
-      p2.on_platform,
-      p2.wall,
-      p2.facing,
-      p2.coyote,
-      p2.jump_buffer,
-      p2.air_jumps,
-      p2.dash_time,
-      p2.dashes,
-      p2.drop_time,
-      p2.can_cut,
-      p2.up_held,
-      p2.jumped,
-      p2.dashed,
-      p2.struck,
-      p2.plunged,
-      p2.grudge,
-      p2.weapon,
-      p2.loadout,
-      p2.trained,
-      p2.class,
-      prepend(id2, p2.allocated),
-      p2.mods,
-      p2.shield,
-      p2.block_charge,
-      p2.crash_wait,
-      p2.swings,
-      p2.attack,
-      p2.stats,
-      p2.lvl,
-      p2.xp,
-      p2.points - 1,
-      p2.hp,
-      p2.invuln,
-      p2.hurt
-    );
-    let p$2 = apply_node(p$1, node.kind);
-    let own = unwrap(p$2.class, -1);
-    let _block;
-    let _pipe = saturated(world2.tree, p$2.allocated, own);
-    _block = filter(
-      _pipe,
-      (k2) => {
-        return !contains(world2.unlocked, k2);
+  return level_up(
+    world2,
+    id2,
+    () => {
+      let $ = get(world2.tree.nodes, id2);
+      if (ok && $ instanceof Ok) {
+        let node = $[0];
+        let p$1 = new Player(
+          p2.x,
+          p2.y,
+          p2.vx,
+          p2.vy,
+          p2.grounded,
+          p2.on_platform,
+          p2.wall,
+          p2.facing,
+          p2.coyote,
+          p2.jump_buffer,
+          p2.air_jumps,
+          p2.dash_time,
+          p2.dashes,
+          p2.drop_time,
+          p2.can_cut,
+          p2.up_held,
+          p2.jumped,
+          p2.dashed,
+          p2.struck,
+          p2.plunged,
+          p2.grudge,
+          p2.weapon,
+          p2.loadout,
+          p2.trained,
+          p2.class,
+          prepend(id2, p2.allocated),
+          p2.mods,
+          p2.shield,
+          p2.block_charge,
+          p2.crash_wait,
+          p2.swings,
+          p2.attack,
+          p2.stats,
+          p2.lvl,
+          p2.xp,
+          p2.points - 1,
+          p2.hp,
+          p2.invuln,
+          p2.hurt
+        );
+        let p$2 = apply_node(p$1, node.kind);
+        let own = unwrap(p$2.class, -1);
+        let _block;
+        let _pipe = saturated(world2.tree, p$2.allocated, own);
+        _block = filter(
+          _pipe,
+          (k2) => {
+            return !contains(world2.unlocked, k2);
+          }
+        );
+        let fresh = _block;
+        let names = filter_map(
+          world2.tree.cells,
+          (c) => {
+            let $1 = contains(fresh, c.id);
+            if ($1) {
+              return new Ok(new Unlocked(c.name));
+            } else {
+              return new Error2(void 0);
+            }
+          }
+        );
+        return new World(
+          p$2,
+          world2.level,
+          world2.enemies,
+          world2.projectiles,
+          world2.strikes,
+          append(world2.events, names),
+          world2.depth,
+          world2.cleared,
+          world2.doors,
+          world2.exits,
+          world2.seed,
+          world2.tree,
+          append(world2.unlocked, fresh),
+          world2.npcs,
+          world2.time,
+          world2.kills,
+          world2.room_time,
+          world2.safe_x,
+          world2.sealed,
+          world2.plan
+        );
+      } else {
+        return world2;
       }
-    );
-    let fresh = _block;
-    let names = filter_map(
-      world2.tree.cells,
-      (c) => {
-        let $1 = contains(fresh, c.id);
-        if ($1) {
-          return new Ok(new Unlocked(c.name));
-        } else {
-          return new Error2(void 0);
-        }
-      }
-    );
-    return new World(
-      p$2,
-      world2.level,
-      world2.enemies,
-      world2.projectiles,
-      world2.strikes,
-      append(world2.events, names),
-      world2.depth,
-      world2.cleared,
-      world2.doors,
-      world2.exits,
-      world2.seed,
-      world2.tree,
-      append(world2.unlocked, fresh),
-      world2.npcs,
-      world2.time,
-      world2.kills,
-      world2.room_time,
-      world2.safe_x,
-      world2.sealed,
-      world2.plan
-    );
-  } else {
-    return world2;
-  }
+    }
+  );
 }
 function set_unlocked(world2, unlocked) {
   return new World(
@@ -21564,15 +21771,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        1812,
+        1868,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 53028,
-          end: 53079,
-          pattern_start: 53039,
-          pattern_end: 53047
+          start: 55237,
+          end: 55288,
+          pattern_start: 55248,
+          pattern_end: 55256
         }
       );
     }
@@ -21584,15 +21791,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        1814,
+        1870,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 53162,
-          end: 53223,
-          pattern_start: 53173,
-          pattern_end: 53190
+          start: 55371,
+          end: 55432,
+          pattern_start: 55382,
+          pattern_end: 55399
         }
       );
     } else {
@@ -21602,15 +21809,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          1814,
+          1870,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 53162,
-            end: 53223,
-            pattern_start: 53173,
-            pattern_end: 53190
+            start: 55371,
+            end: 55432,
+            pattern_start: 55382,
+            pattern_end: 55399
           }
         );
       } else {
@@ -21867,8 +22074,10 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     const picking = p2.class instanceof None;
     const owned = new Set(p2.allocated.toArray());
     const unlocked = new Set(w2.unlocked.toArray());
-    const available = (n) => picking ? n.kind instanceof Keystone && unlocked.has(n.id) && w2.depth === 0 : p2.points > 0 && can_allocate(w2.tree, p2.allocated, n.id);
-    return { w: w2, p: p2, picking, owned, unlocked, available };
+    const levelOf = (n) => n.kind.grant instanceof GrantSkill && owned.has(n.id) ? skill_level(p2, n.kind.grant[0].effect) : 0;
+    const canLevel = (n) => !picking && p2.points > 0 && can_level(w2, n.id);
+    const available = (n) => picking ? n.kind instanceof Keystone && unlocked.has(n.id) && w2.depth === 0 : p2.points > 0 && (can_allocate(w2.tree, p2.allocated, n.id) || can_level(w2, n.id));
+    return { w: w2, p: p2, picking, owned, unlocked, available, levelOf, canLevel };
   }
   function defaultFocus() {
     const { p: p2 } = derive();
@@ -22034,6 +22243,15 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
       ctx.strokeStyle = can ? TEAL : col;
       ctx.stroke();
       ctx.globalAlpha = 1;
+      const lv2 = d2.levelOf(n);
+      if (lv2 > 0) {
+        const bx = x + r * 0.95, by = y2 - r * 0.85, br2 = wholeTree ? 6 : 9;
+        ctx.beginPath();
+        ctx.arc(bx, by, br2, 0, Math.PI * 2);
+        ctx.fillStyle = INK;
+        ctx.fill();
+        say(String(lv2), bx, by + br2 * 0.42, `800 ${wholeTree ? 9 : 13}px "Baloo 2"`, "#fff", "center");
+      }
     }
     for (const c of cells2) {
       const [x, y2] = project(c.x, c.y);
@@ -22063,7 +22281,11 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     const title = lines[0];
     const body2 = lines.slice(1).filter((l) => !/^(Small node|Notable|Keystone)/.test(l));
     let status, go2 = false;
-    if (d2.owned.has(f.id)) status = "Owned";
+    const lv = d2.levelOf(f);
+    if (lv > 0) {
+      status = d2.canLevel(f) ? `Level up (${lv} to ${lv + 1})` : `Level ${lv}`;
+      go2 = d2.canLevel(f);
+    } else if (d2.owned.has(f.id)) status = "Owned";
     else if (f.kind instanceof Keystone) {
       const [have, of2] = ring_progress(d2.w.tree, d2.p.allocated, f.id);
       status = d2.picking ? d2.unlocked.has(f.id) ? (go2 = true, `Start as ${f.kind.name}`) : "Locked: fill its ring in a run" : `Ring ${have}/${of2}${d2.unlocked.has(f.id) ? " \xB7 unlocked" : ""}`;
@@ -22089,8 +22311,8 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
   function kitTiles(p2) {
     const tiles = [];
     for (const s of p2.loadout.toArray()) {
-      const [when, what] = describe(s).split(" -> ");
-      tiles.push({ k: "skill", name: what[0].toUpperCase() + what.slice(1), sub: when, detail: describe(s) });
+      const [when, what] = describe(s).split(" -> "), lv = skill_level(p2, s.effect);
+      tiles.push({ k: "skill", name: what[0].toUpperCase() + what.slice(1), sub: lv > 1 ? `level ${lv}` : when, detail: `${describe(s)}${lv > 1 ? `, at level ${lv}` : ""}` });
     }
     const m = p2.mods;
     if (m.air_jumps > 0) tiles.push({ k: "move", name: "Air jump", sub: `\xD7${m.air_jumps}`, detail: `${m.air_jumps} extra jump${m.air_jumps > 1 ? "s" : ""} in the air` });
@@ -22765,8 +22987,8 @@ var MAX_PIES = 4;
 var miniKey = "";
 function drawMini(p2, x, top) {
   const timed = p2.loadout.toArray().filter((s) => s.trigger.period !== void 0).map((s) => {
-    const period = Math.max(0.3, s.trigger.period * (1 - p2.mods.cooldown_pct / 100)), left = Math.max(0, s.timer);
-    return { name: s.effect.constructor.name, left, filled: Math.min(1, 1 - left / period) };
+    const period2 = skill_period(p2, s), left = Math.max(0, s.timer);
+    return { name: s.effect.constructor.name, left, filled: Math.min(1, 1 - left / period2) };
   }).sort((a, b) => a.left - b.left);
   const pies = timed.slice(0, MAX_PIES);
   const rows = [["jump", p2.air_jumps, p2.mods.air_jumps], ["dash", p2.dashes, p2.mods.dashes], ["block", p2.shield, Math.max(p2.shield, p2.mods.shields)]].filter((r) => r[2] > 0);
