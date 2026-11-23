@@ -13672,33 +13672,81 @@ var Statue = class extends CustomType {
     this.keystone = keystone;
   }
 };
+var hub_step = 3;
+var hub_centre = 18;
+var hub_gap = 3;
 var tunnel_end = 10;
 function hub() {
+  let rows = prepend(
+    prepend(
+      4,
+      prepend(
+        7,
+        prepend(
+          6,
+          prepend(
+            15,
+            prepend(10, prepend(11, prepend(8, List$Empty$const)))
+          )
+        )
+      )
+    ),
+    prepend(
+      prepend(
+        5,
+        prepend(
+          13,
+          prepend(12, prepend(14, prepend(9, List$Empty$const)))
+        )
+      ),
+      prepend(
+        prepend(1, prepend(3, prepend(2, List$Empty$const))),
+        prepend(prepend(0, List$Empty$const), List$Empty$const)
+      )
+    )
+  );
+  let _block;
+  let _pipe = index_map(
+    rows,
+    (row, r) => {
+      let y2 = hub_step * identity(r);
+      let left = hub_centre - hub_gap * identity(length(row) - 1) / 2;
+      return index_map(
+        row,
+        (k2, i) => {
+          return new Npc(left + hub_gap * identity(i), y2, new Statue(k2));
+        }
+      );
+    }
+  );
+  _block = flatten(_pipe);
+  let statues = _block;
+  let _block$1;
+  let _pipe$1 = index_map(
+    rows,
+    (row, r) => {
+      let wide = hub_gap * identity(length(row) - 1) + 3;
+      return new Rect(
+        hub_centre - wide / 2,
+        hub_step * identity(r) - 0.3,
+        wide,
+        0.3,
+        true
+      );
+    }
+  );
+  _block$1 = drop(_pipe$1, 1);
+  let shelves = _block$1;
   return new Template(
     prepend(
-      new Rect(-14, -2, 84, 2, false),
+      new Rect(-14, -2, 52, 2, false),
       prepend(
         new Rect(-15, -2, 1, 30, false),
         prepend(
-          new Rect(70, -2, 1, 30, false),
+          new Rect(38, -2, 1, 30, false),
           prepend(
-            new Rect(14, 3.5, 6, 0.3, true),
-            prepend(
-              new Rect(24, 5.5, 6, 0.3, true),
-              prepend(
-                new Rect(34, 3.5, 6, 0.3, true),
-                prepend(
-                  new Rect(44, 5.5, 6, 0.3, true),
-                  prepend(
-                    new Rect(55, 2.5, 1.5, 12, false),
-                    prepend(
-                      new Rect(59.5, 2.5, 1.5, 12, false),
-                      List$Empty$const
-                    )
-                  )
-                )
-              )
-            )
+            new Rect(31, 2.5, 1.2, 10, false),
+            prepend(new Rect(34.3, 2.5, 1.2, 10, false), shelves)
           )
         )
       )
@@ -13712,15 +13760,7 @@ function hub() {
       )
     ),
     prepend([3.5, 0], List$Empty$const),
-    prepend(
-      new Npc(1, 0, Role$Mentor$const),
-      index_map(
-        toList([3, 7, 11, 12, 0, 1, 2, 4, 5, 6, 8, 9, 10, 13, 14, 15]),
-        (k2, i) => {
-          return new Npc(6 + 3 * identity(i), 0, new Statue(k2));
-        }
-      )
-    ),
+    prepend(new Npc(1, 0, Role$Mentor$const), statues),
     [0, 0],
     0
   );
@@ -17645,15 +17685,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      2135,
+      2136,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 63770,
-        end: 63822,
-        pattern_start: 63781,
-        pattern_end: 63788
+        start: 63923,
+        end: 63975,
+        pattern_start: 63934,
+        pattern_end: 63941
       }
     );
   } else {
@@ -18182,31 +18222,64 @@ function hurt(world2, damage3, from_x) {
       let ouch = new Hurt(p2.x, p2.y + height, damage$1);
       let $1 = p2.hp - damage$1 <= 0;
       if ($1) {
-        let fresh = new_world(next2(world2.seed));
+        let _block$2;
+        let _record = new_world(next2(world2.seed));
+        _block$2 = new World(
+          _record.player,
+          _record.level,
+          _record.enemies,
+          _record.projectiles,
+          _record.strikes,
+          _record.events,
+          _record.depth,
+          _record.cleared,
+          _record.doors,
+          _record.exits,
+          _record.seed,
+          _record.tree,
+          world2.unlocked,
+          _record.npcs,
+          _record.time,
+          _record.kills,
+          _record.room_time,
+          _record.safe_x,
+          _record.sealed,
+          _record.plan
+        );
+        let fresh = _block$2;
+        let _block$3;
+        let $2 = p2.class;
+        if ($2 instanceof Some) {
+          let k2 = $2[0];
+          _block$3 = choose_class(fresh, k2);
+        } else {
+          _block$3 = fresh;
+        }
+        let fresh$1 = _block$3;
         return new World(
-          fresh.player,
-          fresh.level,
-          fresh.enemies,
-          fresh.projectiles,
-          fresh.strikes,
+          fresh$1.player,
+          fresh$1.level,
+          fresh$1.enemies,
+          fresh$1.projectiles,
+          fresh$1.strikes,
           append(
             world2.events,
             prepend(ouch, prepend(Event$Died$const, List$Empty$const))
           ),
-          fresh.depth,
-          fresh.cleared,
-          fresh.doors,
-          fresh.exits,
-          fresh.seed,
-          fresh.tree,
-          world2.unlocked,
-          fresh.npcs,
-          fresh.time,
-          fresh.kills,
-          fresh.room_time,
-          fresh.safe_x,
-          fresh.sealed,
-          fresh.plan
+          fresh$1.depth,
+          fresh$1.cleared,
+          fresh$1.doors,
+          fresh$1.exits,
+          fresh$1.seed,
+          fresh$1.tree,
+          fresh$1.unlocked,
+          fresh$1.npcs,
+          fresh$1.time,
+          fresh$1.kills,
+          fresh$1.room_time,
+          fresh$1.safe_x,
+          fresh$1.sealed,
+          fresh$1.plan
         );
       } else {
         let p$1 = new Player(
@@ -22498,15 +22571,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2090,
+        2091,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 62409,
-          end: 62460,
-          pattern_start: 62420,
-          pattern_end: 62428
+          start: 62562,
+          end: 62613,
+          pattern_start: 62573,
+          pattern_end: 62581
         }
       );
     }
@@ -22518,15 +22591,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2092,
+        2093,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 62543,
-          end: 62604,
-          pattern_start: 62554,
-          pattern_end: 62571
+          start: 62696,
+          end: 62757,
+          pattern_start: 62707,
+          pattern_end: 62724
         }
       );
     } else {
@@ -22536,15 +22609,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          2092,
+          2093,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 62543,
-            end: 62604,
-            pattern_start: 62554,
-            pattern_end: 62571
+            start: 62696,
+            end: 62757,
+            pattern_start: 62707,
+            pattern_end: 62724
           }
         );
       } else {
@@ -23347,8 +23420,8 @@ function outline(m) {
   back.position.z = -0.05;
   m.add(back);
 }
-var HERO_H = 2.3;
-var PEDESTAL_H = 0.45;
+var HERO_H = 1.8;
+var PEDESTAL_H = 0.3;
 var STONE = 15260879;
 var GOLD2 = 14721563;
 var AXIS = [14240835, 5217855, 5922774];
@@ -23445,8 +23518,8 @@ function arch(w2, h) {
   return new nd(s, 20);
 }
 function alcove(x, y2) {
-  const fill = new Bs(arch(2.5, 3.35), new es({ color: LOCKED_TINT }));
-  const ink = new Bs(arch(2.64, 3.42), edgeMat);
+  const fill = new Bs(arch(2.4, 2.62), new es({ color: LOCKED_TINT }));
+  const ink = new Bs(arch(2.54, 2.69), edgeMat);
   ink.position.z = -0.05;
   fill.add(ink);
   fill.position.set(x, y2, -2);
@@ -23534,7 +23607,7 @@ function syncRoom() {
       hero.position.set(n.x, n.y + lift + HERO_H / 2, -0.6);
       roomGroup.add(hero);
       if (!statue) return { hero, n, statue, name: name3, y: hero.position.y };
-      const niche = alcove(n.x, n.y), pedestal = box3(1.7, PEDESTAL_H, STONE);
+      const niche = alcove(n.x, n.y), pedestal = box3(1.5, PEDESTAL_H, STONE);
       outline(pedestal);
       pedestal.position.set(n.x, n.y + PEDESTAL_H / 2, -1.2);
       roomGroup.add(niche, pedestal);
@@ -23660,6 +23733,17 @@ function loadUnlocks() {
 }
 loadUnlocks();
 if (new URLSearchParams(location.search).has("unlock")) world = set_unlocked(world, toList([...Array(16).keys()]));
+var CLASS_KEY = "trip.class";
+var savedClass = null;
+{
+  let k2 = NaN;
+  try {
+    k2 = Number(localStorage.getItem(CLASS_KEY) ?? NaN);
+  } catch {
+  }
+  const open = world.unlocked.toArray();
+  world = choose_class(world, open.includes(k2) ? k2 : open[Math.floor(Math.random() * open.length)]);
+}
 var treeScreen = createTreeScreen({ getWorld: () => world, setWorld: (w2) => {
   world = w2;
 }, onUnlock: saveUnlocks });
@@ -23856,6 +23940,13 @@ function frame(now) {
   drawBossBar();
   const shown = p2.invuln <= 0 || Math.floor(now / 60) % 2 === 0;
   const myClass = p2.class instanceof Some ? world.tree.cells.toArray()[p2.class[0]].name : null;
+  if (p2.class instanceof Some && p2.class[0] !== savedClass) {
+    savedClass = p2.class[0];
+    try {
+      localStorage.setItem(CLASS_KEY, savedClass);
+    } catch {
+    }
+  }
   player.visible = shown && (!myClass || showBox);
   player.material.transparent = true;
   player.material.opacity = myClass ? 0.45 : 1;
