@@ -14550,6 +14550,24 @@ function lowest(s, axis) {
   let mine = _block;
   return mine === min(s.fighter, min(s.rogue, s.mage));
 }
+function name2(axis) {
+  if (axis instanceof Fighter) {
+    return "Fighter";
+  } else if (axis instanceof Rogue) {
+    return "Rogue";
+  } else {
+    return "Mage";
+  }
+}
+function explain(axis) {
+  if (axis instanceof Fighter) {
+    return "+12 max health and +2 damage";
+  } else if (axis instanceof Rogue) {
+    return "+3 damage, faster attacks and +3 max health";
+  } else {
+    return "+8% reach, +1 damage and +3 max health; every second point lets a swing hit 1 more enemy";
+  }
+}
 function max_hp2(s) {
   return 50 + 12 * s.fighter + 3 * s.rogue + 3 * s.mage;
 }
@@ -14569,9 +14587,9 @@ function speed(s) {
 
 // build/dev/javascript/triangle_platformer/weapons.mjs
 var Weapon = class extends CustomType {
-  constructor(name2, feel, startup, active, total, long, tall, power3, push, shot2) {
+  constructor(name3, feel, startup, active, total, long, tall, power3, push, shot2) {
     super();
-    this.name = name2;
+    this.name = name3;
     this.feel = feel;
     this.startup = startup;
     this.active = active;
@@ -14789,10 +14807,10 @@ function describe2(w2) {
 // build/dev/javascript/triangle_platformer/tree.mjs
 var FILEPATH = "src/tree.gleam";
 var Cell = class extends CustomType {
-  constructor(id2, name2, f, r, m, up, x, y2, starter) {
+  constructor(id2, name3, f, r, m, up, x, y2, starter) {
     super();
     this.id = id2;
-    this.name = name2;
+    this.name = name3;
     this.f = f;
     this.r = r;
     this.m = m;
@@ -14817,9 +14835,9 @@ var Rule$PogoRefreshesAir$const = new PogoRefreshesAir();
 var KillRefreshesDash = class extends CustomType {
 };
 var Rule$KillRefreshesDash$const = new KillRefreshesDash();
-var FreeSwing = class extends CustomType {
+var Whirl = class extends CustomType {
 };
-var Rule$FreeSwing$const = new FreeSwing();
+var Rule$Whirl$const = new Whirl();
 var DashCrits = class extends CustomType {
 };
 var Rule$DashCrits$const = new DashCrits();
@@ -14956,9 +14974,9 @@ var GrantRule = class extends CustomType {
   }
 };
 var Keystone = class extends CustomType {
-  constructor(name2) {
+  constructor(name3) {
     super();
-    this.name = name2;
+    this.name = name3;
   }
 };
 var Small = class extends CustomType {
@@ -14968,9 +14986,9 @@ var Small = class extends CustomType {
   }
 };
 var Notable = class extends CustomType {
-  constructor(name2, grant) {
+  constructor(name3, grant) {
     super();
-    this.name = name2;
+    this.name = name3;
     this.grant = grant;
   }
 };
@@ -15015,24 +15033,24 @@ var sqrt3 = 1.7320508075688772;
 var spur_room = 3;
 var spacing = 3;
 var layout_seed = 20261122;
-function keystone_rule(name2) {
-  if (name2 === "Knight") {
+function keystone_rule(name3) {
+  if (name3 === "Knight") {
     return new Some(Rule$Crash$const);
-  } else if (name2 === "Hunter") {
+  } else if (name3 === "Hunter") {
     return new Some(Rule$Bow$const);
-  } else if (name2 === "Sorcerer") {
+  } else if (name3 === "Sorcerer") {
     return new Some(Rule$Orbit$const);
-  } else if (name2 === "Bard") {
+  } else if (name3 === "Bard") {
     return new Some(Rule$AllRounder$const);
-  } else if (name2 === "Paladin") {
+  } else if (name3 === "Paladin") {
     return new Some(Rule$Aegis$const);
-  } else if (name2 === "Thief") {
+  } else if (name3 === "Thief") {
     return new Some(Rule$Plunge$const);
-  } else if (name2 === "Warrior") {
+  } else if (name3 === "Warrior") {
     return new Some(Rule$Vengeance$const);
-  } else if (name2 === "Cavalier") {
+  } else if (name3 === "Cavalier") {
     return new Some(Rule$Lance$const);
-  } else if (name2 === "Berserker") {
+  } else if (name3 === "Berserker") {
     return new Some(Rule$Bloodlust$const);
   } else {
     return Option$None$const;
@@ -15064,7 +15082,7 @@ function cells() {
   return index_map(
     _pipe,
     (c, id2) => {
-      let name2 = c[0];
+      let name3 = c[0];
       let f = c[1];
       let r = c[2];
       let m = c[3];
@@ -15084,7 +15102,7 @@ function cells() {
       );
       let x = $[0];
       let y2 = $[1];
-      return new Cell(id2, name2, f, r, m, up, x, y2, starter);
+      return new Cell(id2, name3, f, r, m, up, x, y2, starter);
     }
   );
 }
@@ -15097,78 +15115,78 @@ function starters() {
     return c.id;
   });
 }
-function spec(name2) {
-  if (name2 === "Warrior") {
+function spec(name3) {
+  if (name3 === "Warrior") {
     return new Spec(
       new Skill(Trigger$OnHardLanding$const, Effect$Shockwave$const, 0),
       new GrantRule(Rule$ThirdSwingBig$const)
     );
-  } else if (name2 === "Cavalier") {
+  } else if (name3 === "Cavalier") {
     return new Spec(
       new Skill(Trigger$OnDash$const, Effect$Shockwave$const, 0),
       new GrantMove(Move$Dash$const)
     );
-  } else if (name2 === "Berserker") {
+  } else if (name3 === "Berserker") {
     return new Spec(
       new Skill(new Every(2), Effect$Shockwave$const, 2),
-      new GrantRule(Rule$FreeSwing$const)
+      new GrantRule(Rule$Whirl$const)
     );
-  } else if (name2 === "Knight") {
+  } else if (name3 === "Knight") {
     return new Spec(
       new Skill(Trigger$OnHardLanding$const, Effect$Shockwave$const, 0),
       new GrantMove(Move$Dash$const)
     );
-  } else if (name2 === "Thief") {
+  } else if (name3 === "Thief") {
     return new Spec(
       new Skill(Trigger$OnDash$const, Effect$Knife$const, 0),
       new GrantRule(Rule$KillRefreshesDash$const)
     );
-  } else if (name2 === "Bandit") {
+  } else if (name3 === "Bandit") {
     return new Spec(
       new Skill(Trigger$OnJump$const, Effect$Knife$const, 0),
       new GrantRule(Rule$DashCrits$const)
     );
-  } else if (name2 === "Trickster") {
+  } else if (name3 === "Trickster") {
     return new Spec(
       new Skill(Trigger$OnDash$const, Effect$JumpSlash$const, 0),
       new GrantMove(Move$WallJump$const)
     );
-  } else if (name2 === "Hunter") {
+  } else if (name3 === "Hunter") {
     return new Spec(
       new Skill(Trigger$OnDash$const, Effect$DashStrike$const, 0),
       new GrantMove(Move$Dash$const)
     );
-  } else if (name2 === "Wizard") {
+  } else if (name3 === "Wizard") {
     return new Spec(
       new Skill(new Every(1.5), Effect$Firebolt$const, 1.5),
       new GrantMove(Move$DoubleJump$const)
     );
-  } else if (name2 === "Cleric") {
+  } else if (name3 === "Cleric") {
     return new Spec(
       new Skill(new OnHit(5), Effect$Heal$const, 0),
-      new GrantRule(Rule$FreeSwing$const)
+      new GrantRule(Rule$Whirl$const)
     );
-  } else if (name2 === "Witch") {
+  } else if (name3 === "Witch") {
     return new Spec(
       new Skill(new Every(2), Effect$JumpSlash$const, 2),
       new GrantRule(Rule$PogoRefreshesAir$const)
     );
-  } else if (name2 === "Sorcerer") {
+  } else if (name3 === "Sorcerer") {
     return new Spec(
       new Skill(new Every(1.5), Effect$Bolt$const, 1.5),
       new GrantMove(Move$Dash$const)
     );
-  } else if (name2 === "Bard") {
+  } else if (name3 === "Bard") {
     return new Spec(
       new Skill(Trigger$OnJump$const, Effect$JumpSlash$const, 0),
       new GrantMove(Move$Dash$const)
     );
-  } else if (name2 === "Duelist") {
+  } else if (name3 === "Duelist") {
     return new Spec(
       new Skill(Trigger$OnJump$const, Effect$DashStrike$const, 0),
       new GrantRule(Rule$DashCrits$const)
     );
-  } else if (name2 === "Paladin") {
+  } else if (name3 === "Paladin") {
     return new Spec(
       new Skill(new OnHit(10), Effect$Heal$const, 0),
       new GrantRule(Rule$ThirdSwingBig$const)
@@ -15193,15 +15211,15 @@ function nth(items, i) {
       "let_assert",
       FILEPATH,
       "tree",
-      274,
+      275,
       "nth",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 7971,
-        end: 8023,
-        pattern_start: 7982,
-        pattern_end: 7987
+        start: 8044,
+        end: 8096,
+        pattern_start: 8055,
+        pattern_end: 8060
       }
     );
   }
@@ -15219,7 +15237,7 @@ function spur_grant(i) {
           prepend(
             new GrantRule(Rule$KillRefreshesDash$const),
             prepend(
-              new GrantRule(Rule$FreeSwing$const),
+              new GrantRule(Rule$Whirl$const),
               prepend(
                 new GrantRule(Rule$DashCrits$const),
                 prepend(
@@ -15433,15 +15451,15 @@ function find2(acc2, id2) {
       "let_assert",
       FILEPATH,
       "tree",
-      394,
+      395,
       "find",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 11403,
-        end: 11464,
-        pattern_start: 11414,
-        pattern_end: 11419
+        start: 11476,
+        end: 11537,
+        pattern_start: 11487,
+        pattern_end: 11492
       }
     );
   }
@@ -15466,8 +15484,8 @@ function grant_name(g) {
       return "Pogo hits refresh your air jump";
     } else if ($ instanceof KillRefreshesDash) {
       return "Kills refresh your dash";
-    } else if ($ instanceof FreeSwing) {
-      return "Ground swings don't stop you";
+    } else if ($ instanceof Whirl) {
+      return "Your attack also hits behind you";
     } else if ($ instanceof DashCrits) {
       return "Hits while dashing always crit";
     } else if ($ instanceof ThirdSwingBig) {
@@ -15668,15 +15686,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        468,
+        469,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 14274,
-          end: 14320,
-          pattern_start: 14285,
-          pattern_end: 14293
+          start: 14347,
+          end: 14393,
+          pattern_start: 14358,
+          pattern_end: 14366
         }
       );
     }
@@ -15701,15 +15719,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        469,
+        470,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 14325,
-          end: 14499,
-          pattern_start: 14336,
-          pattern_end: 14343
+          start: 14398,
+          end: 14572,
+          pattern_start: 14409,
+          pattern_end: 14416
         }
       );
     } else {
@@ -15778,15 +15796,15 @@ function build() {
               "let_assert",
               FILEPATH,
               "tree",
-              513,
+              514,
               "build",
               "Pattern match failed, no pattern matched the value.",
               {
                 value: chain2,
-                start: 16114,
-                end: 16143,
-                pattern_start: 16125,
-                pattern_end: 16135
+                start: 16187,
+                end: 16216,
+                pattern_start: 16198,
+                pattern_end: 16208
               }
             );
           } else {
@@ -15803,15 +15821,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          516,
+          517,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: chain,
-            start: 16219,
-            end: 16248,
-            pattern_start: 16230,
-            pattern_end: 16240
+            start: 16292,
+            end: 16321,
+            pattern_start: 16303,
+            pattern_end: 16313
           }
         );
       } else {
@@ -15939,15 +15957,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          574,
+          575,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $4,
-            start: 18476,
-            end: 18696,
-            pattern_start: 18487,
-            pattern_end: 18507
+            start: 18549,
+            end: 18769,
+            pattern_start: 18560,
+            pattern_end: 18580
           }
         );
       }
@@ -16210,8 +16228,8 @@ function details(t2, n) {
   let home = _block$1;
   let $1 = n.kind;
   if ($1 instanceof Keystone) {
-    let name2 = $1.name;
-    let sp = spec(name2);
+    let name3 = $1.name;
+    let sp = spec(name3);
     let _block$2;
     let _pipe$3 = get(t2.rings, n.id);
     let _pipe$4 = from_result(_pipe$3);
@@ -16220,7 +16238,7 @@ function details(t2, n) {
     return flatten(
       prepend(
         prepend(
-          name2,
+          name3,
           prepend(
             "Keystone: a class. You get one per run, picked at the start.",
             List$Empty$const
@@ -16228,7 +16246,7 @@ function details(t2, n) {
         ),
         prepend(
           (() => {
-            let $2 = keystone_rule(name2);
+            let $2 = keystone_rule(name3);
             if ($2 instanceof Some) {
               let rule = $2[0];
               return prepend(
@@ -16241,7 +16259,7 @@ function details(t2, n) {
           })(),
           prepend(
             prepend(
-              "Weapon: " + describe2(of(name2)),
+              "Weapon: " + describe2(of(name3)),
               List$Empty$const
             ),
             prepend(
@@ -16250,7 +16268,7 @@ function details(t2, n) {
                 prepend(
                   "Also on its ring: " + grant_name(sp.second),
                   prepend(
-                    "Ring: " + to_string(length(ring)) + " nodes. Fill all of them to unlock " + name2 + ".",
+                    "Ring: " + to_string(length(ring)) + " nodes. Fill all of them to unlock " + name3 + ".",
                     List$Empty$const
                   )
                 )
@@ -16262,20 +16280,35 @@ function details(t2, n) {
       )
     );
   } else if ($1 instanceof Small) {
-    let b = $1.bonus;
-    return prepend(
-      bonus_name(b),
-      prepend(
-        "Small node: a bonus.",
-        prepend("In " + home + ".", List$Empty$const)
-      )
-    );
+    let $2 = $1.bonus;
+    if ($2 instanceof Stat) {
+      let axis = $2[0];
+      return prepend(
+        bonus_name(new Stat(axis)),
+        prepend(
+          "Small node: a bonus.",
+          prepend(
+            "A " + name2(axis) + " point: " + explain(axis) + ".",
+            prepend("In " + home + ".", List$Empty$const)
+          )
+        )
+      );
+    } else {
+      let b = $2;
+      return prepend(
+        bonus_name(b),
+        prepend(
+          "Small node: a bonus.",
+          prepend("In " + home + ".", List$Empty$const)
+        )
+      );
+    }
   } else {
-    let name2 = $1.name;
+    let name3 = $1.name;
     let g = $1.grant;
     return unique(
       prepend(
-        name2,
+        name3,
         prepend(
           (() => {
             if (g instanceof GrantSkill) {
@@ -16410,9 +16443,9 @@ var Said = class extends CustomType {
   }
 };
 var Unlocked = class extends CustomType {
-  constructor(name2) {
+  constructor(name3) {
     super();
-    this.name = name2;
+    this.name = name3;
   }
 };
 var Point = class extends CustomType {
@@ -16439,7 +16472,7 @@ var Door = class extends CustomType {
   }
 };
 var Player = class extends CustomType {
-  constructor(x, y2, vx, vy, grounded, on_platform, wall, facing, coyote, jump_buffer, air_jumps, dash_time, dashes, drop_time, can_cut, up_held, jumped, dashed, struck, plunged, grudge, weapon, roam, loadout, trained, class$, allocated, mods, shield, block_charge, crash_wait, swings, attack, stats, lvl, xp, points, hp2, invuln, hurt2) {
+  constructor(x, y2, vx, vy, grounded, on_platform, wall, facing, coyote, jump_buffer, air_jumps, dash_time, dashes, drop_time, can_cut, up_held, jumped, dashed, struck, plunged, grudge, weapon, loadout, trained, class$, allocated, mods, shield, block_charge, crash_wait, swings, attack, stats, lvl, xp, points, hp2, invuln, hurt2) {
     super();
     this.x = x;
     this.y = y2;
@@ -16463,7 +16496,6 @@ var Player = class extends CustomType {
     this.plunged = plunged;
     this.grudge = grudge;
     this.weapon = weapon;
-    this.roam = roam;
     this.loadout = loadout;
     this.trained = trained;
     this.class = class$;
@@ -16703,7 +16735,6 @@ function load(world2, t2, depth) {
       p2.plunged,
       p2.grudge,
       p2.weapon,
-      p2.roam,
       p2.loadout,
       p2.trained,
       p2.class,
@@ -16773,7 +16804,6 @@ function new_world(seed) {
     false,
     false,
     sword,
-    false,
     List$Empty$const,
     List$Empty$const,
     Option$None$const,
@@ -16872,8 +16902,8 @@ function tick_enemies(world2, dt2) {
     world2.plan
   );
 }
-function kit_mods(name2) {
-  if (name2 === "Hunter") {
+function kit_mods(name3) {
+  if (name3 === "Hunter") {
     return new Mods(
       bare.bonus_hp,
       bare.damage_pct,
@@ -16894,7 +16924,7 @@ function kit_mods(name2) {
       bare.wall_jump,
       bare.rules
     );
-  } else if (name2 === "Sorcerer") {
+  } else if (name3 === "Sorcerer") {
     return new Mods(
       bare.bonus_hp,
       bare.damage_pct,
@@ -16915,7 +16945,7 @@ function kit_mods(name2) {
       bare.wall_jump,
       bare.rules
     );
-  } else if (name2 === "Thief") {
+  } else if (name3 === "Thief") {
     return new Mods(
       bare.bonus_hp,
       bare.damage_pct,
@@ -16936,7 +16966,7 @@ function kit_mods(name2) {
       bare.wall_jump,
       bare.rules
     );
-  } else if (name2 === "Cavalier") {
+  } else if (name3 === "Cavalier") {
     return new Mods(
       bare.bonus_hp,
       bare.damage_pct,
@@ -16957,7 +16987,7 @@ function kit_mods(name2) {
       bare.wall_jump,
       bare.rules
     );
-  } else if (name2 === "Bard") {
+  } else if (name3 === "Bard") {
     return new Mods(
       bare.bonus_hp,
       bare.damage_pct,
@@ -17036,7 +17066,6 @@ function choose_class(world2, keystone) {
         p2.plunged,
         p2.grudge,
         of(c.name),
-        p2.roam,
         p2.loadout,
         p2.trained,
         new Some(keystone),
@@ -17190,7 +17219,6 @@ function apply_reward(p2, r) {
       p2.plunged,
       p2.grudge,
       p2.weapon,
-      p2.roam,
       p2.loadout,
       p2.trained,
       p2.class,
@@ -17233,7 +17261,6 @@ function apply_reward(p2, r) {
       p2.plunged,
       p2.grudge,
       p2.weapon,
-      p2.roam,
       p2.loadout,
       p2.trained,
       p2.class,
@@ -17277,7 +17304,6 @@ function apply_reward(p2, r) {
       p2.plunged,
       p2.grudge,
       p2.weapon,
-      p2.roam,
       p2.loadout,
       prepend(e, p2.trained),
       p2.class,
@@ -17311,10 +17337,10 @@ function nth_room(i) {
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 53614,
-        end: 53666,
-        pattern_start: 53625,
-        pattern_end: 53632
+        start: 53707,
+        end: 53759,
+        pattern_start: 53718,
+        pattern_end: 53725
       }
     );
   } else {
@@ -17588,10 +17614,10 @@ function nth_or_first(items, n) {
       "Pattern match failed, no pattern matched the value.",
       {
         value: items,
-        start: 49104,
-        end: 49134,
-        pattern_start: 49115,
-        pattern_end: 49126
+        start: 49197,
+        end: 49227,
+        pattern_start: 49208,
+        pattern_end: 49219
       }
     );
   } else {
@@ -17762,7 +17788,6 @@ function blocked_by_shield(world2, k2) {
         p2.plunged,
         p2.grudge,
         p2.weapon,
-        p2.roam,
         p2.loadout,
         p2.trained,
         p2.class,
@@ -17882,7 +17907,6 @@ function hurt(world2, damage3, from_x) {
           p2.plunged,
           p2.grudge,
           p2.weapon,
-          p2.roam,
           p2.loadout,
           p2.trained,
           p2.class,
@@ -17928,7 +17952,6 @@ function hurt(world2, damage3, from_x) {
             p$1.plunged,
             p$1.grudge,
             p$1.weapon,
-            p$1.roam,
             p$1.loadout,
             p$1.trained,
             p$1.class,
@@ -17976,7 +17999,6 @@ function hurt(world2, damage3, from_x) {
               p$2.plunged,
               true,
               p$2.weapon,
-              p$2.roam,
               p$2.loadout,
               p$2.trained,
               p$2.class,
@@ -18139,7 +18161,6 @@ function gain_xp(loop$p, loop$xp, loop$events) {
         p2.plunged,
         p2.grudge,
         p2.weapon,
-        p2.roam,
         p2.loadout,
         p2.trained,
         p2.class,
@@ -18200,7 +18221,6 @@ function gain_xp(loop$p, loop$xp, loop$events) {
           p2.plunged,
           p2.grudge,
           p2.weapon,
-          p2.roam,
           p2.loadout,
           p2.trained,
           p2.class,
@@ -18266,15 +18286,15 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        836,
+        841,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $12,
-          start: 22714,
-          end: 22770,
-          pattern_start: 22725,
-          pattern_end: 22730
+          start: 22978,
+          end: 23034,
+          pattern_start: 22989,
+          pattern_end: 22994
         }
       );
     }
@@ -18340,7 +18360,6 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
       p2.plunged,
       p2.grudge,
       p2.weapon,
-      p2.roam,
       p2.loadout,
       p2.trained,
       p2.class,
@@ -18396,7 +18415,6 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
           p$1.plunged,
           p$1.grudge,
           p$1.weapon,
-          p$1.roam,
           p$1.loadout,
           p$1.trained,
           p$1.class,
@@ -18442,7 +18460,6 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
           p$1.plunged,
           p$1.grudge,
           p$1.weapon,
-          p$1.roam,
           p$1.loadout,
           p$1.trained,
           p$1.class,
@@ -18489,7 +18506,6 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
         p$1.plunged,
         p$1.grudge,
         p$1.weapon,
-        p$1.roam,
         p$1.loadout,
         p$1.trained,
         p$1.class,
@@ -18551,7 +18567,6 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
     p$2.plunged,
     p$2.grudge,
     p$2.weapon,
-    p$2.roam,
     p$2.loadout,
     p$2.trained,
     p$2.class,
@@ -18844,7 +18859,6 @@ function strike(world2, a, box4) {
         true,
         p2.grudge,
         p2.weapon,
-        p2.roam,
         p2.loadout,
         p2.trained,
         p2.class,
@@ -18887,7 +18901,6 @@ function strike(world2, a, box4) {
         p2.plunged,
         p2.grudge,
         p2.weapon,
-        p2.roam,
         p2.loadout,
         p2.trained,
         p2.class,
@@ -18936,7 +18949,6 @@ function strike(world2, a, box4) {
           p$1.plunged,
           p$1.grudge,
           p$1.weapon,
-          p$1.roam,
           p$1.loadout,
           p$1.trained,
           p$1.class,
@@ -18982,7 +18994,6 @@ function strike(world2, a, box4) {
         p$1.plunged,
         p$1.grudge,
         p$1.weapon,
-        p$1.roam,
         p$1.loadout,
         p$1.trained,
         p$1.class,
@@ -19043,7 +19054,6 @@ function strike(world2, a, box4) {
       p$2.plunged,
       false,
       p$2.weapon,
-      p$2.roam,
       p$2.loadout,
       p$2.trained,
       p$2.class,
@@ -19121,15 +19131,17 @@ function hitbox(p2, dir) {
   if (dir instanceof Forward) {
     let w2 = p2.weapon.long * s;
     let h = p2.weapon.tall * s;
-    let _block$1;
-    let $1 = p2.facing > 0;
+    let front = half_width - 0.1;
+    let y2 = p2.y + height / 2 - h / 2 + 0.1;
+    let $1 = has2(p2, Rule$Whirl$const);
+    let $2 = p2.facing > 0;
     if ($1) {
-      _block$1 = p2.x + half_width - 0.1;
+      return new Rect(p2.x - front - w2, y2, 2 * (front + w2), h, false);
+    } else if ($2) {
+      return new Rect(p2.x + front, y2, w2, h, false);
     } else {
-      _block$1 = p2.x - half_width + 0.1 - w2;
+      return new Rect(p2.x - front - w2, y2, w2, h, false);
     }
-    let x = _block$1;
-    return new Rect(x, p2.y + height / 2 - h / 2 + 0.1, w2, h, false);
   } else if (dir instanceof Up2) {
     let w2 = 1.2 * s;
     return new Rect(p2.x - w2 / 2, p2.y + height - 0.2, w2, 1.3 * s, false);
@@ -19190,21 +19202,37 @@ function loose(world2, dir, effect) {
     _block = [0, -1];
   }
   let aim = _block;
-  let arrows = spawn2(
-    effect,
-    p2.x,
-    p2.y,
-    round(identity(damage(p2.stats)) * p2.weapon.power),
-    boost(p2),
-    aim,
-    p2.facing
+  let _block$1;
+  let $ = has2(p2, Rule$Whirl$const) && dir instanceof Forward;
+  if ($) {
+    _block$1 = prepend(
+      [aim, p2.facing],
+      prepend([[0 - aim[0], aim[1]], 0 - p2.facing], List$Empty$const)
+    );
+  } else {
+    _block$1 = prepend([aim, p2.facing], List$Empty$const);
+  }
+  let ways = _block$1;
+  let shots = flat_map(
+    ways,
+    (way) => {
+      return spawn2(
+        effect,
+        p2.x,
+        p2.y,
+        round(identity(damage(p2.stats)) * p2.weapon.power),
+        boost(p2),
+        way[0],
+        way[1]
+      );
+    }
   );
   return new World(
     world2.player,
     world2.level,
     world2.enemies,
     world2.projectiles,
-    append(world2.strikes, arrows),
+    append(world2.strikes, shots),
     world2.events,
     world2.depth,
     world2.cleared,
@@ -19254,7 +19282,6 @@ function combat(world2) {
           p2.plunged,
           p2.grudge,
           p2.weapon,
-          p2.roam,
           p2.loadout,
           p2.trained,
           p2.class,
@@ -19554,7 +19581,6 @@ function fire_skills(world2, before, dt2) {
         p2.plunged,
         p2.grudge,
         p2.weapon,
-        p2.roam,
         p2.loadout,
         p2.trained,
         p2.class,
@@ -19750,7 +19776,6 @@ function fire_skills(world2, before, dt2) {
       p$1.plunged,
       p$1.grudge,
       p$1.weapon,
-      p$1.roam,
       loadout,
       p$1.trained,
       p$1.class,
@@ -19832,7 +19857,6 @@ function move(p2, level, dt2) {
     p2.plunged,
     p2.grudge,
     p2.weapon,
-    p2.roam,
     p2.loadout,
     p2.trained,
     p2.class,
@@ -19901,7 +19925,6 @@ function dash(p2, input) {
           p2.plunged,
           p2.grudge,
           p2.weapon,
-          p2.roam,
           p2.loadout,
           p2.trained,
           p2.class,
@@ -19959,7 +19982,6 @@ function jump(p2, input) {
             p2.plunged,
             p2.grudge,
             p2.weapon,
-            p2.roam,
             p2.loadout,
             p2.trained,
             p2.class,
@@ -20002,7 +20024,6 @@ function jump(p2, input) {
             p2.plunged,
             p2.grudge,
             p2.weapon,
-            p2.roam,
             p2.loadout,
             p2.trained,
             p2.class,
@@ -20045,7 +20066,6 @@ function jump(p2, input) {
             p2.plunged,
             p2.grudge,
             p2.weapon,
-            p2.roam,
             p2.loadout,
             p2.trained,
             p2.class,
@@ -20090,7 +20110,6 @@ function jump(p2, input) {
               p2.plunged,
               p2.grudge,
               p2.weapon,
-              p2.roam,
               p2.loadout,
               p2.trained,
               p2.class,
@@ -20139,7 +20158,6 @@ function jump(p2, input) {
             p2.plunged,
             p2.grudge,
             p2.weapon,
-            p2.roam,
             p2.loadout,
             p2.trained,
             p2.class,
@@ -20225,7 +20243,6 @@ function vertical(p2, input, dt2) {
         p2.plunged,
         p2.grudge,
         p2.weapon,
-        p2.roam,
         p2.loadout,
         p2.trained,
         p2.class,
@@ -20251,10 +20268,7 @@ function horizontal(p2, input, dt2) {
   return unless_dashing(
     p2,
     () => {
-      let has_input = absolute_value2(input.move_x) > 0.1 && (!p2.grounded || p2.attack instanceof None || p2.roam || has2(
-        p2,
-        Rule$FreeSwing$const
-      ));
+      let has_input = absolute_value2(input.move_x) > 0.1;
       let _block;
       let $ = p2.grounded;
       if ($) {
@@ -20299,7 +20313,6 @@ function horizontal(p2, input, dt2) {
         p2.plunged,
         p2.grudge,
         p2.weapon,
-        p2.roam,
         p2.loadout,
         p2.trained,
         p2.class,
@@ -20360,7 +20373,6 @@ function start_attack(p2, input) {
       p2.plunged,
       p2.grudge,
       p2.weapon,
-      p2.roam,
       p2.loadout,
       p2.trained,
       p2.class,
@@ -20459,7 +20471,6 @@ function tick2(p2, input, dt2) {
     p2.plunged && !p2.grounded,
     p2.grudge,
     p2.weapon,
-    p2.roam,
     p2.loadout,
     p2.trained,
     p2.class,
@@ -20528,7 +20539,6 @@ function step2(world2, input, dt2) {
     player2.plunged,
     player2.grudge,
     player2.weapon,
-    player2.roam,
     player2.loadout,
     player2.trained,
     player2.class,
@@ -20589,74 +20599,6 @@ function step2(world2, input, dt2) {
   let _pipe$17 = talk(_pipe$16, up_fresh);
   return tick_enemies(_pipe$17, dt2);
 }
-function set_roam(world2, roam) {
-  return new World(
-    (() => {
-      let _record = world2.player;
-      return new Player(
-        _record.x,
-        _record.y,
-        _record.vx,
-        _record.vy,
-        _record.grounded,
-        _record.on_platform,
-        _record.wall,
-        _record.facing,
-        _record.coyote,
-        _record.jump_buffer,
-        _record.air_jumps,
-        _record.dash_time,
-        _record.dashes,
-        _record.drop_time,
-        _record.can_cut,
-        _record.up_held,
-        _record.jumped,
-        _record.dashed,
-        _record.struck,
-        _record.plunged,
-        _record.grudge,
-        _record.weapon,
-        roam,
-        _record.loadout,
-        _record.trained,
-        _record.class,
-        _record.allocated,
-        _record.mods,
-        _record.shield,
-        _record.block_charge,
-        _record.crash_wait,
-        _record.swings,
-        _record.attack,
-        _record.stats,
-        _record.lvl,
-        _record.xp,
-        _record.points,
-        _record.hp,
-        _record.invuln,
-        _record.hurt
-      );
-    })(),
-    world2.level,
-    world2.enemies,
-    world2.projectiles,
-    world2.strikes,
-    world2.events,
-    world2.depth,
-    world2.cleared,
-    world2.doors,
-    world2.exits,
-    world2.seed,
-    world2.tree,
-    world2.unlocked,
-    world2.npcs,
-    world2.time,
-    world2.kills,
-    world2.room_time,
-    world2.safe_x,
-    world2.sealed,
-    world2.plan
-  );
-}
 function apply_node(p2, kind) {
   let m = p2.mods;
   let with$ = (m2) => {
@@ -20683,7 +20625,6 @@ function apply_node(p2, kind) {
       p2.plunged,
       p2.grudge,
       p2.weapon,
-      p2.roam,
       p2.loadout,
       p2.trained,
       p2.class,
@@ -20735,7 +20676,6 @@ function apply_node(p2, kind) {
         p2.plunged,
         p2.grudge,
         p2.weapon,
-        p2.roam,
         p2.loadout,
         p2.trained,
         p2.class,
@@ -20989,7 +20929,6 @@ function apply_node(p2, kind) {
         p2.plunged,
         p2.grudge,
         p2.weapon,
-        p2.roam,
         p2.loadout,
         p2.trained,
         p2.class,
@@ -21172,7 +21111,6 @@ function apply_node(p2, kind) {
         p2.plunged,
         p2.grudge,
         p2.weapon,
-        p2.roam,
         prepend(skill, p2.loadout),
         p2.trained,
         p2.class,
@@ -21323,7 +21261,6 @@ function allocate(world2, id2) {
       p2.plunged,
       p2.grudge,
       p2.weapon,
-      p2.roam,
       p2.loadout,
       p2.trained,
       p2.class,
@@ -21426,8 +21363,8 @@ function class_name(world2) {
     return "No class";
   }
 }
-function kit_move(name2) {
-  let m = kit_mods(name2);
+function kit_move(name3) {
+  let m = kit_mods(name3);
   let $ = m.dashes;
   let $1 = m.wall_jump;
   if ($ === 1) {
@@ -21479,15 +21416,15 @@ function npc_lines(world2, n) {
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 52253,
-          end: 52304,
-          pattern_start: 52264,
-          pattern_end: 52272
+          start: 52346,
+          end: 52397,
+          pattern_start: 52357,
+          pattern_end: 52365
         }
       );
     }
     let $2 = details(world2.tree, node);
-    let name2;
+    let name3;
     let rest;
     if ($2 instanceof Empty) {
       throw makeError(
@@ -21499,10 +21436,10 @@ function npc_lines(world2, n) {
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 52387,
-          end: 52448,
-          pattern_start: 52398,
-          pattern_end: 52415
+          start: 52480,
+          end: 52541,
+          pattern_start: 52491,
+          pattern_end: 52508
         }
       );
     } else {
@@ -21517,14 +21454,14 @@ function npc_lines(world2, n) {
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 52387,
-            end: 52448,
-            pattern_start: 52398,
-            pattern_end: 52415
+            start: 52480,
+            end: 52541,
+            pattern_start: 52491,
+            pattern_end: 52508
           }
         );
       } else {
-        name2 = $2.head;
+        name3 = $2.head;
         rest = $3.tail;
       }
     }
@@ -21535,19 +21472,19 @@ function npc_lines(world2, n) {
     if ($4) {
       _block = "This is you.";
     } else if ($5) {
-      _block = "Press up to become " + name2 + ".";
+      _block = "Press up to become " + name3 + ".";
     } else {
-      _block = "Locked: fill " + name2 + "'s ring during a run.";
+      _block = "Locked: fill " + name3 + "'s ring during a run.";
     }
     let status = _block;
     return flatten(
       prepend(
-        prepend(name2, List$Empty$const),
+        prepend(name3, List$Empty$const),
         prepend(
           about,
           prepend(
             prepend(
-              "Starts with: " + kit_move(name2),
+              "Starts with: " + kit_move(name3),
               prepend(status, List$Empty$const)
             ),
             List$Empty$const
@@ -21594,8 +21531,8 @@ var PANE_AREA = { x: 468, y: 16, w: 796, h: 650 };
 var ZOOM = 2.5;
 var RING_BEND = 1;
 var heroImages = /* @__PURE__ */ new Map();
-function heroImage(name2) {
-  const key2 = name2.toLowerCase();
+function heroImage(name3) {
+  const key2 = name3.toLowerCase();
   if (!heroImages.has(key2)) {
     const img = new Image();
     img.src = `art/heroes/${key2}.webp`;
@@ -22017,7 +21954,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     const { p: p2, w: w2 } = d2, x = 16, sw = 436;
     card(x, 16, sw, 650);
     const st = p2.stats;
-    const name2 = d2.picking ? "No class yet" : class_name(w2);
+    const name3 = d2.picking ? "No class yet" : class_name(w2);
     ctx.fillStyle = d2.picking ? "#c9bdb3" : mix(st.fighter, st.rogue, st.mage);
     ctx.strokeStyle = INK;
     ctx.lineWidth = 3;
@@ -22025,12 +21962,12 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     ctx.roundRect(x + 16, 32, 104, 124, 14);
     ctx.fill();
     ctx.stroke();
-    const img = d2.picking ? null : heroImage(name2);
+    const img = d2.picking ? null : heroImage(name3);
     if (img && img.complete && img.naturalWidth) {
       const s = Math.min(94 / img.naturalWidth, 114 / img.naturalHeight), iw = img.naturalWidth * s, ih2 = img.naturalHeight * s;
       ctx.drawImage(img, x + 68 - iw / 2, 94 - ih2 / 2, iw, ih2);
-    } else say(d2.picking ? "?" : name2[0], x + 68, 116, '800 60px "Baloo 2"', "#fff", "center");
-    say(fit(name2, '800 32px "Baloo 2"', 280), x + 136, 64, '800 32px "Baloo 2"', STRONG);
+    } else say(d2.picking ? "?" : name3[0], x + 68, 116, '800 60px "Baloo 2"', "#fff", "center");
+    say(fit(name3, '800 32px "Baloo 2"', 280), x + 136, 64, '800 32px "Baloo 2"', STRONG);
     say(`Level ${p2.lvl}`, x + 138, 90, '700 17px "Baloo 2"', "#6b5a52");
     const need = xp_needed(p2.lvl), bx = x + 138, by = 100, bw = 168;
     ctx.fillStyle = "#efe5d8";
@@ -22303,8 +22240,8 @@ var LOCKED_TINT = new Kr(15722202);
 var calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 var heroLoader = new Qd();
 var heroTextures = /* @__PURE__ */ new Map();
-function heroTexture(name2) {
-  const key2 = name2.toLowerCase();
+function heroTexture(name3) {
+  const key2 = name3.toLowerCase();
   if (!heroTextures.has(key2)) {
     const t2 = heroLoader.load(`art/heroes/${key2}.webp`);
     t2.colorSpace = Je;
@@ -22312,8 +22249,8 @@ function heroTexture(name2) {
   }
   return heroTextures.get(key2);
 }
-function sticker(name2) {
-  const m = new Bs(new ha(1, 1), new es({ map: heroTexture(name2), transparent: true }));
+function sticker(name3) {
+  const m = new Bs(new ha(1, 1), new es({ map: heroTexture(name3), transparent: true }));
   m.scale.set(HERO_H, HERO_H, 1);
   return m;
 }
@@ -22323,6 +22260,47 @@ var FACES_LEFT = /* @__PURE__ */ new Set(["Hunter", "Duelist", "Thief", "Cavalie
 var ME_H = 1.6;
 var showBox = false;
 var turn = 1;
+var landed = 0;
+var stride = 0;
+var recoil = 0;
+var wasGrounded = true;
+var fallSpeed = 0;
+function stickerPose(p2, dt2) {
+  if (calm) return { sx: 1, sy: 1, tilt: 0, dx: 0, dy: 0 };
+  if (p2.grounded && !wasGrounded) landed = Math.min(1, -fallSpeed / 22);
+  wasGrounded = p2.grounded;
+  fallSpeed = p2.vy;
+  landed = Math.max(0, landed - dt2 / 0.16);
+  recoil = p2.hurt > 0 ? 1 : Math.max(0, recoil - dt2 / 0.2);
+  const running = p2.grounded && Math.abs(p2.vx) > 0.5, way = Math.sign(p2.vx);
+  stride += Math.abs(p2.vx) * dt2 * 1.7;
+  let sx = 1, sy = 1, tilt = 0, dx = 0, dy = 0;
+  if (p2.grounded && !running) sy += Math.sin(performance.now() / 420) * 0.015;
+  if (running) {
+    tilt -= 0.07 * way;
+    dy += Math.abs(Math.sin(stride)) * 0.07;
+  }
+  if (!p2.grounded) {
+    const k2 = Math.min(1, Math.abs(p2.vy) / 20) * 0.12;
+    sy += k2;
+    sx -= k2 * 0.7;
+  }
+  sy -= landed * 0.22;
+  sx += landed * 0.18;
+  if (p2.dash_time > 0) {
+    sx += 0.22;
+    sy -= 0.14;
+    tilt -= 0.12 * way;
+  }
+  if (p2.attack instanceof Some) {
+    const shoots = p2.weapon.shot instanceof Some, span = shoots ? 0.12 : p2.weapon.startup + p2.weapon.active + 0.06;
+    const k2 = Math.sin(Math.min(1, p2.attack[0].time * speed2(p2) / span) * Math.PI) * (shoots ? -0.5 : 1);
+    dx += p2.facing * 0.16 * k2;
+    tilt -= p2.facing * 0.1 * k2;
+  }
+  tilt += recoil * 0.3 * p2.facing;
+  return { sx, sy, tilt, dx, dy };
+}
 var me2 = new Bs(new ha(1, 1), new es({ transparent: true, side: p }));
 me2.visible = false;
 scene.add(me2);
@@ -22380,21 +22358,21 @@ function syncRoom() {
     const cells2 = world.tree.cells.toArray();
     npcMeshes = world.npcs.toArray().map((n) => {
       const statue = n.role instanceof Statue, cell = statue ? cells2[n.role.keystone] : null;
-      const name2 = statue ? cell.name : "Mentor", lift = statue ? PEDESTAL_H : 0;
-      const hero = sticker(name2);
+      const name3 = statue ? cell.name : "Mentor", lift = statue ? PEDESTAL_H : 0;
+      const hero = sticker(name3);
       hero.position.set(n.x, n.y + lift + HERO_H / 2, -0.6);
       roomGroup.add(hero);
-      if (!statue) return { hero, n, statue, name: name2, y: hero.position.y };
+      if (!statue) return { hero, n, statue, name: name3, y: hero.position.y };
       const niche = alcove(n.x, n.y), pedestal = box3(1.7, PEDESTAL_H, STONE);
       outline(pedestal);
       pedestal.position.set(n.x, n.y + PEDESTAL_H / 2, -1.2);
       roomGroup.add(niche, pedestal);
-      return { hero, niche, pedestal, n, statue, name: name2, tint: tint(cell), y: hero.position.y };
+      return { hero, niche, pedestal, n, statue, name: name3, tint: tint(cell), y: hero.position.y };
     });
-    npcLabels = npcMeshes.map(({ n, statue, name: name2 }) => {
+    npcLabels = npcMeshes.map(({ n, statue, name: name3 }) => {
       const el2 = document.createElement("div");
       el2.className = "door npc";
-      el2.textContent = name2;
+      el2.textContent = name3;
       document.body.appendChild(el2);
       return { el: el2, x: n.x, y: n.y + (statue ? PEDESTAL_H : 0) + HERO_H + 0.15, n };
     });
@@ -22624,9 +22602,8 @@ function drawMini(p2, x, top) {
   mini.style.top = `${sy}px`;
 }
 var ATTACK_MODES = [
-  { id: "hold", name: "hold: keep the button down to keep swinging, and keep moving" },
-  { id: "auto", name: "auto: swings by itself when something is in reach; keep moving" },
-  { id: "tap", name: "tap: one press, one swing, and a ground swing roots you (the old way)" }
+  { id: "hold", name: "hold: keep the button down to keep swinging" },
+  { id: "auto", name: "auto: swings by itself when something is in reach" }
 ];
 var attackMode = 0;
 try {
@@ -22663,7 +22640,6 @@ function frame(now) {
   const { mx, my, jump: jump2, attack } = readInput();
   const mode = ATTACK_MODES[attackMode].id;
   if (mode === "hold" && attack || mode === "auto" && inReach()) pendAttack = true;
-  if (world.player.roam !== (mode !== "tap")) world = set_roam(world, mode !== "tap");
   if (treeScreen.pad([...navigator.getGamepads()].find(Boolean), now)) {
     acc = 0;
     pendJump = pendDash = pendAttack = false;
@@ -22729,8 +22705,10 @@ function frame(now) {
     const [wide, tall] = stickerSize(t2.image, ME_H);
     const want = p2.facing * (FACES_LEFT.has(myClass) ? -1 : 1);
     turn = calm ? want : Math.max(-1, Math.min(1, turn + Math.sign(want - turn) * frameDt / 0.09));
-    me2.scale.set(wide * Math.sin(turn * Math.PI / 2), tall, 1);
-    me2.position.set(px, py + tall / 2, 0.6);
+    const pose = stickerPose(p2, frameDt), high = tall * pose.sy;
+    me2.scale.set(wide * pose.sx * Math.sin(turn * Math.PI / 2), high, 1);
+    me2.rotation.z = pose.tilt;
+    me2.position.set(px + pose.dx - Math.sin(pose.tilt) * (high / 2), py + pose.dy + Math.cos(pose.tilt) * (high / 2), 0.6);
     me2.material.color.set(hurtFlash > 0 ? 16739179 : 16777215);
   }
   drawMini(p2, px, py + (myClass ? stickerSize(heroTexture(myClass).image, ME_H)[1] : height));
