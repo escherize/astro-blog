@@ -12416,7 +12416,7 @@ function shooter(e, px, py, dt2) {
       let $3 = normalize(px - e$1.x, py - sy);
       let nx = $3[0];
       let ny = $3[1];
-      let shot = new Projectile(
+      let shot2 = new Projectile(
         e$1.x,
         sy,
         nx * shot_speed,
@@ -12445,7 +12445,7 @@ function shooter(e, px, py, dt2) {
           e$1.pattern,
           e$1.awake
         ),
-        new Some(shot)
+        new Some(shot2)
       ];
     } else {
       return [
@@ -13237,11 +13237,11 @@ function think(e, level, px, py, dt2, alert) {
       } else {
         let $2 = shooter(e, px, py, dt2);
         let e$1 = $2[0];
-        let shot = $2[1];
+        let shot2 = $2[1];
         return [
           fall(e$1, level, dt2),
           (() => {
-            let _pipe = to_result(shot, void 0);
+            let _pipe = to_result(shot2, void 0);
             return result_list(_pipe);
           })()
         ];
@@ -14567,6 +14567,225 @@ function speed(s) {
   return 1 + divideFloat(r, r + 15);
 }
 
+// build/dev/javascript/triangle_platformer/weapons.mjs
+var Weapon = class extends CustomType {
+  constructor(name2, feel, startup, active, total, long, tall, power3, push, shot2) {
+    super();
+    this.name = name2;
+    this.feel = feel;
+    this.startup = startup;
+    this.active = active;
+    this.total = total;
+    this.long = long;
+    this.tall = tall;
+    this.power = power3;
+    this.push = push;
+    this.shot = shot2;
+  }
+};
+var sword = /* @__PURE__ */ new Weapon(
+  "sword",
+  "even all round",
+  0.07,
+  0.1,
+  0.34,
+  1.4,
+  1,
+  1,
+  1,
+  Option$None$const
+);
+function of(class$) {
+  if (class$ === "Warrior") {
+    return new Weapon(
+      "greatsword",
+      "slow, wide, hits hard",
+      0.16,
+      0.12,
+      0.58,
+      2.4,
+      1.6,
+      1.9,
+      2,
+      Option$None$const
+    );
+  } else if (class$ === "Berserker") {
+    return new Weapon(
+      "twin axes",
+      "fast and close",
+      0.05,
+      0.08,
+      0.22,
+      1.3,
+      1.1,
+      0.7,
+      1,
+      Option$None$const
+    );
+  } else if (class$ === "Cavalier") {
+    return new Weapon(
+      "lance",
+      "a long, thin poke",
+      0.1,
+      0.08,
+      0.42,
+      2.7,
+      0.5,
+      1.2,
+      1.5,
+      Option$None$const
+    );
+  } else if (class$ === "Thief") {
+    return new Weapon(
+      "dagger",
+      "very fast, very short",
+      0.03,
+      0.06,
+      0.18,
+      1,
+      0.8,
+      0.55,
+      0.5,
+      Option$None$const
+    );
+  } else if (class$ === "Trickster") {
+    return new Weapon(
+      "dagger",
+      "very fast, very short",
+      0.03,
+      0.06,
+      0.18,
+      1,
+      0.8,
+      0.55,
+      0.5,
+      Option$None$const
+    );
+  } else if (class$ === "Bandit") {
+    return new Weapon(
+      "twin sabres",
+      "quick slashes",
+      0.05,
+      0.1,
+      0.26,
+      1.5,
+      1,
+      0.8,
+      1,
+      Option$None$const
+    );
+  } else if (class$ === "Duelist") {
+    return new Weapon(
+      "rapier",
+      "quick, long and thin",
+      0.05,
+      0.06,
+      0.26,
+      2.1,
+      0.45,
+      0.8,
+      0.7,
+      Option$None$const
+    );
+  } else if (class$ === "Cleric") {
+    return new Weapon(
+      "mace",
+      "heavy, shoves hard",
+      0.1,
+      0.1,
+      0.44,
+      1.3,
+      1.1,
+      1.35,
+      1.8,
+      Option$None$const
+    );
+  } else if (class$ === "Bard") {
+    return new Weapon(
+      "lute",
+      "a wide bash",
+      0.08,
+      0.1,
+      0.36,
+      1.5,
+      1.2,
+      1,
+      1.2,
+      Option$None$const
+    );
+  } else if (class$ === "Hunter") {
+    return new Weapon(
+      "bow",
+      "arrows, aimed by hand",
+      0,
+      0,
+      0.34,
+      0,
+      0,
+      1,
+      1,
+      new Some(Effect$Arrow$const)
+    );
+  } else if (class$ === "Wizard") {
+    return new Weapon(
+      "wand",
+      "a weak bolt, straight ahead",
+      0,
+      0,
+      0.42,
+      0,
+      0,
+      1.4,
+      1,
+      new Some(Effect$Bolt$const)
+    );
+  } else if (class$ === "Sorcerer") {
+    return new Weapon(
+      "wand",
+      "a weak bolt, straight ahead",
+      0,
+      0,
+      0.42,
+      0,
+      0,
+      1.4,
+      1,
+      new Some(Effect$Bolt$const)
+    );
+  } else if (class$ === "Witch") {
+    return new Weapon(
+      "wand",
+      "a weak bolt, straight ahead",
+      0,
+      0,
+      0.42,
+      0,
+      0,
+      1.4,
+      1,
+      new Some(Effect$Bolt$const)
+    );
+  } else if (class$ === "Alchemist") {
+    return new Weapon(
+      "flask",
+      "thrown; bursts where it lands",
+      0,
+      0,
+      0.6,
+      0,
+      0,
+      1,
+      1,
+      new Some(Effect$Firebolt$const)
+    );
+  } else {
+    return sword;
+  }
+}
+function describe2(w2) {
+  return w2.name + " (" + w2.feel + ")";
+}
+
 // build/dev/javascript/triangle_platformer/tree.mjs
 var FILEPATH = "src/tree.gleam";
 var Cell = class extends CustomType {
@@ -14974,15 +15193,15 @@ function nth(items, i) {
       "let_assert",
       FILEPATH,
       "tree",
-      273,
+      274,
       "nth",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 7956,
-        end: 8008,
-        pattern_start: 7967,
-        pattern_end: 7972
+        start: 7971,
+        end: 8023,
+        pattern_start: 7982,
+        pattern_end: 7987
       }
     );
   }
@@ -15214,15 +15433,15 @@ function find2(acc2, id2) {
       "let_assert",
       FILEPATH,
       "tree",
-      393,
+      394,
       "find",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 11388,
-        end: 11449,
-        pattern_start: 11399,
-        pattern_end: 11404
+        start: 11403,
+        end: 11464,
+        pattern_start: 11414,
+        pattern_end: 11419
       }
     );
   }
@@ -15449,15 +15668,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        467,
+        468,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 14259,
-          end: 14305,
-          pattern_start: 14270,
-          pattern_end: 14278
+          start: 14274,
+          end: 14320,
+          pattern_start: 14285,
+          pattern_end: 14293
         }
       );
     }
@@ -15482,15 +15701,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        468,
+        469,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 14310,
-          end: 14484,
-          pattern_start: 14321,
-          pattern_end: 14328
+          start: 14325,
+          end: 14499,
+          pattern_start: 14336,
+          pattern_end: 14343
         }
       );
     } else {
@@ -15559,15 +15778,15 @@ function build() {
               "let_assert",
               FILEPATH,
               "tree",
-              512,
+              513,
               "build",
               "Pattern match failed, no pattern matched the value.",
               {
                 value: chain2,
-                start: 16099,
-                end: 16128,
-                pattern_start: 16110,
-                pattern_end: 16120
+                start: 16114,
+                end: 16143,
+                pattern_start: 16125,
+                pattern_end: 16135
               }
             );
           } else {
@@ -15584,15 +15803,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          515,
+          516,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: chain,
-            start: 16204,
-            end: 16233,
-            pattern_start: 16215,
-            pattern_end: 16225
+            start: 16219,
+            end: 16248,
+            pattern_start: 16230,
+            pattern_end: 16240
           }
         );
       } else {
@@ -15720,15 +15939,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          573,
+          574,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $4,
-            start: 18461,
-            end: 18681,
-            pattern_start: 18472,
-            pattern_end: 18492
+            start: 18476,
+            end: 18696,
+            pattern_start: 18487,
+            pattern_end: 18507
           }
         );
       }
@@ -16022,16 +16241,22 @@ function details(t2, n) {
           })(),
           prepend(
             prepend(
-              "Signature skill (on its ring): " + describe(sp.skill),
-              prepend(
-                "Also on its ring: " + grant_name(sp.second),
-                prepend(
-                  "Ring: " + to_string(length(ring)) + " nodes. Fill all of them to unlock " + name2 + ".",
-                  List$Empty$const
-                )
-              )
+              "Weapon: " + describe2(of(name2)),
+              List$Empty$const
             ),
-            List$Empty$const
+            prepend(
+              prepend(
+                "Signature skill (on its ring): " + describe(sp.skill),
+                prepend(
+                  "Also on its ring: " + grant_name(sp.second),
+                  prepend(
+                    "Ring: " + to_string(length(ring)) + " nodes. Fill all of them to unlock " + name2 + ".",
+                    List$Empty$const
+                  )
+                )
+              ),
+              List$Empty$const
+            )
           )
         )
       )
@@ -16214,7 +16439,7 @@ var Door = class extends CustomType {
   }
 };
 var Player = class extends CustomType {
-  constructor(x, y2, vx, vy, grounded, on_platform, wall, facing, coyote, jump_buffer, air_jumps, dash_time, dashes, drop_time, can_cut, up_held, jumped, dashed, struck, plunged, grudge, loadout, trained, class$, allocated, mods, shield, block_charge, crash_wait, swings, attack, stats, lvl, xp, points, hp2, invuln, hurt2) {
+  constructor(x, y2, vx, vy, grounded, on_platform, wall, facing, coyote, jump_buffer, air_jumps, dash_time, dashes, drop_time, can_cut, up_held, jumped, dashed, struck, plunged, grudge, weapon, roam, loadout, trained, class$, allocated, mods, shield, block_charge, crash_wait, swings, attack, stats, lvl, xp, points, hp2, invuln, hurt2) {
     super();
     this.x = x;
     this.y = y2;
@@ -16237,6 +16462,8 @@ var Player = class extends CustomType {
     this.struck = struck;
     this.plunged = plunged;
     this.grudge = grudge;
+    this.weapon = weapon;
+    this.roam = roam;
     this.loadout = loadout;
     this.trained = trained;
     this.class = class$;
@@ -16360,9 +16587,6 @@ var level_up_heal = 10;
 var block_kills = 3;
 var pogo_speed = 15;
 var half_width = 0.375;
-var attack_startup = 0.07;
-var attack_active = 0.1;
-var attack_total = 0.34;
 var linger = 4;
 var dash_duration = 0.14;
 var dash_speed = 20;
@@ -16478,6 +16702,8 @@ function load(world2, t2, depth) {
       p2.struck,
       p2.plunged,
       p2.grudge,
+      p2.weapon,
+      p2.roam,
       p2.loadout,
       p2.trained,
       p2.class,
@@ -16545,6 +16771,8 @@ function new_world(seed) {
     false,
     false,
     false,
+    false,
+    sword,
     false,
     List$Empty$const,
     List$Empty$const,
@@ -16807,6 +17035,8 @@ function choose_class(world2, keystone) {
         p2.struck,
         p2.plunged,
         p2.grudge,
+        of(c.name),
+        p2.roam,
         p2.loadout,
         p2.trained,
         new Some(keystone),
@@ -16959,6 +17189,8 @@ function apply_reward(p2, r) {
       p2.struck,
       p2.plunged,
       p2.grudge,
+      p2.weapon,
+      p2.roam,
       p2.loadout,
       p2.trained,
       p2.class,
@@ -17000,6 +17232,8 @@ function apply_reward(p2, r) {
       p2.struck,
       p2.plunged,
       p2.grudge,
+      p2.weapon,
+      p2.roam,
       p2.loadout,
       p2.trained,
       p2.class,
@@ -17042,6 +17276,8 @@ function apply_reward(p2, r) {
       p2.struck,
       p2.plunged,
       p2.grudge,
+      p2.weapon,
+      p2.roam,
       p2.loadout,
       prepend(e, p2.trained),
       p2.class,
@@ -17070,15 +17306,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      1819,
+      1839,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 52585,
-        end: 52637,
-        pattern_start: 52596,
-        pattern_end: 52603
+        start: 53614,
+        end: 53666,
+        pattern_start: 53625,
+        pattern_end: 53632
       }
     );
   } else {
@@ -17347,15 +17583,15 @@ function nth_or_first(items, n) {
       "let_assert",
       FILEPATH2,
       "game",
-      1656,
+      1676,
       "nth_or_first",
       "Pattern match failed, no pattern matched the value.",
       {
         value: items,
-        start: 48075,
-        end: 48105,
-        pattern_start: 48086,
-        pattern_end: 48097
+        start: 49104,
+        end: 49134,
+        pattern_start: 49115,
+        pattern_end: 49126
       }
     );
   } else {
@@ -17525,6 +17761,8 @@ function blocked_by_shield(world2, k2) {
         p2.struck,
         p2.plunged,
         p2.grudge,
+        p2.weapon,
+        p2.roam,
         p2.loadout,
         p2.trained,
         p2.class,
@@ -17643,6 +17881,8 @@ function hurt(world2, damage3, from_x) {
           p2.struck,
           p2.plunged,
           p2.grudge,
+          p2.weapon,
+          p2.roam,
           p2.loadout,
           p2.trained,
           p2.class,
@@ -17687,6 +17927,8 @@ function hurt(world2, damage3, from_x) {
             p$1.struck,
             p$1.plunged,
             p$1.grudge,
+            p$1.weapon,
+            p$1.roam,
             p$1.loadout,
             p$1.trained,
             p$1.class,
@@ -17733,6 +17975,8 @@ function hurt(world2, damage3, from_x) {
               p$2.struck,
               p$2.plunged,
               true,
+              p$2.weapon,
+              p$2.roam,
               p$2.loadout,
               p$2.trained,
               p$2.class,
@@ -17894,6 +18138,8 @@ function gain_xp(loop$p, loop$xp, loop$events) {
         p2.struck,
         p2.plunged,
         p2.grudge,
+        p2.weapon,
+        p2.roam,
         p2.loadout,
         p2.trained,
         p2.class,
@@ -17953,6 +18199,8 @@ function gain_xp(loop$p, loop$xp, loop$events) {
           p2.struck,
           p2.plunged,
           p2.grudge,
+          p2.weapon,
+          p2.roam,
           p2.loadout,
           p2.trained,
           p2.class,
@@ -18018,15 +18266,15 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        822,
+        836,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $12,
-          start: 21894,
-          end: 21950,
-          pattern_start: 21905,
-          pattern_end: 21910
+          start: 22714,
+          end: 22770,
+          pattern_start: 22725,
+          pattern_end: 22730
         }
       );
     }
@@ -18091,6 +18339,8 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
       p2.struck,
       p2.plunged,
       p2.grudge,
+      p2.weapon,
+      p2.roam,
       p2.loadout,
       p2.trained,
       p2.class,
@@ -18145,6 +18395,8 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
           p$1.struck,
           p$1.plunged,
           p$1.grudge,
+          p$1.weapon,
+          p$1.roam,
           p$1.loadout,
           p$1.trained,
           p$1.class,
@@ -18189,6 +18441,8 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
           p$1.struck,
           p$1.plunged,
           p$1.grudge,
+          p$1.weapon,
+          p$1.roam,
           p$1.loadout,
           p$1.trained,
           p$1.class,
@@ -18234,6 +18488,8 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
         p$1.struck,
         p$1.plunged,
         p$1.grudge,
+        p$1.weapon,
+        p$1.roam,
         p$1.loadout,
         p$1.trained,
         p$1.class,
@@ -18294,6 +18550,8 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
     p$2.struck,
     p$2.plunged,
     p$2.grudge,
+    p$2.weapon,
+    p$2.roam,
     p$2.loadout,
     p$2.trained,
     p$2.class,
@@ -18585,6 +18843,8 @@ function strike(world2, a, box4) {
         p2.struck,
         true,
         p2.grudge,
+        p2.weapon,
+        p2.roam,
         p2.loadout,
         p2.trained,
         p2.class,
@@ -18626,6 +18886,8 @@ function strike(world2, a, box4) {
         p2.struck,
         p2.plunged,
         p2.grudge,
+        p2.weapon,
+        p2.roam,
         p2.loadout,
         p2.trained,
         p2.class,
@@ -18673,6 +18935,8 @@ function strike(world2, a, box4) {
           p$1.struck,
           p$1.plunged,
           p$1.grudge,
+          p$1.weapon,
+          p$1.roam,
           p$1.loadout,
           p$1.trained,
           p$1.class,
@@ -18717,6 +18981,8 @@ function strike(world2, a, box4) {
         p$1.struck,
         p$1.plunged,
         p$1.grudge,
+        p$1.weapon,
+        p$1.roam,
         p$1.loadout,
         p$1.trained,
         p$1.class,
@@ -18740,13 +19006,20 @@ function strike(world2, a, box4) {
     }
     let p$2 = _block$2;
     let _block$3;
+    if (dive) {
+      _block$3 = damage2(p$2);
+    } else {
+      _block$3 = round(identity(damage2(p$2)) * p$2.weapon.power);
+    }
+    let hit = _block$3;
+    let _block$4;
     let $2 = p$2.grudge;
     if ($2) {
-      _block$3 = 3 * damage2(p$2);
+      _block$4 = 3 * hit;
     } else {
-      _block$3 = damage2(p$2);
+      _block$4 = hit;
     }
-    let dmg = _block$3;
+    let dmg = _block$4;
     let p$3 = new Player(
       p$2.x,
       p$2.y,
@@ -18769,6 +19042,8 @@ function strike(world2, a, box4) {
       true,
       p$2.plunged,
       false,
+      p$2.weapon,
+      p$2.roam,
       p$2.loadout,
       p$2.trained,
       p$2.class,
@@ -18787,16 +19062,17 @@ function strike(world2, a, box4) {
       p$2.invuln,
       p$2.hurt
     );
-    let _block$4;
+    let k2 = p$3.weapon.push;
+    let _block$5;
     let $3 = a.dir;
     if ($3 instanceof Forward) {
-      _block$4 = [p$3.facing * 6, 3];
+      _block$5 = [p$3.facing * 6 * k2, 3 * k2];
     } else if ($3 instanceof Up2) {
-      _block$4 = [0, 10];
+      _block$5 = [0, 10 * k2];
     } else {
-      _block$4 = [0, -5];
+      _block$5 = [0, -5 * k2];
     }
-    let push = _block$4;
+    let push = _block$5;
     return hit_enemies(
       new World(
         p$3,
@@ -18843,8 +19119,8 @@ function hitbox(p2, dir) {
   let big = _block;
   let s = reach2(p2) * big;
   if (dir instanceof Forward) {
-    let w2 = 1.4 * s;
-    let h = 1 * s;
+    let w2 = p2.weapon.long * s;
+    let h = p2.weapon.tall * s;
     let _block$1;
     let $1 = p2.facing > 0;
     if ($1) {
@@ -18866,14 +19142,22 @@ function hitbox(p2, dir) {
 function speed2(p2) {
   return speed(p2.stats) * pct(p2.mods.attack_speed_pct);
 }
+function shot(p2) {
+  let $ = has2(p2, Rule$Bow$const);
+  if ($) {
+    return new Some(Effect$Arrow$const);
+  } else {
+    return p2.weapon.shot;
+  }
+}
 function active_hitbox(p2) {
   let $ = p2.attack;
-  let $1 = has2(p2, Rule$Bow$const);
-  if ($ instanceof Some && !$1) {
+  let $1 = shot(p2);
+  if ($ instanceof Some && $1 instanceof None) {
     let a = $[0];
     let t2 = a.time * speed2(p2);
-    let live = t2 < attack_startup + attack_active || plunging(p2);
-    let $2 = t2 >= attack_startup && live;
+    let live = t2 < p2.weapon.startup + p2.weapon.active || plunging(p2);
+    let $2 = t2 >= p2.weapon.startup && live;
     if ($2) {
       return new Some(hitbox(p2, a.dir));
     } else {
@@ -18895,7 +19179,7 @@ function boost(p2) {
     1
   );
 }
-function loose(world2, dir) {
+function loose(world2, dir, effect) {
   let p2 = world2.player;
   let _block;
   if (dir instanceof Forward) {
@@ -18907,10 +19191,10 @@ function loose(world2, dir) {
   }
   let aim = _block;
   let arrows = spawn2(
-    Effect$Arrow$const,
+    effect,
     p2.x,
     p2.y,
-    damage(p2.stats),
+    round(identity(damage(p2.stats)) * p2.weapon.power),
     boost(p2),
     aim,
     p2.facing
@@ -18943,8 +19227,8 @@ function combat(world2) {
   let $ = p2.attack;
   if ($ instanceof Some) {
     let a = $[0];
-    let $1 = a.time * speed2(p2) >= attack_total && !plunging(p2);
-    let $2 = has2(p2, Rule$Bow$const);
+    let $1 = a.time * speed2(p2) >= p2.weapon.total && !plunging(p2);
+    let $2 = shot(p2);
     if ($1) {
       return new World(
         new Player(
@@ -18969,6 +19253,8 @@ function combat(world2) {
           p2.struck,
           p2.plunged,
           p2.grudge,
+          p2.weapon,
+          p2.roam,
           p2.loadout,
           p2.trained,
           p2.class,
@@ -19007,10 +19293,11 @@ function combat(world2) {
         world2.sealed,
         world2.plan
       );
-    } else if ($2) {
+    } else if ($2 instanceof Some) {
+      let effect = $2[0];
       let $3 = a.time === 0;
       if ($3) {
-        return loose(world2, a.dir);
+        return loose(world2, a.dir, effect);
       } else {
         return world2;
       }
@@ -19266,6 +19553,8 @@ function fire_skills(world2, before, dt2) {
         p2.struck,
         p2.plunged,
         p2.grudge,
+        p2.weapon,
+        p2.roam,
         p2.loadout,
         p2.trained,
         p2.class,
@@ -19460,6 +19749,8 @@ function fire_skills(world2, before, dt2) {
       false,
       p$1.plunged,
       p$1.grudge,
+      p$1.weapon,
+      p$1.roam,
       loadout,
       p$1.trained,
       p$1.class,
@@ -19540,6 +19831,8 @@ function move(p2, level, dt2) {
     p2.struck,
     p2.plunged,
     p2.grudge,
+    p2.weapon,
+    p2.roam,
     p2.loadout,
     p2.trained,
     p2.class,
@@ -19607,6 +19900,8 @@ function dash(p2, input) {
           p2.struck,
           p2.plunged,
           p2.grudge,
+          p2.weapon,
+          p2.roam,
           p2.loadout,
           p2.trained,
           p2.class,
@@ -19663,6 +19958,8 @@ function jump(p2, input) {
             p2.struck,
             p2.plunged,
             p2.grudge,
+            p2.weapon,
+            p2.roam,
             p2.loadout,
             p2.trained,
             p2.class,
@@ -19704,6 +20001,8 @@ function jump(p2, input) {
             p2.struck,
             p2.plunged,
             p2.grudge,
+            p2.weapon,
+            p2.roam,
             p2.loadout,
             p2.trained,
             p2.class,
@@ -19745,6 +20044,8 @@ function jump(p2, input) {
             p2.struck,
             p2.plunged,
             p2.grudge,
+            p2.weapon,
+            p2.roam,
             p2.loadout,
             p2.trained,
             p2.class,
@@ -19788,6 +20089,8 @@ function jump(p2, input) {
               p2.struck,
               p2.plunged,
               p2.grudge,
+              p2.weapon,
+              p2.roam,
               p2.loadout,
               p2.trained,
               p2.class,
@@ -19835,6 +20138,8 @@ function jump(p2, input) {
             p2.struck,
             p2.plunged,
             p2.grudge,
+            p2.weapon,
+            p2.roam,
             p2.loadout,
             p2.trained,
             p2.class,
@@ -19919,6 +20224,8 @@ function vertical(p2, input, dt2) {
         p2.struck,
         p2.plunged,
         p2.grudge,
+        p2.weapon,
+        p2.roam,
         p2.loadout,
         p2.trained,
         p2.class,
@@ -19944,7 +20251,7 @@ function horizontal(p2, input, dt2) {
   return unless_dashing(
     p2,
     () => {
-      let has_input = absolute_value2(input.move_x) > 0.1 && (!p2.grounded || p2.attack instanceof None || has2(
+      let has_input = absolute_value2(input.move_x) > 0.1 && (!p2.grounded || p2.attack instanceof None || p2.roam || has2(
         p2,
         Rule$FreeSwing$const
       ));
@@ -19991,6 +20298,8 @@ function horizontal(p2, input, dt2) {
         p2.struck,
         p2.plunged,
         p2.grudge,
+        p2.weapon,
+        p2.roam,
         p2.loadout,
         p2.trained,
         p2.class,
@@ -20050,6 +20359,8 @@ function start_attack(p2, input) {
       p2.struck,
       p2.plunged,
       p2.grudge,
+      p2.weapon,
+      p2.roam,
       p2.loadout,
       p2.trained,
       p2.class,
@@ -20147,6 +20458,8 @@ function tick2(p2, input, dt2) {
     p2.struck,
     p2.plunged && !p2.grounded,
     p2.grudge,
+    p2.weapon,
+    p2.roam,
     p2.loadout,
     p2.trained,
     p2.class,
@@ -20214,6 +20527,8 @@ function step2(world2, input, dt2) {
     player2.struck,
     player2.plunged,
     player2.grudge,
+    player2.weapon,
+    player2.roam,
     player2.loadout,
     player2.trained,
     player2.class,
@@ -20274,6 +20589,74 @@ function step2(world2, input, dt2) {
   let _pipe$17 = talk(_pipe$16, up_fresh);
   return tick_enemies(_pipe$17, dt2);
 }
+function set_roam(world2, roam) {
+  return new World(
+    (() => {
+      let _record = world2.player;
+      return new Player(
+        _record.x,
+        _record.y,
+        _record.vx,
+        _record.vy,
+        _record.grounded,
+        _record.on_platform,
+        _record.wall,
+        _record.facing,
+        _record.coyote,
+        _record.jump_buffer,
+        _record.air_jumps,
+        _record.dash_time,
+        _record.dashes,
+        _record.drop_time,
+        _record.can_cut,
+        _record.up_held,
+        _record.jumped,
+        _record.dashed,
+        _record.struck,
+        _record.plunged,
+        _record.grudge,
+        _record.weapon,
+        roam,
+        _record.loadout,
+        _record.trained,
+        _record.class,
+        _record.allocated,
+        _record.mods,
+        _record.shield,
+        _record.block_charge,
+        _record.crash_wait,
+        _record.swings,
+        _record.attack,
+        _record.stats,
+        _record.lvl,
+        _record.xp,
+        _record.points,
+        _record.hp,
+        _record.invuln,
+        _record.hurt
+      );
+    })(),
+    world2.level,
+    world2.enemies,
+    world2.projectiles,
+    world2.strikes,
+    world2.events,
+    world2.depth,
+    world2.cleared,
+    world2.doors,
+    world2.exits,
+    world2.seed,
+    world2.tree,
+    world2.unlocked,
+    world2.npcs,
+    world2.time,
+    world2.kills,
+    world2.room_time,
+    world2.safe_x,
+    world2.sealed,
+    world2.plan
+  );
+}
 function apply_node(p2, kind) {
   let m = p2.mods;
   let with$ = (m2) => {
@@ -20299,6 +20682,8 @@ function apply_node(p2, kind) {
       p2.struck,
       p2.plunged,
       p2.grudge,
+      p2.weapon,
+      p2.roam,
       p2.loadout,
       p2.trained,
       p2.class,
@@ -20349,6 +20734,8 @@ function apply_node(p2, kind) {
         p2.struck,
         p2.plunged,
         p2.grudge,
+        p2.weapon,
+        p2.roam,
         p2.loadout,
         p2.trained,
         p2.class,
@@ -20601,6 +20988,8 @@ function apply_node(p2, kind) {
         p2.struck,
         p2.plunged,
         p2.grudge,
+        p2.weapon,
+        p2.roam,
         p2.loadout,
         p2.trained,
         p2.class,
@@ -20782,6 +21171,8 @@ function apply_node(p2, kind) {
         p2.struck,
         p2.plunged,
         p2.grudge,
+        p2.weapon,
+        p2.roam,
         prepend(skill, p2.loadout),
         p2.trained,
         p2.class,
@@ -20931,6 +21322,8 @@ function allocate(world2, id2) {
       p2.struck,
       p2.plunged,
       p2.grudge,
+      p2.weapon,
+      p2.roam,
       p2.loadout,
       p2.trained,
       p2.class,
@@ -21081,15 +21474,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        1774,
+        1794,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 51224,
-          end: 51275,
-          pattern_start: 51235,
-          pattern_end: 51243
+          start: 52253,
+          end: 52304,
+          pattern_start: 52264,
+          pattern_end: 52272
         }
       );
     }
@@ -21101,15 +21494,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        1776,
+        1796,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 51358,
-          end: 51419,
-          pattern_start: 51369,
-          pattern_end: 51386
+          start: 52387,
+          end: 52448,
+          pattern_start: 52398,
+          pattern_end: 52415
         }
       );
     } else {
@@ -21119,15 +21512,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          1776,
+          1796,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 51358,
-            end: 51419,
-            pattern_start: 51369,
-            pattern_end: 51386
+            start: 52387,
+            end: 52448,
+            pattern_start: 52398,
+            pattern_end: 52415
           }
         );
       } else {
@@ -21582,8 +21975,8 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     let status, go2 = false;
     if (d2.owned.has(f.id)) status = "Owned";
     else if (f.kind instanceof Keystone) {
-      const [have, of] = ring_progress(d2.w.tree, d2.p.allocated, f.id);
-      status = d2.picking ? d2.unlocked.has(f.id) ? (go2 = true, `Start as ${f.kind.name}`) : "Locked: fill its ring in a run" : `Ring ${have}/${of}${d2.unlocked.has(f.id) ? " \xB7 unlocked" : ""}`;
+      const [have, of2] = ring_progress(d2.w.tree, d2.p.allocated, f.id);
+      status = d2.picking ? d2.unlocked.has(f.id) ? (go2 = true, `Start as ${f.kind.name}`) : "Locked: fill its ring in a run" : `Ring ${have}/${of2}${d2.unlocked.has(f.id) ? " \xB7 unlocked" : ""}`;
     } else if (d2.picking) status = "Pick a class first";
     else if (d2.available(f)) {
       status = "Take it";
@@ -21868,7 +22261,15 @@ window.game = { get world() {
 var box3 = (w2, h, color, opts = {}) => new Bs(new ks(w2, h, 1), new es({ color, ...opts }));
 var player = box3(width, height, 16777215);
 scene.add(player);
-var slash = box3(1, 1, 16766287, { transparent: true, opacity: 0.55 });
+var crescent = new Su();
+crescent.moveTo(-0.5, 0.5);
+crescent.quadraticCurveTo(1.5, 0, -0.5, -0.5);
+crescent.quadraticCurveTo(0.6, 0, -0.5, 0.5);
+var slash = new Bs(new nd(crescent, 16), new es({ color: 16773560, side: p }));
+var slashEdge = new Bs(slash.geometry, new es({ color: 3877669, side: p }));
+slashEdge.scale.set(1.14, 1.14, 1);
+slashEdge.position.z = -0.01;
+slash.add(slashEdge);
 slash.position.z = 1;
 scene.add(slash);
 var kindColor = (k2) => k2 instanceof Boss ? 16740096 : k2 instanceof Charger ? 12986408 : k2 instanceof Shooter ? 9315498 : k2 instanceof Flyer ? 2541274 : k2 instanceof Bouncer ? 12634675 : 7162945;
@@ -22068,7 +22469,7 @@ addEventListener("keydown", (e) => {
       e.preventDefault();
       treeScreen.toggle();
     }
-    if (e.code === "KeyH") nextMiniStyle();
+    if (e.code === "KeyM") nextAttackMode();
     if (e.code === "KeyB") showBox = !showBox;
   }
   if (e.code.startsWith("Arrow") || e.code === "Space") e.preventDefault();
@@ -22089,7 +22490,7 @@ function readInput() {
   pendDash ||= dash2 && !prevDash;
   pendAttack ||= attack && !prevAttack;
   [prevJump, prevDash, prevAttack] = [jump2, dash2, attack];
-  return { mx, my, jump: jump2 };
+  return { mx, my, jump: jump2, attack };
 }
 function floatText(x, y2, text, cls) {
   const [sx, sy] = toScreen(x, y2);
@@ -22121,7 +22522,7 @@ var treeScreen = createTreeScreen({ getWorld: () => world, setWorld: (w2) => {
 }, onUnlock: saveUnlocks });
 var hud = document.getElementById("hud");
 var HINT = {
-  keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Up at doors & statues \xB7 T tree \xB7 H hud style \xB7 B body box",
+  keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Up at doors & statues \xB7 T tree \xB7 M attack style \xB7 B body box",
   pad: "Move stick \xB7 Jump X / Y \xB7 Dash LB / RB \xB7 Attack A (+up / +down in air) \xB7 Up at doors & statues \xB7 Select tree"
 };
 var treeKey = () => usingPad ? "Select" : "T";
@@ -22188,28 +22589,6 @@ function drawHp(p2, dt2) {
   shieldsEl.innerHTML = p2.shield ? `<span class="pill teal">\u25C6 ${p2.shield} block${p2.shield > 1 ? "s" : ""}</span>` : "";
 }
 var mini = document.getElementById("mini");
-var MINI_STYLES = [
-  { name: "off" },
-  { name: "A: bare pips", cls: "" },
-  { name: "B: pill", cls: "pill" },
-  { name: "C: arc", cls: "", arc: true },
-  { name: "D: quiet pill (only what is spent or about to fire)", cls: "pill quiet" }
-];
-var miniStyle = 2;
-var miniKey = "";
-try {
-  miniStyle = Number(localStorage.getItem("trip.hud") ?? 2) % MINI_STYLES.length;
-} catch {
-}
-function nextMiniStyle() {
-  miniStyle = (miniStyle + 1) % MINI_STYLES.length;
-  miniKey = "";
-  try {
-    localStorage.setItem("trip.hud", miniStyle);
-  } catch {
-  }
-  floatText(world.player.x, world.player.y + 3.4, `HUD ${MINI_STYLES[miniStyle].name}`, "npc");
-}
 var SHAPE = {
   jump: "M6 1.5 L11 10.5 H1 Z",
   dash: "M1 2 L11 6 L1 10 L4 6 Z",
@@ -22217,40 +22596,55 @@ var SHAPE = {
 };
 var PIP_COLOR = { jump: "#1f9fb5", dash: "#3aa5ee", block: "#e0a21b" };
 var SKILL_COLOR = { Firebolt: "#ff7a3d", Bolt: "#8b8ff5", Orb: "#8b8ff5", Knife: "#5fbf4a", Arrow: "#5fbf4a", Heal: "#ef6b9a" };
+var MAX_PIPS = 3;
+var MAX_PIES = 4;
+var miniKey = "";
 function drawMini(p2, x, top) {
-  const style = MINI_STYLES[miniStyle];
-  if (!style.cls && style.cls !== "") {
-    mini.style.display = "none";
-    return;
-  }
-  const timed = p2.loadout.toArray().filter((s) => s.trigger.period !== void 0);
-  const rows = [["jump", p2.air_jumps, p2.mods.air_jumps], ["dash", p2.dashes, p2.mods.dashes], ["block", p2.shield, Math.max(p2.shield, p2.mods.shields)]];
-  const key2 = miniStyle + "|" + rows.map((r) => r[1] + "/" + r[2]).join("|") + "|" + timed.map((s) => s.effect.constructor.name).join(",");
+  const timed = p2.loadout.toArray().filter((s) => s.trigger.period !== void 0).map((s) => {
+    const period = Math.max(0.3, s.trigger.period * (1 - p2.mods.cooldown_pct / 100)), left = Math.max(0, s.timer);
+    return { name: s.effect.constructor.name, left, filled: Math.min(1, 1 - left / period) };
+  }).sort((a, b) => a.left - b.left);
+  const pies = timed.slice(0, MAX_PIES);
+  const rows = [["jump", p2.air_jumps, p2.mods.air_jumps], ["dash", p2.dashes, p2.mods.dashes], ["block", p2.shield, Math.max(p2.shield, p2.mods.shields)]].filter((r) => r[2] > 0);
+  const key2 = rows.map((r) => r[1] + "/" + r[2]).join("|") + "|" + pies.map((s) => s.name).join(",") + "|" + timed.length;
   if (key2 !== miniKey) {
     miniKey = key2;
-    const groups = rows.filter((r) => r[2] > 0).map(([kind, ready, all2]) => Array.from({ length: all2 }, (_, i) => `<i class="pip ${i < ready ? "calm" : "off"}" style="--c:${PIP_COLOR[kind]}"><svg viewBox="0 0 12 12"><path d="${SHAPE[kind]}"/></svg></i>`).join(""));
-    if (timed.length) groups.push(timed.map((s) => `<i class="pip pie" style="--c:${SKILL_COLOR[s.effect.constructor.name] ?? "#ffc23d"}"></i>`).join(""));
-    mini.className = style.cls;
+    const pip = (kind, on) => `<i class="pip ${on ? "" : "off"}" style="--c:${PIP_COLOR[kind]}"><svg viewBox="0 0 12 12"><path d="${SHAPE[kind]}"/></svg></i>`;
+    const groups = rows.map(([kind, ready, all2]) => all2 > MAX_PIPS ? pip(kind, ready > 0) + `<b>${ready}</b>` : Array.from({ length: all2 }, (_, i) => pip(kind, i < ready)).join(""));
+    if (pies.length) groups.push(pies.map((s) => `<i class="pip pie" style="--c:${SKILL_COLOR[s.name] ?? "#ffc23d"}"></i>`).join("") + (timed.length > MAX_PIES ? `<b>+${timed.length - MAX_PIES}</b>` : ""));
     mini.innerHTML = groups.join('<i class="gap"></i>');
-    if (style.arc) {
-      const pips = [...mini.querySelectorAll(".pip")], mid = (pips.length - 1) / 2;
-      pips.forEach((el2, i) => {
-        el2.style.marginBottom = `${-((i - mid) ** 2) * 1.6}px`;
-      });
-    }
   }
-  const pies = mini.querySelectorAll(".pie");
-  timed.forEach((s, i) => {
-    const period = Math.max(0.3, s.trigger.period * (1 - p2.mods.cooldown_pct / 100)), left = Math.max(0, s.timer);
-    pies[i].style.setProperty("--f", Math.min(1, 1 - left / period));
-    const soon = left < 0.3 && left > 0;
-    pies[i].classList.toggle("soon", soon);
-    pies[i].classList.toggle("calm", !soon && left > 0);
+  mini.querySelectorAll(".pie").forEach((el2, i) => {
+    el2.style.setProperty("--f", pies[i].filled);
+    el2.classList.toggle("soon", pies[i].left < 0.3 && pies[i].left > 0);
   });
   const [sx, sy] = toScreen(x, top + 0.12);
-  mini.style.display = "";
+  mini.style.display = mini.innerHTML ? "" : "none";
   mini.style.left = `${sx}px`;
   mini.style.top = `${sy}px`;
+}
+var ATTACK_MODES = [
+  { id: "hold", name: "hold: keep the button down to keep swinging, and keep moving" },
+  { id: "auto", name: "auto: swings by itself when something is in reach; keep moving" },
+  { id: "tap", name: "tap: one press, one swing, and a ground swing roots you (the old way)" }
+];
+var attackMode = 0;
+try {
+  attackMode = Number(localStorage.getItem("trip.attack") ?? 0) % ATTACK_MODES.length;
+} catch {
+}
+function nextAttackMode() {
+  attackMode = (attackMode + 1) % ATTACK_MODES.length;
+  try {
+    localStorage.setItem("trip.attack", attackMode);
+  } catch {
+  }
+  floatText(world.player.x, world.player.y + 3.4, `Attack ${ATTACK_MODES[attackMode].name}`, "npc");
+}
+function inReach() {
+  const p2 = world.player, shoots = p2.weapon.shot instanceof Some;
+  const far2 = shoots ? 9 : p2.weapon.long * reach2(p2) + 0.6;
+  return world.enemies.toArray().some((e) => e.hp > 0 && (e.x - p2.x) * p2.facing > 0 && Math.abs(e.x - p2.x) < far2 && Math.abs(e.y - p2.y) < 1.5);
 }
 var acc = 0;
 var last2 = performance.now();
@@ -22266,7 +22660,10 @@ function frame(now) {
   const frameDt = Math.min((now - last2) / 1e3, 0.1);
   acc = Math.min(acc + (now - last2) / 1e3, 0.1);
   last2 = now;
-  const { mx, my, jump: jump2 } = readInput();
+  const { mx, my, jump: jump2, attack } = readInput();
+  const mode = ATTACK_MODES[attackMode].id;
+  if (mode === "hold" && attack || mode === "auto" && inReach()) pendAttack = true;
+  if (world.player.roam !== (mode !== "tap")) world = set_roam(world, mode !== "tap");
   if (treeScreen.pad([...navigator.getGamepads()].find(Boolean), now)) {
     acc = 0;
     pendJump = pendDash = pendAttack = false;
@@ -22342,7 +22739,10 @@ function frame(now) {
   if (slash.visible) {
     const r = hb[0];
     slash.position.set(r.x + r.w / 2 + px - p2.x, r.y + r.h / 2 + py - p2.y, 1);
-    slash.scale.set(r.w, r.h, 1);
+    const dir = p2.attack[0].dir.constructor.name;
+    slash.rotation.z = dir === "Up" ? Math.PI / 2 : dir === "Down" ? -Math.PI / 2 : 0;
+    if (dir === "Forward") slash.scale.set(r.w * p2.facing, r.h, 1);
+    else slash.scale.set(r.h, r.w, 1);
   }
   for (const e of world.enemies) {
     if (!enemyMeshes.has(e.id)) {
