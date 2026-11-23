@@ -22362,7 +22362,6 @@ slashEdge.position.z = -0.01;
 slash.add(slashEdge);
 slash.position.z = 1;
 scene.add(slash);
-var kindColor = (k2) => k2 instanceof Boss ? 16740096 : k2 instanceof Charger ? 12986408 : k2 instanceof Shooter ? 9315498 : k2 instanceof Flyer ? 2541274 : k2 instanceof Bouncer ? 12634675 : 7162945;
 var roomGroup = new jl();
 var doorGroup = new jl();
 scene.add(roomGroup, doorGroup);
@@ -22406,9 +22405,16 @@ function sticker(path) {
   m.scale.set(HERO_H, HERO_H, 1);
   return m;
 }
-var STATUES = /* @__PURE__ */ new Set(["Knight"]);
-var ENEMY_ART = { Flyer: 2.1 };
-var enemyArt = (e) => ENEMY_ART[e.kind.constructor.name] ? `enemies/${e.kind.constructor.name.toLowerCase()}-${e.tier}` : null;
+var ENEMY_ART = {
+  Flyer: { wide: 1.26, tiers: true, flies: true },
+  Charger: { wide: 1.5, tiers: true },
+  Shooter: { wide: 1.85, tiers: true },
+  Bouncer: { wide: 1.35, tiers: true },
+  Boss: { wide: 1.15 },
+  Dummy: { wide: 1.25 }
+};
+var artOf = (e) => ENEMY_ART[e.kind.constructor.name];
+var enemyArt = (e) => `enemies/${e.kind.constructor.name.toLowerCase()}${artOf(e).tiers ? "-" + e.tier : ""}`;
 var HERO_PX = 280;
 var stickerSize = (image, tall) => image ? [tall * image.width / HERO_PX, tall * image.height / HERO_PX] : [tall, tall];
 var FACES_LEFT = /* @__PURE__ */ new Set(["Hunter", "Duelist", "Thief", "Cavalier", "Wizard", "Trickster", "Bandit", "Bard", "Warrior"]);
@@ -22534,20 +22540,18 @@ function syncRoom() {
     enemyMeshes = new Map(
       world.enemies.toArray().map((e) => {
         const [w2, h] = size3(e.kind);
-        const art = enemyArt(e);
-        const body2 = art ? sticker(art) : box3(w2, h, kindColor(e.kind));
-        const barW = w2 * (1 + 0.4 * (e.tier - 1));
+        const body2 = sticker(enemyArt(e));
+        const barW = w2 * (1 + 0.4 * (e.kind instanceof Boss ? 0 : e.tier - 1));
         const bar = box3(barW, 0.12, 6732650);
-        const pips = Array.from({ length: e.kind instanceof Boss ? 0 : e.tier - 1 }, () => box3(0.18, 0.18, GOLD2));
-        roomGroup.add(body2, bar, ...pips);
-        return [e.id, { body: body2, bar, pips, w: w2, barW, h, art: !!art, color: art ? 16777215 : kindColor(e.kind) }];
+        roomGroup.add(body2, bar);
+        return [e.id, { body: body2, bar, w: w2, barW, h }];
       })
     );
     const cells2 = world.tree.cells.toArray();
     npcMeshes = world.npcs.toArray().map((n) => {
       const statue = n.role instanceof Statue, cell = statue ? cells2[n.role.keystone] : null;
       const name3 = statue ? cell.name : "Mentor", lift = statue ? PEDESTAL_H : 0;
-      const hero = sticker(statue && STATUES.has(name3) ? `statues/${name3.toLowerCase()}` : `heroes/${name3.toLowerCase()}`);
+      const hero = sticker(`${statue ? "statues" : "heroes"}/${name3.toLowerCase()}`);
       hero.position.set(n.x, n.y + lift + HERO_H / 2, -0.6);
       roomGroup.add(hero);
       if (!statue) return { hero, n, statue, name: name3, y: hero.position.y };
@@ -22909,26 +22913,19 @@ function frame(now) {
       builtLevel = null;
       continue;
     }
-    const { body: body2, bar, pips, barW, w: w2, h, art, color } = enemyMeshes.get(e.id);
+    const { body: body2, bar, barW, w: w2, h } = enemyMeshes.get(e.id);
     body2.visible = bar.visible = e.hp > 0;
     const old = same ? was.enemies.get(e.id) : null;
     const ex = old ? between2(old.x, e.x, part) : e.x, ey = old ? between2(old.y, e.y, part) : e.y;
-    body2.position.set(ex, ey + h / 2, 0);
-    if (art) {
-      const img = body2.material.map.image, wide = w2 * ENEMY_ART[e.kind.constructor.name];
-      body2.scale.set(wide * (e.facing > 0 ? -1 : 1), img ? wide * img.height / img.width : wide, 1);
-      body2.position.z = 0.55;
-    }
+    const img = body2.material.map.image, wide = w2 * artOf(e).wide, tall = img ? wide * img.height / img.width : wide;
+    body2.scale.set(wide * (e.facing > 0 ? -1 : 1), tall, 1);
+    body2.position.set(ex, artOf(e).flies ? ey + h / 2 : ey + tall / 2, 0.55);
     const tell = telegraphing(e) && Math.floor(now / 50) % 2 === 0;
-    body2.material.color.set(e.flash > 0 ? art ? 16752029 : 16777215 : tell ? 16771899 : color);
+    body2.material.color.set(e.flash > 0 ? 16752029 : tell ? 16771899 : 16777215);
     if (!e.awake) body2.material.color.multiplyScalar(0.45);
     const frac = e.hp / e.max_hp;
     bar.scale.x = Math.max(frac, 1e-3);
     bar.position.set(ex - barW * (1 - frac) / 2, ey + h + 0.3, 0);
-    pips.forEach((pip, i) => {
-      pip.visible = e.hp > 0;
-      pip.position.set(ex + (i - (pips.length - 1) / 2) * 0.28, ey + h + 0.58, 0);
-    });
   }
   const back = DT * (1 - part);
   drawShots(world.projectiles.toArray().map((s) => ({ x: s.x - s.vx * back - shot_size / 2, y: s.y - s.vy * back - shot_size / 2, w: shot_size, h: shot_size })));
