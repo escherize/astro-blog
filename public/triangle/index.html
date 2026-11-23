@@ -15,6 +15,10 @@
       }
       html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0b0b; }
       .sticker { background: #fff; border: 3px solid var(--ink); border-radius: 14px; color: var(--body); font: var(--text); }
+      #fatal { display: none; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 99;
+        width: min(30rem, 86vw); padding: 1rem 1.25rem; }
+      #fatal b { font-size: 1.15rem; color: var(--ink); }
+      #fatal p { margin: 0.5rem 0 0; overflow-wrap: anywhere; }
 
       /* XP: a long bar across the top edge */
       #xp { position: fixed; top: 0; left: 0; right: 0; height: 20px; background: #efe5d8; border-bottom: 3px solid var(--ink); }
@@ -94,7 +98,7 @@
       }
     </style>
     <script type="importmap">
-      { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+      { "imports": { "three": "./vendor/three.module.min.js" } }
     </script>
   </head>
   <body>
@@ -108,6 +112,23 @@
     <div id="boss" class="sticker"><b>The Warden</b><div class="bar"><div id="boss-fill"></div></div></div>
     <div id="summary" class="sticker"></div>
     <div id="hud" class="sticker"></div>
+    <div id="fatal" class="sticker" role="alert"></div>
+    <script>
+      // If the game cannot start, or crashes, say why instead of leaving an empty page.
+      function fatal(why) {
+        const el = document.getElementById('fatal');
+        el.innerHTML = '<b></b><p></p><p>Please send this message to whoever shared the link.</p>';
+        el.children[0].textContent = window.game ? 'The game hit an error' : 'The game could not start';
+        el.children[1].textContent = why;
+        el.style.display = 'block';
+      }
+      addEventListener('error', (e) => {
+        // resource errors have no message; only a script failing matters (a blocked font does not)
+        if (!e.message && !(e.target && e.target.tagName === 'SCRIPT')) return;
+        fatal(e.message || 'A script was blocked or failed to load. An ad blocker or a strict privacy setting can cause this.');
+      }, true);
+      addEventListener('unhandledrejection', (e) => fatal(String((e.reason && e.reason.message) || e.reason)));
+    </script>
     <script type="module" src="main.js"></script>
   </body>
 </html>
