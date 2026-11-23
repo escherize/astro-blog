@@ -15642,11 +15642,11 @@ function build() {
       let dy = $1[1];
       let $3 = between(acc3.seed, -0.9, 0.9);
       let s = $3[0];
-      let turn = $3[1];
+      let turn2 = $3[1];
       let acc$32 = new Acc(s, acc3.next_id, acc3.nodes, acc3.edges);
-      let lay = (turn2) => {
-        let rx2 = dx * cos2(turn2) - dy * sin2(turn2);
-        let ry2 = dx * sin2(turn2) + dy * cos2(turn2);
+      let lay = (turn3) => {
+        let rx2 = dx * cos2(turn3) - dy * sin2(turn3);
+        let ry2 = dx * sin2(turn3) + dy * cos2(turn3);
         return [nearest(acc$32, c, c.x + rx2 * 20, c.y + ry2 * 20), rx2, ry2];
       };
       let room2 = (spur) => {
@@ -15684,8 +15684,8 @@ function build() {
         (k2) => {
           let off = identity(k2) * 0.3;
           return prepend(
-            lay(turn + off),
-            prepend(lay(turn - off), List$Empty$const)
+            lay(turn2 + off),
+            prepend(lay(turn2 - off), List$Empty$const)
           );
         }
       );
@@ -21454,9 +21454,9 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
   function pad(gp, now) {
     const pressed = (i) => !!gp?.buttons[i]?.pressed;
     const edge = (i) => {
-      const on = pressed(i), was = padPrev[i];
+      const on = pressed(i), was2 = padPrev[i];
       padPrev[i] = on;
-      return on && !was;
+      return on && !was2;
     };
     if (!gp) return open;
     if (edge(8)) toggle();
@@ -21916,12 +21916,16 @@ function sticker(name2) {
   m.scale.set(HERO_H, HERO_H, 1);
   return m;
 }
-var FACES_LEFT = /* @__PURE__ */ new Set(["Hunter", "Duelist", "Thief", "Cavalier", "Wizard", "Trickster"]);
-var ME_H = 2;
+var HERO_PX = 280;
+var stickerSize = (image, tall) => image ? [tall * image.width / HERO_PX, tall * image.height / HERO_PX] : [tall, tall];
+var FACES_LEFT = /* @__PURE__ */ new Set(["Hunter", "Duelist", "Thief", "Cavalier", "Wizard", "Trickster", "Bandit", "Bard", "Warrior"]);
+var ME_H = 1.6;
+var showBox = false;
+var turn = 1;
 var me2 = new Bs(new ha(1, 1), new es({ transparent: true, side: p }));
-var dashMark = box3(0.9, 0.12, 16777215);
-me2.visible = dashMark.visible = false;
-scene.add(me2, dashMark);
+me2.visible = false;
+scene.add(me2);
+window.game.view = { camera, me: me2, player };
 function tint(cell) {
   const c = new Kr(0, 0, 0), n = cell.f + cell.r + cell.m;
   [cell.f, cell.r, cell.m].forEach((w2, i) => c.add(new Kr(AXIS[i]).multiplyScalar(w2 / n)));
@@ -22064,6 +22068,8 @@ addEventListener("keydown", (e) => {
       e.preventDefault();
       treeScreen.toggle();
     }
+    if (e.code === "KeyH") nextMiniStyle();
+    if (e.code === "KeyB") showBox = !showBox;
   }
   if (e.code.startsWith("Arrow") || e.code === "Space") e.preventDefault();
 });
@@ -22115,7 +22121,7 @@ var treeScreen = createTreeScreen({ getWorld: () => world, setWorld: (w2) => {
 }, onUnlock: saveUnlocks });
 var hud = document.getElementById("hud");
 var HINT = {
-  keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Up at doors & statues \xB7 T tree",
+  keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Up at doors & statues \xB7 T tree \xB7 H hud style \xB7 B body box",
   pad: "Move stick \xB7 Jump X / Y \xB7 Dash LB / RB \xB7 Attack A (+up / +down in air) \xB7 Up at doors & statues \xB7 Select tree"
 };
 var treeKey = () => usingPad ? "Select" : "T";
@@ -22181,10 +22187,81 @@ function drawHp(p2, dt2) {
   hpEl.classList.toggle("healed", (healFlash -= dt2) > 0);
   shieldsEl.innerHTML = p2.shield ? `<span class="pill teal">\u25C6 ${p2.shield} block${p2.shield > 1 ? "s" : ""}</span>` : "";
 }
+var mini = document.getElementById("mini");
+var MINI_STYLES = [
+  { name: "off" },
+  { name: "A: bare pips", cls: "" },
+  { name: "B: pill", cls: "pill" },
+  { name: "C: arc", cls: "", arc: true },
+  { name: "D: quiet pill (only what is spent or about to fire)", cls: "pill quiet" }
+];
+var miniStyle = 2;
+var miniKey = "";
+try {
+  miniStyle = Number(localStorage.getItem("trip.hud") ?? 2) % MINI_STYLES.length;
+} catch {
+}
+function nextMiniStyle() {
+  miniStyle = (miniStyle + 1) % MINI_STYLES.length;
+  miniKey = "";
+  try {
+    localStorage.setItem("trip.hud", miniStyle);
+  } catch {
+  }
+  floatText(world.player.x, world.player.y + 3.4, `HUD ${MINI_STYLES[miniStyle].name}`, "npc");
+}
+var SHAPE = {
+  jump: "M6 1.5 L11 10.5 H1 Z",
+  dash: "M1 2 L11 6 L1 10 L4 6 Z",
+  block: "M6 1 L11 3 V6.5 C11 9 8.5 10.8 6 11.5 C3.5 10.8 1 9 1 6.5 V3 Z"
+};
+var PIP_COLOR = { jump: "#1f9fb5", dash: "#3aa5ee", block: "#e0a21b" };
+var SKILL_COLOR = { Firebolt: "#ff7a3d", Bolt: "#8b8ff5", Orb: "#8b8ff5", Knife: "#5fbf4a", Arrow: "#5fbf4a", Heal: "#ef6b9a" };
+function drawMini(p2, x, top) {
+  const style = MINI_STYLES[miniStyle];
+  if (!style.cls && style.cls !== "") {
+    mini.style.display = "none";
+    return;
+  }
+  const timed = p2.loadout.toArray().filter((s) => s.trigger.period !== void 0);
+  const rows = [["jump", p2.air_jumps, p2.mods.air_jumps], ["dash", p2.dashes, p2.mods.dashes], ["block", p2.shield, Math.max(p2.shield, p2.mods.shields)]];
+  const key2 = miniStyle + "|" + rows.map((r) => r[1] + "/" + r[2]).join("|") + "|" + timed.map((s) => s.effect.constructor.name).join(",");
+  if (key2 !== miniKey) {
+    miniKey = key2;
+    const groups = rows.filter((r) => r[2] > 0).map(([kind, ready, all2]) => Array.from({ length: all2 }, (_, i) => `<i class="pip ${i < ready ? "calm" : "off"}" style="--c:${PIP_COLOR[kind]}"><svg viewBox="0 0 12 12"><path d="${SHAPE[kind]}"/></svg></i>`).join(""));
+    if (timed.length) groups.push(timed.map((s) => `<i class="pip pie" style="--c:${SKILL_COLOR[s.effect.constructor.name] ?? "#ffc23d"}"></i>`).join(""));
+    mini.className = style.cls;
+    mini.innerHTML = groups.join('<i class="gap"></i>');
+    if (style.arc) {
+      const pips = [...mini.querySelectorAll(".pip")], mid = (pips.length - 1) / 2;
+      pips.forEach((el2, i) => {
+        el2.style.marginBottom = `${-((i - mid) ** 2) * 1.6}px`;
+      });
+    }
+  }
+  const pies = mini.querySelectorAll(".pie");
+  timed.forEach((s, i) => {
+    const period = Math.max(0.3, s.trigger.period * (1 - p2.mods.cooldown_pct / 100)), left = Math.max(0, s.timer);
+    pies[i].style.setProperty("--f", Math.min(1, 1 - left / period));
+    const soon = left < 0.3 && left > 0;
+    pies[i].classList.toggle("soon", soon);
+    pies[i].classList.toggle("calm", !soon && left > 0);
+  });
+  const [sx, sy] = toScreen(x, top + 0.12);
+  mini.style.display = "";
+  mini.style.left = `${sx}px`;
+  mini.style.top = `${sy}px`;
+}
 var acc = 0;
 var last2 = performance.now();
 var stepMs = 0;
 var frames = 0;
+var was = { level: null, x: 0, y: 0, enemies: /* @__PURE__ */ new Map() };
+function remember() {
+  const p2 = world.player;
+  was = { level: world.level, x: p2.x, y: p2.y, enemies: new Map(world.enemies.toArray().map((e) => [e.id, e])) };
+}
+var between2 = (a, b, t2) => Math.abs(b - a) > 2 ? b : a + (b - a) * t2;
 function frame(now) {
   const frameDt = Math.min((now - last2) / 1e3, 0.1);
   acc = Math.min(acc + (now - last2) / 1e3, 0.1);
@@ -22196,6 +22273,7 @@ function frame(now) {
   }
   while (acc >= DT) {
     const t0 = performance.now();
+    remember();
     world = step2(world, new Input(mx, my, jump2, pendJump, pendDash, pendAttack), DT);
     stepMs = stepMs * 0.95 + (performance.now() - t0) * 0.05;
     pendJump = pendDash = pendAttack = false;
@@ -22230,36 +22308,40 @@ function frame(now) {
   }
   syncRoom();
   const p2 = world.player;
-  player.position.set(p2.x, p2.y + height / 2, 0);
+  const part = acc / DT, same = was.level === world.level;
+  const px = same ? between2(was.x, p2.x, part) : p2.x, py = same ? between2(was.y, p2.y, part) : p2.y;
+  player.position.set(px, py + height / 2, 0);
   hurtFlash -= frameDt;
-  const state = hurtFlash > 0 ? 16717636 : p2.dash_time > 0 ? 16777215 : p2.dashes > 0 ? 5227511 : 2781071;
-  player.material.color.set(state);
+  player.material.color.set(hurtFlash > 0 ? 16717636 : p2.dash_time > 0 ? 16777215 : p2.dashes > 0 ? 5227511 : 2781071);
   drawHp(p2, frameDt);
   drawXp(p2);
   drawBossBar();
   const shown = p2.invuln <= 0 || Math.floor(now / 60) % 2 === 0;
   const myClass = p2.class instanceof Some ? world.tree.cells.toArray()[p2.class[0]].name : null;
-  player.visible = shown && !myClass;
+  player.visible = shown && (!myClass || showBox);
+  player.material.transparent = true;
+  player.material.opacity = myClass ? 0.45 : 1;
+  player.position.z = myClass ? 0.9 : 0;
   me2.visible = shown && !!myClass;
-  dashMark.visible = me2.visible && p2.mods.dashes > 0;
   if (myClass) {
     const t2 = heroTexture(myClass);
     if (me2.material.map !== t2) {
       me2.material.map = t2;
       me2.material.needsUpdate = true;
     }
-    const wide = t2.image ? ME_H * t2.image.width / t2.image.height : ME_H;
-    me2.scale.set(wide * p2.facing * (FACES_LEFT.has(myClass) ? -1 : 1), ME_H, 1);
-    me2.position.set(p2.x, p2.y + ME_H / 2, 0.6);
+    const [wide, tall] = stickerSize(t2.image, ME_H);
+    const want = p2.facing * (FACES_LEFT.has(myClass) ? -1 : 1);
+    turn = calm ? want : Math.max(-1, Math.min(1, turn + Math.sign(want - turn) * frameDt / 0.09));
+    me2.scale.set(wide * Math.sin(turn * Math.PI / 2), tall, 1);
+    me2.position.set(px, py + tall / 2, 0.6);
     me2.material.color.set(hurtFlash > 0 ? 16739179 : 16777215);
-    dashMark.position.set(p2.x, p2.y - 0.06, 0.2);
-    dashMark.material.color.set(state);
   }
+  drawMini(p2, px, py + (myClass ? stickerSize(heroTexture(myClass).image, ME_H)[1] : height));
   const hb = active_hitbox(p2);
   slash.visible = hb instanceof Some;
   if (slash.visible) {
     const r = hb[0];
-    slash.position.set(r.x + r.w / 2, r.y + r.h / 2, 1);
+    slash.position.set(r.x + r.w / 2 + px - p2.x, r.y + r.h / 2 + py - p2.y, 1);
     slash.scale.set(r.w, r.h, 1);
   }
   for (const e of world.enemies) {
@@ -22269,36 +22351,47 @@ function frame(now) {
     }
     const { body: body2, bar, w: w2, h, color } = enemyMeshes.get(e.id);
     body2.visible = bar.visible = e.hp > 0;
-    body2.position.set(e.x, e.y + h / 2, 0);
+    const old = same ? was.enemies.get(e.id) : null;
+    const ex = old ? between2(old.x, e.x, part) : e.x, ey = old ? between2(old.y, e.y, part) : e.y;
+    body2.position.set(ex, ey + h / 2, 0);
     const tell = telegraphing(e) && Math.floor(now / 50) % 2 === 0;
     body2.material.color.set(e.flash > 0 ? 16777215 : tell ? 16771899 : color);
     if (!e.awake) body2.material.color.multiplyScalar(0.45);
     const frac = e.hp / e.max_hp;
     bar.scale.x = Math.max(frac, 1e-3);
-    bar.position.set(e.x - w2 * (1 - frac) / 2, e.y + h + 0.3, 0);
+    bar.position.set(ex - w2 * (1 - frac) / 2, ey + h + 0.3, 0);
   }
-  drawShots(world.projectiles.toArray().map((s) => ({ x: s.x - shot_size / 2, y: s.y - shot_size / 2, w: shot_size, h: shot_size })));
-  const strikes = world.strikes.toArray().filter((s) => s.wait <= 0), boxes = (keep) => strikes.filter(keep).map((s) => strike_box(s, p2.x, p2.y));
+  const back = DT * (1 - part);
+  drawShots(world.projectiles.toArray().map((s) => ({ x: s.x - s.vx * back - shot_size / 2, y: s.y - s.vy * back - shot_size / 2, w: shot_size, h: shot_size })));
+  const strikes = world.strikes.toArray().filter((s) => s.wait <= 0);
+  const boxes = (keep) => strikes.filter(keep).map((s) => {
+    const r = strike_box(s, px, py);
+    return s.follow ? r : { x: r.x - s.vx * back, y: r.y - s.vy * back, w: r.w, h: r.h };
+  });
   drawStrikes(boxes((s) => !isMagic(s) && !isArrow(s) && !isFire(s)));
   drawMagic(boxes(isMagic));
   drawArrows(boxes(isArrow));
   drawFire(boxes(isFire));
-  camera.position.x += (p2.x - camera.position.x) * 0.15;
-  camera.position.y += (p2.y + 3 - camera.position.y) * 0.15;
+  const glide = 1 - Math.exp(-9.75 * frameDt);
+  camera.position.x += (px - camera.position.x) * glide;
+  camera.position.y += (py + 3 - camera.position.y) * glide;
   renderer.render(scene, camera);
   const unlockedNow = new Set(world.unlocked.toArray());
   const mine = world.player.class instanceof Some ? world.player.class[0] : -1;
-  for (const s of npcMeshes) {
-    const img = s.hero.material.map.image;
-    if (img) s.hero.scale.x = HERO_H * img.width / img.height;
-    if (!s.statue) continue;
+  npcMeshes.forEach((s, i) => {
+    const [wide, tall] = stickerSize(s.hero.material.map.image, HERO_H), feet = s.n.y + (s.statue ? PEDESTAL_H : 0);
+    s.hero.scale.set(wide, tall, 1);
+    s.y = feet + tall / 2;
+    s.hero.position.y = s.y;
+    npcLabels[i].y = feet + tall + 0.15;
+    if (!s.statue) return;
     const k2 = s.n.role.keystone, open = unlockedNow.has(k2), me3 = k2 === mine;
     s.hero.material.color.set(open ? 16777215 : 2760475);
     s.hero.material.opacity = open ? 1 : 0.45;
     s.hero.position.y = s.y + (me3 && !calm ? Math.sin(performance.now() / 330) * 0.07 : 0);
     s.pedestal.material.color.set(me3 ? GOLD2 : STONE);
     s.niche.material.color.copy(open ? s.tint : LOCKED_TINT);
-  }
+  });
   for (const l of npcLabels) {
     const [sx, sy] = toScreen(l.x, l.y);
     l.el.style.left = `${sx}px`;
