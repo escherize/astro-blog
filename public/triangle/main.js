@@ -13759,13 +13759,21 @@ function tick(e, dt2) {
       down(a.poison) / 0.5
     );
     let _block;
-    let $1 = e.hp > 0 && a.poison > 0;
-    if ($1) {
-      _block = bites * max(1, globalThis.Math.trunc(e.max_hp * 2 / 100));
+    let $1 = e.kind;
+    if ($1 instanceof Boss) {
+      _block = globalThis.Math.trunc(e.max_hp / 200);
     } else {
-      _block = 0;
+      _block = globalThis.Math.trunc(e.max_hp * 2 / 100);
     }
-    let bite = _block;
+    let share = _block;
+    let _block$1;
+    let $2 = e.hp > 0 && a.poison > 0;
+    if ($2) {
+      _block$1 = bites * max(1, share);
+    } else {
+      _block$1 = 0;
+    }
+    let bite = _block$1;
     return new Enemy(
       e.id,
       e.kind,
