@@ -11700,8 +11700,29 @@ var Leaping = class extends CustomType {
     this.t = t2;
   }
 };
+var Chill = class extends CustomType {
+};
+var Status$Chill$const = new Chill();
+var Root = class extends CustomType {
+};
+var Status$Root$const = new Root();
+var Weak = class extends CustomType {
+};
+var Status$Weak$const = new Weak();
+var Poison = class extends CustomType {
+};
+var Status$Poison$const = new Poison();
+var Ailments = class extends CustomType {
+  constructor(chill, root, weak, poison) {
+    super();
+    this.chill = chill;
+    this.root = root;
+    this.weak = weak;
+    this.poison = poison;
+  }
+};
 var Enemy = class extends CustomType {
-  constructor(id2, kind, x, y2, vx, vy, home_x, home_y, facing, grounded, wall, hp2, max_hp4, respawn, flash, mode, cooldown, pattern, awake, tier) {
+  constructor(id2, kind, x, y2, vx, vy, home_x, home_y, facing, grounded, wall, hp2, max_hp4, respawn, flash, mode, cooldown, pattern, awake, tier, ail) {
     super();
     this.id = id2;
     this.kind = kind;
@@ -11723,6 +11744,7 @@ var Enemy = class extends CustomType {
     this.pattern = pattern;
     this.awake = awake;
     this.tier = tier;
+    this.ail = ail;
   }
 };
 var Projectile = class extends CustomType {
@@ -11795,8 +11817,106 @@ function spawn(id2, kind, x, y2) {
     1,
     0,
     kind instanceof Flyer || kind instanceof Bouncer || kind instanceof Dummy,
-    1
+    1,
+    new Ailments(0, 0, 0, 0)
   );
+}
+function afflict(e, status, seconds) {
+  let a = e.ail;
+  let _block;
+  let $ = e.kind;
+  if (status instanceof Chill) {
+    if ($ instanceof Boss) {
+      _block = new Ailments(
+        max3(a.chill, seconds / 2),
+        a.root,
+        a.weak,
+        a.poison
+      );
+    } else {
+      _block = new Ailments(
+        max3(a.chill, seconds),
+        a.root,
+        a.weak,
+        a.poison
+      );
+    }
+  } else if (status instanceof Root) {
+    if ($ instanceof Boss) {
+      _block = a;
+    } else {
+      _block = new Ailments(
+        a.chill,
+        max3(a.root, seconds),
+        a.weak,
+        a.poison
+      );
+    }
+  } else if (status instanceof Weak) {
+    _block = new Ailments(
+      a.chill,
+      a.root,
+      max3(a.weak, seconds),
+      a.poison
+    );
+  } else {
+    _block = new Ailments(
+      a.chill,
+      a.root,
+      a.weak,
+      max3(a.poison, seconds)
+    );
+  }
+  let ail = _block;
+  return new Enemy(
+    e.id,
+    e.kind,
+    e.x,
+    e.y,
+    e.vx,
+    e.vy,
+    e.home_x,
+    e.home_y,
+    e.facing,
+    e.grounded,
+    e.wall,
+    e.hp,
+    e.max_hp,
+    e.respawn,
+    e.flash,
+    e.mode,
+    e.cooldown,
+    e.pattern,
+    e.awake,
+    e.tier,
+    ail
+  );
+}
+function statuses(e) {
+  let _pipe = prepend(
+    [Status$Chill$const, e.ail.chill],
+    prepend(
+      [Status$Root$const, e.ail.root],
+      prepend(
+        [Status$Weak$const, e.ail.weak],
+        prepend([Status$Poison$const, e.ail.poison], List$Empty$const)
+      )
+    )
+  );
+  let _pipe$1 = filter(_pipe, (s) => {
+    return s[1] > 0;
+  });
+  return map3(_pipe$1, (s) => {
+    return s[0];
+  });
+}
+function pace(e) {
+  let $ = e.ail.chill > 0;
+  if ($) {
+    return 0.5;
+  } else {
+    return 1;
+  }
 }
 function promote(e, tier) {
   let hp2 = e.max_hp * (() => {
@@ -11828,7 +11948,8 @@ function promote(e, tier) {
     e.cooldown,
     e.pattern,
     e.awake,
-    tier
+    tier,
+    e.ail
   );
 }
 function hits(e, damage3) {
@@ -11842,7 +11963,15 @@ function hits(e, damage3) {
     _block = 1;
   }
   let k2 = _block;
-  return round(identity(damage3) * k2);
+  let _block$1;
+  let $1 = e.ail.weak > 0;
+  if ($1) {
+    _block$1 = k2 * 0.6;
+  } else {
+    _block$1 = k2;
+  }
+  let k$1 = _block$1;
+  return round(identity(damage3) * k$1);
 }
 function shot_hit(e) {
   return hits(e, shot_damage);
@@ -11963,7 +12092,8 @@ function fall(e, level, dt2) {
     e.cooldown,
     e.pattern,
     e.awake,
-    e.tier
+    e.tier,
+    e.ail
   );
 }
 function sign2(x) {
@@ -12011,7 +12141,8 @@ function boss(e, level, px, py, dt2) {
           e.cooldown,
           e.pattern,
           e.awake,
-          e.tier
+          e.tier,
+          e.ail
         ),
         List$Empty$const
       ];
@@ -12037,7 +12168,8 @@ function boss(e, level, px, py, dt2) {
           rest,
           e.pattern,
           e.awake,
-          e.tier
+          e.tier,
+          e.ail
         ),
         List$Empty$const
       ];
@@ -12069,7 +12201,8 @@ function boss(e, level, px, py, dt2) {
             e.cooldown,
             e.pattern + 1,
             e.awake,
-            e.tier
+            e.tier,
+            e.ail
           ),
           List$Empty$const
         ];
@@ -12127,7 +12260,8 @@ function boss(e, level, px, py, dt2) {
             e.cooldown,
             e.pattern + 1,
             e.awake,
-            e.tier
+            e.tier,
+            e.ail
           ),
           shots
         ];
@@ -12154,7 +12288,8 @@ function boss(e, level, px, py, dt2) {
             e.cooldown,
             e.pattern + 1,
             e.awake,
-            e.tier
+            e.tier,
+            e.ail
           ),
           List$Empty$const
         ];
@@ -12181,7 +12316,8 @@ function boss(e, level, px, py, dt2) {
           e.cooldown,
           e.pattern,
           e.awake,
-          e.tier
+          e.tier,
+          e.ail
         ),
         List$Empty$const
       ];
@@ -12211,7 +12347,8 @@ function boss(e, level, px, py, dt2) {
           e.cooldown,
           e.pattern,
           e.awake,
-          e.tier
+          e.tier,
+          e.ail
         ),
         List$Empty$const
       ];
@@ -12237,7 +12374,8 @@ function boss(e, level, px, py, dt2) {
           e.cooldown,
           e.pattern,
           e.awake,
-          e.tier
+          e.tier,
+          e.ail
         ),
         List$Empty$const
       ];
@@ -12267,7 +12405,8 @@ function boss(e, level, px, py, dt2) {
           boss_rest,
           e.pattern,
           e.awake,
-          e.tier
+          e.tier,
+          e.ail
         ),
         List$Empty$const
       ];
@@ -12293,7 +12432,8 @@ function boss(e, level, px, py, dt2) {
           e.cooldown,
           e.pattern,
           e.awake,
-          e.tier
+          e.tier,
+          e.ail
         ),
         List$Empty$const
       ];
@@ -12320,7 +12460,8 @@ function boss(e, level, px, py, dt2) {
         e.cooldown,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       ),
       List$Empty$const
     ];
@@ -12352,7 +12493,8 @@ function boss(e, level, px, py, dt2) {
           e.cooldown,
           e.pattern,
           e.awake,
-          e.tier
+          e.tier,
+          e.ail
         ),
         prepend(wave(1), prepend(wave(-1), List$Empty$const))
       ];
@@ -12378,7 +12520,8 @@ function boss(e, level, px, py, dt2) {
           e.cooldown,
           e.pattern,
           e.awake,
-          e.tier
+          e.tier,
+          e.ail
         ),
         List$Empty$const
       ];
@@ -12416,7 +12559,8 @@ function countdown(e, t2, dt2, mode) {
       e.cooldown,
       e.pattern,
       e.awake,
-      e.tier
+      e.tier,
+      e.ail
     );
   } else {
     return new Enemy(
@@ -12439,7 +12583,8 @@ function countdown(e, t2, dt2, mode) {
       e.cooldown,
       e.pattern,
       e.awake,
-      e.tier
+      e.tier,
+      e.ail
     );
   }
 }
@@ -12474,7 +12619,8 @@ function shooter(e, px, py, dt2) {
     e.cooldown - dt2,
     e.pattern,
     e.awake,
-    e.tier
+    e.tier,
+    e.ail
   );
   let $ = e$1.mode;
   if ($ instanceof Windup) {
@@ -12516,7 +12662,8 @@ function shooter(e, px, py, dt2) {
           fire_cooldown,
           e$1.pattern,
           e$1.awake,
-          e$1.tier
+          e$1.tier,
+          e$1.ail
         ),
         new Some(shot2)
       ];
@@ -12542,7 +12689,8 @@ function shooter(e, px, py, dt2) {
           e$1.cooldown,
           e$1.pattern,
           e$1.awake,
-          e$1.tier
+          e$1.tier,
+          e$1.ail
         ),
         Option$None$const
       ];
@@ -12579,7 +12727,8 @@ function shooter(e, px, py, dt2) {
           e$1.cooldown,
           e$1.pattern,
           e$1.awake,
-          e$1.tier
+          e$1.tier,
+          e$1.ail
         ),
         Option$None$const
       ];
@@ -12605,7 +12754,8 @@ function shooter(e, px, py, dt2) {
           e$1.cooldown,
           e$1.pattern,
           e$1.awake,
-          e$1.tier
+          e$1.tier,
+          e$1.ail
         ),
         Option$None$const
       ];
@@ -12648,7 +12798,8 @@ function charger(e, level, px, py, dt2) {
         e.cooldown,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       );
     } else if (blocked) {
       return new Enemy(
@@ -12671,7 +12822,8 @@ function charger(e, level, px, py, dt2) {
         e.cooldown,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       );
     } else {
       return new Enemy(
@@ -12694,7 +12846,8 @@ function charger(e, level, px, py, dt2) {
         e.cooldown,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       );
     }
   } else if ($1 instanceof Windup) {
@@ -12721,7 +12874,8 @@ function charger(e, level, px, py, dt2) {
         e.cooldown,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       );
     } else {
       return new Enemy(
@@ -12744,7 +12898,8 @@ function charger(e, level, px, py, dt2) {
         e.cooldown,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       );
     }
   } else if ($1 instanceof Charging) {
@@ -12771,7 +12926,8 @@ function charger(e, level, px, py, dt2) {
         e.cooldown,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       );
     } else {
       return new Enemy(
@@ -12794,7 +12950,8 @@ function charger(e, level, px, py, dt2) {
         e.cooldown,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       );
     }
   } else if ($1 instanceof Recover) {
@@ -12820,7 +12977,8 @@ function charger(e, level, px, py, dt2) {
         e.cooldown,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       ),
       t2,
       dt2,
@@ -12851,7 +13009,8 @@ function charger(e, level, px, py, dt2) {
         e.cooldown,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       ),
       t2,
       dt2,
@@ -12880,7 +13039,8 @@ function charger(e, level, px, py, dt2) {
       e.cooldown,
       e.pattern,
       e.awake,
-      e.tier
+      e.tier,
+      e.ail
     );
   }
 }
@@ -12941,7 +13101,8 @@ function bouncer(e, level, dt2) {
     e.cooldown,
     e.pattern,
     e.awake,
-    e.tier
+    e.tier,
+    e.ail
   );
 }
 function flyer(e, level, px, py, dt2, alert) {
@@ -12985,7 +13146,8 @@ function flyer(e, level, px, py, dt2, alert) {
         cooldown,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       );
     } else {
       _block = new Enemy(
@@ -13008,7 +13170,8 @@ function flyer(e, level, px, py, dt2, alert) {
         cooldown,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       );
     }
   } else if ($1 instanceof Windup) {
@@ -13038,7 +13201,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.cooldown,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       );
     } else {
       _block = new Enemy(
@@ -13061,7 +13225,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.cooldown,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       );
     }
   } else if ($1 instanceof Charging) {
@@ -13088,7 +13253,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.cooldown,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       );
     } else {
       _block = new Enemy(
@@ -13111,7 +13277,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.cooldown,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       );
     }
   } else if ($1 instanceof Recover) {
@@ -13138,7 +13305,8 @@ function flyer(e, level, px, py, dt2, alert) {
         2,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       );
     } else {
       _block = new Enemy(
@@ -13161,7 +13329,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.cooldown,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       );
     }
   } else if ($1 instanceof Stunned) {
@@ -13187,7 +13356,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.cooldown,
         e.pattern,
         e.awake,
-        e.tier
+        e.tier,
+        e.ail
       ),
       t2,
       dt2,
@@ -13216,7 +13386,8 @@ function flyer(e, level, px, py, dt2, alert) {
       e.cooldown,
       e.pattern,
       e.awake,
-      e.tier
+      e.tier,
+      e.ail
     );
   }
   let e$1 = _block;
@@ -13250,7 +13421,8 @@ function flyer(e, level, px, py, dt2, alert) {
     e$1.cooldown,
     e$1.pattern,
     e$1.awake,
-    e$1.tier
+    e$1.tier,
+    e$1.ail
   );
 }
 function think(e, level, px, py, dt2, alert) {
@@ -13283,7 +13455,8 @@ function think(e, level, px, py, dt2, alert) {
               e.cooldown,
               e.pattern,
               e.awake,
-              e.tier
+              e.tier,
+              e.ail
             ),
             level,
             dt2
@@ -13327,7 +13500,8 @@ function think(e, level, px, py, dt2, alert) {
               e.cooldown,
               e.pattern,
               e.awake,
-              e.tier
+              e.tier,
+              e.ail
             ),
             level,
             dt2
@@ -13374,7 +13548,8 @@ function think(e, level, px, py, dt2, alert) {
               e.cooldown,
               e.pattern,
               e.awake,
-              e.tier
+              e.tier,
+              e.ail
             ),
             level,
             dt2
@@ -13412,7 +13587,8 @@ function think(e, level, px, py, dt2, alert) {
               e.cooldown,
               e.pattern,
               e.awake,
-              e.tier
+              e.tier,
+              e.ail
             ),
             level,
             dt2
@@ -13449,7 +13625,8 @@ function think(e, level, px, py, dt2, alert) {
             e.cooldown,
             e.pattern,
             e.awake,
-            e.tier
+            e.tier,
+            e.ail
           ),
           level,
           dt2
@@ -13487,7 +13664,8 @@ function take_hit(e, damage3, push_x, push_y) {
     e.cooldown,
     e.pattern,
     e.awake,
-    e.tier
+    e.tier,
+    e.ail
   );
   let hit$1 = new Enemy(
     hit.id,
@@ -13509,7 +13687,8 @@ function take_hit(e, damage3, push_x, push_y) {
     hit.cooldown,
     hit.pattern,
     true,
-    hit.tier
+    hit.tier,
+    hit.ail
   );
   let $ = e.kind;
   if ($ instanceof Dummy) {
@@ -13535,7 +13714,8 @@ function take_hit(e, damage3, push_x, push_y) {
       hit$1.cooldown,
       hit$1.pattern,
       hit$1.awake,
-      hit$1.tier
+      hit$1.tier,
+      hit$1.ail
     );
   } else if ($ instanceof Boss) {
     return hit$1;
@@ -13560,7 +13740,8 @@ function take_hit(e, damage3, push_x, push_y) {
       hit$1.cooldown,
       hit$1.pattern,
       hit$1.awake,
-      hit$1.tier
+      hit$1.tier,
+      hit$1.ail
     );
   }
 }
@@ -13570,6 +13751,21 @@ function tick(e, dt2) {
   if ($) {
     return spawn(e.id, e.kind, e.home_x, e.home_y);
   } else {
+    let a = e.ail;
+    let down = (t2) => {
+      return max3(0, t2 - dt2);
+    };
+    let bites = truncate(a.poison / 0.5) - truncate(
+      down(a.poison) / 0.5
+    );
+    let _block;
+    let $1 = e.hp > 0 && a.poison > 0;
+    if ($1) {
+      _block = bites * max(1, globalThis.Math.trunc(e.max_hp * 2 / 100));
+    } else {
+      _block = 0;
+    }
+    let bite = _block;
     return new Enemy(
       e.id,
       e.kind,
@@ -13582,7 +13778,7 @@ function tick(e, dt2) {
       e.facing,
       e.grounded,
       e.wall,
-      e.hp,
+      max(0, e.hp - bite),
       e.max_hp,
       respawn,
       e.flash - dt2,
@@ -13590,7 +13786,8 @@ function tick(e, dt2) {
       e.cooldown,
       e.pattern,
       e.awake,
-      e.tier
+      e.tier,
+      new Ailments(down(a.chill), down(a.root), down(a.weak), down(a.poison))
     );
   }
 }
@@ -14884,7 +15081,7 @@ function of(class$) {
   } else if (class$ === "Cleric") {
     return new Weapon(
       "mace",
-      "heavy, shoves hard",
+      "heavy; weakens what it hits",
       0.1,
       0.1,
       0.44,
@@ -14920,6 +15117,19 @@ function of(class$) {
       1,
       new Some(Effect$Arrow$const)
     );
+  } else if (class$ === "Witch") {
+    return new Weapon(
+      "hex wand",
+      "a weak bolt that poisons",
+      0,
+      0,
+      0.42,
+      0,
+      0,
+      1.4,
+      1,
+      new Some(Effect$Bolt$const)
+    );
   } else if (class$ === "Wizard") {
     return new Weapon(
       "wand",
@@ -14934,19 +15144,6 @@ function of(class$) {
       new Some(Effect$Bolt$const)
     );
   } else if (class$ === "Sorcerer") {
-    return new Weapon(
-      "wand",
-      "a weak bolt, straight ahead",
-      0,
-      0,
-      0.42,
-      0,
-      0,
-      1.4,
-      1,
-      new Some(Effect$Bolt$const)
-    );
-  } else if (class$ === "Witch") {
     return new Weapon(
       "wand",
       "a weak bolt, straight ahead",
@@ -14974,6 +15171,16 @@ function of(class$) {
     );
   } else {
     return sword;
+  }
+}
+function inflicts(w2) {
+  let $ = w2.name;
+  if ($ === "hex wand") {
+    return new Some([Status$Poison$const, 3]);
+  } else if ($ === "mace") {
+    return new Some([Status$Weak$const, 4]);
+  } else {
+    return Option$None$const;
   }
 }
 function describe2(w2) {
@@ -16958,6 +17165,9 @@ var sandbox = /* @__PURE__ */ new Mods(
   true,
   List$Empty$const
 );
+var height = 1.5;
+var points_per_level = 1;
+var level_up_heal = 10;
 var bare = /* @__PURE__ */ new Mods(
   0,
   0,
@@ -16978,15 +17188,12 @@ var bare = /* @__PURE__ */ new Mods(
   false,
   List$Empty$const
 );
-var height = 1.5;
 var width = 0.75;
 var hurt_time = 0.3;
 var knockback_y = 9;
 var knockback_x = 8;
 var invuln_time = 1;
 var crash_recharge = 8;
-var points_per_level = 1;
-var level_up_heal = 10;
 var block_kills = 3;
 var dash_grace = 0.15;
 var run_speed = 7;
@@ -17110,7 +17317,8 @@ function load(world2, t2, depth) {
           e.cooldown,
           e.pattern,
           e.awake,
-          3
+          3,
+          e.ail
         );
       } else {
         return promote(
@@ -17299,19 +17507,200 @@ function new_world(seed) {
     world$1.plan
   );
 }
-function tick_enemies(world2, dt2) {
-  return new World(
-    world2.player,
-    world2.level,
-    map3(
-      world2.enemies,
-      (_capture) => {
-        return tick(_capture, dt2);
+function max_hp3(p2) {
+  let full = max_hp2(p2.stats) + p2.mods.bonus_hp;
+  let $ = has2(p2, Rule$GlassCannon$const);
+  if ($) {
+    return max(1, globalThis.Math.trunc(full / 2));
+  } else {
+    return full;
+  }
+}
+function mend(p2, amount) {
+  let _block;
+  let $ = has2(p2, Rule$LastStand$const);
+  if ($) {
+    _block = globalThis.Math.trunc(max_hp3(p2) / 2);
+  } else {
+    _block = max_hp3(p2);
+  }
+  let cap = _block;
+  return max(0, min(cap, p2.hp + amount) - p2.hp);
+}
+function gain_xp(loop$p, loop$xp, loop$events) {
+  while (true) {
+    let p2 = loop$p;
+    let xp2 = loop$xp;
+    let events = loop$events;
+    let total = p2.xp + xp2;
+    let need = xp_needed(p2.lvl);
+    let $ = total >= need;
+    if ($) {
+      let lvl = p2.lvl + 1;
+      let _block;
+      let $1 = has2(p2, Rule$Bloodlust$const) || has2(
+        p2,
+        Rule$Fasting$const
+      );
+      if ($1) {
+        _block = 0;
+      } else {
+        _block = mend(
+          p2,
+          globalThis.Math.trunc(max_hp3(p2) * level_up_heal / 100)
+        );
       }
-    ),
+      let healed = _block;
+      let p$1 = new Player(
+        p2.x,
+        p2.y,
+        p2.vx,
+        p2.vy,
+        p2.grounded,
+        p2.on_platform,
+        p2.wall,
+        p2.facing,
+        p2.coyote,
+        p2.jump_buffer,
+        p2.air_jumps,
+        p2.dash_time,
+        p2.dashes,
+        p2.drop_time,
+        p2.can_cut,
+        p2.up_held,
+        p2.jumped,
+        p2.dashed,
+        p2.struck,
+        p2.plunged,
+        p2.grudge,
+        p2.conduit,
+        p2.quick,
+        p2.rebound,
+        p2.air_hits,
+        p2.weapon,
+        p2.loadout,
+        p2.trained,
+        p2.class,
+        p2.allocated,
+        p2.mods,
+        p2.shield,
+        p2.block_charge,
+        p2.crash_wait,
+        p2.swings,
+        p2.attack,
+        p2.stats,
+        lvl,
+        0,
+        p2.points + points_per_level,
+        p2.hp + healed,
+        p2.invuln,
+        p2.hurt
+      );
+      let _block$1;
+      let $2 = healed > 0;
+      if ($2) {
+        _block$1 = prepend(
+          new Healed(p$1.x, p$1.y + height, healed),
+          List$Empty$const
+        );
+      } else {
+        _block$1 = List$Empty$const;
+      }
+      let heal_events = _block$1;
+      loop$p = p$1;
+      loop$xp = total - need;
+      loop$events = append(
+        heal_events,
+        prepend(new LevelUp(lvl), events)
+      );
+    } else {
+      return [
+        new Player(
+          p2.x,
+          p2.y,
+          p2.vx,
+          p2.vy,
+          p2.grounded,
+          p2.on_platform,
+          p2.wall,
+          p2.facing,
+          p2.coyote,
+          p2.jump_buffer,
+          p2.air_jumps,
+          p2.dash_time,
+          p2.dashes,
+          p2.drop_time,
+          p2.can_cut,
+          p2.up_held,
+          p2.jumped,
+          p2.dashed,
+          p2.struck,
+          p2.plunged,
+          p2.grudge,
+          p2.conduit,
+          p2.quick,
+          p2.rebound,
+          p2.air_hits,
+          p2.weapon,
+          p2.loadout,
+          p2.trained,
+          p2.class,
+          p2.allocated,
+          p2.mods,
+          p2.shield,
+          p2.block_charge,
+          p2.crash_wait,
+          p2.swings,
+          p2.attack,
+          p2.stats,
+          p2.lvl,
+          total,
+          p2.points,
+          p2.hp,
+          p2.invuln,
+          p2.hurt
+        ),
+        reverse2(events)
+      ];
+    }
+  }
+}
+function pct(n) {
+  return 1 + identity(n) / 100;
+}
+function tick_enemies(world2, dt2) {
+  let enemies = map3(
+    world2.enemies,
+    (_capture) => {
+      return tick(_capture, dt2);
+    }
+  );
+  let _block;
+  let _pipe = filter(
+    zip(world2.enemies, enemies),
+    (pair) => {
+      return pair[0].hp > 0 && pair[1].hp === 0;
+    }
+  );
+  _block = map3(_pipe, (pair) => {
+    return pair[1];
+  });
+  let fallen = _block;
+  let xp2 = round(
+    identity(sum(map3(fallen, xp))) * pct(
+      world2.player.mods.xp_pct
+    )
+  );
+  let $ = gain_xp(world2.player, xp2, List$Empty$const);
+  let player2 = $[0];
+  let level_ups = $[1];
+  return new World(
+    player2,
+    world2.level,
+    enemies,
     world2.projectiles,
     world2.strikes,
-    world2.events,
+    append(world2.events, level_ups),
     world2.depth,
     world2.cleared,
     world2.doors,
@@ -17321,7 +17710,12 @@ function tick_enemies(world2, dt2) {
     world2.unlocked,
     world2.npcs,
     world2.time,
-    world2.kills,
+    world2.kills + count(
+      fallen,
+      (e) => {
+        return !(e.kind instanceof Dummy);
+      }
+    ),
     world2.room_time,
     world2.safe_x,
     world2.sealed,
@@ -17653,26 +18047,6 @@ function reward_label(r) {
     return "Start run";
   }
 }
-function max_hp3(p2) {
-  let full = max_hp2(p2.stats) + p2.mods.bonus_hp;
-  let $ = has2(p2, Rule$GlassCannon$const);
-  if ($) {
-    return max(1, globalThis.Math.trunc(full / 2));
-  } else {
-    return full;
-  }
-}
-function mend(p2, amount) {
-  let _block;
-  let $ = has2(p2, Rule$LastStand$const);
-  if ($) {
-    _block = globalThis.Math.trunc(max_hp3(p2) / 2);
-  } else {
-    _block = max_hp3(p2);
-  }
-  let cap = _block;
-  return max(0, min(cap, p2.hp + amount) - p2.hp);
-}
 function apply_reward(p2, r) {
   if (r instanceof Point) {
     let axis = r[0];
@@ -17786,15 +18160,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      2237,
+      2307,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 66895,
-        end: 66947,
-        pattern_start: 66906,
-        pattern_end: 66913
+        start: 68939,
+        end: 68991,
+        pattern_start: 68950,
+        pattern_end: 68957
       }
     );
   } else {
@@ -18576,151 +18950,10 @@ function hurt(world2, damage3, from_x) {
     }
   );
 }
-function pct(n) {
-  return 1 + identity(n) / 100;
-}
 function damage2(p2) {
   return round(
     identity(damage(p2.stats)) * pct(p2.mods.damage_pct)
   );
-}
-function gain_xp(loop$p, loop$xp, loop$events) {
-  while (true) {
-    let p2 = loop$p;
-    let xp2 = loop$xp;
-    let events = loop$events;
-    let total = p2.xp + xp2;
-    let need = xp_needed(p2.lvl);
-    let $ = total >= need;
-    if ($) {
-      let lvl = p2.lvl + 1;
-      let _block;
-      let $1 = has2(p2, Rule$Bloodlust$const) || has2(
-        p2,
-        Rule$Fasting$const
-      );
-      if ($1) {
-        _block = 0;
-      } else {
-        _block = mend(
-          p2,
-          globalThis.Math.trunc(max_hp3(p2) * level_up_heal / 100)
-        );
-      }
-      let healed = _block;
-      let p$1 = new Player(
-        p2.x,
-        p2.y,
-        p2.vx,
-        p2.vy,
-        p2.grounded,
-        p2.on_platform,
-        p2.wall,
-        p2.facing,
-        p2.coyote,
-        p2.jump_buffer,
-        p2.air_jumps,
-        p2.dash_time,
-        p2.dashes,
-        p2.drop_time,
-        p2.can_cut,
-        p2.up_held,
-        p2.jumped,
-        p2.dashed,
-        p2.struck,
-        p2.plunged,
-        p2.grudge,
-        p2.conduit,
-        p2.quick,
-        p2.rebound,
-        p2.air_hits,
-        p2.weapon,
-        p2.loadout,
-        p2.trained,
-        p2.class,
-        p2.allocated,
-        p2.mods,
-        p2.shield,
-        p2.block_charge,
-        p2.crash_wait,
-        p2.swings,
-        p2.attack,
-        p2.stats,
-        lvl,
-        0,
-        p2.points + points_per_level,
-        p2.hp + healed,
-        p2.invuln,
-        p2.hurt
-      );
-      let _block$1;
-      let $2 = healed > 0;
-      if ($2) {
-        _block$1 = prepend(
-          new Healed(p$1.x, p$1.y + height, healed),
-          List$Empty$const
-        );
-      } else {
-        _block$1 = List$Empty$const;
-      }
-      let heal_events = _block$1;
-      loop$p = p$1;
-      loop$xp = total - need;
-      loop$events = append(
-        heal_events,
-        prepend(new LevelUp(lvl), events)
-      );
-    } else {
-      return [
-        new Player(
-          p2.x,
-          p2.y,
-          p2.vx,
-          p2.vy,
-          p2.grounded,
-          p2.on_platform,
-          p2.wall,
-          p2.facing,
-          p2.coyote,
-          p2.jump_buffer,
-          p2.air_jumps,
-          p2.dash_time,
-          p2.dashes,
-          p2.drop_time,
-          p2.can_cut,
-          p2.up_held,
-          p2.jumped,
-          p2.dashed,
-          p2.struck,
-          p2.plunged,
-          p2.grudge,
-          p2.conduit,
-          p2.quick,
-          p2.rebound,
-          p2.air_hits,
-          p2.weapon,
-          p2.loadout,
-          p2.trained,
-          p2.class,
-          p2.allocated,
-          p2.mods,
-          p2.shield,
-          p2.block_charge,
-          p2.crash_wait,
-          p2.swings,
-          p2.attack,
-          p2.stats,
-          p2.lvl,
-          total,
-          p2.points,
-          p2.hp,
-          p2.invuln,
-          p2.hurt
-        ),
-        reverse2(events)
-      ];
-    }
-  }
 }
 function hit_enemies(world2, targets, dmg, sure_crit, push) {
   let p2 = world2.player;
@@ -18836,15 +19069,15 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        944,
+        950,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $12,
-          start: 26322,
-          end: 26378,
-          pattern_start: 26333,
-          pattern_end: 26338
+          start: 26547,
+          end: 26603,
+          pattern_start: 26558,
+          pattern_end: 26563
         }
       );
     }
@@ -19336,6 +19569,58 @@ function take_damage(world2) {
     );
   }
 }
+function strike_status(p2, s) {
+  let $ = s.effect;
+  if ($ instanceof Bolt) {
+    return inflicts(p2.weapon);
+  } else if ($ instanceof Orb) {
+    return new Some([Status$Chill$const, 2]);
+  } else if ($ instanceof Firebolt) {
+    return new Some([Status$Poison$const, 3]);
+  } else {
+    return Option$None$const;
+  }
+}
+function afflict2(world2, ids, with$) {
+  if (with$ instanceof Some) {
+    let status = with$[0][0];
+    let seconds = with$[0][1];
+    return new World(
+      world2.player,
+      world2.level,
+      map3(
+        world2.enemies,
+        (e) => {
+          let $ = contains(ids, e.id) && alive(e);
+          if ($) {
+            return afflict(e, status, seconds);
+          } else {
+            return e;
+          }
+        }
+      ),
+      world2.projectiles,
+      world2.strikes,
+      world2.events,
+      world2.depth,
+      world2.cleared,
+      world2.doors,
+      world2.exits,
+      world2.seed,
+      world2.tree,
+      world2.unlocked,
+      world2.npcs,
+      world2.time,
+      world2.kills,
+      world2.room_time,
+      world2.safe_x,
+      world2.sealed,
+      world2.plan
+    );
+  } else {
+    return world2;
+  }
+}
 function strikes_act(world2, dt2) {
   let p2 = world2.player;
   return fold2(
@@ -19419,6 +19704,7 @@ function strikes_act(world2, dt2) {
           return e.id;
         });
       };
+      let w$2 = afflict2(w$1, ids(targets), strike_status(p2, s));
       let s$1 = new Strike(
         s.effect,
         s.x,
@@ -19461,29 +19747,29 @@ function strikes_act(world2, dt2) {
       if (next$1 instanceof Ok) {
         let s$2 = next$1[0];
         return new World(
-          w$1.player,
-          w$1.level,
-          w$1.enemies,
-          w$1.projectiles,
-          prepend(s$2, w$1.strikes),
-          w$1.events,
-          w$1.depth,
-          w$1.cleared,
-          w$1.doors,
-          w$1.exits,
-          w$1.seed,
-          w$1.tree,
-          w$1.unlocked,
-          w$1.npcs,
-          w$1.time,
-          w$1.kills,
-          w$1.room_time,
-          w$1.safe_x,
-          w$1.sealed,
-          w$1.plan
+          w$2.player,
+          w$2.level,
+          w$2.enemies,
+          w$2.projectiles,
+          prepend(s$2, w$2.strikes),
+          w$2.events,
+          w$2.depth,
+          w$2.cleared,
+          w$2.doors,
+          w$2.exits,
+          w$2.seed,
+          w$2.tree,
+          w$2.unlocked,
+          w$2.npcs,
+          w$2.time,
+          w$2.kills,
+          w$2.room_time,
+          w$2.safe_x,
+          w$2.sealed,
+          w$2.plan
         );
       } else {
-        return w$1;
+        return w$2;
       }
     }
   );
@@ -19861,7 +20147,7 @@ function strike(world2, a, box4) {
       _block$6 = [0, -5 * k2];
     }
     let push = _block$6;
-    return hit_enemies(
+    let _pipe$3 = hit_enemies(
       new World(
         p$3,
         world2.level,
@@ -19890,6 +20176,18 @@ function strike(world2, a, box4) {
       (_) => {
         return push;
       }
+    );
+    let _pipe$4 = afflict2(_pipe$3, ids, inflicts(p$3.weapon));
+    return afflict2(
+      _pipe$4,
+      ids,
+      (() => {
+        if (dive) {
+          return new Some([Status$Root$const, 1.5]);
+        } else {
+          return Option$None$const;
+        }
+      })()
     );
   }
 }
@@ -20204,7 +20502,8 @@ function enemies_act(world2, dt2) {
           e.cooldown,
           e.pattern,
           true,
-          e.tier
+          e.tier,
+          e.ail
         );
       } else {
         _block2 = e;
@@ -20215,12 +20514,42 @@ function enemies_act(world2, dt2) {
         world2.level,
         p2.x,
         p2.y + height / 2,
-        dt2,
+        dt2 * pace(e$1),
         alert
       );
-      let e$2 = $2[0];
+      let next$1 = $2[0];
       let new$2 = $2[1];
-      return [append(new$2, shots2), e$2];
+      let _block$1;
+      let $3 = e$1.ail.root > 0;
+      if ($3) {
+        _block$1 = new Enemy(
+          next$1.id,
+          next$1.kind,
+          e$1.x,
+          next$1.y,
+          0,
+          next$1.vy,
+          next$1.home_x,
+          next$1.home_y,
+          next$1.facing,
+          next$1.grounded,
+          next$1.wall,
+          next$1.hp,
+          next$1.max_hp,
+          next$1.respawn,
+          next$1.flash,
+          next$1.mode,
+          next$1.cooldown,
+          next$1.pattern,
+          next$1.awake,
+          next$1.tier,
+          next$1.ail
+        );
+      } else {
+        _block$1 = next$1;
+      }
+      let next$2 = _block$1;
+      return [append(new$2, shots2), next$2];
     }
   );
   let shots = $[0];
@@ -20638,8 +20967,8 @@ function fire_skills(world2, before, dt2) {
           } else {
             _block$32 = 1;
           }
-          let pace = _block$32;
-          let t2 = w2.timer - dt2 * pace;
+          let pace2 = _block$32;
+          let t2 = w2.timer - dt2 * pace2;
           let period2 = skill_period(p$1, w2);
           let _block$42;
           let $82 = w2.trigger;
@@ -20672,8 +21001,8 @@ function fire_skills(world2, before, dt2) {
         } else {
           _block$32 = 1;
         }
-        let pace = _block$32;
-        let t2 = w2.timer - dt2 * pace;
+        let pace2 = _block$32;
+        let t2 = w2.timer - dt2 * pace2;
         let period2 = skill_period(p$1, w2);
         let _block$42;
         let $82 = w2.trigger;
@@ -22943,15 +23272,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2192,
+        2262,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 65534,
-          end: 65585,
-          pattern_start: 65545,
-          pattern_end: 65553
+          start: 67578,
+          end: 67629,
+          pattern_start: 67589,
+          pattern_end: 67597
         }
       );
     }
@@ -22963,15 +23292,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2194,
+        2264,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 65668,
-          end: 65729,
-          pattern_start: 65679,
-          pattern_end: 65696
+          start: 67712,
+          end: 67773,
+          pattern_start: 67723,
+          pattern_end: 67740
         }
       );
     } else {
@@ -22981,15 +23310,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          2194,
+          2264,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 65668,
-            end: 65729,
-            pattern_start: 65679,
-            pattern_end: 65696
+            start: 67712,
+            end: 67773,
+            pattern_start: 67723,
+            pattern_end: 67740
           }
         );
       } else {
@@ -24407,6 +24736,27 @@ var ART = {
     g.fill();
     g.stroke();
   }),
+  // status marks, shown over an enemy's health bar: a snowflake (chilled), a stake (rooted),
+  // a down arrow (weakened) and a drop (poisoned or burning). A shape each, never colour alone.
+  Chill: drawn((g) => {
+    shape(g, star(6, 48, 48, 42, 16), "#bfe6ff");
+  }),
+  Root: drawn((g) => {
+    shape(g, [[14, 14], [82, 14], [82, 34], [60, 34], [48, 90], [36, 34], [14, 34]], "#b98d62");
+  }),
+  Weak: drawn((g) => {
+    shape(g, [[34, 8], [62, 8], [62, 46], [84, 46], [48, 90], [12, 46], [34, 46]], "#b79be0");
+  }),
+  Poison: drawn((g) => {
+    g.beginPath();
+    g.moveTo(48, 6);
+    g.quadraticCurveTo(92, 62, 48, 90);
+    g.quadraticCurveTo(4, 62, 48, 6);
+    g.closePath();
+    g.fillStyle = "#7ed957";
+    g.fill();
+    g.stroke();
+  }),
   // a shockwave: a low burst along the ground
   wave: drawn((g) => {
     shape(g, [[2, 92], [8, 50], [20, 76], [30, 24], [42, 70], [48, 10], [54, 70], [66, 24], [76, 76], [88, 50], [94, 92]], "#fff1b8");
@@ -24795,6 +25145,7 @@ function frame(now) {
     if (dir === "Forward") slash.scale.set(r.w * p2.facing, r.h, 1);
     else slash.scale.set(r.h, r.w, 1);
   }
+  const marks = [];
   for (const e of world.enemies) {
     if (!enemyMeshes.has(e.id)) {
       builtLevel = null;
@@ -24814,7 +25165,10 @@ function frame(now) {
     alert.visible = warn;
     alert.position.set(ex, (artOf(e).flies ? ey + h / 2 + tall / 2 : ey + tall) + 0.7, 0.7);
     alert.scale.setScalar(1.7);
-    body2.material.color.set(e.flash > 0 ? 16752029 : 16777215);
+    const ails = e.hp > 0 ? statuses(e).toArray().map((s) => s.constructor.name) : [];
+    const tinted = ails.includes("Poison") ? 11989154 : ails.includes("Chill") ? 11065599 : ails.includes("Weak") ? 13482976 : 16777215;
+    body2.material.color.set(e.flash > 0 ? 16752029 : tinted);
+    ails.forEach((name3, i) => marks.push({ art: name3, x: ex + (i - (ails.length - 1) / 2) * 0.42, y: ey + h + 0.62, w: 0.36, h: 0.36 }));
     if (!e.awake) body2.material.color.multiplyScalar(0.45);
     const frac = e.hp / e.max_hp;
     bar.scale.x = Math.max(frac, 1e-3);
@@ -24831,6 +25185,7 @@ function frame(now) {
     const long = Math.max(r.w, r.h), short = Math.min(r.w, r.h);
     flying[art].push(moving ? { x, y: y2, w: long * kw, h: (art === "bolt" || art === "orb" ? long : short) * kh, turn: art === "bolt" ? 0 : Math.atan2(s.vy, s.vx) } : { x, y: y2, w: r.w * kw, h: r.h * kh, flip: art === "sweep" && x < px, turn: art === "orb" ? 0 : 0 });
   }
+  for (const m of marks) flying[m.art].push(m);
   for (const k2 of Object.keys(ART)) SHOW[k2](flying[k2]);
   const glide = 1 - Math.exp(-9.75 * frameDt);
   camera.position.x += (px - camera.position.x) * glide;
