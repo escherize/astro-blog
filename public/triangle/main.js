@@ -11713,7 +11713,7 @@ var Leaping = class extends CustomType {
   }
 };
 var Enemy = class extends CustomType {
-  constructor(id2, kind, x, y2, vx, vy, home_x, home_y, facing, grounded, wall, hp2, max_hp4, respawn, flash, mode, cooldown, pattern, awake) {
+  constructor(id2, kind, x, y2, vx, vy, home_x, home_y, facing, grounded, wall, hp2, max_hp4, respawn, flash, mode, cooldown, pattern, awake, tier) {
     super();
     this.id = id2;
     this.kind = kind;
@@ -11734,18 +11734,21 @@ var Enemy = class extends CustomType {
     this.cooldown = cooldown;
     this.pattern = pattern;
     this.awake = awake;
+    this.tier = tier;
   }
 };
 var Projectile = class extends CustomType {
-  constructor(x, y2, vx, vy, ttl) {
+  constructor(x, y2, vx, vy, ttl, damage3) {
     super();
     this.x = x;
     this.y = y2;
     this.vx = vx;
     this.vy = vy;
     this.ttl = ttl;
+    this.damage = damage3;
   }
 };
+var shot_damage = 8;
 var boss_rest = 1;
 var boss_charge_speed = 11;
 var boss_walk = 2.5;
@@ -11767,7 +11770,6 @@ var flyer_swoop = 12;
 var flyer_drift = 2.5;
 var stun_time = 0.25;
 var shot_size = 0.4;
-var shot_damage = 8;
 function max_hp(kind) {
   if (kind instanceof Dummy) {
     return 40;
@@ -11780,7 +11782,7 @@ function max_hp(kind) {
   } else if (kind instanceof Bouncer) {
     return 25;
   } else {
-    return 400;
+    return 1e3;
   }
 }
 function spawn(id2, kind, x, y2) {
@@ -11804,8 +11806,58 @@ function spawn(id2, kind, x, y2) {
     Mode$Idle$const,
     1,
     0,
-    kind instanceof Flyer || kind instanceof Bouncer || kind instanceof Dummy
+    kind instanceof Flyer || kind instanceof Bouncer || kind instanceof Dummy,
+    1
   );
+}
+function promote(e, tier) {
+  let hp2 = e.max_hp * (() => {
+    if (tier === 2) {
+      return tier;
+    } else if (tier === 3) {
+      return 4;
+    } else {
+      return 1;
+    }
+  })();
+  return new Enemy(
+    e.id,
+    e.kind,
+    e.x,
+    e.y,
+    e.vx,
+    e.vy,
+    e.home_x,
+    e.home_y,
+    e.facing,
+    e.grounded,
+    e.wall,
+    hp2,
+    hp2,
+    e.respawn,
+    e.flash,
+    e.mode,
+    e.cooldown,
+    e.pattern,
+    e.awake,
+    tier
+  );
+}
+function hits(e, damage3) {
+  let _block;
+  let $ = e.tier;
+  if ($ === 2) {
+    _block = 1.3;
+  } else if ($ === 3) {
+    _block = 1.6;
+  } else {
+    _block = 1;
+  }
+  let k2 = _block;
+  return round(identity(damage3) * k2);
+}
+function shot_hit(e) {
+  return hits(e, shot_damage);
 }
 function xp_value(kind) {
   if (kind instanceof Dummy) {
@@ -11821,6 +11873,9 @@ function xp_value(kind) {
   } else {
     return 150;
   }
+}
+function xp(e) {
+  return globalThis.Math.trunc(xp_value(e.kind) * (1 + e.tier) / 2);
 }
 function respawn_delay(kind) {
   if (kind instanceof Dummy) {
@@ -11854,25 +11909,30 @@ function alive(e) {
   return e.hp > 0;
 }
 function contact_damage(e) {
-  let $ = e.kind;
-  let $1 = e.mode;
-  if ($ instanceof Dummy) {
-    return 0;
-  } else if ($ instanceof Charger && $1 instanceof Charging) {
-    return 20;
-  } else if ($ instanceof Flyer && $1 instanceof Charging) {
-    return 12;
-  } else if ($ instanceof Boss) {
-    if ($1 instanceof Charging) {
-      return 20;
-    } else if ($1 instanceof Leaping) {
-      return 20;
-    } else {
-      return 12;
-    }
-  } else {
-    return 10;
-  }
+  return hits(
+    e,
+    (() => {
+      let $ = e.kind;
+      let $1 = e.mode;
+      if ($ instanceof Dummy) {
+        return 0;
+      } else if ($ instanceof Charger && $1 instanceof Charging) {
+        return 20;
+      } else if ($ instanceof Flyer && $1 instanceof Charging) {
+        return 12;
+      } else if ($ instanceof Boss) {
+        if ($1 instanceof Charging) {
+          return 20;
+        } else if ($1 instanceof Leaping) {
+          return 20;
+        } else {
+          return 12;
+        }
+      } else {
+        return 10;
+      }
+    })()
+  );
 }
 function telegraphing(e) {
   let $ = e.mode;
@@ -11914,7 +11974,8 @@ function fall(e, level, dt2) {
     e.mode,
     e.cooldown,
     e.pattern,
-    e.awake
+    e.awake,
+    e.tier
   );
 }
 function sign2(x) {
@@ -11961,7 +12022,8 @@ function boss(e, level, px, py, dt2) {
           new Windup(boss_windup),
           e.cooldown,
           e.pattern,
-          e.awake
+          e.awake,
+          e.tier
         ),
         List$Empty$const
       ];
@@ -11986,7 +12048,8 @@ function boss(e, level, px, py, dt2) {
           e.mode,
           rest,
           e.pattern,
-          e.awake
+          e.awake,
+          e.tier
         ),
         List$Empty$const
       ];
@@ -12017,7 +12080,8 @@ function boss(e, level, px, py, dt2) {
             new Charging(0.9),
             e.cooldown,
             e.pattern + 1,
-            e.awake
+            e.awake,
+            e.tier
           ),
           List$Empty$const
         ];
@@ -12048,7 +12112,8 @@ function boss(e, level, px, py, dt2) {
               sy,
               (nx * c - ny * sn) * 8,
               (nx * sn + ny * c) * 8,
-              3
+              3,
+              shot_hit(e)
             );
           }
         );
@@ -12073,7 +12138,8 @@ function boss(e, level, px, py, dt2) {
             new Recover(0.8),
             e.cooldown,
             e.pattern + 1,
-            e.awake
+            e.awake,
+            e.tier
           ),
           shots
         ];
@@ -12099,7 +12165,8 @@ function boss(e, level, px, py, dt2) {
             new Leaping(0),
             e.cooldown,
             e.pattern + 1,
-            e.awake
+            e.awake,
+            e.tier
           ),
           List$Empty$const
         ];
@@ -12125,7 +12192,8 @@ function boss(e, level, px, py, dt2) {
           new Windup(t2 - dt2),
           e.cooldown,
           e.pattern,
-          e.awake
+          e.awake,
+          e.tier
         ),
         List$Empty$const
       ];
@@ -12154,7 +12222,8 @@ function boss(e, level, px, py, dt2) {
           new Recover(0.7),
           e.cooldown,
           e.pattern,
-          e.awake
+          e.awake,
+          e.tier
         ),
         List$Empty$const
       ];
@@ -12179,7 +12248,8 @@ function boss(e, level, px, py, dt2) {
           new Charging(t2 - dt2),
           e.cooldown,
           e.pattern,
-          e.awake
+          e.awake,
+          e.tier
         ),
         List$Empty$const
       ];
@@ -12208,7 +12278,8 @@ function boss(e, level, px, py, dt2) {
           Mode$Idle$const,
           boss_rest,
           e.pattern,
-          e.awake
+          e.awake,
+          e.tier
         ),
         List$Empty$const
       ];
@@ -12233,7 +12304,8 @@ function boss(e, level, px, py, dt2) {
           new Recover(t2 - dt2),
           e.cooldown,
           e.pattern,
-          e.awake
+          e.awake,
+          e.tier
         ),
         List$Empty$const
       ];
@@ -12259,7 +12331,8 @@ function boss(e, level, px, py, dt2) {
         Mode$Idle$const,
         e.cooldown,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       ),
       List$Empty$const
     ];
@@ -12268,7 +12341,7 @@ function boss(e, level, px, py, dt2) {
     let $2 = t2 > 0.2 && e.grounded;
     if ($2) {
       let wave = (dir) => {
-        return new Projectile(e.x, e.y + 0.3, dir * 10, 0, 1.4);
+        return new Projectile(e.x, e.y + 0.3, dir * 10, 0, 1.4, shot_hit(e));
       };
       return [
         new Enemy(
@@ -12290,7 +12363,8 @@ function boss(e, level, px, py, dt2) {
           new Recover(0.9),
           e.cooldown,
           e.pattern,
-          e.awake
+          e.awake,
+          e.tier
         ),
         prepend(wave(1), prepend(wave(-1), List$Empty$const))
       ];
@@ -12315,7 +12389,8 @@ function boss(e, level, px, py, dt2) {
           new Leaping(t2 + dt2),
           e.cooldown,
           e.pattern,
-          e.awake
+          e.awake,
+          e.tier
         ),
         List$Empty$const
       ];
@@ -12352,7 +12427,8 @@ function countdown(e, t2, dt2, mode) {
       Mode$Idle$const,
       e.cooldown,
       e.pattern,
-      e.awake
+      e.awake,
+      e.tier
     );
   } else {
     return new Enemy(
@@ -12374,7 +12450,8 @@ function countdown(e, t2, dt2, mode) {
       mode(t2 - dt2),
       e.cooldown,
       e.pattern,
-      e.awake
+      e.awake,
+      e.tier
     );
   }
 }
@@ -12408,7 +12485,8 @@ function shooter(e, px, py, dt2) {
     e.mode,
     e.cooldown - dt2,
     e.pattern,
-    e.awake
+    e.awake,
+    e.tier
   );
   let $ = e$1.mode;
   if ($ instanceof Windup) {
@@ -12426,7 +12504,8 @@ function shooter(e, px, py, dt2) {
         sy,
         nx * shot_speed,
         ny * shot_speed,
-        shot_ttl
+        shot_ttl,
+        shot_hit(e$1)
       );
       return [
         new Enemy(
@@ -12448,7 +12527,8 @@ function shooter(e, px, py, dt2) {
           Mode$Idle$const,
           fire_cooldown,
           e$1.pattern,
-          e$1.awake
+          e$1.awake,
+          e$1.tier
         ),
         new Some(shot2)
       ];
@@ -12473,7 +12553,8 @@ function shooter(e, px, py, dt2) {
           new Windup(t2 - dt2),
           e$1.cooldown,
           e$1.pattern,
-          e$1.awake
+          e$1.awake,
+          e$1.tier
         ),
         Option$None$const
       ];
@@ -12509,7 +12590,8 @@ function shooter(e, px, py, dt2) {
           new Windup(fire_windup),
           e$1.cooldown,
           e$1.pattern,
-          e$1.awake
+          e$1.awake,
+          e$1.tier
         ),
         Option$None$const
       ];
@@ -12534,7 +12616,8 @@ function shooter(e, px, py, dt2) {
           Mode$Idle$const,
           e$1.cooldown,
           e$1.pattern,
-          e$1.awake
+          e$1.awake,
+          e$1.tier
         ),
         Option$None$const
       ];
@@ -12576,7 +12659,8 @@ function charger(e, level, px, py, dt2) {
         new Windup(windup_time),
         e.cooldown,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       );
     } else if (blocked) {
       return new Enemy(
@@ -12598,7 +12682,8 @@ function charger(e, level, px, py, dt2) {
         e.mode,
         e.cooldown,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       );
     } else {
       return new Enemy(
@@ -12620,7 +12705,8 @@ function charger(e, level, px, py, dt2) {
         e.mode,
         e.cooldown,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       );
     }
   } else if ($1 instanceof Windup) {
@@ -12646,7 +12732,8 @@ function charger(e, level, px, py, dt2) {
         new Charging(charge_time),
         e.cooldown,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       );
     } else {
       return new Enemy(
@@ -12668,7 +12755,8 @@ function charger(e, level, px, py, dt2) {
         new Windup(t2 - dt2),
         e.cooldown,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       );
     }
   } else if ($1 instanceof Charging) {
@@ -12694,7 +12782,8 @@ function charger(e, level, px, py, dt2) {
         new Recover(recover_time),
         e.cooldown,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       );
     } else {
       return new Enemy(
@@ -12716,7 +12805,8 @@ function charger(e, level, px, py, dt2) {
         new Charging(t2 - dt2),
         e.cooldown,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       );
     }
   } else if ($1 instanceof Recover) {
@@ -12741,7 +12831,8 @@ function charger(e, level, px, py, dt2) {
         e.mode,
         e.cooldown,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       ),
       t2,
       dt2,
@@ -12771,7 +12862,8 @@ function charger(e, level, px, py, dt2) {
         e.mode,
         e.cooldown,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       ),
       t2,
       dt2,
@@ -12799,7 +12891,8 @@ function charger(e, level, px, py, dt2) {
       Mode$Idle$const,
       e.cooldown,
       e.pattern,
-      e.awake
+      e.awake,
+      e.tier
     );
   }
 }
@@ -12859,7 +12952,8 @@ function bouncer(e, level, dt2) {
     Mode$Idle$const,
     e.cooldown,
     e.pattern,
-    e.awake
+    e.awake,
+    e.tier
   );
 }
 function flyer(e, level, px, py, dt2, alert) {
@@ -12902,7 +12996,8 @@ function flyer(e, level, px, py, dt2, alert) {
         new Windup(0.5),
         cooldown,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       );
     } else {
       _block = new Enemy(
@@ -12924,7 +13019,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.mode,
         cooldown,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       );
     }
   } else if ($1 instanceof Windup) {
@@ -12953,7 +13049,8 @@ function flyer(e, level, px, py, dt2, alert) {
         new Charging(0.55),
         e.cooldown,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       );
     } else {
       _block = new Enemy(
@@ -12975,7 +13072,8 @@ function flyer(e, level, px, py, dt2, alert) {
         new Windup(t2 - dt2),
         e.cooldown,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       );
     }
   } else if ($1 instanceof Charging) {
@@ -13001,7 +13099,8 @@ function flyer(e, level, px, py, dt2, alert) {
         new Recover(0.8),
         e.cooldown,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       );
     } else {
       _block = new Enemy(
@@ -13023,7 +13122,8 @@ function flyer(e, level, px, py, dt2, alert) {
         new Charging(t2 - dt2),
         e.cooldown,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       );
     }
   } else if ($1 instanceof Recover) {
@@ -13049,7 +13149,8 @@ function flyer(e, level, px, py, dt2, alert) {
         Mode$Idle$const,
         2,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       );
     } else {
       _block = new Enemy(
@@ -13071,7 +13172,8 @@ function flyer(e, level, px, py, dt2, alert) {
         new Recover(t2 - dt2),
         e.cooldown,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       );
     }
   } else if ($1 instanceof Stunned) {
@@ -13096,7 +13198,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.mode,
         e.cooldown,
         e.pattern,
-        e.awake
+        e.awake,
+        e.tier
       ),
       t2,
       dt2,
@@ -13124,7 +13227,8 @@ function flyer(e, level, px, py, dt2, alert) {
       Mode$Idle$const,
       e.cooldown,
       e.pattern,
-      e.awake
+      e.awake,
+      e.tier
     );
   }
   let e$1 = _block;
@@ -13157,7 +13261,8 @@ function flyer(e, level, px, py, dt2, alert) {
     e$1.mode,
     e$1.cooldown,
     e$1.pattern,
-    e$1.awake
+    e$1.awake,
+    e$1.tier
   );
 }
 function think(e, level, px, py, dt2, alert) {
@@ -13189,7 +13294,8 @@ function think(e, level, px, py, dt2, alert) {
               e.mode,
               e.cooldown,
               e.pattern,
-              e.awake
+              e.awake,
+              e.tier
             ),
             level,
             dt2
@@ -13232,7 +13338,8 @@ function think(e, level, px, py, dt2, alert) {
               e.mode,
               e.cooldown,
               e.pattern,
-              e.awake
+              e.awake,
+              e.tier
             ),
             level,
             dt2
@@ -13278,7 +13385,8 @@ function think(e, level, px, py, dt2, alert) {
               e.mode,
               e.cooldown,
               e.pattern,
-              e.awake
+              e.awake,
+              e.tier
             ),
             level,
             dt2
@@ -13315,7 +13423,8 @@ function think(e, level, px, py, dt2, alert) {
               e.mode,
               e.cooldown,
               e.pattern,
-              e.awake
+              e.awake,
+              e.tier
             ),
             level,
             dt2
@@ -13351,7 +13460,8 @@ function think(e, level, px, py, dt2, alert) {
             e.mode,
             e.cooldown,
             e.pattern,
-            e.awake
+            e.awake,
+            e.tier
           ),
           level,
           dt2
@@ -13388,7 +13498,8 @@ function take_hit(e, damage3, push_x, push_y) {
     e.mode,
     e.cooldown,
     e.pattern,
-    e.awake
+    e.awake,
+    e.tier
   );
   let hit$1 = new Enemy(
     hit.id,
@@ -13409,7 +13520,8 @@ function take_hit(e, damage3, push_x, push_y) {
     hit.mode,
     hit.cooldown,
     hit.pattern,
-    true
+    true,
+    hit.tier
   );
   let $ = e.kind;
   if ($ instanceof Dummy) {
@@ -13434,7 +13546,8 @@ function take_hit(e, damage3, push_x, push_y) {
       hit$1.mode,
       hit$1.cooldown,
       hit$1.pattern,
-      hit$1.awake
+      hit$1.awake,
+      hit$1.tier
     );
   } else if ($ instanceof Boss) {
     return hit$1;
@@ -13458,7 +13571,8 @@ function take_hit(e, damage3, push_x, push_y) {
       new Stunned(stun_time),
       hit$1.cooldown,
       hit$1.pattern,
-      hit$1.awake
+      hit$1.awake,
+      hit$1.tier
     );
   }
 }
@@ -13487,7 +13601,8 @@ function tick(e, dt2) {
       e.mode,
       e.cooldown,
       e.pattern,
-      e.awake
+      e.awake,
+      e.tier
     );
   }
 }
@@ -13506,7 +13621,8 @@ function fly(s, level, dt2) {
     s.y + s.vy * dt2,
     s.vx,
     s.vy,
-    s.ttl - dt2
+    s.ttl - dt2,
+    s.damage
   );
   let hit_wall = any(
     level,
@@ -14231,7 +14347,7 @@ function spawn2(effect, px, py, base, b, aim, facing) {
       List$Empty$const
     );
   } else if (effect instanceof Shockwave) {
-    let w2 = 3.5 * b.reach * b.shockwave;
+    let w2 = 6 * b.reach * b.shockwave;
     return prepend(
       new Strike(
         effect,
@@ -14244,7 +14360,7 @@ function spawn2(effect, px, py, base, b, aim, facing) {
         0.15,
         false,
         true,
-        dmg(1 * grown),
+        dmg(1.5 * grown),
         List$Empty$const,
         0
       ),
@@ -16477,7 +16593,7 @@ var Door = class extends CustomType {
   }
 };
 var Player = class extends CustomType {
-  constructor(x, y2, vx, vy, grounded, on_platform, wall, facing, coyote, jump_buffer, air_jumps, dash_time, dashes, drop_time, can_cut, up_held, jumped, dashed, struck, plunged, grudge, weapon, loadout, trained, class$, allocated, mods, shield, block_charge, crash_wait, swings, attack, stats, lvl, xp, points, hp2, invuln, hurt2) {
+  constructor(x, y2, vx, vy, grounded, on_platform, wall, facing, coyote, jump_buffer, air_jumps, dash_time, dashes, drop_time, can_cut, up_held, jumped, dashed, struck, plunged, grudge, weapon, loadout, trained, class$, allocated, mods, shield, block_charge, crash_wait, swings, attack, stats, lvl, xp2, points, hp2, invuln, hurt2) {
     super();
     this.x = x;
     this.y = y2;
@@ -16513,7 +16629,7 @@ var Player = class extends CustomType {
     this.attack = attack;
     this.stats = stats;
     this.lvl = lvl;
-    this.xp = xp;
+    this.xp = xp2;
     this.points = points;
     this.hp = hp2;
     this.invuln = invuln;
@@ -16617,7 +16733,7 @@ var hurt_time = 0.3;
 var knockback_y = 9;
 var knockback_x = 8;
 var invuln_time = 1;
-var crash_recharge = 4;
+var crash_recharge = 8;
 var dash_grace = 0.15;
 var points_per_level = 1;
 var level_up_heal = 10;
@@ -16645,6 +16761,42 @@ var coyote_time = 0.1;
 var dash_exit = 0.45;
 function xp_needed(lvl) {
   return 10 * lvl;
+}
+function tier_at(depth, i) {
+  let rank = (i * 7 + depth) % 4;
+  let pick = (top, high, low) => {
+    if (top) {
+      return high;
+    } else {
+      return low;
+    }
+  };
+  let d2 = depth;
+  if (d2 <= 2) {
+    return 1;
+  } else {
+    let d$1 = depth;
+    if (d$1 <= 4) {
+      return pick(rank === 0, 2, 1);
+    } else {
+      let d$2 = depth;
+      if (d$2 <= 6) {
+        return pick(rank < 2, 2, 1);
+      } else {
+        let d$3 = depth;
+        if (d$3 <= 8) {
+          return pick(rank < 3, 2, 1);
+        } else {
+          let d$4 = depth;
+          if (d$4 <= 10) {
+            return pick(rank === 0, 3, 2);
+          } else {
+            return pick(rank < 2, 3, 2);
+          }
+        }
+      }
+    }
+  }
 }
 function load(world2, t2, depth) {
   let _block;
@@ -16674,7 +16826,6 @@ function load(world2, t2, depth) {
     _block$1 = List$Empty$const;
   }
   let roamers = _block$1;
-  let toughness = 1 + 0.06 * identity(max(depth - 1, 0));
   let _block$2;
   let _pipe = t2.spawns;
   let _pipe$1 = take(_pipe, count2);
@@ -16683,35 +16834,33 @@ function load(world2, t2, depth) {
     _pipe$2,
     (s, i) => {
       let e = spawn(i + 1, s[2], s[0], s[1]);
-      let _block$3;
       let $4 = e.kind;
       if ($4 instanceof Boss) {
-        _block$3 = e.max_hp;
+        return new Enemy(
+          e.id,
+          e.kind,
+          e.x,
+          e.y,
+          e.vx,
+          e.vy,
+          e.home_x,
+          e.home_y,
+          e.facing,
+          e.grounded,
+          e.wall,
+          e.hp,
+          e.max_hp,
+          e.respawn,
+          e.flash,
+          e.mode,
+          e.cooldown,
+          e.pattern,
+          e.awake,
+          3
+        );
       } else {
-        _block$3 = round(identity(e.max_hp) * toughness);
+        return promote(e, tier_at(depth, i));
       }
-      let hp2 = _block$3;
-      return new Enemy(
-        e.id,
-        e.kind,
-        e.x,
-        e.y,
-        e.vx,
-        e.vy,
-        e.home_x,
-        e.home_y,
-        e.facing,
-        e.grounded,
-        e.wall,
-        hp2,
-        hp2,
-        e.respawn,
-        e.flash,
-        e.mode,
-        e.cooldown,
-        e.pattern,
-        e.awake
-      );
     }
   );
   let enemies = _block$2;
@@ -17337,15 +17486,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      1839,
+      1857,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 53707,
-        end: 53759,
-        pattern_start: 53718,
-        pattern_end: 53725
+        start: 54389,
+        end: 54441,
+        pattern_start: 54400,
+        pattern_end: 54407
       }
     );
   } else {
@@ -17614,15 +17763,15 @@ function nth_or_first(items, n) {
       "let_assert",
       FILEPATH2,
       "game",
-      1676,
+      1694,
       "nth_or_first",
       "Pattern match failed, no pattern matched the value.",
       {
         value: items,
-        start: 49197,
-        end: 49227,
-        pattern_start: 49208,
-        pattern_end: 49219
+        start: 49879,
+        end: 49909,
+        pattern_start: 49890,
+        pattern_end: 49901
       }
     );
   } else {
@@ -18117,7 +18266,7 @@ function take_damage(world2) {
         world2.sealed,
         world2.plan
       ),
-      shot_damage,
+      s.damage,
       s.x - s.vx
     );
   }
@@ -18125,9 +18274,9 @@ function take_damage(world2) {
 function gain_xp(loop$p, loop$xp, loop$events) {
   while (true) {
     let p2 = loop$p;
-    let xp = loop$xp;
+    let xp2 = loop$xp;
     let events = loop$events;
-    let total = p2.xp + xp;
+    let total = p2.xp + xp2;
     let need = xp_needed(p2.lvl);
     let $ = total >= need;
     if ($) {
@@ -18330,12 +18479,10 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
   );
   let _block;
   let _pipe = killed;
-  let _pipe$1 = map3(_pipe, (e) => {
-    return xp_value(e.kind);
-  });
+  let _pipe$1 = map3(_pipe, xp);
   _block = sum(_pipe$1);
-  let xp = _block;
-  let xp$1 = round(identity(xp) * pct(p2.mods.xp_pct));
+  let xp2 = _block;
+  let xp$1 = round(identity(xp2) * pct(p2.mods.xp_pct));
   let _block$1;
   let $1 = !(killed instanceof Empty) && has2(
     p2,
@@ -18601,7 +18748,7 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
   let $7 = gain_xp(p$3, xp$1, List$Empty$const);
   let player2 = $7[0];
   let level_ups = $7[1];
-  let hits = map3(
+  let hits2 = map3(
     targets,
     (e) => {
       let b = body(e);
@@ -18621,7 +18768,7 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
       prepend(
         world2.events,
         prepend(
-          hits,
+          hits2,
           prepend(ready$1, prepend(level_ups, List$Empty$const))
         )
       )
@@ -19376,7 +19523,8 @@ function enemies_act(world2, dt2) {
           e.mode,
           e.cooldown,
           e.pattern,
-          true
+          true,
+          e.tier
         );
       } else {
         _block2 = e;
@@ -21416,15 +21564,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        1794,
+        1812,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 52346,
-          end: 52397,
-          pattern_start: 52357,
-          pattern_end: 52365
+          start: 53028,
+          end: 53079,
+          pattern_start: 53039,
+          pattern_end: 53047
         }
       );
     }
@@ -21436,15 +21584,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        1796,
+        1814,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 52480,
-          end: 52541,
-          pattern_start: 52491,
-          pattern_end: 52508
+          start: 53162,
+          end: 53223,
+          pattern_start: 53173,
+          pattern_end: 53190
         }
       );
     } else {
@@ -21454,15 +21602,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          1796,
+          1814,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 52480,
-            end: 52541,
-            pattern_start: 52491,
-            pattern_end: 52508
+            start: 53162,
+            end: 53223,
+            pattern_start: 53173,
+            pattern_end: 53190
           }
         );
       } else {
@@ -22384,9 +22532,11 @@ function syncRoom() {
       world.enemies.toArray().map((e) => {
         const [w2, h] = size3(e.kind);
         const body2 = box3(w2, h, kindColor(e.kind));
-        const bar = box3(w2, 0.12, 6732650);
-        roomGroup.add(body2, bar);
-        return [e.id, { body: body2, bar, w: w2, h, color: kindColor(e.kind) }];
+        const barW = w2 * (1 + 0.4 * (e.tier - 1));
+        const bar = box3(barW, 0.12, 6732650);
+        const pips = Array.from({ length: e.kind instanceof Boss ? 0 : e.tier - 1 }, () => box3(0.18, 0.18, GOLD2));
+        roomGroup.add(body2, bar, ...pips);
+        return [e.id, { body: body2, bar, pips, w: w2, barW, h, color: kindColor(e.kind) }];
       })
     );
     const cells2 = world.tree.cells.toArray();
@@ -22755,7 +22905,7 @@ function frame(now) {
       builtLevel = null;
       continue;
     }
-    const { body: body2, bar, w: w2, h, color } = enemyMeshes.get(e.id);
+    const { body: body2, bar, pips, barW, h, color } = enemyMeshes.get(e.id);
     body2.visible = bar.visible = e.hp > 0;
     const old = same ? was.enemies.get(e.id) : null;
     const ex = old ? between2(old.x, e.x, part) : e.x, ey = old ? between2(old.y, e.y, part) : e.y;
@@ -22765,7 +22915,11 @@ function frame(now) {
     if (!e.awake) body2.material.color.multiplyScalar(0.45);
     const frac = e.hp / e.max_hp;
     bar.scale.x = Math.max(frac, 1e-3);
-    bar.position.set(ex - w2 * (1 - frac) / 2, ey + h + 0.3, 0);
+    bar.position.set(ex - barW * (1 - frac) / 2, ey + h + 0.3, 0);
+    pips.forEach((pip, i) => {
+      pip.visible = e.hp > 0;
+      pip.position.set(ex + (i - (pips.length - 1) / 2) * 0.28, ey + h + 0.58, 0);
+    });
   }
   const back = DT * (1 - part);
   drawShots(world.projectiles.toArray().map((s) => ({ x: s.x - s.vx * back - shot_size / 2, y: s.y - s.vy * back - shot_size / 2, w: shot_size, h: shot_size })));
