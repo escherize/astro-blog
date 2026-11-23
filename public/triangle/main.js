@@ -16356,7 +16356,7 @@ var invuln_time = 1;
 var crash_recharge = 4;
 var dash_grace = 0.15;
 var points_per_level = 1;
-var level_up_heal = 20;
+var level_up_heal = 10;
 var block_kills = 3;
 var pogo_speed = 15;
 var half_width = 0.375;
@@ -17070,15 +17070,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      1817,
+      1819,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 52438,
-        end: 52490,
-        pattern_start: 52449,
-        pattern_end: 52456
+        start: 52585,
+        end: 52637,
+        pattern_start: 52596,
+        pattern_end: 52603
       }
     );
   } else {
@@ -17347,15 +17347,15 @@ function nth_or_first(items, n) {
       "let_assert",
       FILEPATH2,
       "game",
-      1654,
+      1656,
       "nth_or_first",
       "Pattern match failed, no pattern matched the value.",
       {
         value: items,
-        start: 47928,
-        end: 47958,
-        pattern_start: 47939,
-        pattern_end: 47950
+        start: 48075,
+        end: 48105,
+        pattern_start: 48086,
+        pattern_end: 48097
       }
     );
   } else {
@@ -19420,8 +19420,8 @@ function fire_skills(world2, before, dt2) {
     _block$2 = 0;
   } else {
     _block$2 = heals * max(
-      3,
-      globalThis.Math.trunc(max_hp3(p$1) * 8 / 100)
+      2,
+      globalThis.Math.trunc(max_hp3(p$1) * 3 / 100)
     );
   }
   let amount = _block$2;
@@ -21081,15 +21081,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        1772,
+        1774,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 51077,
-          end: 51128,
-          pattern_start: 51088,
-          pattern_end: 51096
+          start: 51224,
+          end: 51275,
+          pattern_start: 51235,
+          pattern_end: 51243
         }
       );
     }
@@ -21101,15 +21101,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        1774,
+        1776,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 51211,
-          end: 51272,
-          pattern_start: 51222,
-          pattern_end: 51239
+          start: 51358,
+          end: 51419,
+          pattern_start: 51369,
+          pattern_end: 51386
         }
       );
     } else {
@@ -21119,15 +21119,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          1774,
+          1776,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 51211,
-            end: 51272,
-            pattern_start: 51222,
-            pattern_end: 51239
+            start: 51358,
+            end: 51419,
+            pattern_start: 51369,
+            pattern_end: 51386
           }
         );
       } else {
