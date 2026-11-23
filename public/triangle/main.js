@@ -22390,22 +22390,25 @@ var GOLD2 = 14721563;
 var AXIS = [14240835, 5217855, 5922774];
 var LOCKED_TINT = new Kr(15722202);
 var calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
-var heroLoader = new Qd();
-var heroTextures = /* @__PURE__ */ new Map();
-function heroTexture(name3) {
-  const key2 = name3.toLowerCase();
-  if (!heroTextures.has(key2)) {
-    const t2 = heroLoader.load(`art/heroes/${key2}.webp`);
+var stickerLoader = new Qd();
+var stickerTextures = /* @__PURE__ */ new Map();
+function stickerTexture(path) {
+  if (!stickerTextures.has(path)) {
+    const t2 = stickerLoader.load(`art/${path}.webp`);
     t2.colorSpace = Je;
-    heroTextures.set(key2, t2);
+    stickerTextures.set(path, t2);
   }
-  return heroTextures.get(key2);
+  return stickerTextures.get(path);
 }
-function sticker(name3) {
-  const m = new Bs(new ha(1, 1), new es({ map: heroTexture(name3), transparent: true }));
+var heroTexture = (name3) => stickerTexture(`heroes/${name3.toLowerCase()}`);
+function sticker(path) {
+  const m = new Bs(new ha(1, 1), new es({ map: stickerTexture(path), transparent: true, side: p }));
   m.scale.set(HERO_H, HERO_H, 1);
   return m;
 }
+var STATUES = /* @__PURE__ */ new Set(["Knight"]);
+var ENEMY_ART = { Flyer: 2.1 };
+var enemyArt = (e) => ENEMY_ART[e.kind.constructor.name] ? `enemies/${e.kind.constructor.name.toLowerCase()}-${e.tier}` : null;
 var HERO_PX = 280;
 var stickerSize = (image, tall) => image ? [tall * image.width / HERO_PX, tall * image.height / HERO_PX] : [tall, tall];
 var FACES_LEFT = /* @__PURE__ */ new Set(["Hunter", "Duelist", "Thief", "Cavalier", "Wizard", "Trickster", "Bandit", "Bard", "Warrior"]);
@@ -22531,19 +22534,20 @@ function syncRoom() {
     enemyMeshes = new Map(
       world.enemies.toArray().map((e) => {
         const [w2, h] = size3(e.kind);
-        const body2 = box3(w2, h, kindColor(e.kind));
+        const art = enemyArt(e);
+        const body2 = art ? sticker(art) : box3(w2, h, kindColor(e.kind));
         const barW = w2 * (1 + 0.4 * (e.tier - 1));
         const bar = box3(barW, 0.12, 6732650);
         const pips = Array.from({ length: e.kind instanceof Boss ? 0 : e.tier - 1 }, () => box3(0.18, 0.18, GOLD2));
         roomGroup.add(body2, bar, ...pips);
-        return [e.id, { body: body2, bar, pips, w: w2, barW, h, color: kindColor(e.kind) }];
+        return [e.id, { body: body2, bar, pips, w: w2, barW, h, art: !!art, color: art ? 16777215 : kindColor(e.kind) }];
       })
     );
     const cells2 = world.tree.cells.toArray();
     npcMeshes = world.npcs.toArray().map((n) => {
       const statue = n.role instanceof Statue, cell = statue ? cells2[n.role.keystone] : null;
       const name3 = statue ? cell.name : "Mentor", lift = statue ? PEDESTAL_H : 0;
-      const hero = sticker(name3);
+      const hero = sticker(statue && STATUES.has(name3) ? `statues/${name3.toLowerCase()}` : `heroes/${name3.toLowerCase()}`);
       hero.position.set(n.x, n.y + lift + HERO_H / 2, -0.6);
       roomGroup.add(hero);
       if (!statue) return { hero, n, statue, name: name3, y: hero.position.y };
@@ -22905,13 +22909,18 @@ function frame(now) {
       builtLevel = null;
       continue;
     }
-    const { body: body2, bar, pips, barW, h, color } = enemyMeshes.get(e.id);
+    const { body: body2, bar, pips, barW, w: w2, h, art, color } = enemyMeshes.get(e.id);
     body2.visible = bar.visible = e.hp > 0;
     const old = same ? was.enemies.get(e.id) : null;
     const ex = old ? between2(old.x, e.x, part) : e.x, ey = old ? between2(old.y, e.y, part) : e.y;
     body2.position.set(ex, ey + h / 2, 0);
+    if (art) {
+      const img = body2.material.map.image, wide = w2 * ENEMY_ART[e.kind.constructor.name];
+      body2.scale.set(wide * (e.facing > 0 ? -1 : 1), img ? wide * img.height / img.width : wide, 1);
+      body2.position.z = 0.55;
+    }
     const tell = telegraphing(e) && Math.floor(now / 50) % 2 === 0;
-    body2.material.color.set(e.flash > 0 ? 16777215 : tell ? 16771899 : color);
+    body2.material.color.set(e.flash > 0 ? art ? 16752029 : 16777215 : tell ? 16771899 : color);
     if (!e.awake) body2.material.color.multiplyScalar(0.45);
     const frac = e.hp / e.max_hp;
     bar.scale.x = Math.max(frac, 1e-3);
