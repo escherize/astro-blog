@@ -7349,6 +7349,11 @@ var Ih = new sr();
 var Ph = new rr();
 var Lh = new Ji();
 var Uh = new Ci();
+var Vh = class extends yi {
+  constructor(t2, e, n, i, r, s, a, o, l) {
+    super(t2, e, n, i, r, s, a, o, l), this.isCanvasTexture = true, this.needsUpdate = true;
+  }
+};
 var Hh = class {
   constructor() {
     this.type = "Curve", this.arcLengthDivisions = 200;
@@ -22217,7 +22222,6 @@ var builtDepth = -1;
 var builtLevel = null;
 var builtDoors = null;
 var enemyMeshes = /* @__PURE__ */ new Map();
-var doorLabels = [];
 var npcMeshes = [];
 var npcLabels = [];
 var HUB = { bg: 16512750, solid: 16777215, oneway: 15260879, edge: true };
@@ -22329,10 +22333,41 @@ function alcove(x, y2) {
 function empty2(group2) {
   group2.traverse((o) => {
     if (o.geometry) o.geometry.dispose();
+    if (o.userData.ownsMap) o.material.map.dispose();
     if (o.material && o.material !== edgeMat) o.material.dispose();
   });
   group2.clear();
 }
+var LABEL_Z = -0.2;
+function nameLabel(text, small2) {
+  const c = document.createElement("canvas"), g = c.getContext("2d");
+  const font = `800 ${small2 ? 31 : 34}px "Baloo 2", system-ui, sans-serif`, h = 58;
+  g.font = font;
+  const w2 = Math.ceil(g.measureText(text).width) + 50;
+  c.width = w2;
+  c.height = h;
+  g.font = font;
+  g.fillStyle = "#fff";
+  g.strokeStyle = "#3b2b25";
+  g.lineWidth = 5;
+  g.beginPath();
+  g.roundRect(3, 3, w2 - 6, h - 6, (h - 6) / 2);
+  g.fill();
+  g.stroke();
+  g.fillStyle = small2 ? "#5b4a43" : "#2b1d18";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.fillText(text, w2 / 2, h / 2 + 3);
+  const map5 = new Vh(c);
+  map5.colorSpace = Je;
+  const tall = small2 ? 0.36 : 0.4;
+  const m = new Bs(new ha(tall * w2 / h, tall), new es({ map: map5, transparent: true }));
+  m.userData = { ownsMap: true, tall };
+  return m;
+}
+document.fonts?.ready.then(() => {
+  builtDepth = -1;
+});
 function syncRoom() {
   if (world.depth !== builtDepth || world.level !== builtLevel) {
     [builtDepth, builtLevel] = [world.depth, world.level];
@@ -22354,7 +22389,6 @@ function syncRoom() {
         return [e.id, { body: body2, bar, w: w2, h, color: kindColor(e.kind) }];
       })
     );
-    npcLabels.forEach((l) => l.el.remove());
     const cells2 = world.tree.cells.toArray();
     npcMeshes = world.npcs.toArray().map((n) => {
       const statue = n.role instanceof Statue, cell = statue ? cells2[n.role.keystone] : null;
@@ -22370,29 +22404,23 @@ function syncRoom() {
       return { hero, niche, pedestal, n, statue, name: name3, tint: tint(cell), y: hero.position.y };
     });
     npcLabels = npcMeshes.map(({ n, statue, name: name3 }) => {
-      const el2 = document.createElement("div");
-      el2.className = "door npc";
-      el2.textContent = name3;
-      document.body.appendChild(el2);
-      return { el: el2, x: n.x, y: n.y + (statue ? PEDESTAL_H : 0) + HERO_H + 0.15, n };
+      const mesh = nameLabel(name3, true);
+      roomGroup.add(mesh);
+      return { mesh, x: n.x, y: n.y + (statue ? PEDESTAL_H : 0) + HERO_H + 0.15, n };
     });
     builtDoors = null;
   }
   if (world.doors !== builtDoors) {
     builtDoors = world.doors;
     empty2(doorGroup);
-    doorLabels.forEach((l) => l.el.remove());
-    doorLabels = world.doors.toArray().map((d2) => {
+    for (const d2 of world.doors.toArray()) {
       const b = door_box(d2);
       const m = box3(b.w, b.h, 5227511, { transparent: true, opacity: 0.35 });
       m.position.set(b.x + b.w / 2, b.y + b.h / 2, -0.5);
-      doorGroup.add(m);
-      const el2 = document.createElement("div");
-      el2.className = "door";
-      el2.textContent = world.depth > 0 && d2.reward instanceof None ? "Back to hub" : reward_label(d2.reward);
-      document.body.appendChild(el2);
-      return { el: el2, x: d2.x, y: b.y + b.h + 0.2 };
-    });
+      const label2 = nameLabel(world.depth > 0 && d2.reward instanceof None ? "Back to hub" : reward_label(d2.reward), false);
+      label2.position.set(d2.x, b.y + b.h + 0.2 + label2.userData.tall / 2, LABEL_Z);
+      doorGroup.add(m, label2);
+    }
   }
 }
 var speech = document.createElement("div");
@@ -22770,11 +22798,7 @@ function frame(now) {
     s.pedestal.material.color.set(me3 ? GOLD2 : STONE);
     s.niche.material.color.copy(open ? s.tint : LOCKED_TINT);
   });
-  for (const l of npcLabels) {
-    const [sx, sy] = toScreen(l.x, l.y);
-    l.el.style.left = `${sx}px`;
-    l.el.style.top = `${sy}px`;
-  }
+  for (const l of npcLabels) l.mesh.position.set(l.x, l.y + l.mesh.userData.tall / 2, LABEL_Z);
   const near = near_npc(world);
   speech.style.display = near.isOk() ? "block" : "none";
   if (near.isOk()) {
@@ -22783,11 +22807,6 @@ function frame(now) {
     const [sx, sy] = toScreen(near[0].x, near[0].y + npc_box(near[0]).h + 1.2);
     speech.style.left = `${sx}px`;
     speech.style.top = `${sy}px`;
-  }
-  for (const l of doorLabels) {
-    const [sx, sy] = toScreen(l.x, l.y);
-    l.el.style.left = `${sx}px`;
-    l.el.style.top = `${sy}px`;
   }
   if (++frames % 15 === 0) {
     hud.textContent = usingPad ? HINT.pad : HINT.keys;
