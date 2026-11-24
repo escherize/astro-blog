@@ -14007,6 +14007,22 @@ var shelf_top = 11;
 var shelf_step = 2.2;
 var shelf_tries = 80;
 var tunnel_end = 10;
+var layout_names = /* @__PURE__ */ toList([
+  "arena",
+  "mesa",
+  "pillars",
+  "ziggurat",
+  "tower",
+  "bowl",
+  "stairs",
+  "long hall",
+  "bridge",
+  "canyon",
+  "box",
+  "cellar",
+  "gauntlet",
+  "decks"
+]);
 function hub() {
   let rows = prepend(
     prepend(
@@ -25778,6 +25794,7 @@ addEventListener("keydown", (e) => {
     if (e.code === "KeyM") nextAttackMode();
     if (e.code === "KeyV") nextLook();
     if (e.code === "KeyB") showBox = !showBox;
+    if (e.code === "KeyL") copyRuns();
   }
   if (e.code.startsWith("Arrow") || e.code === "Space") e.preventDefault();
 });
@@ -25843,7 +25860,7 @@ var treeScreen = createTreeScreen({ getWorld: () => world, setWorld: (w2) => {
 }, onUnlock: saveUnlocks });
 var hud = document.getElementById("hud");
 var HINT = {
-  keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Up at doors & statues \xB7 T tree \xB7 M attack style \xB7 V room look \xB7 N sound \xB7 B body box",
+  keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Up at doors & statues \xB7 T tree \xB7 M attack style \xB7 V room look \xB7 N sound \xB7 B body box \xB7 L copy run log",
   pad: "Move stick \xB7 Jump X / Y \xB7 Dash LB / RB \xB7 Attack A (+up / +down in air) \xB7 Up at doors & statues \xB7 Select tree"
 };
 var treeKey = () => usingPad ? "Select" : "T";
@@ -25961,6 +25978,62 @@ function nextAttackMode() {
   }
   floatText(world.player.x, world.player.y + 3.4, `Attack ${ATTACK_MODES[attackMode].name}`, "npc");
 }
+var RUNS_KEY = "trip.runs";
+var run = null;
+var savedRuns = () => {
+  try {
+    return JSON.parse(localStorage.getItem(RUNS_KEY) || "[]");
+  } catch {
+    return [];
+  }
+};
+window.game.runs = savedRuns;
+function saveRun(r) {
+  try {
+    localStorage.setItem(RUNS_KEY, JSON.stringify([...savedRuns(), r].slice(-200)));
+  } catch {
+  }
+}
+function track(before, after) {
+  for (const ev of after.events.toArray()) {
+    if (ev instanceof EnteredRoom && ev.depth === 1) run = { v: 1, at: (/* @__PURE__ */ new Date()).toISOString(), class: class_name(after), easy: after.easy, hits: 0, damage: 0, rooms: [] };
+    if (!run) continue;
+    if (ev instanceof EnteredRoom && ev.depth > 0) run.rooms.push([ev.depth === boss_depth ? "boss" : layout_names.toArray()[after.plan.toArray()[ev.depth - 1]], Math.round(after.time), after.player.hp]);
+    if (ev instanceof Hurt) {
+      run.hits++;
+      run.damage += ev.damage;
+    }
+    if (ev instanceof Died) endRun("died", before);
+    if (ev instanceof RunComplete) endRun("won", after);
+  }
+}
+function endRun(end, w2) {
+  if (!run) return;
+  const p2 = w2.player, count2 = (xs2) => xs2.reduce((m, x) => ({ ...m, [x]: (m[x] ?? 0) + 1 }), {});
+  saveRun({
+    ...run,
+    end,
+    room: w2.depth,
+    seconds: Math.round(w2.time),
+    level: p2.lvl,
+    kills: w2.kills,
+    unspent: p2.points,
+    stats: [p2.stats.fighter, p2.stats.rogue, p2.stats.mage],
+    nodes: p2.allocated.toArray().length,
+    skills: p2.loadout.toArray().map((s) => s.effect.constructor.name),
+    levels: count2(p2.trained.toArray().map((e) => e.constructor.name)),
+    rules: p2.mods.rules.toArray().map((r) => r.constructor.name),
+    pad: usingPad,
+    attack: ATTACK_MODES[attackMode].id
+  });
+  run = null;
+}
+addEventListener("pagehide", () => endRun("left", world));
+function copyRuns() {
+  const runs = savedRuns(), text = JSON.stringify(runs);
+  const say = (t2) => floatText(world.player.x, world.player.y + 3.4, t2, "npc");
+  (navigator.clipboard?.writeText(text) ?? Promise.reject()).then(() => say(`Run log copied (${runs.length} run${runs.length === 1 ? "" : "s"})`), () => say("Could not copy the run log"));
+}
 function inReach() {
   const p2 = world.player, shoots = p2.weapon.shot instanceof Some;
   const far2 = shoots ? 9 : p2.weapon.long * reach2(p2) + 0.6;
@@ -26018,6 +26091,7 @@ function frame(now) {
     const prior = world;
     world = step2(world, new Input(mx, my, jump2, pendJump, pendDash, pendAttack), DT);
     hear(prior, world);
+    track(prior, world);
     stepMs = stepMs * 0.95 + (performance.now() - t0) * 0.05;
     pendJump = pendDash = pendAttack = false;
     acc -= DT;
