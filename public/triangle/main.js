@@ -14955,7 +14955,7 @@ function spawn2(effect, px, py, base, b, aim, facing) {
         0.15,
         true,
         true,
-        dmg(0.7 * grown),
+        dmg(1 * grown),
         List$Empty$const,
         0
       ),
@@ -15428,20 +15428,20 @@ function of(class$) {
       1.5,
       Option$None$const
     );
-  } else if (class$ === "Thief") {
+  } else if (class$ === "Trickster") {
     return new Weapon(
-      "dagger",
-      "very fast, very short",
+      "razor cards",
+      "very fast, a little longer than a dagger",
       0.03,
       0.06,
       0.18,
-      1,
+      1.2,
       0.8,
-      0.55,
+      0.6,
       0.5,
       Option$None$const
     );
-  } else if (class$ === "Trickster") {
+  } else if (class$ === "Thief") {
     return new Weapon(
       "dagger",
       "very fast, very short",
@@ -16193,7 +16193,7 @@ function grant_name(g) {
     } else if ($ instanceof Quickdraw) {
       return "Quickdraw: your first swing after a dash has no wind-up and crits";
     } else if ($ instanceof Ricochet) {
-      return "Ricochet: touching a wall brings back your air jump and dash, and your first hit after a wall-jump crits";
+      return "Ricochet: touching a wall brings back your air jump and dash; after a wall-jump every hit crits until you land";
     } else if ($ instanceof Arcanist) {
       return "Arcanist: your skills deal 50% more, but your wand deals half";
     } else if ($ instanceof Broomstick) {
@@ -18711,15 +18711,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      2492,
+      2497,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 75253,
-        end: 75305,
-        pattern_start: 75264,
-        pattern_end: 75271
+        start: 75453,
+        end: 75505,
+        pattern_start: 75464,
+        pattern_end: 75471
       }
     );
   } else {
@@ -19831,15 +19831,15 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        1027,
+        1026,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $12,
-          start: 28983,
-          end: 29039,
-          pattern_start: 28994,
-          pattern_end: 28999
+          start: 28926,
+          end: 28982,
+          pattern_start: 28937,
+          pattern_end: 28942
         }
       );
     }
@@ -20397,6 +20397,9 @@ function afflict2(world2, ids, with$) {
     return world2;
   }
 }
+function ricocheting(p2) {
+  return p2.rebound && has2(p2, Rule$Ricochet$const);
+}
 function strikes_act(world2, dt2) {
   let p2 = world2.player;
   return fold2(
@@ -20466,7 +20469,7 @@ function strikes_act(world2, dt2) {
         w2,
         targets,
         s.damage,
-        far(s),
+        far(s) || ricocheting(p2),
         (e) => {
           let $22 = e.x >= p2.x;
           if ($22) {
@@ -20873,10 +20876,7 @@ function strike(world2, a, box4) {
       _block$5 = hit$2;
     }
     let hit$3 = _block$5;
-    let sure = dive || quickdrawn(p$2) || p$2.rebound && has2(
-      p$2,
-      Rule$Ricochet$const
-    );
+    let sure = dive || quickdrawn(p$2) || ricocheting(p$2);
     let _block$6;
     let $4 = p$2.grudge;
     if ($4) {
@@ -20908,7 +20908,7 @@ function strike(world2, a, box4) {
       false,
       p$2.conduit + 1,
       false,
-      false,
+      p$2.rebound,
       p$2.air_hits,
       p$2.weapon,
       p$2.loadout,
@@ -24210,15 +24210,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2442,
+        2447,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 73706,
-          end: 73757,
-          pattern_start: 73717,
-          pattern_end: 73725
+          start: 73906,
+          end: 73957,
+          pattern_start: 73917,
+          pattern_end: 73925
         }
       );
     }
@@ -24230,15 +24230,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2444,
+        2449,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 73840,
-          end: 73901,
-          pattern_start: 73851,
-          pattern_end: 73868
+          start: 74040,
+          end: 74101,
+          pattern_start: 74051,
+          pattern_end: 74068
         }
       );
     } else {
@@ -24248,15 +24248,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          2444,
+          2449,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 73840,
-            end: 73901,
-            pattern_start: 73851,
-            pattern_end: 73868
+            start: 74040,
+            end: 74101,
+            pattern_start: 74051,
+            pattern_end: 74068
           }
         );
       } else {
