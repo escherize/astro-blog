@@ -18624,7 +18624,7 @@ function apply_reward(p2, r) {
       _block = once;
     }
     let new$2 = _block;
-    return new Player(
+    let q2 = new Player(
       p2.x,
       p2.y,
       p2.vx,
@@ -18665,9 +18665,54 @@ function apply_reward(p2, r) {
       p2.lvl,
       p2.xp,
       p2.points,
-      p2.hp + max_hp2(new$2) - max_hp2(p2.stats),
+      p2.hp,
       p2.invuln,
       p2.hurt
+    );
+    return new Player(
+      q2.x,
+      q2.y,
+      q2.vx,
+      q2.vy,
+      q2.grounded,
+      q2.on_platform,
+      q2.wall,
+      q2.facing,
+      q2.coyote,
+      q2.jump_buffer,
+      q2.air_jumps,
+      q2.dash_time,
+      q2.dashes,
+      q2.can_cut,
+      q2.up_held,
+      q2.jumped,
+      q2.dashed,
+      q2.struck,
+      q2.plunged,
+      q2.grudge,
+      q2.conduit,
+      q2.quick,
+      q2.rebound,
+      q2.air_hits,
+      q2.weapon,
+      q2.loadout,
+      q2.trained,
+      q2.class,
+      q2.allocated,
+      q2.mods,
+      q2.shield,
+      q2.block_charge,
+      q2.crash_wait,
+      q2.swings,
+      q2.risen,
+      q2.attack,
+      q2.stats,
+      q2.lvl,
+      q2.xp,
+      q2.points,
+      p2.hp + max_hp3(q2) - max_hp3(p2),
+      q2.invuln,
+      q2.hurt
     );
   } else if (r instanceof Heal2) {
     return new Player(
@@ -18727,15 +18772,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      2515,
+      2530,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 75975,
-        end: 76027,
-        pattern_start: 75986,
-        pattern_end: 75993
+        start: 76383,
+        end: 76435,
+        pattern_start: 76394,
+        pattern_end: 76401
       }
     );
   } else {
@@ -19220,7 +19265,7 @@ function check_clear(world2) {
 }
 function blocked_by_shield(world2, k2) {
   let p2 = world2.player;
-  let $ = p2.shield > 0 && !has2(p2, Rule$Retribution$const);
+  let $ = p2.shield > 0;
   if ($) {
     return new World(
       new Player(
@@ -19636,6 +19681,14 @@ function damage2(p2) {
     identity(damage(p2.stats)) * pct(p2.mods.damage_pct)
   );
 }
+function blocks(p2) {
+  let $ = has2(p2, Rule$Retribution$const);
+  if ($) {
+    return 0;
+  } else {
+    return p2.mods.shields;
+  }
+}
 function hit_enemies(world2, targets, dmg, sure_crit, push) {
   let p2 = world2.player;
   let always_crit = sure_crit;
@@ -20002,7 +20055,7 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
   let p$2 = _block$2;
   let charge = p$2.block_charge + kills;
   let _block$3;
-  let $4 = p$2.shield < p$2.mods.shields;
+  let $4 = p$2.shield < blocks(p$2);
   let $5 = charge >= block_kills;
   if ($4) {
     if ($5) {
@@ -21741,7 +21794,10 @@ function fire_skills(world2, before, dt2) {
     Rule$Heavy$const
   ));
   let _block;
-  let $1 = hard_landing && has2(p2, Rule$Crash$const) && p2.shield < 1 && p2.crash_wait <= 0;
+  let $1 = hard_landing && has2(p2, Rule$Crash$const) && !has2(
+    p2,
+    Rule$Retribution$const
+  ) && p2.shield < 1 && p2.crash_wait <= 0;
   if ($1) {
     _block = [
       new Player(
@@ -23033,36 +23089,7 @@ function apply_node(p2, kind) {
       return apply_reward(p2, new Point(axis));
     } else if ($ instanceof MaxHp) {
       let n = $[0];
-      return new Player(
-        p2.x,
-        p2.y,
-        p2.vx,
-        p2.vy,
-        p2.grounded,
-        p2.on_platform,
-        p2.wall,
-        p2.facing,
-        p2.coyote,
-        p2.jump_buffer,
-        p2.air_jumps,
-        p2.dash_time,
-        p2.dashes,
-        p2.can_cut,
-        p2.up_held,
-        p2.jumped,
-        p2.dashed,
-        p2.struck,
-        p2.plunged,
-        p2.grudge,
-        p2.conduit,
-        p2.quick,
-        p2.rebound,
-        p2.air_hits,
-        p2.weapon,
-        p2.loadout,
-        p2.trained,
-        p2.class,
-        p2.allocated,
+      let q2 = with$(
         new Mods(
           m.bonus_hp + n,
           m.damage_pct,
@@ -23082,20 +23109,52 @@ function apply_node(p2, kind) {
           m.dashes,
           m.wall_jump,
           m.rules
-        ),
-        p2.shield,
-        p2.block_charge,
-        p2.crash_wait,
-        p2.swings,
-        p2.risen,
-        p2.attack,
-        p2.stats,
-        p2.lvl,
-        p2.xp,
-        p2.points,
-        p2.hp + n,
-        p2.invuln,
-        p2.hurt
+        )
+      );
+      return new Player(
+        q2.x,
+        q2.y,
+        q2.vx,
+        q2.vy,
+        q2.grounded,
+        q2.on_platform,
+        q2.wall,
+        q2.facing,
+        q2.coyote,
+        q2.jump_buffer,
+        q2.air_jumps,
+        q2.dash_time,
+        q2.dashes,
+        q2.can_cut,
+        q2.up_held,
+        q2.jumped,
+        q2.dashed,
+        q2.struck,
+        q2.plunged,
+        q2.grudge,
+        q2.conduit,
+        q2.quick,
+        q2.rebound,
+        q2.air_hits,
+        q2.weapon,
+        q2.loadout,
+        q2.trained,
+        q2.class,
+        q2.allocated,
+        q2.mods,
+        q2.shield,
+        q2.block_charge,
+        q2.crash_wait,
+        q2.swings,
+        q2.risen,
+        q2.attack,
+        q2.stats,
+        q2.lvl,
+        q2.xp,
+        q2.points,
+        p2.hp + max_hp3(q2) - max_hp3(p2),
+        q2.invuln,
+        q2.hurt
       );
     } else if ($ instanceof DamagePct) {
       let n = $[0];
@@ -23290,36 +23349,7 @@ function apply_node(p2, kind) {
         )
       );
     } else if ($ instanceof Shield) {
-      return new Player(
-        p2.x,
-        p2.y,
-        p2.vx,
-        p2.vy,
-        p2.grounded,
-        p2.on_platform,
-        p2.wall,
-        p2.facing,
-        p2.coyote,
-        p2.jump_buffer,
-        p2.air_jumps,
-        p2.dash_time,
-        p2.dashes,
-        p2.can_cut,
-        p2.up_held,
-        p2.jumped,
-        p2.dashed,
-        p2.struck,
-        p2.plunged,
-        p2.grudge,
-        p2.conduit,
-        p2.quick,
-        p2.rebound,
-        p2.air_hits,
-        p2.weapon,
-        p2.loadout,
-        p2.trained,
-        p2.class,
-        p2.allocated,
+      let p$1 = with$(
         new Mods(
           m.bonus_hp,
           m.damage_pct,
@@ -23339,20 +23369,52 @@ function apply_node(p2, kind) {
           m.dashes,
           m.wall_jump,
           m.rules
-        ),
-        p2.shield + 1,
-        p2.block_charge,
-        p2.crash_wait,
-        p2.swings,
-        p2.risen,
-        p2.attack,
-        p2.stats,
-        p2.lvl,
-        p2.xp,
-        p2.points,
-        p2.hp,
-        p2.invuln,
-        p2.hurt
+        )
+      );
+      return new Player(
+        p$1.x,
+        p$1.y,
+        p$1.vx,
+        p$1.vy,
+        p$1.grounded,
+        p$1.on_platform,
+        p$1.wall,
+        p$1.facing,
+        p$1.coyote,
+        p$1.jump_buffer,
+        p$1.air_jumps,
+        p$1.dash_time,
+        p$1.dashes,
+        p$1.can_cut,
+        p$1.up_held,
+        p$1.jumped,
+        p$1.dashed,
+        p$1.struck,
+        p$1.plunged,
+        p$1.grudge,
+        p$1.conduit,
+        p$1.quick,
+        p$1.rebound,
+        p$1.air_hits,
+        p$1.weapon,
+        p$1.loadout,
+        p$1.trained,
+        p$1.class,
+        p$1.allocated,
+        p$1.mods,
+        min(p$1.shield + 1, blocks(p$1)),
+        p$1.block_charge,
+        p$1.crash_wait,
+        p$1.swings,
+        p$1.risen,
+        p$1.attack,
+        p$1.stats,
+        p$1.lvl,
+        p$1.xp,
+        p$1.points,
+        p$1.hp,
+        p$1.invuln,
+        p$1.hurt
       );
     } else if ($ instanceof ExtraKnife) {
       return with$(
@@ -23618,7 +23680,53 @@ function apply_node(p2, kind) {
         )
       );
       let m$1 = p$1.mods;
-      if (rule instanceof Aerialist) {
+      if (rule instanceof Retribution) {
+        return new Player(
+          p$1.x,
+          p$1.y,
+          p$1.vx,
+          p$1.vy,
+          p$1.grounded,
+          p$1.on_platform,
+          p$1.wall,
+          p$1.facing,
+          p$1.coyote,
+          p$1.jump_buffer,
+          p$1.air_jumps,
+          p$1.dash_time,
+          p$1.dashes,
+          p$1.can_cut,
+          p$1.up_held,
+          p$1.jumped,
+          p$1.dashed,
+          p$1.struck,
+          p$1.plunged,
+          p$1.grudge,
+          p$1.conduit,
+          p$1.quick,
+          p$1.rebound,
+          p$1.air_hits,
+          p$1.weapon,
+          p$1.loadout,
+          p$1.trained,
+          p$1.class,
+          p$1.allocated,
+          p$1.mods,
+          0,
+          p$1.block_charge,
+          p$1.crash_wait,
+          p$1.swings,
+          p$1.risen,
+          p$1.attack,
+          p$1.stats,
+          p$1.lvl,
+          p$1.xp,
+          p$1.points,
+          p$1.hp,
+          p$1.invuln,
+          p$1.hurt
+        );
+      } else if (rule instanceof Aerialist) {
         return new Player(
           p$1.x,
           p$1.y,
@@ -24235,15 +24343,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2465,
+        2480,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 74428,
-          end: 74479,
-          pattern_start: 74439,
-          pattern_end: 74447
+          start: 74836,
+          end: 74887,
+          pattern_start: 74847,
+          pattern_end: 74855
         }
       );
     }
@@ -24255,15 +24363,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2467,
+        2482,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 74562,
-          end: 74623,
-          pattern_start: 74573,
-          pattern_end: 74590
+          start: 74970,
+          end: 75031,
+          pattern_start: 74981,
+          pattern_end: 74998
         }
       );
     } else {
@@ -24273,15 +24381,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          2467,
+          2482,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 74562,
-            end: 74623,
-            pattern_start: 74573,
-            pattern_end: 74590
+            start: 74970,
+            end: 75031,
+            pattern_start: 74981,
+            pattern_end: 74998
           }
         );
       } else {
@@ -24968,7 +25076,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
       [
         ["Max HP", `${max_hp3(p2)}`, true],
         ["Bonus HP", `+${m.bonus_hp}`, m.bonus_hp > 0],
-        ["Blocks", `${m.shields}`, m.shields > 0],
+        ["Blocks", `${blocks(p2)}`, blocks(p2) > 0],
         ["Extra i-frames", `+${m.iframes.toFixed(1)}s`, m.iframes > 0],
         ["Level-up heal", "20%", true],
         ["Dash i-frames", "on", true]
@@ -25952,7 +26060,7 @@ function drawMini(p2, x, top) {
     return { name: s.effect.constructor.name, left, filled: Math.min(1, 1 - left / period2) };
   }).sort((a, b) => a.left - b.left);
   const pies = timed.slice(0, MAX_PIES);
-  const rows = [["jump", p2.air_jumps, p2.mods.air_jumps], ["dash", p2.dashes, p2.mods.dashes], ["block", p2.shield, Math.max(p2.shield, p2.mods.shields)]].filter((r) => r[2] > 0);
+  const rows = [["jump", p2.air_jumps, p2.mods.air_jumps], ["dash", p2.dashes, p2.mods.dashes], ["block", p2.shield, Math.max(p2.shield, blocks(p2))]].filter((r) => r[2] > 0);
   const key2 = rows.map((r) => r[1] + "/" + r[2]).join("|") + "|" + pies.map((s) => s.name).join(",") + "|" + timed.length;
   if (key2 !== miniKey) {
     miniKey = key2;
