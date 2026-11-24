@@ -15437,7 +15437,7 @@ function of(class$) {
       0.18,
       1.2,
       0.8,
-      0.6,
+      0.65,
       0.5,
       Option$None$const
     );
@@ -16193,7 +16193,7 @@ function grant_name(g) {
     } else if ($ instanceof Quickdraw) {
       return "Quickdraw: your first swing after a dash has no wind-up and crits";
     } else if ($ instanceof Ricochet) {
-      return "Ricochet: touching a wall brings back your air jump and dash; after a wall-jump every hit crits until you land";
+      return "Ricochet: touching a wall brings back your air jump and dash; after a wall-jump your hits deal triple damage until you land";
     } else if ($ instanceof Arcanist) {
       return "Arcanist: your skills deal 50% more, but your wand deals half";
     } else if ($ instanceof Broomstick) {
@@ -18711,15 +18711,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      2497,
+      2515,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 75453,
-        end: 75505,
-        pattern_start: 75464,
-        pattern_end: 75471
+        start: 75975,
+        end: 76027,
+        pattern_start: 75986,
+        pattern_end: 75993
       }
     );
   } else {
@@ -19831,15 +19831,15 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        1026,
+        1027,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $12,
-          start: 28926,
-          end: 28982,
-          pattern_start: 28937,
-          pattern_end: 28942
+          start: 28961,
+          end: 29017,
+          pattern_start: 28972,
+          pattern_end: 28977
         }
       );
     }
@@ -20400,6 +20400,14 @@ function afflict2(world2, ids, with$) {
 function ricocheting(p2) {
   return p2.rebound && has2(p2, Rule$Ricochet$const);
 }
+function rebounding(p2, damage3) {
+  let $ = ricocheting(p2);
+  if ($) {
+    return globalThis.Math.trunc(damage3 * 3 / 2);
+  } else {
+    return damage3;
+  }
+}
 function strikes_act(world2, dt2) {
   let p2 = world2.player;
   return fold2(
@@ -20468,7 +20476,7 @@ function strikes_act(world2, dt2) {
       let w$1 = hit_enemies(
         w2,
         targets,
-        s.damage,
+        rebounding(p2, s.damage),
         far(s) || ricocheting(p2),
         (e) => {
           let $22 = e.x >= p2.x;
@@ -20885,6 +20893,7 @@ function strike(world2, a, box4) {
       _block$6 = hit$3;
     }
     let dmg = _block$6;
+    let dmg$1 = rebounding(p$2, dmg);
     let p$3 = new Player(
       p$2.x,
       p$2.y,
@@ -20966,7 +20975,7 @@ function strike(world2, a, box4) {
         world2.easy
       ),
       targets,
-      dmg,
+      dmg$1,
       sure,
       (_) => {
         return push;
@@ -24210,15 +24219,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2447,
+        2465,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 73906,
-          end: 73957,
-          pattern_start: 73917,
-          pattern_end: 73925
+          start: 74428,
+          end: 74479,
+          pattern_start: 74439,
+          pattern_end: 74447
         }
       );
     }
@@ -24230,15 +24239,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2449,
+        2467,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 74040,
-          end: 74101,
-          pattern_start: 74051,
-          pattern_end: 74068
+          start: 74562,
+          end: 74623,
+          pattern_start: 74573,
+          pattern_end: 74590
         }
       );
     } else {
@@ -24248,15 +24257,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          2449,
+          2467,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 74040,
-            end: 74101,
-            pattern_start: 74051,
-            pattern_end: 74068
+            start: 74562,
+            end: 74623,
+            pattern_start: 74573,
+            pattern_end: 74590
           }
         );
       } else {
