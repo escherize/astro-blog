@@ -15099,7 +15099,7 @@ function spawn2(effect, px, py, base, b, aim, facing) {
   } else if (effect instanceof Heal) {
     return List$Empty$const;
   } else {
-    let d2 = 0.45 * (1 + (b.reach - 1) / 2);
+    let d2 = 0.45 * (1 + (b.reach - 1) / 4);
     let _block;
     let $ = facing > 0;
     if ($) {
@@ -25045,6 +25045,9 @@ try {
 } catch {
 }
 var last2 = {};
+var streak = {};
+var gain = 1;
+var pitch = 1;
 function wake() {
   if (!ctx) {
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -25068,9 +25071,9 @@ function toggleMute() {
 function tone(type, from, to2, len, vol = 1, delay = 0) {
   const t2 = ctx.currentTime + delay, o = ctx.createOscillator(), g = ctx.createGain();
   o.type = type;
-  o.frequency.setValueAtTime(from, t2);
-  o.frequency.exponentialRampToValueAtTime(Math.max(20, to2), t2 + len);
-  g.gain.setValueAtTime(vol, t2);
+  o.frequency.setValueAtTime(from * pitch, t2);
+  o.frequency.exponentialRampToValueAtTime(Math.max(20, to2 * pitch), t2 + len);
+  g.gain.setValueAtTime(vol * gain, t2);
   g.gain.exponentialRampToValueAtTime(1e-3, t2 + len);
   o.connect(g).connect(master);
   o.start(t2);
@@ -25087,9 +25090,9 @@ function noise(from, to2, len, vol = 1, delay = 0) {
   src.buffer = hiss;
   f.type = "bandpass";
   f.Q.value = 1.2;
-  f.frequency.setValueAtTime(from, t2);
-  f.frequency.exponentialRampToValueAtTime(Math.max(40, to2), t2 + len);
-  g.gain.setValueAtTime(vol, t2);
+  f.frequency.setValueAtTime(from * pitch, t2);
+  f.frequency.exponentialRampToValueAtTime(Math.max(40, to2 * pitch), t2 + len);
+  g.gain.setValueAtTime(vol * gain, t2);
   g.gain.exponentialRampToValueAtTime(1e-3, t2 + len);
   src.connect(f).connect(g).connect(master);
   src.start(t2, Math.random() * 0.5, len + 0.05);
@@ -25132,8 +25135,8 @@ var SOUNDS = {
     noise(1500, 3200, 0.1, 0.2);
   },
   boom: () => {
-    noise(500, 60, 0.35, 1);
-    tone("sine", 120, 40, 0.3, 0.7);
+    noise(500, 60, 0.28, 0.7);
+    tone("sine", 120, 40, 0.24, 0.5);
   },
   wave: () => {
     noise(260, 70, 0.28, 0.9);
@@ -25154,11 +25157,17 @@ var SOUNDS = {
   }
 };
 var played = {};
+function repeat3(n, jitter = 0) {
+  const k2 = Math.min(n, 4);
+  return { gain: 0.7 ** k2, pitch: 0.89 ** k2 * (1 + 0.03 * jitter) };
+}
 function play(name3) {
   played[name3] = (played[name3] || 0) + 1;
   if (!ctx || ctx.state !== "running") return;
-  const now = ctx.currentTime;
-  if (now - (last2[name3] ?? -1) < 0.045) return;
+  const now = ctx.currentTime, since = now - (last2[name3] ?? -1);
+  if (since < 0.045) return;
+  streak[name3] = since < 0.5 ? (streak[name3] ?? 0) + 1 : 0;
+  ({ gain, pitch } = repeat3(streak[name3], Math.random() * 2 - 1));
   last2[name3] = now;
   SOUNDS[name3]();
 }
@@ -25759,7 +25768,7 @@ function stickers(texture) {
 var SHOW = Object.fromEntries(Object.keys(ART).map((k2) => [k2, stickers(ART[k2])]));
 function strikeArt(s) {
   const name3 = s.effect.constructor.name;
-  if (name3 === "Firebolt") return s.pierce ? ["blast", 1, 1] : ["fire", 2.6, 1.8];
+  if (name3 === "Firebolt") return s.pierce ? ["blast", 1, 1] : ["fire", 2, 1.4];
   if (name3 === "Bolt") return ["bolt", 1.5, 1.5];
   if (name3 === "Orb") return ["orb", 1.4, 1.4];
   if (name3 === "Knife") return ["knife", 1.7, 3];
