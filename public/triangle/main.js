@@ -18974,37 +18974,15 @@ function distance(t2, owned, id2) {
 }
 __name(distance, "distance");
 function details(t2, n) {
-  let _block;
-  let _pipe = get(t2.rings, n.cell);
-  let _pipe$1 = from_result(_pipe);
-  let _pipe$2 = unwrap(_pipe$1, List$Empty$const);
-  _block = contains(_pipe$2, n.id);
-  let in_ring = _block;
-  let _block$1;
-  let $ = find(t2.cells, (c) => {
-    return c.id === n.cell;
-  });
-  if ($ instanceof Ok) {
-    if (in_ring) {
-      let c = $[0];
-      _block$1 = c.name + "'s ring";
-    } else {
-      let c = $[0];
-      _block$1 = "a spur off " + c.name + "'s ring";
-    }
-  } else {
-    _block$1 = "a path between rings";
-  }
-  let home2 = _block$1;
-  let $1 = n.kind;
-  if ($1 instanceof Keystone) {
-    let name3 = $1.name;
+  let $ = n.kind;
+  if ($ instanceof Keystone) {
+    let name3 = $.name;
     let sp = spec(name3);
-    let _block$2;
-    let _pipe$3 = get(t2.rings, n.id);
-    let _pipe$4 = from_result(_pipe$3);
-    _block$2 = unwrap(_pipe$4, List$Empty$const);
-    let ring = _block$2;
+    let _block;
+    let _pipe = get(t2.rings, n.id);
+    let _pipe$1 = from_result(_pipe);
+    _block = unwrap(_pipe$1, List$Empty$const);
+    let ring = _block;
     return flatten(
       prepend(
         prepend(
@@ -19016,9 +18994,9 @@ function details(t2, n) {
         ),
         prepend(
           (() => {
-            let $2 = keystone_rule(name3);
-            if ($2 instanceof Some) {
-              let rule = $2[0];
+            let $1 = keystone_rule(name3);
+            if ($1 instanceof Some) {
+              let rule = $1[0];
               return prepend(
                 grant_name(new GrantRule(rule)),
                 List$Empty$const
@@ -19037,9 +19015,9 @@ function details(t2, n) {
                 "Comes with: " + describe(sp.skill),
                 prepend(
                   "Also on its ring: " + brief(sp.second) + (() => {
-                    let $2 = ring_bend(name3);
-                    if ($2 instanceof Some) {
-                      let rule = $2[0];
+                    let $1 = ring_bend(name3);
+                    if ($1 instanceof Some) {
+                      let rule = $1[0];
                       return " and " + brief(new GrantRule(rule));
                     } else {
                       return "";
@@ -19047,8 +19025,8 @@ function details(t2, n) {
                   })(),
                   prepend(
                     (() => {
-                      let $2 = parked(name3);
-                      if ($2) {
+                      let $1 = parked(name3);
+                      if ($1) {
                         return "Coming soon: this class is not finished yet.";
                       } else {
                         return "Ring: " + to_string(length(ring)) + " nodes. Fill all of them to unlock " + name3 + ".";
@@ -19064,34 +19042,31 @@ function details(t2, n) {
         )
       )
     );
-  } else if ($1 instanceof Small) {
-    let $2 = $1.bonus;
-    if ($2 instanceof Stat) {
-      let axis = $2[0];
+  } else if ($ instanceof Small) {
+    let $1 = $.bonus;
+    if ($1 instanceof Stat) {
+      let axis = $1[0];
       return prepend(
         bonus_name(new Stat(axis)),
         prepend(
           "Small node: a bonus.",
           prepend(
             "A " + name2(axis) + " point: " + explain(axis) + ".",
-            prepend("In " + home2 + ".", List$Empty$const)
+            List$Empty$const
           )
         )
       );
     } else {
-      let b = $2;
+      let b = $1;
       return prepend(
         bonus_name(b),
-        prepend(
-          "Small node: a bonus.",
-          prepend("In " + home2 + ".", List$Empty$const)
-        )
+        prepend("Small node: a bonus.", List$Empty$const)
       );
     }
   } else {
-    let name3 = $1.name;
-    let g = $1.grant;
-    let _pipe$3 = unique(
+    let name3 = $.name;
+    let g = $.grant;
+    let _pipe = unique(
       prepend(
         name3,
         prepend(
@@ -19117,13 +19092,13 @@ function details(t2, n) {
                   return "";
                 }
               })(),
-              prepend("In " + home2 + ".", List$Empty$const)
+              List$Empty$const
             )
           )
         )
       )
     );
-    return filter(_pipe$3, (line) => {
+    return filter(_pipe, (line) => {
       return line !== "";
     });
   }
