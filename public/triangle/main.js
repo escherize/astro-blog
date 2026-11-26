@@ -16417,7 +16417,7 @@ function spawn2(effect, px, py, base, b, aim, facing) {
       0.5,
       0.2,
       16,
-      0.8,
+      0.5,
       dmg(0.5),
       shots,
       b,
