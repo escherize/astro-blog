@@ -26775,6 +26775,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
       title = name3;
       body2 = [...wrap(rest.join(": "), F2.body, 430), ...body2];
     }
+    body2 = body2.flatMap((l) => wrap(l, F2.body, 430)).slice(0, 10);
     let status, go2 = false;
     const lv = d2.levelOf(f);
     if (lv > 0) {
@@ -26793,11 +26794,11 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
       const dist = distance(d2.w.tree, d2.p.allocated, f.id);
       status = dist > 0 ? `${dist} points away` : "Unreachable";
     }
-    const cw = 560, ch2 = 64 + Math.min(body2.length, 4) * 20, cx = PANE_AREA.x + 20, cy = PANE_AREA.y + PANE_AREA.h - ch2 - 20;
+    const cw = 560, ch2 = 64 + body2.length * 20, cx = PANE_AREA.x + 20, cy = PANE_AREA.y + PANE_AREA.h - ch2 - 20;
     card(cx, cy, cw, ch2);
     say(fit(title, '800 19px "Baloo 2"', cw - 180), cx + 18, cy + 32, '800 19px "Baloo 2"', STRONG);
     const kw = chip(KIND_NAME[kindOf(f)], cx + 18, cy + 60, colorOf(f));
-    body2.slice(0, 4).forEach((l, i) => say(fit(l, F2.body, cw - kw - 60), cx + 26 + kw, cy + 61 + i * 20, F2.body, BODY));
+    body2.forEach((l, i) => say(fit(l, F2.body, cw - kw - 60), cx + 26 + kw, cy + 61 + i * 20, F2.body, BODY));
     if (go2) {
       button("A", cx + cw - 150, cy + 34);
       say(status, cx + cw - 118, cy + 34, F2.strong, "#1d5b2a");
