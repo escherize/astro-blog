@@ -16389,6 +16389,12 @@ var Knife = class extends CustomType {
   }
 };
 var Effect$Knife$const = new Knife();
+var Caltrops = class extends CustomType {
+  static {
+    __name(this, "Caltrops");
+  }
+};
+var Effect$Caltrops$const = new Caltrops();
 var Bolt = class extends CustomType {
   static {
     __name(this, "Bolt");
@@ -16477,12 +16483,15 @@ var firebolt_fall = 20;
 var firebolt_drift = 2;
 var firebolt_height = 7;
 var firebolt_ahead = 2.4;
+var caltrops_ttl = 3;
 var jump_recharge = 0.6;
 var firebolt_wait = 0.5;
 var firebolt_blast = 6;
+var caltrops_bite = 0.5;
 var orbit_speed = 3.9;
 var arrow_far = 6;
 var shockwave_stun = 0.75;
+var caltrops_root = 1;
 var max_level = 5;
 function upto(from, to2) {
   let $ = from > to2;
@@ -16609,6 +16618,26 @@ function spawn2(effect, px, py, base, b, aim, facing) {
       b,
       aim
     );
+  } else if (effect instanceof Caltrops) {
+    let w2 = 1.8 * b.reach;
+    return prepend(
+      new Strike(
+        effect,
+        px - w2 / 2,
+        py,
+        w2,
+        0.4,
+        0,
+        0,
+        caltrops_ttl,
+        false,
+        true,
+        dmg(0.8 * grown),
+        List$Empty$const,
+        0
+      ),
+      List$Empty$const
+    );
   } else if (effect instanceof Bolt) {
     let d2 = 0.4 * b.reach;
     return volley(
@@ -16719,6 +16748,8 @@ function name(effect) {
     return "shockwave";
   } else if (effect instanceof Knife) {
     return "knife";
+  } else if (effect instanceof Caltrops) {
+    return "caltrops";
   } else if (effect instanceof Bolt) {
     return "mana bolt";
   } else if (effect instanceof Arrow) {
@@ -16771,6 +16802,8 @@ function level_note(effect) {
     return "+30% damage";
   } else if (effect instanceof Knife) {
     return "+1 per throw";
+  } else if (effect instanceof Caltrops) {
+    return "+30% damage";
   } else if (effect instanceof Bolt) {
     return "+1 per throw";
   } else if (effect instanceof Arrow) {
@@ -16862,6 +16895,17 @@ function advance(s, dt2) {
       )
     );
   } else {
+    let ttl = s.ttl - dt2;
+    let _block;
+    let $2 = s.effect instanceof Caltrops && truncate(
+      divideFloat(s.ttl, caltrops_bite)
+    ) !== truncate(divideFloat(ttl, caltrops_bite));
+    if ($2) {
+      _block = List$Empty$const;
+    } else {
+      _block = s.hit;
+    }
+    let hit = _block;
     let s$1 = new Strike(
       s.effect,
       s.x + s.vx * dt2,
@@ -16870,15 +16914,15 @@ function advance(s, dt2) {
       s.h,
       s.vx,
       s.vy,
-      s.ttl - dt2,
+      ttl,
       s.follow,
       s.pierce,
       s.damage,
-      s.hit,
+      hit,
       s.wait
     );
-    let $2 = s$1.ttl > 0;
-    if ($2) {
+    let $3 = s$1.ttl > 0;
+    if ($3) {
       return new Ok(s$1);
     } else {
       return new Error2(void 0);
@@ -17914,7 +17958,7 @@ function spec(name3) {
     );
   } else if (name3 === "Bandit") {
     return new Spec(
-      new Skill(Trigger$OnJump$const, Effect$Knife$const, 0),
+      new Skill(Trigger$OnJump$const, Effect$Caltrops$const, 0),
       new GrantRule(Rule$GiantSlayer$const)
     );
   } else if (name3 === "Trickster") {
@@ -18000,15 +18044,15 @@ function signature_node(t2, keystone) {
         "let_assert",
         FILEPATH,
         "tree",
-        316,
+        317,
         "signature_node",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $,
-          start: 10705,
-          end: 10761,
-          pattern_start: 10716,
-          pattern_end: 10731
+          start: 10779,
+          end: 10835,
+          pattern_start: 10790,
+          pattern_end: 10805
         }
       );
     } else {
@@ -18019,15 +18063,15 @@ function signature_node(t2, keystone) {
       "let_assert",
       FILEPATH,
       "tree",
-      316,
+      317,
       "signature_node",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 10705,
-        end: 10761,
-        pattern_start: 10716,
-        pattern_end: 10731
+        start: 10779,
+        end: 10835,
+        pattern_start: 10790,
+        pattern_end: 10805
       }
     );
   }
@@ -18221,6 +18265,8 @@ function lesser(s) {
     return [new ShockwavePct(10), new DamagePct(5)];
   } else if ($ instanceof Knife) {
     return [new DamagePct(5), new CooldownPct(5)];
+  } else if ($ instanceof Caltrops) {
+    return [new DamagePct(5), new CooldownPct(5)];
   } else if ($ instanceof Bolt) {
     return [new DamagePct(5), new CooldownPct(5)];
   } else if ($ instanceof Arrow) {
@@ -18244,6 +18290,8 @@ function upgrades(s) {
     return [new ShockwavePct(30), new ShockwavePct(30)];
   } else if ($ instanceof Knife) {
     return [Bonus$ExtraKnife$const, Bonus$KnifePierce$const];
+  } else if ($ instanceof Caltrops) {
+    return [new ReachPct(15), new DamagePct(10)];
   } else if ($ instanceof Bolt) {
     return [Bonus$ExtraKnife$const, Bonus$KnifePierce$const];
   } else if ($ instanceof Arrow) {
@@ -18325,15 +18373,15 @@ function nth(items, i) {
       "let_assert",
       FILEPATH,
       "tree",
-      421,
+      427,
       "nth",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 13624,
-        end: 13676,
-        pattern_start: 13635,
-        pattern_end: 13640
+        start: 13815,
+        end: 13867,
+        pattern_start: 13826,
+        pattern_end: 13831
       }
     );
   }
@@ -18447,15 +18495,15 @@ function find2(acc2, id2) {
       "let_assert",
       FILEPATH,
       "tree",
-      541,
+      547,
       "find",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 17056,
-        end: 17117,
-        pattern_start: 17067,
-        pattern_end: 17072
+        start: 17247,
+        end: 17308,
+        pattern_start: 17258,
+        pattern_end: 17263
       }
     );
   }
@@ -18657,15 +18705,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        629,
+        635,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 20438,
-          end: 20484,
-          pattern_start: 20449,
-          pattern_end: 20457
+          start: 20629,
+          end: 20675,
+          pattern_start: 20640,
+          pattern_end: 20648
         }
       );
     }
@@ -18690,15 +18738,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        630,
+        636,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 20489,
-          end: 20663,
-          pattern_start: 20500,
-          pattern_end: 20507
+          start: 20680,
+          end: 20854,
+          pattern_start: 20691,
+          pattern_end: 20698
         }
       );
     } else {
@@ -18767,15 +18815,15 @@ function build() {
               "let_assert",
               FILEPATH,
               "tree",
-              674,
+              680,
               "build",
               "Pattern match failed, no pattern matched the value.",
               {
                 value: chain2,
-                start: 22278,
-                end: 22307,
-                pattern_start: 22289,
-                pattern_end: 22299
+                start: 22469,
+                end: 22498,
+                pattern_start: 22480,
+                pattern_end: 22490
               }
             );
           } else {
@@ -18792,15 +18840,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          677,
+          683,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: chain,
-            start: 22383,
-            end: 22412,
-            pattern_start: 22394,
-            pattern_end: 22404
+            start: 22574,
+            end: 22603,
+            pattern_start: 22585,
+            pattern_end: 22595
           }
         );
       } else {
@@ -18928,15 +18976,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          735,
+          741,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $4,
-            start: 24631,
-            end: 24851,
-            pattern_start: 24642,
-            pattern_end: 24662
+            start: 24822,
+            end: 25042,
+            pattern_start: 24833,
+            pattern_end: 24853
           }
         );
       }
@@ -20705,15 +20753,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      2761,
+      2807,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 83497,
-        end: 83549,
-        pattern_start: 83508,
-        pattern_end: 83515
+        start: 84971,
+        end: 85023,
+        pattern_start: 84982,
+        pattern_end: 84989
       }
     );
   } else {
@@ -22799,6 +22847,8 @@ function strike_status(p2, s) {
     return new Some([Status$Stun$const, shockwave_stun]);
   } else if ($ instanceof Knife) {
     return new Some([Status$Poison$const, 3]);
+  } else if ($ instanceof Caltrops) {
+    return new Some([Status$Root$const, caltrops_root]);
   } else if ($ instanceof Bolt) {
     return or2(inflicts(p2.weapon), venom(p2));
   } else if ($ instanceof Arrow) {
@@ -24141,6 +24191,95 @@ function orbit(world2) {
   }
 }
 __name(orbit, "orbit");
+function on_the_floor(s, level) {
+  let $ = s.effect instanceof Caltrops;
+  if ($) {
+    let mid = s.x + s.w / 2;
+    let _block;
+    let _pipe = level;
+    let _pipe$1 = filter(
+      _pipe,
+      (r) => {
+        return r.y + r.h <= s.y + 0.01 && r.x <= mid && r.x + r.w >= mid;
+      }
+    );
+    _block = fold2(
+      _pipe$1,
+      s.y - 100,
+      (top, r) => {
+        return max3(top, r.y + r.h);
+      }
+    );
+    let floor3 = _block;
+    return new Strike(
+      s.effect,
+      s.x,
+      floor3,
+      s.w,
+      s.h,
+      s.vx,
+      s.vy,
+      s.ttl,
+      s.follow,
+      s.pierce,
+      s.damage,
+      s.hit,
+      s.wait
+    );
+  } else {
+    return s;
+  }
+}
+__name(on_the_floor, "on_the_floor");
+function scatter(s, world2) {
+  let p2 = world2.player;
+  let _block;
+  let _pipe = world2.enemies;
+  let _pipe$1 = filter(
+    _pipe,
+    (e) => {
+      return alive(e) && !(e.kind instanceof Dummy) && absolute_value2(
+        e.x - p2.x
+      ) < 6;
+    }
+  );
+  _block = sort(
+    _pipe$1,
+    (a, b) => {
+      return compare2(
+        absolute_value2(a.x - p2.x),
+        absolute_value2(b.x - p2.x)
+      );
+    }
+  );
+  let near = _block;
+  let $ = s.effect instanceof Caltrops;
+  if ($) {
+    if (near instanceof Empty) {
+      return s;
+    } else {
+      let e = near.head;
+      return new Strike(
+        s.effect,
+        e.x - s.w / 2,
+        s.y,
+        s.w,
+        s.h,
+        s.vx,
+        s.vy,
+        s.ttl,
+        s.follow,
+        s.pierce,
+        s.damage,
+        s.hit,
+        s.wait
+      );
+    }
+  } else {
+    return s;
+  }
+}
+__name(scatter, "scatter");
 function under_the_ceiling(s, level, feet) {
   let $ = s.effect instanceof Firebolt;
   if ($) {
@@ -24461,10 +24600,22 @@ function fire_skills(world2, before, dt2) {
           aim,
           p$1.facing
         );
-        _block$42 = map3(
+        let _pipe$1 = map3(
           _pipe,
           (_capture) => {
             return under_the_ceiling(_capture, world2.level, p$1.y);
+          }
+        );
+        let _pipe$2 = map3(
+          _pipe$1,
+          (_capture) => {
+            return scatter(_capture, world2);
+          }
+        );
+        _block$42 = map3(
+          _pipe$2,
+          (_capture) => {
+            return on_the_floor(_capture, world2.level);
           }
         );
         let strikes = _block$42;
@@ -26906,15 +27057,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2711,
+        2757,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 81950,
-          end: 82001,
-          pattern_start: 81961,
-          pattern_end: 81969
+          start: 83424,
+          end: 83475,
+          pattern_start: 83435,
+          pattern_end: 83443
         }
       );
     }
@@ -26926,15 +27077,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2713,
+        2759,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 82084,
-          end: 82145,
-          pattern_start: 82095,
-          pattern_end: 82112
+          start: 83558,
+          end: 83619,
+          pattern_start: 83569,
+          pattern_end: 83586
         }
       );
     } else {
@@ -26944,15 +27095,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          2713,
+          2759,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 82084,
-            end: 82145,
-            pattern_start: 82095,
-            pattern_end: 82112
+            start: 83558,
+            end: 83619,
+            pattern_start: 83569,
+            pattern_end: 83586
           }
         );
       } else {
@@ -28564,6 +28715,11 @@ var ART = {
     g.fill();
     g.stroke();
   }),
+  // caltrops: a row of little four-point spikes. Drawn square, shown wide and low
+  caltrops: drawn((g) => {
+    g.lineWidth = 4;
+    for (const x of [16, 48, 80]) shape(g, star(4, x, 52, 15, 5, Math.PI / 4), "#9aa4ad");
+  }),
   // what a kill drops: an experience shard (a gem) and a heart
   shard: drawn((g) => {
     shape(g, [[48, 6], [80, 40], [48, 90], [16, 40]], "#5ee0c8");
@@ -28638,6 +28794,7 @@ function strikeArt(s) {
   if (name3 === "Bolt") return ["bolt", 3, 1.5];
   if (name3 === "Orb") return ["orb", 1.4, 1.4];
   if (name3 === "Knife") return ["knife", 1.7, 3];
+  if (name3 === "Caltrops") return ["caltrops", 1, 1.6];
   if (name3 === "Arrow") return ["arrow", 1.5, 4];
   return [name3 === "Shockwave" ? "wave" : "sweep", 1, 1];
 }
@@ -28819,7 +28976,7 @@ var SHAPE = {
   block: "M6 1 L11 3 V6.5 C11 9 8.5 10.8 6 11.5 C3.5 10.8 1 9 1 6.5 V3 Z"
 };
 var PIP_COLOR = { jump: "#1f9fb5", dash: "#3aa5ee", block: "#e0a21b" };
-var SKILL_COLOR = { Firebolt: "#ff7a3d", Bolt: "#2aa9ee", Orb: "#8b8ff5", Knife: "#5fbf4a", Arrow: "#5fbf4a", Heal: "#ef6b9a" };
+var SKILL_COLOR = { Firebolt: "#ff7a3d", Bolt: "#2aa9ee", Orb: "#8b8ff5", Knife: "#5fbf4a", Caltrops: "#9aa4ad", Arrow: "#5fbf4a", Heal: "#ef6b9a" };
 var MAX_PIPS = 3;
 var MAX_PIES = 4;
 var miniKey = "";
