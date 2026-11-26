@@ -25511,12 +25511,25 @@ var FACES_LEFT = /* @__PURE__ */ new Set(["Hunter", "Duelist", "Thief", "Cavalie
 var ME_H = 1.6;
 var showBox = false;
 var turn = 1;
+var SPRITES = {
+  Knight: { cols: 8, rows: 2, cell: [400, 330], px: 280, stride: 3.2, run: [0, 1, 2, 3, 4, 5, 6, 7], idle: 8, jump: 9, fall: 10, hurt: 11, windup: 12, slash: 13, dash: 14 }
+};
+var ran = 0;
+function spriteFrame(p2, s, dt2) {
+  if (p2.hurt > 0) return s.hurt;
+  if (p2.dash_time > 0) return s.dash;
+  if (p2.attack instanceof Some && !(p2.weapon.shot instanceof Some)) return p2.attack[0].time * speed2(p2) < p2.weapon.startup ? s.windup : s.slash;
+  if (!p2.grounded) return p2.vy > 0 ? s.jump : s.fall;
+  if (Math.abs(p2.vx) <= 0.5) return s.idle;
+  ran += Math.abs(p2.vx) * dt2;
+  return s.run[Math.floor(ran / s.stride * s.run.length) % s.run.length];
+}
 var landed = 0;
 var stride = 0;
 var recoil = 0;
 var wasGrounded = true;
 var fallSpeed = 0;
-function stickerPose(p2, dt2) {
+function stickerPose(p2, dt2, framed) {
   if (calm) return { sx: 1, sy: 1, tilt: 0, dx: 0, dy: 0 };
   if (p2.grounded && !wasGrounded) landed = Math.min(1, -fallSpeed / 22);
   wasGrounded = p2.grounded;
@@ -25527,6 +25540,14 @@ function stickerPose(p2, dt2) {
   stride += Math.abs(p2.vx) * dt2 * 1.7;
   let sx = 1, sy = 1, tilt = 0, dx = 0, dy = 0;
   if (p2.grounded && !running) sy += Math.sin(performance.now() / 420) * 0.015;
+  if (framed) {
+    if (!p2.grounded) {
+      const k2 = Math.min(1, Math.abs(p2.vy) / 20) * 0.06;
+      sy += k2;
+      sx -= k2 * 0.7;
+    }
+    return { sx: sx + landed * 0.18, sy: sy - landed * 0.22, tilt, dx, dy };
+  }
   if (running) {
     tilt -= 0.07 * way;
     dy += Math.abs(Math.sin(stride)) * 0.07;
@@ -26276,21 +26297,29 @@ function frame(now) {
   player.position.z = myClass ? 0.9 : 0;
   me2.visible = shown && !!myClass;
   if (myClass) {
-    const t2 = heroTexture(myClass);
+    const sheet = SPRITES[myClass];
+    const t2 = sheet ? stickerTexture(`sprites/${myClass.toLowerCase()}`) : heroTexture(myClass);
     if (me2.material.map !== t2) {
       me2.material.map = t2;
       me2.material.needsUpdate = true;
     }
-    const [wide, tall] = stickerSize(t2.image, ME_H);
-    const want = p2.facing * (FACES_LEFT.has(myClass) ? -1 : 1);
+    let wide, tall;
+    if (sheet) {
+      const f = spriteFrame(p2, sheet, frameDt);
+      t2.repeat.set(1 / sheet.cols, 1 / sheet.rows);
+      t2.offset.set(f % sheet.cols / sheet.cols, 1 - (Math.floor(f / sheet.cols) + 1) / sheet.rows);
+      [wide, tall] = [ME_H * sheet.cell[0] / sheet.px, ME_H * sheet.cell[1] / sheet.px];
+      me2.userData.frame = f;
+    } else [wide, tall] = stickerSize(t2.image, ME_H);
+    const want = p2.facing * (FACES_LEFT.has(myClass) && !sheet ? -1 : 1);
     turn = calm ? want : Math.max(-1, Math.min(1, turn + Math.sign(want - turn) * frameDt / 0.09));
-    const pose = stickerPose(p2, frameDt), high = tall * pose.sy;
+    const pose = stickerPose(p2, frameDt, !!sheet), high = tall * pose.sy;
     me2.scale.set(wide * pose.sx * Math.sin(turn * Math.PI / 2), high, 1);
     me2.rotation.z = pose.tilt;
     me2.position.set(px + pose.dx - Math.sin(pose.tilt) * (high / 2), py + pose.dy + Math.cos(pose.tilt) * (high / 2), 0.6);
     me2.material.color.set(hurtFlash > 0 ? 16739179 : 16777215);
   }
-  drawMini(p2, px, py + (myClass ? stickerSize(heroTexture(myClass).image, ME_H)[1] : height));
+  drawMini(p2, px, py + (SPRITES[myClass] ? ME_H : myClass ? stickerSize(heroTexture(myClass).image, ME_H)[1] : height));
   const hb = active_hitbox(p2);
   slash.visible = hb instanceof Some;
   if (slash.visible) {
@@ -26344,7 +26373,7 @@ function frame(now) {
       flying.orb.push({ x, y: y2, w: r.w * k2, h: r.h * k2, z: depth > 0 ? 0.5 : 1 });
       continue;
     }
-    flying[art].push(moving ? { x, y: y2, w: long * kw, h: (art === "bolt" ? long : short) * kh, turn: art === "bolt" ? 0 : Math.atan2(s.vy, s.vx) } : { x, y: y2, w: r.w * kw, h: r.h * kh, flip: art === "sweep" && x < px });
+    flying[art].push(moving ? { x, y: y2, w: long * kw, h: (art === "bolt" ? long : short) * kh, turn: art === "bolt" ? 0 : Math.atan2(s.vy, s.vx) } : { x, y: y2, w: r.w * kw, h: r.h * kh, flip: art === "sweep" && (Math.abs(x - px) > 0.05 ? x < px : p2.facing < 0) });
   }
   for (const m of marks) flying[m.art].push(m);
   for (const k2 of Object.keys(ART)) SHOW[k2](flying[k2]);
