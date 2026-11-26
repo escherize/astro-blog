@@ -11646,21 +11646,21 @@ __name(zip, "zip");
 function unique_loop(loop$list, loop$seen, loop$acc) {
   while (true) {
     let list = loop$list;
-    let seen = loop$seen;
+    let seen2 = loop$seen;
     let acc2 = loop$acc;
     if (list instanceof Empty) {
       return reverse2(acc2);
     } else {
       let first$1 = list.head;
       let rest$1 = list.tail;
-      let $ = has(seen, first$1);
+      let $ = has(seen2, first$1);
       if ($) {
         loop$list = rest$1;
-        loop$seen = seen;
+        loop$seen = seen2;
         loop$acc = acc2;
       } else {
         loop$list = rest$1;
-        loop$seen = insert(seen, first$1, void 0);
+        loop$seen = insert(seen2, first$1, void 0);
         loop$acc = prepend(first$1, acc2);
       }
     }
@@ -16217,21 +16217,21 @@ function climbable(loop$level, loop$from, loop$seen) {
   while (true) {
     let level = loop$level;
     let from = loop$from;
-    let seen = loop$seen;
+    let seen2 = loop$seen;
     if (from instanceof Empty) {
-      return seen;
+      return seen2;
     } else {
       let a = from.head;
       let rest = from.tail;
       let new$2 = filter(
         level,
         (b) => {
-          return !contains(seen, b) && hop(a, b);
+          return !contains(seen2, b) && hop(a, b);
         }
       );
       loop$level = level;
       loop$from = append(rest, new$2);
-      loop$seen = append(seen, new$2);
+      loop$seen = append(seen2, new$2);
     }
   }
 }
@@ -19178,7 +19178,7 @@ function bfs(loop$t, loop$target, loop$frontier, loop$seen, loop$depth) {
     let t2 = loop$t;
     let target = loop$target;
     let frontier = loop$frontier;
-    let seen = loop$seen;
+    let seen2 = loop$seen;
     let depth = loop$depth;
     let _block;
     let _pipe = frontier;
@@ -19194,7 +19194,7 @@ function bfs(loop$t, loop$target, loop$frontier, loop$seen, loop$depth) {
     _block = filter(
       _pipe$2,
       (id2) => {
-        return !contains(seen, id2) && (() => {
+        return !contains(seen2, id2) && (() => {
           let $2 = get(t2.nodes, id2);
           if ($2 instanceof Ok && $2[0].kind instanceof Keystone) {
             return false;
@@ -19214,7 +19214,7 @@ function bfs(loop$t, loop$target, loop$frontier, loop$seen, loop$depth) {
       loop$t = t2;
       loop$target = target;
       loop$frontier = next3;
-      loop$seen = append(seen, next3);
+      loop$seen = append(seen2, next3);
       loop$depth = depth + 1;
     }
   }
@@ -28270,20 +28270,70 @@ var ME_H = 1.6;
 var showBox = false;
 var turn = 1;
 var SPRITES = {
-  Knight: { cols: 6, rows: 4, cell: [550, 410], feet: 30, px: 280, stride: 3.2, run: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], idle: 12, jump: 13, fall: 14, hurt: 15, windup: 16, slash: 17, dash: 18, follow: 19, up: 20, down: 21 }
+  Knight: {
+    cols: 6,
+    rows: 6,
+    cell: [550, 410],
+    feet: 30,
+    px: 280,
+    stride: 3.2,
+    breath: 0.28,
+    run: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+    idle: [12, 13, 14, 15, 16, 17, 18],
+    jump: 19,
+    fall: 20,
+    hurt: 21,
+    windup: 22,
+    smear: 23,
+    slash: 24,
+    dash: 25,
+    follow: 26,
+    up: 27,
+    down: 28,
+    land: 29,
+    skid: 30,
+    wall: 31,
+    tuck: 32,
+    block: 33,
+    slam: 34,
+    kick: 35
+  }
 };
+var MOMENT = { land: 0.1, slam: 0.32, tuck: 0.28, block: 0.3, skid: 0.14 };
+var HARD_FALL = -15;
 var ran = 0;
+var idled = 0;
+var seen = { grounded: true, vy: 0, airJumps: 0, shield: 0, facing: 1, moment: null, left: 0 };
 function spriteFrame(p2, s, dt2) {
+  if (p2.grounded && !seen.grounded) [seen.moment, seen.left] = seen.vy < HARD_FALL ? ["slam", MOMENT.slam] : ["land", MOMENT.land];
+  if (!p2.grounded && p2.air_jumps < seen.airJumps) [seen.moment, seen.left] = ["tuck", MOMENT.tuck];
+  if (p2.shield < seen.shield && p2.invuln > 0) [seen.moment, seen.left] = ["block", MOMENT.block];
+  if (p2.grounded && p2.facing !== seen.facing && p2.vx * p2.facing < -3) [seen.moment, seen.left] = ["skid", MOMENT.skid];
+  if (!p2.grounded && seen.grounded) seen.moment = null;
+  Object.assign(seen, { grounded: p2.grounded, vy: p2.vy, airJumps: p2.air_jumps, shield: p2.shield, facing: p2.facing });
+  seen.left -= dt2;
+  const moment = seen.left > 0 ? seen.moment : null;
   if (p2.hurt > 0) return s.hurt;
+  if (moment === "block") return s.block;
   if (p2.dash_time > 0) return s.dash;
   if (p2.attack instanceof Some && !(p2.weapon.shot instanceof Some)) {
     const a = p2.attack[0], t2 = a.time * speed2(p2), dir = a.dir.constructor.name;
-    if (t2 < p2.weapon.startup) return s.windup;
+    if (t2 < p2.weapon.startup) return dir === "Forward" && t2 >= p2.weapon.startup / 2 ? s.smear : s.windup;
     if (dir !== "Forward") return dir === "Up" ? s.up : s.down;
     return t2 < p2.weapon.startup + p2.weapon.active ? s.slash : s.follow;
   }
-  if (!p2.grounded) return p2.vy > 0 ? s.jump : s.fall;
-  if (Math.abs(p2.vx) <= 0.5) return s.idle;
+  if (moment === "tuck") return s.tuck;
+  if (!p2.grounded) {
+    if (p2.mods.wall_jump && p2.wall * p2.facing > 0 && p2.vy < 0 && p2.vy > -4.5) return s.wall;
+    if (p2.vy > 0) return p2.rebound ? s.kick : s.jump;
+    return s.fall;
+  }
+  if (moment === "land" || moment === "slam" || moment === "skid") return s[moment];
+  if (Math.abs(p2.vx) <= 0.5) {
+    idled += dt2;
+    return s.idle[Math.floor(idled / s.breath) % s.idle.length];
+  }
+  idled = 0;
   ran += Math.abs(p2.vx) * dt2;
   return s.run[Math.floor(ran / s.stride * s.run.length) % s.run.length];
 }
@@ -28303,7 +28353,7 @@ function stickerPose(p2, dt2, framed) {
   const running = p2.grounded && Math.abs(p2.vx) > 0.5, way = Math.sign(p2.vx);
   stride += Math.abs(p2.vx) * dt2 * 1.7;
   let sx = 1, sy = 1, tilt = 0, dx = 0, dy = 0;
-  if (p2.grounded && !running) sy += Math.sin(performance.now() / 420) * 0.015;
+  if (p2.grounded && !running && !framed) sy += Math.sin(performance.now() / 420) * 0.015;
   if (framed) {
     if (!p2.grounded) {
       const k2 = Math.min(1, Math.abs(p2.vy) / 20) * 0.06;
