@@ -28269,7 +28269,7 @@ var FACES_LEFT = /* @__PURE__ */ new Set(["Hunter", "Duelist", "Thief", "Cavalie
 var ME_H = 1.6;
 var showBox = false;
 var turn = 1;
-var ANIMATED = /* @__PURE__ */ new Set(["Knight", "Paladin", "Wizard", "Cleric", "Thief"]);
+var ANIMATED = /* @__PURE__ */ new Set(["Knight", "Paladin", "Wizard", "Cleric", "Thief", "Hunter"]);
 var SPRITES = {};
 var asked = /* @__PURE__ */ new Set();
 function loadSprites(name3) {
