@@ -17723,8 +17723,8 @@ function spec(name3) {
     );
   } else if (name3 === "Wizard") {
     return new Spec(
-      new Skill(new Every(1.5), Effect$Firebolt$const, 1.5),
-      new GrantMove(Move$DoubleJump$const)
+      new Skill(new Every(2), Effect$Bolt$const, 2),
+      new GrantSkill(new Skill(new Every(1.5), Effect$Firebolt$const, 1.5))
     );
   } else if (name3 === "Cleric") {
     return new Spec(
@@ -17794,15 +17794,15 @@ function signature_node(t2, keystone) {
         "let_assert",
         FILEPATH,
         "tree",
-        295,
+        305,
         "signature_node",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $,
-          start: 9868,
-          end: 9924,
-          pattern_start: 9879,
-          pattern_end: 9894
+          start: 10361,
+          end: 10417,
+          pattern_start: 10372,
+          pattern_end: 10387
         }
       );
     } else {
@@ -17813,15 +17813,15 @@ function signature_node(t2, keystone) {
       "let_assert",
       FILEPATH,
       "tree",
-      295,
+      305,
       "signature_node",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 9868,
-        end: 9924,
-        pattern_start: 9879,
-        pattern_end: 9894
+        start: 10361,
+        end: 10417,
+        pattern_start: 10372,
+        pattern_end: 10387
       }
     );
   }
@@ -18117,15 +18117,15 @@ function nth(items, i) {
       "let_assert",
       FILEPATH,
       "tree",
-      400,
+      410,
       "nth",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 12787,
-        end: 12839,
-        pattern_start: 12798,
-        pattern_end: 12803
+        start: 13280,
+        end: 13332,
+        pattern_start: 13291,
+        pattern_end: 13296
       }
     );
   }
@@ -18239,15 +18239,15 @@ function find2(acc2, id2) {
       "let_assert",
       FILEPATH,
       "tree",
-      520,
+      530,
       "find",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 16219,
-        end: 16280,
-        pattern_start: 16230,
-        pattern_end: 16235
+        start: 16712,
+        end: 16773,
+        pattern_start: 16723,
+        pattern_end: 16728
       }
     );
   }
@@ -18449,15 +18449,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        608,
+        618,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 19601,
-          end: 19647,
-          pattern_start: 19612,
-          pattern_end: 19620
+          start: 20094,
+          end: 20140,
+          pattern_start: 20105,
+          pattern_end: 20113
         }
       );
     }
@@ -18482,15 +18482,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        609,
+        619,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 19652,
-          end: 19826,
-          pattern_start: 19663,
-          pattern_end: 19670
+          start: 20145,
+          end: 20319,
+          pattern_start: 20156,
+          pattern_end: 20163
         }
       );
     } else {
@@ -18559,15 +18559,15 @@ function build() {
               "let_assert",
               FILEPATH,
               "tree",
-              653,
+              663,
               "build",
               "Pattern match failed, no pattern matched the value.",
               {
                 value: chain2,
-                start: 21441,
-                end: 21470,
-                pattern_start: 21452,
-                pattern_end: 21462
+                start: 21934,
+                end: 21963,
+                pattern_start: 21945,
+                pattern_end: 21955
               }
             );
           } else {
@@ -18584,15 +18584,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          656,
+          666,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: chain,
-            start: 21546,
-            end: 21575,
-            pattern_start: 21557,
-            pattern_end: 21567
+            start: 22039,
+            end: 22068,
+            pattern_start: 22050,
+            pattern_end: 22060
           }
         );
       } else {
@@ -18720,15 +18720,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          714,
+          724,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $4,
-            start: 23794,
-            end: 24014,
-            pattern_start: 23805,
-            pattern_end: 23825
+            start: 24287,
+            end: 24507,
+            pattern_start: 24298,
+            pattern_end: 24318
           }
         );
       }
