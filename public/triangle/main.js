@@ -27760,10 +27760,27 @@ var ART = {
     g.stroke();
     blob(g, 38, 38, 9, "#e3c39c");
   }),
+  // a mana bolt: a bright blue dart with a tail, pointing right (it is turned to the way it flies).
+  // It was a purple ball, which is the Sorcerer's orb. Drawn square and shown twice as long as tall
   bolt: drawn((g) => {
-    blob(g, 48, 48, 32, "#8b8ff5");
+    g.beginPath();
+    g.moveTo(3, 48);
+    g.quadraticCurveTo(40, 30, 70, 20);
+    g.lineTo(70, 76);
+    g.quadraticCurveTo(40, 66, 3, 48);
+    g.closePath();
+    g.fillStyle = "#9fe0ff";
+    g.fill();
     g.stroke();
-    blob(g, 48, 48, 17, "#dfe0ff");
+    g.beginPath();
+    g.ellipse(72, 48, 17, 32, 0, 0, Math.PI * 2);
+    g.fillStyle = "#2aa9ee";
+    g.fill();
+    g.stroke();
+    g.beginPath();
+    g.ellipse(74, 48, 8, 16, 0, 0, Math.PI * 2);
+    g.fillStyle = "#f2fbff";
+    g.fill();
   }),
   orb: drawn((g) => {
     blob(g, 48, 48, 36, "#6f63e8");
@@ -27886,7 +27903,7 @@ var SHOW = Object.fromEntries(Object.keys(ART).map((k2) => [k2, stickers(ART[k2]
 function strikeArt(s) {
   const name3 = s.effect.constructor.name;
   if (name3 === "Firebolt") return s.pierce ? ["blast", 1, 1] : ["fire", 2, 1.4];
-  if (name3 === "Bolt") return ["bolt", 1.5, 1.5];
+  if (name3 === "Bolt") return ["bolt", 3, 1.5];
   if (name3 === "Orb") return ["orb", 1.4, 1.4];
   if (name3 === "Knife") return ["knife", 1.7, 3];
   if (name3 === "Arrow") return ["arrow", 1.5, 4];
@@ -28070,7 +28087,7 @@ var SHAPE = {
   block: "M6 1 L11 3 V6.5 C11 9 8.5 10.8 6 11.5 C3.5 10.8 1 9 1 6.5 V3 Z"
 };
 var PIP_COLOR = { jump: "#1f9fb5", dash: "#3aa5ee", block: "#e0a21b" };
-var SKILL_COLOR = { Firebolt: "#ff7a3d", Bolt: "#8b8ff5", Orb: "#8b8ff5", Knife: "#5fbf4a", Arrow: "#5fbf4a", Heal: "#ef6b9a" };
+var SKILL_COLOR = { Firebolt: "#ff7a3d", Bolt: "#2aa9ee", Orb: "#8b8ff5", Knife: "#5fbf4a", Arrow: "#5fbf4a", Heal: "#ef6b9a" };
 var MAX_PIPS = 3;
 var MAX_PIES = 4;
 var miniKey = "";
@@ -28395,7 +28412,7 @@ function frame(now) {
       flying.wave.push({ x, y: r.y + 0.7, w: r.w * k2, h: 1.4 });
       continue;
     }
-    flying[art].push(moving ? { x, y: y2, w: long * kw, h: (art === "bolt" ? long : short) * kh, turn: art === "bolt" ? 0 : Math.atan2(s.vy, s.vx) } : { x, y: y2, w: r.w * kw, h: r.h * kh, flip: art === "sweep" && (Math.abs(x - px) > 0.05 ? x < px : p2.facing < 0) });
+    flying[art].push(moving ? { x, y: y2, w: long * kw, h: short * kh, turn: Math.atan2(s.vy, s.vx) } : { x, y: y2, w: r.w * kw, h: r.h * kh, flip: art === "sweep" && (Math.abs(x - px) > 0.05 ? x < px : p2.facing < 0) });
   }
   for (const m of marks) flying[m.art].push(m);
   for (const k2 of Object.keys(ART)) SHOW[k2](flying[k2]);
