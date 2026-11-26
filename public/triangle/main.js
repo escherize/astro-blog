@@ -12737,16 +12737,23 @@ var Poison = class extends CustomType {
   }
 };
 var Status$Poison$const = new Poison();
+var Stun = class extends CustomType {
+  static {
+    __name(this, "Stun");
+  }
+};
+var Status$Stun$const = new Stun();
 var Ailments = class extends CustomType {
   static {
     __name(this, "Ailments");
   }
-  constructor(chill, root, weak, poison) {
+  constructor(chill, root, weak, poison, stun) {
     super();
     this.chill = chill;
     this.root = root;
     this.weak = weak;
     this.poison = poison;
+    this.stun = stun;
   }
 };
 var Enemy = class extends CustomType {
@@ -12856,7 +12863,7 @@ function spawn(id2, kind, x, y2) {
     0,
     kind instanceof Flyer || kind instanceof Bouncer || kind instanceof Dummy,
     1,
-    new Ailments(0, 0, 0, 0)
+    new Ailments(0, 0, 0, 0, 0)
   );
 }
 __name(spawn, "spawn");
@@ -12870,14 +12877,16 @@ function afflict(e, status, seconds) {
         max3(a.chill, seconds / 2),
         a.root,
         a.weak,
-        a.poison
+        a.poison,
+        a.stun
       );
     } else {
       _block = new Ailments(
         max3(a.chill, seconds),
         a.root,
         a.weak,
-        a.poison
+        a.poison,
+        a.stun
       );
     }
   } else if (status instanceof Root) {
@@ -12888,7 +12897,8 @@ function afflict(e, status, seconds) {
         a.chill,
         max3(a.root, seconds),
         a.weak,
-        a.poison
+        a.poison,
+        a.stun
       );
     }
   } else if (status instanceof Weak) {
@@ -12896,14 +12906,26 @@ function afflict(e, status, seconds) {
       a.chill,
       a.root,
       max3(a.weak, seconds),
-      a.poison
+      a.poison,
+      a.stun
     );
+  } else if (status instanceof Poison) {
+    _block = new Ailments(
+      a.chill,
+      a.root,
+      a.weak,
+      max3(a.poison, seconds),
+      a.stun
+    );
+  } else if ($ instanceof Boss) {
+    _block = a;
   } else {
     _block = new Ailments(
       a.chill,
       a.root,
       a.weak,
-      max3(a.poison, seconds)
+      a.poison,
+      max3(a.stun, seconds)
     );
   }
   let ail = _block;
@@ -12939,7 +12961,10 @@ function statuses(e) {
       [Status$Root$const, e.ail.root],
       prepend(
         [Status$Weak$const, e.ail.weak],
-        prepend([Status$Poison$const, e.ail.poison], List$Empty$const)
+        prepend(
+          [Status$Poison$const, e.ail.poison],
+          prepend([Status$Stun$const, e.ail.stun], List$Empty$const)
+        )
       )
     )
   );
@@ -14559,6 +14584,37 @@ function think(e, level, px, py, dt2, alert) {
           ),
           List$Empty$const
         ];
+      } else if (e.ail.stun > 0) {
+        return [
+          fall(
+            new Enemy(
+              e.id,
+              e.kind,
+              e.x,
+              e.y,
+              approach(e.vx, 0, 20 * dt2),
+              e.vy,
+              e.home_x,
+              e.home_y,
+              e.facing,
+              e.grounded,
+              e.wall,
+              e.hp,
+              e.max_hp,
+              e.respawn,
+              e.flash,
+              e.mode,
+              e.cooldown,
+              e.pattern,
+              e.awake,
+              e.tier,
+              e.ail
+            ),
+            level,
+            dt2
+          ),
+          List$Empty$const
+        ];
       } else {
         return [
           (() => {
@@ -14582,6 +14638,37 @@ function think(e, level, px, py, dt2, alert) {
               e.x,
               e.y,
               0,
+              e.vy,
+              e.home_x,
+              e.home_y,
+              e.facing,
+              e.grounded,
+              e.wall,
+              e.hp,
+              e.max_hp,
+              e.respawn,
+              e.flash,
+              e.mode,
+              e.cooldown,
+              e.pattern,
+              e.awake,
+              e.tier,
+              e.ail
+            ),
+            level,
+            dt2
+          ),
+          List$Empty$const
+        ];
+      } else if (e.ail.stun > 0) {
+        return [
+          fall(
+            new Enemy(
+              e.id,
+              e.kind,
+              e.x,
+              e.y,
+              approach(e.vx, 0, 20 * dt2),
               e.vy,
               e.home_x,
               e.home_y,
@@ -14652,6 +14739,64 @@ function think(e, level, px, py, dt2, alert) {
           ),
           List$Empty$const
         ];
+      } else if (e.ail.stun > 0) {
+        return [
+          new Enemy(
+            e.id,
+            e.kind,
+            e.x,
+            e.y,
+            0,
+            0,
+            e.home_x,
+            e.home_y,
+            e.facing,
+            e.grounded,
+            e.wall,
+            e.hp,
+            e.max_hp,
+            e.respawn,
+            e.flash,
+            e.mode,
+            e.cooldown,
+            e.pattern,
+            e.awake,
+            e.tier,
+            e.ail
+          ),
+          List$Empty$const
+        ];
+      } else if (e.ail.stun > 0) {
+        return [
+          fall(
+            new Enemy(
+              e.id,
+              e.kind,
+              e.x,
+              e.y,
+              approach(e.vx, 0, 20 * dt2),
+              e.vy,
+              e.home_x,
+              e.home_y,
+              e.facing,
+              e.grounded,
+              e.wall,
+              e.hp,
+              e.max_hp,
+              e.respawn,
+              e.flash,
+              e.mode,
+              e.cooldown,
+              e.pattern,
+              e.awake,
+              e.tier,
+              e.ail
+            ),
+            level,
+            dt2
+          ),
+          List$Empty$const
+        ];
       } else {
         return [flyer(e, level, px, py, dt2, alert), List$Empty$const];
       }
@@ -14691,6 +14836,37 @@ function think(e, level, px, py, dt2, alert) {
           ),
           List$Empty$const
         ];
+      } else if (e.ail.stun > 0) {
+        return [
+          fall(
+            new Enemy(
+              e.id,
+              e.kind,
+              e.x,
+              e.y,
+              approach(e.vx, 0, 20 * dt2),
+              e.vy,
+              e.home_x,
+              e.home_y,
+              e.facing,
+              e.grounded,
+              e.wall,
+              e.hp,
+              e.max_hp,
+              e.respawn,
+              e.flash,
+              e.mode,
+              e.cooldown,
+              e.pattern,
+              e.awake,
+              e.tier,
+              e.ail
+            ),
+            level,
+            dt2
+          ),
+          List$Empty$const
+        ];
       } else {
         return [bouncer(e, level, dt2), List$Empty$const];
       }
@@ -14707,6 +14883,37 @@ function think(e, level, px, py, dt2, alert) {
             e.x,
             e.y,
             0,
+            e.vy,
+            e.home_x,
+            e.home_y,
+            e.facing,
+            e.grounded,
+            e.wall,
+            e.hp,
+            e.max_hp,
+            e.respawn,
+            e.flash,
+            e.mode,
+            e.cooldown,
+            e.pattern,
+            e.awake,
+            e.tier,
+            e.ail
+          ),
+          level,
+          dt2
+        ),
+        List$Empty$const
+      ];
+    } else if (e.ail.stun > 0) {
+      return [
+        fall(
+          new Enemy(
+            e.id,
+            e.kind,
+            e.x,
+            e.y,
+            approach(e.vx, 0, 20 * dt2),
             e.vy,
             e.home_x,
             e.home_y,
@@ -14893,7 +15100,13 @@ function tick(e, dt2) {
       e.pattern,
       e.awake,
       e.tier,
-      new Ailments(down(a.chill), down(a.root), down(a.weak), down(a.poison))
+      new Ailments(
+        down(a.chill),
+        down(a.root),
+        down(a.weak),
+        down(a.poison),
+        down(a.stun)
+      )
     );
   }
 }
@@ -15979,6 +16192,7 @@ var firebolt_wait = 0.5;
 var firebolt_blast = 6;
 var orbit_speed = 3.9;
 var arrow_far = 6;
+var shockwave_stun = 0.75;
 var max_level = 5;
 function upto(from, to2) {
   let $ = from > to2;
@@ -16072,7 +16286,7 @@ function spawn2(effect, px, py, base, b, aim, facing) {
       List$Empty$const
     );
   } else if (effect instanceof Shockwave) {
-    let w2 = 6 * b.reach * b.shockwave;
+    let w2 = 4.2 * b.reach * b.shockwave;
     return prepend(
       new Strike(
         effect,
@@ -16085,7 +16299,7 @@ function spawn2(effect, px, py, base, b, aim, facing) {
         0.15,
         false,
         true,
-        dmg(1.5 * grown),
+        dmg(0.75 * grown),
         List$Empty$const,
         0
       ),
@@ -20235,15 +20449,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      2533,
+      2548,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 76528,
-        end: 76580,
-        pattern_start: 76539,
-        pattern_end: 76546
+        start: 77054,
+        end: 77106,
+        pattern_start: 77065,
+        pattern_end: 77072
       }
     );
   } else {
@@ -21891,7 +22105,9 @@ __name(venom, "venom");
 function strike_status(p2, s) {
   let $ = s.effect;
   let $1 = p2.weapon.shot;
-  if ($ instanceof Bolt) {
+  if ($ instanceof Shockwave) {
+    return new Some([Status$Stun$const, shockwave_stun]);
+  } else if ($ instanceof Bolt) {
     return or2(inflicts(p2.weapon), venom(p2));
   } else if ($ instanceof Arrow) {
     return or2(inflicts(p2.weapon), venom(p2));
@@ -22030,11 +22246,21 @@ function strikes_act(world2, dt2) {
         rebounding(p2, s.damage),
         far(s) || ricocheting(p2),
         (e) => {
-          let $22 = e.x >= p2.x;
-          if ($22) {
-            return [4, 3];
+          let _block$22;
+          let $3 = s.effect;
+          if ($3 instanceof Shockwave) {
+            _block$22 = [7, 4];
           } else {
-            return [-4, 3];
+            _block$22 = [4, 3];
+          }
+          let $22 = _block$22;
+          let kx = $22[0];
+          let ky = $22[1];
+          let $4 = e.x >= p2.x;
+          if ($4) {
+            return [kx, ky];
+          } else {
+            return [0 - kx, ky];
           }
         }
       );
@@ -24541,6 +24767,20 @@ function step2(world2, input, dt2) {
   return tick_enemies(_pipe$17, dt2);
 }
 __name(step2, "step");
+function reward_note(r) {
+  if (r instanceof Some) {
+    let $ = r[0];
+    if ($ instanceof Point) {
+      let axis = $[0];
+      return explain(axis);
+    } else {
+      return "";
+    }
+  } else {
+    return "";
+  }
+}
+__name(reward_note, "reward_note");
 function playable(world2, keystones) {
   return filter(
     keystones,
@@ -25876,15 +26116,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2483,
+        2498,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 74981,
-          end: 75032,
-          pattern_start: 74992,
-          pattern_end: 75e3
+          start: 75507,
+          end: 75558,
+          pattern_start: 75518,
+          pattern_end: 75526
         }
       );
     }
@@ -25896,15 +26136,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2485,
+        2500,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 75115,
-          end: 75176,
-          pattern_start: 75126,
-          pattern_end: 75143
+          start: 75641,
+          end: 75702,
+          pattern_start: 75652,
+          pattern_end: 75669
         }
       );
     } else {
@@ -25914,15 +26154,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          2485,
+          2500,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 75115,
-            end: 75176,
-            pattern_start: 75126,
-            pattern_end: 75143
+            start: 75641,
+            end: 75702,
+            pattern_start: 75652,
+            pattern_end: 75669
           }
         );
       } else {
@@ -27186,7 +27426,8 @@ function empty2(group2) {
   group2.clear();
 }
 __name(empty2, "empty");
-var LABEL_Z = -0.2;
+var DOOR_H = 2.3;
+var LABEL_Z = 0.2;
 function nameLabel(text, small2) {
   const c = document.createElement("canvas"), g = c.getContext("2d");
   const font = `800 ${small2 ? 31 : 34}px "Baloo 2", system-ui, sans-serif`, h = 58;
@@ -27214,6 +27455,42 @@ function nameLabel(text, small2) {
   return m;
 }
 __name(nameLabel, "nameLabel");
+function noteCard(text) {
+  const c = document.createElement("canvas"), g = c.getContext("2d");
+  const font = '700 28px "Baloo 2", system-ui, sans-serif', widest = 380, line = 33, pad = 12;
+  g.font = font;
+  const lines = [];
+  for (const item of text.split(/\s*(?:,|;|·| and )\s*/).filter(Boolean)) {
+    lines.push("");
+    for (const word of item.split(" ")) {
+      const longer = lines.at(-1) ? `${lines.at(-1)} ${word}` : word;
+      if (lines.at(-1) && g.measureText(longer).width > widest) lines.push(word);
+      else lines[lines.length - 1] = longer;
+    }
+  }
+  const w2 = Math.ceil(Math.max(...lines.map((l) => g.measureText(l).width))) + 40, h = lines.length * line + 2 * pad;
+  c.width = w2;
+  c.height = h;
+  g.font = font;
+  g.fillStyle = "#fffaf0";
+  g.strokeStyle = "#3b2b25";
+  g.lineWidth = 4;
+  g.beginPath();
+  g.roundRect(2, 2, w2 - 4, h - 4, 14);
+  g.fill();
+  g.stroke();
+  g.fillStyle = "#5b4a43";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  lines.forEach((l, i) => g.fillText(l, w2 / 2, pad + line * (i + 0.5) + 2));
+  const map5 = new Vh(c);
+  map5.colorSpace = Je;
+  const tall = h / 145;
+  const m = new Bs(new ha(tall * w2 / h, tall), new es({ map: map5, transparent: true }));
+  m.userData = { ownsMap: true, tall };
+  return m;
+}
+__name(noteCard, "noteCard");
 document.fonts?.ready.then(() => {
   builtDepth = -1;
 });
@@ -27276,10 +27553,18 @@ function syncRoom() {
     empty2(doorGroup);
     for (const d2 of world.doors.toArray()) {
       const b = door_box(d2);
-      const m = box3(b.w, b.h, 5227511, { transparent: true, opacity: 0.35 });
-      m.position.set(b.x + b.w / 2, b.y + b.h / 2, -0.5);
+      const m = new Bs(new ha(DOOR_H * 299 / 420, DOOR_H), new es({ map: stickerTexture("door"), transparent: true }));
+      m.position.set(d2.x, b.y + DOOR_H / 2, -0.5);
+      let top = b.y + DOOR_H + 0.12;
+      const note = reward_note(d2.reward);
+      if (note) {
+        const card = noteCard(note);
+        card.position.set(d2.x, top + card.userData.tall / 2, LABEL_Z);
+        doorGroup.add(card);
+        top += card.userData.tall + 0.06;
+      }
       const label2 = nameLabel(world.depth > 0 && d2.reward instanceof None ? "Back to hub" : reward_label(d2.reward), false);
-      label2.position.set(d2.x, b.y + b.h + 0.2 + label2.userData.tall / 2, LABEL_Z);
+      label2.position.set(d2.x, top + label2.userData.tall / 2, LABEL_Z);
       doorGroup.add(m, label2);
     }
   }
@@ -27449,6 +27734,10 @@ var ART = {
   }),
   Weak: drawn((g) => {
     shape(g, [[34, 8], [62, 8], [62, 46], [84, 46], [48, 90], [12, 46], [34, 46]], "#b79be0");
+  }),
+  // stunned: not a mark over the bar, but three of these circling its head
+  Stun: drawn((g) => {
+    shape(g, star(5, 48, 48, 44, 19), "#ffd84a");
   }),
   Poison: drawn((g) => {
     g.beginPath();
@@ -27959,6 +28248,14 @@ function frame(now) {
     const ails = e.hp > 0 ? statuses(e).toArray().map((s) => s.constructor.name) : [];
     const tinted = ails.includes("Poison") ? 11989154 : ails.includes("Chill") ? 11065599 : ails.includes("Weak") ? 13482976 : 16777215;
     body2.material.color.set(e.flash > 0 ? 16752029 : tinted);
+    if (ails.includes("Stun")) {
+      ails.splice(ails.indexOf("Stun"), 1);
+      const head = artOf(e).flies ? ey + h / 2 + tall / 2 : ey + tall;
+      for (let i = 0; i < 3; i++) {
+        const a = (calm ? 0 : now / 130) + i * 2 * Math.PI / 3;
+        marks.push({ art: "Stun", x: ex + Math.cos(a) * 0.5, y: head + 0.05 + Math.sin(a) * 0.13, w: 0.3, h: 0.3 });
+      }
+    }
     ails.forEach((name3, i) => marks.push({ art: name3, x: ex + (i - (ails.length - 1) / 2) * 0.42, y: ey + h + 0.62, w: 0.36, h: 0.36 }));
     if (!e.awake) body2.material.color.multiplyScalar(0.45);
     const frac = e.hp / e.max_hp;
