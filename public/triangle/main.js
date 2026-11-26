@@ -28269,36 +28269,18 @@ var FACES_LEFT = /* @__PURE__ */ new Set(["Hunter", "Duelist", "Thief", "Cavalie
 var ME_H = 1.6;
 var showBox = false;
 var turn = 1;
-var SPRITES = {
-  Knight: {
-    cols: 6,
-    rows: 6,
-    cell: [550, 410],
-    feet: 30,
-    px: 280,
-    stride: 3.2,
-    breath: 0.28,
-    run: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-    idle: [12, 13, 14, 15, 16, 17, 18],
-    jump: 19,
-    fall: 20,
-    hurt: 21,
-    windup: 22,
-    smear: 23,
-    slash: 24,
-    dash: 25,
-    follow: 26,
-    up: 27,
-    down: 28,
-    land: 29,
-    skid: 30,
-    wall: 31,
-    tuck: 32,
-    block: 33,
-    slam: 34,
-    kick: 35
-  }
-};
+var ANIMATED = /* @__PURE__ */ new Set(["Knight", "Paladin"]);
+var SPRITES = {};
+var asked = /* @__PURE__ */ new Set();
+function loadSprites(name3) {
+  if (asked.has(name3) || !ANIMATED.has(name3)) return;
+  asked.add(name3);
+  fetch(`art/sprites/${name3.toLowerCase()}.json`).then((r) => r.ok ? r.json() : null).then((t2) => {
+    if (t2) SPRITES[name3] = t2;
+  }).catch(() => {
+  });
+}
+__name(loadSprites, "loadSprites");
 var MOMENT = { land: 0.1, slam: 0.32, tuck: 0.28, block: 0.3, skid: 0.14 };
 var HARD_FALL = -15;
 var ran = 0;
@@ -28316,6 +28298,10 @@ function spriteFrame(p2, s, dt2) {
   if (p2.hurt > 0) return s.hurt;
   if (moment === "block") return s.block;
   if (p2.dash_time > 0) return s.dash;
+  if (p2.attack instanceof Some && p2.weapon.shot instanceof Some && s.shoot !== void 0) {
+    const dir = p2.attack[0].dir.constructor.name;
+    return (dir === "Up" ? s.shoot_up : dir === "Down" ? s.shoot_down : null) ?? s.shoot;
+  }
   if (p2.attack instanceof Some && !(p2.weapon.shot instanceof Some)) {
     const a = p2.attack[0], t2 = a.time * speed2(p2), dir = a.dir.constructor.name;
     if (t2 < p2.weapon.startup) return dir === "Forward" && t2 >= p2.weapon.startup / 2 ? s.smear : s.windup;
@@ -29261,6 +29247,7 @@ function frame(now) {
   player.position.z = myClass ? 0.9 : 0;
   me2.visible = shown && !!myClass;
   if (myClass) {
+    loadSprites(myClass);
     const sheet = SPRITES[myClass];
     const t2 = sheet ? stickerTexture(`sprites/${myClass.toLowerCase()}`) : heroTexture(myClass);
     if (me2.material.map !== t2) {
