@@ -11890,10 +11890,13 @@ var boss_rest = 1;
 var boss_charge_speed = 11;
 var boss_walk = 2.5;
 var boss_windup = 0.7;
+var shooter_back = 3;
 var fire_windup = 0.4;
 var fire_cooldown = 1.8;
 var shot_ttl = 3;
 var shot_speed = 9;
+var shooter_leash = 4;
+var shooter_shy = 3.5;
 var shooter_range = 12;
 var charge_speed = 13;
 var recover_time = 0.8;
@@ -12714,7 +12717,9 @@ function countdown(e, t2, dt2, mode) {
     );
   }
 }
-function shooter(e, px, py, dt2) {
+function shooter(e, level, px, py, dt2) {
+  let $ = size3(Kind$Shooter$const);
+  let w2 = $[0];
   let dx = px - e.x;
   let in_range = absolute_value2(dx) < shooter_range && absolute_value2(
     py - e.y
@@ -12724,7 +12729,7 @@ function shooter(e, px, py, dt2) {
     e.kind,
     e.x,
     e.y,
-    e.vx,
+    approach(e.vx, 0, 20 * dt2),
     e.vy,
     e.home_x,
     e.home_y,
@@ -12748,17 +12753,25 @@ function shooter(e, px, py, dt2) {
     e.tier,
     e.ail
   );
-  let $ = e$1.mode;
-  if ($ instanceof Windup) {
-    let t2 = $.t;
-    let $1 = t2 - dt2 <= 0;
-    if ($1) {
-      let $2 = size3(Kind$Shooter$const);
-      let h = $2[1];
+  let away = negate(sign2(dx));
+  let shy = e$1.grounded && absolute_value2(dx) < shooter_shy && absolute_value2(
+    py - e$1.y
+  ) < 2.5 && (e$1.x - e$1.home_x) * away < shooter_leash && e$1.wall !== away && ground_at(
+    level,
+    e$1.x + away * (w2 / 2 + 0.1),
+    e$1.y
+  );
+  let $1 = e$1.mode;
+  if ($1 instanceof Windup) {
+    let t2 = $1.t;
+    let $2 = t2 - dt2 <= 0;
+    if ($2) {
+      let $3 = size3(Kind$Shooter$const);
+      let h = $3[1];
       let sy = e$1.y + h * 0.7;
-      let $3 = normalize(px - e$1.x, py - sy);
-      let nx = $3[0];
-      let ny = $3[1];
+      let $4 = normalize(px - e$1.x, py - sy);
+      let nx = $4[0];
+      let ny = $4[1];
       let shot2 = new Projectile(
         e$1.x,
         sy,
@@ -12821,8 +12834,8 @@ function shooter(e, px, py, dt2) {
         Option$None$const
       ];
     }
-  } else if ($ instanceof Stunned) {
-    let t2 = $.t;
+  } else if ($1 instanceof Stunned) {
+    let t2 = $1.t;
     return [
       countdown(e$1, t2, dt2, (var0) => {
         return new Stunned(var0);
@@ -12830,8 +12843,8 @@ function shooter(e, px, py, dt2) {
       Option$None$const
     ];
   } else {
-    let $1 = in_range && e$1.cooldown <= 0;
-    if ($1) {
+    let $2 = in_range && e$1.cooldown <= 0;
+    if ($2) {
       return [
         new Enemy(
           e$1.id,
@@ -12850,6 +12863,33 @@ function shooter(e, px, py, dt2) {
           e$1.respawn,
           e$1.flash,
           new Windup(fire_windup),
+          e$1.cooldown,
+          e$1.pattern,
+          e$1.awake,
+          e$1.tier,
+          e$1.ail
+        ),
+        Option$None$const
+      ];
+    } else if (shy) {
+      return [
+        new Enemy(
+          e$1.id,
+          e$1.kind,
+          e$1.x,
+          e$1.y,
+          away * shooter_back,
+          e$1.vy,
+          e$1.home_x,
+          e$1.home_y,
+          e$1.facing,
+          e$1.grounded,
+          e$1.wall,
+          e$1.hp,
+          e$1.max_hp,
+          e$1.respawn,
+          e$1.flash,
+          Mode$Idle$const,
           e$1.cooldown,
           e$1.pattern,
           e$1.awake,
@@ -13633,7 +13673,7 @@ function think(e, level, px, py, dt2, alert) {
           List$Empty$const
         ];
       } else {
-        let $2 = shooter(e, px, py, dt2);
+        let $2 = shooter(e, level, px, py, dt2);
         let e$1 = $2[0];
         let shot2 = $2[1];
         return [
@@ -18772,15 +18812,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      2530,
+      2533,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 76383,
-        end: 76435,
-        pattern_start: 76394,
-        pattern_end: 76401
+        start: 76528,
+        end: 76580,
+        pattern_start: 76539,
+        pattern_end: 76546
       }
     );
   } else {
@@ -20584,7 +20624,16 @@ function strikes_act(world2, dt2) {
         })(),
         s.wait
       );
-      let walled = s$1.effect instanceof Arrow && at_wall;
+      let walled = at_wall && contains(
+        prepend(
+          Effect$Arrow$const,
+          prepend(
+            Effect$Knife$const,
+            prepend(Effect$Bolt$const, List$Empty$const)
+          )
+        ),
+        s$1.effect
+      );
       let _block$2;
       let $2 = s$1.pierce;
       if (bursts) {
@@ -24343,15 +24392,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2480,
+        2483,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 74836,
-          end: 74887,
-          pattern_start: 74847,
-          pattern_end: 74855
+          start: 74981,
+          end: 75032,
+          pattern_start: 74992,
+          pattern_end: 75e3
         }
       );
     }
@@ -24363,15 +24412,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2482,
+        2485,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 74970,
-          end: 75031,
-          pattern_start: 74981,
-          pattern_end: 74998
+          start: 75115,
+          end: 75176,
+          pattern_start: 75126,
+          pattern_end: 75143
         }
       );
     } else {
@@ -24381,15 +24430,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          2482,
+          2485,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 74970,
-            end: 75031,
-            pattern_start: 74981,
-            pattern_end: 74998
+            start: 75115,
+            end: 75176,
+            pattern_start: 75126,
+            pattern_end: 75143
           }
         );
       } else {
