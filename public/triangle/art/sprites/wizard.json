@@ -1,0 +1,1 @@
+{"cols": 6, "rows": 6, "cell": [550, 410], "feet": 30, "px": 280, "stride": 3.2, "breath": 0.28, "run": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], "idle": [14, 15, 16, 17, 18, 19, 20], "jump": 21, "fall": 22, "hurt": 23, "dash": 24, "land": 25, "skid": 26, "shoot": 27, "shoot_up": 28, "shoot_down": 29, "tuck": 30, "block": 31, "slam": 32, "wall": 33, "kick": 34}
