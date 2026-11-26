@@ -16492,7 +16492,7 @@ function spawn2(effect, px, py, base, b, aim, facing) {
   } else if (effect instanceof Heal) {
     return List$Empty$const;
   } else {
-    let d2 = 0.45 * (1 + (b.reach - 1) / 4);
+    let d2 = 0.18 * (1 + (b.reach - 1) / 4);
     let _block;
     let $ = facing > 0;
     if ($) {
