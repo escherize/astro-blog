@@ -12822,6 +12822,9 @@ var bounce_x = 5;
 var bounce_up = 15;
 var flyer_swoop = 12;
 var flyer_drift = 2.5;
+var flyer_stalk = 5;
+var flyer_perch = 3.2;
+var flyer_sight = 9;
 var stun_time = 0.25;
 var shot_size = 0.4;
 function max_hp(kind) {
@@ -14226,6 +14229,42 @@ function bouncer(e, level, dt2) {
   );
 }
 __name(bouncer, "bouncer");
+function far(dx, dy) {
+  let $ = square_root(dx * dx + dy * dy);
+  if ($ instanceof Ok) {
+    let d2 = $[0];
+    return d2;
+  } else {
+    return 0;
+  }
+}
+__name(far, "far");
+function clear_line(level, ax, ay, bx, by) {
+  let solids = filter(level, (r) => {
+    return !r.one_way;
+  });
+  let steps = truncate(far(bx - ax, by - ay) * 3) + 1;
+  return all(
+    (() => {
+      let _pipe = repeat(void 0, steps);
+      return index_map(_pipe, (_, i) => {
+        return i;
+      });
+    })(),
+    (i) => {
+      let k2 = divideFloat(identity(i), identity(steps));
+      let x = ax + (bx - ax) * k2;
+      let y2 = ay + (by - ay) * k2;
+      return !any(
+        solids,
+        (r) => {
+          return x > r.x && x < r.x + r.w && y2 > r.y && y2 < r.y + r.h;
+        }
+      );
+    }
+  );
+}
+__name(clear_line, "clear_line");
 function flyer(e, level, px, py, dt2, alert) {
   let $ = size3(Kind$Flyer$const);
   let w2 = $[0];
@@ -14245,8 +14284,73 @@ function flyer(e, level, px, py, dt2, alert) {
       _block$1 = e.facing;
     }
     let facing = _block$1;
-    let $4 = alert && cooldown <= 0;
-    if ($4) {
+    let hunter = e.tier >= 2;
+    let cy = e.y + h / 2;
+    let sees = hunter && far(px - e.x, py - cy) < flyer_sight && clear_line(
+      level,
+      e.x,
+      cy,
+      px,
+      py
+    );
+    let tx = px - e.x;
+    let ty = py + flyer_perch - cy;
+    let gap = far(tx, ty);
+    if (sees) {
+      if (gap < 0.7 && cooldown <= 0 || cooldown < -1.5) {
+        _block = new Enemy(
+          e.id,
+          e.kind,
+          e.x,
+          e.y,
+          0,
+          0,
+          e.home_x,
+          e.home_y,
+          e.facing,
+          e.grounded,
+          e.wall,
+          e.hp,
+          e.max_hp,
+          e.respawn,
+          e.flash,
+          new Windup(0.35),
+          cooldown,
+          e.pattern,
+          e.awake,
+          e.tier,
+          e.ail
+        );
+      } else {
+        let $4 = normalize(tx, ty);
+        let nx = $4[0];
+        let ny = $4[1];
+        let speed3 = flyer_stalk * min2(1, gap);
+        _block = new Enemy(
+          e.id,
+          e.kind,
+          e.x,
+          e.y,
+          nx * speed3,
+          ny * speed3,
+          e.home_x,
+          e.home_y,
+          sign2(tx),
+          e.grounded,
+          e.wall,
+          e.hp,
+          e.max_hp,
+          e.respawn,
+          e.flash,
+          e.mode,
+          cooldown,
+          e.pattern,
+          e.awake,
+          e.tier,
+          e.ail
+        );
+      }
+    } else if (!hunter && alert && cooldown <= 0) {
       _block = new Enemy(
         e.id,
         e.kind,
@@ -16596,10 +16700,10 @@ function advance(s, dt2) {
   }
 }
 __name(advance, "advance");
-function far(s) {
+function far2(s) {
   return s.effect instanceof Arrow && (arrow_ttl - s.ttl) * arrow_speed >= arrow_far;
 }
-__name(far, "far");
+__name(far2, "far");
 
 // build/dev/javascript/triangle_platformer/stats.mjs
 var Fighter = class extends CustomType {
@@ -22244,7 +22348,7 @@ function strikes_act(world2, dt2) {
         w2,
         targets,
         rebounding(p2, s.damage),
-        far(s) || ricocheting(p2),
+        far2(s) || ricocheting(p2),
         (e) => {
           let _block$22;
           let $3 = s.effect;
@@ -27669,8 +27773,8 @@ var shape = /* @__PURE__ */ __name((g, pts, fill) => {
   g.fill();
   g.stroke();
 }, "shape");
-var star = /* @__PURE__ */ __name((n, x, y2, far2, near, turn2 = 0) => Array.from({ length: n * 2 }, (_, i) => {
-  const a = turn2 + i * Math.PI / n, r = i % 2 ? near : far2;
+var star = /* @__PURE__ */ __name((n, x, y2, far3, near, turn2 = 0) => Array.from({ length: n * 2 }, (_, i) => {
+  const a = turn2 + i * Math.PI / n, r = i % 2 ? near : far3;
   return [x + r * Math.cos(a), y2 + r * Math.sin(a)];
 }), "star");
 var ART = {
@@ -27754,9 +27858,37 @@ var ART = {
     g.fill();
     g.stroke();
   }),
-  // a shockwave: a low burst along the ground
+  // a shockwave: two crests of dust and force curling away from the middle along the ground, with
+  // chips thrown up between them. Drawn square and stretched wide, so shapes here are narrow
   wave: drawn((g) => {
-    shape(g, [[2, 92], [8, 50], [20, 76], [30, 24], [42, 70], [48, 10], [54, 70], [66, 24], [76, 76], [88, 50], [94, 92]], "#fff1b8");
+    const crest = /* @__PURE__ */ __name((side2) => {
+      const at = /* @__PURE__ */ __name((x, y2) => [48 + side2 * x, y2], "at");
+      g.beginPath();
+      g.moveTo(...at(6, 92));
+      g.quadraticCurveTo(...at(32, 90), ...at(44, 22));
+      g.quadraticCurveTo(...at(41, 62), ...at(33, 92));
+      g.closePath();
+      g.fillStyle = "#fff1b8";
+      g.fill();
+      g.stroke();
+      g.beginPath();
+      g.moveTo(...at(18, 88));
+      g.quadraticCurveTo(...at(33, 82), ...at(40, 48));
+      g.save();
+      g.lineWidth = 3;
+      g.strokeStyle = "#e0b85a";
+      g.stroke();
+      g.restore();
+    }, "crest");
+    crest(1);
+    crest(-1);
+    for (const [x, y2, r] of [[40, 66, 4], [56, 60, 3], [48, 44, 3.5], [28, 40, 2.5], [68, 38, 2.5]]) {
+      blob(g, x, y2, r, "#c9a06a");
+      g.save();
+      g.lineWidth = 2;
+      g.stroke();
+      g.restore();
+    }
   })
 };
 function stickers(texture) {
@@ -28071,8 +28203,8 @@ function copyRuns() {
 __name(copyRuns, "copyRuns");
 function inReach() {
   const p2 = world.player, shoots = p2.weapon.shot instanceof Some;
-  const far2 = shoots ? 9 : p2.weapon.long * reach2(p2) + 0.6;
-  return world.enemies.toArray().some((e) => e.hp > 0 && (e.x - p2.x) * p2.facing > 0 && Math.abs(e.x - p2.x) < far2 && Math.abs(e.y - p2.y) < 1.5);
+  const far3 = shoots ? 9 : p2.weapon.long * reach2(p2) + 0.6;
+  return world.enemies.toArray().some((e) => e.hp > 0 && (e.x - p2.x) * p2.facing > 0 && Math.abs(e.x - p2.x) < far3 && Math.abs(e.y - p2.y) < 1.5);
 }
 __name(inReach, "inReach");
 var acc = 0;
@@ -28280,6 +28412,11 @@ function frame(now) {
     if (art === "orb") {
       const depth = Math.max(-1, Math.min(1, (y2 - (py + 0.75)) / 0.63)), k2 = kw * (1 - 0.15 * depth);
       flying.orb.push({ x, y: y2, w: r.w * k2, h: r.h * k2, z: depth > 0 ? 0.5 : 1 });
+      continue;
+    }
+    if (art === "wave") {
+      const k2 = calm ? 1 : 0.4 + 0.6 * Math.min(1, Math.max(0, 1 - s.ttl / 0.15));
+      flying.wave.push({ x, y: r.y + 0.7, w: r.w * k2, h: 1.4 });
       continue;
     }
     flying[art].push(moving ? { x, y: y2, w: long * kw, h: (art === "bolt" ? long : short) * kh, turn: art === "bolt" ? 0 : Math.atan2(s.vy, s.vx) } : { x, y: y2, w: r.w * kw, h: r.h * kh, flip: art === "sweep" && (Math.abs(x - px) > 0.05 ? x < px : p2.facing < 0) });
