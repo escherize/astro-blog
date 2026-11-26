@@ -27326,13 +27326,18 @@ var ME_H = 1.6;
 var showBox = false;
 var turn = 1;
 var SPRITES = {
-  Knight: { cols: 8, rows: 2, cell: [400, 330], px: 280, stride: 3.2, run: [0, 1, 2, 3, 4, 5, 6, 7], idle: 8, jump: 9, fall: 10, hurt: 11, windup: 12, slash: 13, dash: 14 }
+  Knight: { cols: 6, rows: 3, cell: [550, 410], feet: 30, px: 280, stride: 3.2, run: [0, 1, 2, 3, 4, 5, 6, 7], idle: 8, jump: 9, fall: 10, hurt: 11, windup: 12, slash: 13, dash: 14, follow: 15, up: 16, down: 17 }
 };
 var ran = 0;
 function spriteFrame(p2, s, dt2) {
   if (p2.hurt > 0) return s.hurt;
   if (p2.dash_time > 0) return s.dash;
-  if (p2.attack instanceof Some && !(p2.weapon.shot instanceof Some)) return p2.attack[0].time * speed2(p2) < p2.weapon.startup ? s.windup : s.slash;
+  if (p2.attack instanceof Some && !(p2.weapon.shot instanceof Some)) {
+    const a = p2.attack[0], t2 = a.time * speed2(p2), dir = a.dir.constructor.name;
+    if (t2 < p2.weapon.startup) return s.windup;
+    if (dir !== "Forward") return dir === "Up" ? s.up : s.down;
+    return t2 < p2.weapon.startup + p2.weapon.active ? s.slash : s.follow;
+  }
   if (!p2.grounded) return p2.vy > 0 ? s.jump : s.fall;
   if (Math.abs(p2.vx) <= 0.5) return s.idle;
   ran += Math.abs(p2.vx) * dt2;
@@ -27761,7 +27766,7 @@ function stickers(texture) {
       if (!meshes[i]) scene.add(meshes[i] = new Bs(new ha(1, 1), new es({ map: texture, transparent: true, side: p })));
       const m = meshes[i];
       m.visible = true;
-      m.position.set(it.x, it.y, it.z ?? 1);
+      m.position.set(it.x, it.y, (it.z ?? 1) + i * 1e-3);
       m.scale.set(it.w * (it.flip ? -1 : 1), it.h, 1);
       m.rotation.z = it.turn ?? 0;
     });
@@ -28211,7 +28216,8 @@ function frame(now) {
     const pose = stickerPose(p2, frameDt, !!sheet), high = tall * pose.sy;
     me2.scale.set(wide * pose.sx * Math.sin(turn * Math.PI / 2), high, 1);
     me2.rotation.z = pose.tilt;
-    me2.position.set(px + pose.dx - Math.sin(pose.tilt) * (high / 2), py + pose.dy + Math.cos(pose.tilt) * (high / 2), 0.6);
+    const lift = high / 2 - (sheet ? ME_H * sheet.feet * pose.sy / sheet.px : 0);
+    me2.position.set(px + pose.dx - Math.sin(pose.tilt) * lift, py + pose.dy + Math.cos(pose.tilt) * lift, 0.6);
     me2.material.color.set(hurtFlash > 0 ? 16739179 : 16777215);
   }
   drawMini(p2, px, py + (SPRITES[myClass] ? ME_H : myClass ? stickerSize(heroTexture(myClass).image, ME_H)[1] : height));
