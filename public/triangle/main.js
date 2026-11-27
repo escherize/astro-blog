@@ -10528,12 +10528,12 @@ function hashByReference(o) {
   if (known !== void 0) {
     return known;
   }
-  const hash = referenceUID++;
+  const hash2 = referenceUID++;
   if (referenceUID === 2147483647) {
     referenceUID = 0;
   }
-  referenceMap.set(o, hash);
-  return hash;
+  referenceMap.set(o, hash2);
+  return hash2;
 }
 __name(hashByReference, "hashByReference");
 function hashMerge(a, b) {
@@ -10541,12 +10541,12 @@ function hashMerge(a, b) {
 }
 __name(hashMerge, "hashMerge");
 function hashString(s) {
-  let hash = 0;
+  let hash2 = 0;
   const len = s.length;
   for (let i = 0; i < len; i++) {
-    hash = Math.imul(31, hash) + s.charCodeAt(i) | 0;
+    hash2 = Math.imul(31, hash2) + s.charCodeAt(i) | 0;
   }
-  return hash;
+  return hash2;
 }
 __name(hashString, "hashString");
 function hashNumber(n) {
@@ -10688,14 +10688,14 @@ var Node = class _Node {
   hashCode() {
     const data = this.data;
     const edgesStart = data.length - popcount(this.nodemap);
-    let hash = 0;
+    let hash2 = 0;
     for (let i = 0; i < edgesStart; i += 2) {
-      hash = hash + hashMerge(getHash(data[i + 1]), getHash(data[i])) | 0;
+      hash2 = hash2 + hashMerge(getHash(data[i + 1]), getHash(data[i])) | 0;
     }
     for (let i = edgesStart; i < data.length; ++i) {
-      hash = hash + data[i].hashCode() | 0;
+      hash2 = hash2 + data[i].hashCode() | 0;
     }
-    return hash;
+    return hash2;
   }
 };
 var emptyNode = /* @__PURE__ */ newNode(0);
@@ -10748,10 +10748,10 @@ function has(dict, key2) {
   return lookup(dict.root, key2, getHash(key2)) !== noElementMarker;
 }
 __name(has, "has");
-function lookup(node, key2, hash) {
+function lookup(node, key2, hash2) {
   for (let shift = 0; shift < 32; shift += bits) {
     const data = node.data;
-    const bit = hashbit(hash, shift);
+    const bit = hashbit(hash2, shift);
     if (node.nodemap & bit) {
       node = data[data.length - 1 - index(node.nodemap, bit)];
     } else if (node.datamap & bit) {
@@ -10807,8 +10807,8 @@ var globalTransient = /* @__PURE__ */ toTransient(emptyDict);
 function insert(dict, key2, value) {
   globalTransient.generation = nextGeneration(dict);
   globalTransient.size = dict.size;
-  const hash = getHash(key2);
-  const root = insertIntoNode(globalTransient, dict.root, key2, value, hash, 0);
+  const hash2 = getHash(key2);
+  const root = insertIntoNode(globalTransient, dict.root, key2, value, hash2, 0);
   if (root === dict.root) {
     return dict;
   }
@@ -10816,12 +10816,12 @@ function insert(dict, key2, value) {
 }
 __name(insert, "insert");
 function destructiveTransientInsert(key2, value, transient) {
-  const hash = getHash(key2);
-  transient.root = insertIntoNode(transient, transient.root, key2, value, hash, 0);
+  const hash2 = getHash(key2);
+  transient.root = insertIntoNode(transient, transient.root, key2, value, hash2, 0);
   return transient;
 }
 __name(destructiveTransientInsert, "destructiveTransientInsert");
-function insertIntoNode(transient, node, key2, value, hash, shift) {
+function insertIntoNode(transient, node, key2, value, hash2, shift) {
   const data = node.data;
   const generation = transient.generation;
   if (shift > 32) {
@@ -10833,11 +10833,11 @@ function insertIntoNode(transient, node, key2, value, hash, shift) {
     transient.size += 1;
     return copyAndInsertPair(node, generation, 0, data.length, key2, value);
   }
-  const bit = hashbit(hash, shift);
+  const bit = hashbit(hash2, shift);
   if (node.nodemap & bit) {
     const nodeidx2 = data.length - 1 - index(node.nodemap, bit);
     let child2 = data[nodeidx2];
-    child2 = insertIntoNode(transient, child2, key2, value, hash, shift + bits);
+    child2 = insertIntoNode(transient, child2, key2, value, hash2, shift + bits);
     return copyAndSet(node, generation, nodeidx2, child2);
   }
   const dataidx = Math.imul(index(node.datamap, bit), 2);
@@ -10850,11 +10850,11 @@ function insertIntoNode(transient, node, key2, value, hash, shift) {
   }
   const childShift = shift + bits;
   let child = emptyNode;
-  child = insertIntoNode(transient, child, key2, value, hash, childShift);
+  child = insertIntoNode(transient, child, key2, value, hash2, childShift);
   const key22 = data[dataidx];
   const value2 = data[dataidx + 1];
-  const hash2 = getHash(key22);
-  child = insertIntoNode(transient, child, key22, value2, hash2, childShift);
+  const hash22 = getHash(key22);
+  child = insertIntoNode(transient, child, key22, value2, hash22, childShift);
   transient.size -= 1;
   const length3 = data.length;
   const nodeidx = length3 - 1 - index(node.nodemap, bit);
@@ -10895,8 +10895,8 @@ function index(bitmap, bit) {
   return popcount(bitmap & bit - 1);
 }
 __name(index, "index");
-function hashbit(hash, shift) {
-  return 1 << (hash >>> shift & mask);
+function hashbit(hash2, shift) {
+  return 1 << (hash2 >>> shift & mask);
 }
 __name(hashbit, "hashbit");
 
@@ -29556,7 +29556,7 @@ var pal = HUB;
 var ZONE_W = 36;
 var ZONE_H = ZONE_W * 9 / 16;
 var zoneTextures = /* @__PURE__ */ new Map();
-function zoneBackdrop(zone) {
+function zoneBackdrop(zone, top) {
   const art = zone.art;
   if (!zoneTextures.has(art)) {
     const t2 = stickerLoader.load(`art/zones/${art}.webp`);
@@ -29566,7 +29566,9 @@ function zoneBackdrop(zone) {
     zoneTextures.set(art, t2);
   }
   const m = new Bs(new ha(ZONE_W * 4, ZONE_H), new es({ map: zoneTextures.get(art) }));
-  m.position.set(0, ZONE_H / 2 - 4, -6);
+  const s = Math.max(1, (top + 4) / ZONE_H);
+  m.scale.set(s, s, 1);
+  m.position.set(0, ZONE_H * s / 2 - 4, -6);
   const wash = new Bs(new ha(ZONE_W * 4, ZONE_H), new es({ color: zone.bg, transparent: true, opacity: 0.3 }));
   wash.position.z = 0.1;
   m.add(wash);
@@ -29574,25 +29576,109 @@ function zoneBackdrop(zone) {
 }
 __name(zoneBackdrop, "zoneBackdrop");
 var TILES = {
-  // span: tiles per texture repeat; cap: the cap's height; tint: multiplies the textures
+  // fill, capSpan: tiles per texture repeat; cap: the cap's height; tint: multiplies the block
+  // round: an open corner's radius; lip: how far the cap overhangs an end; end: the end piece, `drop`
+  // below the cap ('turf' hangs over, 'post' and 'stone' are square); wave: how ragged the cap's foot is;
+  // shade: the open sides' shadow; tufts: grass over the top
+  // deco: painted pieces (design/tiles/cut_deco.sh) on open tops and hanging under open undersides,
+  // [name, height in tiles]; about one a tile, picked by the world's x
   // slab: a one-way platform's top, face and underside colours, a seam every `plank` tiles
-  hedgelands: { fill: 4, cap: 0.55, capSpan: 3, plank: 2, slab: ["#e2b072", "#b98250", "#7a4e2c"] },
-  warren: { fill: 4, cap: 0.5, capSpan: 4, plank: 3, slab: ["#c79763", "#8f6340", "#5a3a22"] },
-  spire: { fill: 4, cap: 0.4, capSpan: 3.5, plank: 2, slab: ["#d8cbb8", "#a8998a", "#6e6258"], tint: 14272176 }
+  hedgelands: {
+    fill: 4,
+    cap: 0.55,
+    capSpan: 3,
+    round: 0.22,
+    lip: 0.08,
+    end: "turf",
+    drop: 0.3,
+    wave: 0.07,
+    shade: "#5a3a22",
+    tufts: "#5e8a3e",
+    plank: 2,
+    slab: ["#e2b072", "#b98250", "#7a4e2c"],
+    deco: { top: [["grass1", 0.7], ["grass2", 0.55], ["grass3", 0.8], ["clover", 0.65], ["daisies", 0.9], ["fern", 0.6], ["pebbles", 0.4], ["mushrooms", 0.55], ["strawberry", 0.7]], under: [["roots1", 0.75], ["roots2", 0.7], ["roots3", 0.6]] }
+  },
+  warren: {
+    fill: 4,
+    cap: 0.5,
+    capSpan: 4,
+    round: 0.12,
+    lip: 0.06,
+    end: "post",
+    drop: 0.35,
+    wave: 0,
+    shade: "#3a2416",
+    plank: 3,
+    slab: ["#c79763", "#8f6340", "#5a3a22"],
+    deco: { top: [["crystals", 0.8], ["crystal", 0.9], ["rubble", 0.4], ["rocks", 0.45], ["stake", 0.8], ["glowcaps", 0.6], ["crate", 0.55], ["drygrass", 0.55]], under: [["hang-stalactites", 0.8], ["hang-chain", 0.9], ["hang-moss", 0.7]] }
+  },
+  spire: {
+    fill: 4,
+    cap: 0.4,
+    capSpan: 3.5,
+    round: 0.08,
+    lip: 0.1,
+    end: "stone",
+    drop: 0.3,
+    wave: 0,
+    shade: "#4e4038",
+    plank: 2,
+    slab: ["#d8cbb8", "#a8998a", "#6e6258"],
+    tint: "#d9c6b0",
+    deco: { top: [["moss", 0.4], ["stone", 0.45], ["candles", 0.6], ["frost", 0.55], ["ivy", 0.4]], under: [["hang-ivy", 0.9], ["hang-pennant", 0.9], ["hang-moss", 0.7]] }
+  }
   // pale stone on a pale hall: darker so it reads
 };
-var tileTextures = /* @__PURE__ */ new Map();
-function tileTexture(name3, fill) {
-  if (!tileTextures.has(name3)) {
-    const t2 = stickerLoader.load(`art/tiles/${name3}.webp`);
-    t2.colorSpace = Je;
-    t2.wrapS = fill ? pt : ft;
-    if (fill) t2.wrapT = pt;
-    tileTextures.set(name3, t2);
-  }
-  return tileTextures.get(name3);
+var INK2 = "#3b2b25";
+var tileImages = /* @__PURE__ */ new Map();
+function tileImage(name3) {
+  if (!tileImages.has(name3)) tileImages.set(name3, new Promise((ok, fail) => Object.assign(new Image(), { onload() {
+    ok(this);
+  }, onerror: fail, src: `art/tiles/${name3}.webp` })));
+  return tileImages.get(name3);
 }
-__name(tileTexture, "tileTexture");
+__name(tileImage, "tileImage");
+function worldPattern(g, img, w2, h, px, mirror) {
+  const c = Object.assign(document.createElement("canvas"), { width: Math.round(w2 * px * (mirror ? 2 : 1)), height: Math.round(h * px) }), cg = c.getContext("2d");
+  cg.drawImage(img, 0, 0, w2 * px, h * px);
+  if (mirror) {
+    cg.scale(-1, 1);
+    cg.drawImage(img, -2 * w2 * px, 0, w2 * px, h * px);
+  }
+  const p2 = g.createPattern(c, mirror ? "repeat-x" : "repeat");
+  p2.setTransform(new DOMMatrix().scale(1 / px, -1 / px));
+  return p2;
+}
+__name(worldPattern, "worldPattern");
+var wobble = /* @__PURE__ */ __name((x) => Math.sin(x * 2.3) * 0.5 + Math.sin(x * 5.9 + 1.7) * 0.3 + Math.sin(x * 13.1 + 4.2) * 0.2, "wobble");
+var hash = /* @__PURE__ */ __name((x) => {
+  const s = Math.sin(x * 127.1) * 43758.5453;
+  return s - Math.floor(s);
+}, "hash");
+function openEdges(r, solids) {
+  const e = 0.02, others = solids.filter((o) => o !== r);
+  const inside2 = /* @__PURE__ */ __name((x, y2) => others.some((o) => x > o.x && x < o.x + o.w && y2 > o.y && y2 < o.y + o.h), "inside");
+  const runs = /* @__PURE__ */ __name((a, b, cuts, at) => {
+    const xs2 = [.../* @__PURE__ */ new Set([a, b, ...cuts.filter((c) => c > a && c < b)])].sort((p2, q2) => p2 - q2), out = [];
+    for (let i = 0; i + 1 < xs2.length; i++) {
+      if (inside2(...at((xs2[i] + xs2[i + 1]) / 2))) continue;
+      if (out.length && out.at(-1)[1] === xs2[i]) out.at(-1)[1] = xs2[i + 1];
+      else out.push([xs2[i], xs2[i + 1]]);
+    }
+    return out;
+  }, "runs");
+  const xc2 = others.flatMap((o) => [o.x, o.x + o.w]), yc2 = others.flatMap((o) => [o.y, o.y + o.h]);
+  const top = r.y + r.h, right = r.x + r.w;
+  return {
+    top: runs(r.x, right, xc2, (x) => [x, top + e]),
+    bottom: runs(r.x, right, xc2, (x) => [x, r.y - e]),
+    left: runs(r.y, top, yc2, (y2) => [r.x - e, y2]),
+    right: runs(r.y, top, yc2, (y2) => [right + e, y2]),
+    free: /* @__PURE__ */ __name((x, y2) => !inside2(x, y2), "free")
+  };
+}
+__name(openEdges, "openEdges");
+var tileTextures = /* @__PURE__ */ new Map();
 function slabTexture(set, [top, face, under]) {
   const key2 = `${set}-slab`;
   if (!tileTextures.has(key2)) {
@@ -29627,24 +29713,224 @@ function tiled(x, y2, w2, h, map5, sx, sy, color = 16777215) {
   return m;
 }
 __name(tiled, "tiled");
-function block2(r) {
-  const g = new jl(), ink = new Bs(new ha(r.w + 0.14, r.h + 0.14), edgeMat);
-  ink.position.set(r.x + r.w / 2, r.y + r.h / 2, -0.02);
-  g.add(ink);
+function block2(r, rs) {
   const set = pal.tiles ?? pal.art, t2 = TILES[set];
-  if (!t2) {
-    const m = new Bs(new ha(r.w, r.h), new es({ color: r.one_way ? pal.oneway : pal.solid }));
-    m.position.set(r.x + r.w / 2, r.y + r.h / 2, 0);
-    return g.add(m);
+  if (!t2 || r.one_way) {
+    const g = new jl(), ink = new Bs(new ha(r.w + 0.14, r.h + 0.14), edgeMat);
+    ink.position.set(r.x + r.w / 2, r.y + r.h / 2, -0.02);
+    g.add(ink);
+    if (t2) return g.add(tiled(r.x, r.y, r.w, r.h, slabTexture(set, t2.slab), t2.plank, 0));
+    const m2 = new Bs(new ha(r.w, r.h), new es({ color: r.one_way ? pal.oneway : pal.solid }));
+    m2.position.set(r.x + r.w / 2, r.y + r.h / 2, 0);
+    return g.add(m2);
   }
-  if (r.one_way) return g.add(tiled(r.x, r.y, r.w, r.h, slabTexture(set, t2.slab), t2.plank, 0));
-  g.add(tiled(r.x, r.y, r.w, r.h, tileTexture(`${set}-fill`, true), t2.fill, t2.fill, t2.tint));
-  const cap = Math.min(t2.cap, r.h);
-  const top = tiled(r.x, r.y + r.h - cap, r.w, cap, tileTexture(`${set}-cap`, false), t2.capSpan, 0, t2.tint);
-  top.position.z = 0.01;
-  return g.add(top);
+  const M2 = 0.4, w2 = r.w + 2 * M2, h = r.h + 2 * M2;
+  const px = Math.min(64, Math.floor(4096 / Math.max(w2, h)));
+  const c = Object.assign(document.createElement("canvas"), { width: Math.ceil(w2 * px), height: Math.ceil(h * px) });
+  const map5 = new Vh(c);
+  map5.colorSpace = Je;
+  const m = new Bs(new ha(c.width / px, c.height / px), new es({ map: map5, transparent: true }));
+  m.position.set(r.x - M2 + c.width / px / 2, r.y + r.h + M2 - c.height / px / 2, 0);
+  m.userData.ownsMap = true;
+  const open = openEdges(r, rs.filter((o) => !o.one_way)), group2 = new jl().add(m);
+  if (t2.deco) {
+    const bottom = Math.min(...rs.map((o) => o.y)), top = Math.max(...rs.map((o) => o.y + o.h));
+    decorate(group2, r, { top: r.y + r.h + 1.8 < top ? open.top : [], bottom: r.y > bottom ? open.bottom : [] }, set, t2.deco);
+  }
+  Promise.all([tileImage(`${set}-fill`), tileImage(`${set}-cap`)]).then(([fill, cap]) => {
+    const g = c.getContext("2d");
+    g.setTransform(px, 0, 0, -px, -(r.x - M2) * px, (r.y + r.h + M2) * px);
+    paintBlock(g, r, t2, open, px, worldPattern(g, fill, t2.fill, t2.fill, px, false), worldPattern(g, cap, t2.capSpan, t2.cap, px, true));
+    map5.needsUpdate = true;
+  });
+  return group2;
 }
 __name(block2, "block");
+var decoTextures = /* @__PURE__ */ new Map();
+function decorate(group2, r, open, set, deco) {
+  const place = /* @__PURE__ */ __name((list, a, b, y2, hang) => {
+    for (let x = Math.ceil(a) + 0.5; x < b; x += 1) {
+      const k2 = x + y2 * 7.31;
+      if (hash(k2 * 1.37) < (hang ? 0.6 : 0.3)) continue;
+      const [name3, tall] = list[Math.floor(hash(k2 + 3.1) * list.length)], cx = x + (hash(k2 + 7.7) - 0.5) * 0.5;
+      if (cx - tall * 0.5 < a || cx + tall * 0.5 > b) continue;
+      const path = `art/tiles/${set}-deco/${name3}.webp`;
+      if (!decoTextures.has(path)) {
+        const tex2 = stickerLoader.load(path, () => decoTextures.get(path).ready.forEach((f) => f()));
+        tex2.colorSpace = Je;
+        decoTextures.set(path, { tex: tex2, ready: [] });
+      }
+      const { tex, ready } = decoTextures.get(path), flip = hash(k2 + 5.3) < 0.5 ? -1 : 1;
+      const m = new Bs(new ha(1, 1), new es({ map: tex, transparent: true, side: p }));
+      const fit = /* @__PURE__ */ __name(() => m.scale.set(flip * tall * tex.image.width / tex.image.height, tall, 1), "fit");
+      if (tex.image) fit();
+      else {
+        m.visible = false;
+        ready.push(() => {
+          fit();
+          m.visible = true;
+        });
+      }
+      m.position.set(cx, hang ? y2 + 0.04 - tall / 2 : y2 - 0.06 + tall / 2, 0.05);
+      group2.add(m);
+    }
+  }, "place");
+  for (const [a, b] of open.top) place(deco.top, a, b, r.y + r.h, false);
+  for (const [a, b] of open.bottom) place(deco.under, a, b, r.y, true);
+}
+__name(decorate, "decorate");
+function paintBlock(g, r, t2, open, px, fillPat, capPat) {
+  const x0 = r.x, x1 = r.x + r.w, y0 = r.y, y1 = r.y + r.h;
+  const has3 = /* @__PURE__ */ __name((runs, a) => runs.some(([p2, q2]) => a >= p2 - 1e-6 && a <= q2 + 1e-6), "has");
+  const R3 = Math.min(t2.round, r.w / 2, r.h / 2);
+  const corner = /* @__PURE__ */ __name((cx, cy, sx, sy, xs2, ys2, rad) => has3(xs2, cx) && has3(ys2, cy) && open.free(cx + sx * 0.02, cy + sy * 0.02) ? rad : 0, "corner");
+  const rTL = corner(x0, y1, -1, 1, open.top, open.left, R3), rTR = corner(x1, y1, 1, 1, open.top, open.right, R3);
+  const rBL = corner(x0, y0, -1, -1, open.bottom, open.left, R3 / 2), rBR = corner(x1, y0, 1, -1, open.bottom, open.right, R3 / 2);
+  const body2 = new Path2D();
+  body2.moveTo(x0 + rBL, y0);
+  body2.lineTo(x1 - rBR, y0);
+  body2.arcTo(x1, y0, x1, y0 + rBR, rBR);
+  body2.lineTo(x1, y1 - rTR);
+  body2.arcTo(x1, y1, x1 - rTR, y1, rTR);
+  body2.lineTo(x0 + rTL, y1);
+  body2.arcTo(x0, y1, x0, y1 - rTL, rTL);
+  body2.lineTo(x0, y0 + rBL);
+  body2.arcTo(x0, y0, x0 + rBL, y0, rBL);
+  body2.closePath();
+  const tint2 = /* @__PURE__ */ __name((x, y2, ww, hh2) => {
+    if (!t2.tint) return;
+    g.globalCompositeOperation = "multiply";
+    g.fillStyle = t2.tint;
+    g.fillRect(x, y2, ww, hh2);
+    g.globalCompositeOperation = "source-over";
+  }, "tint");
+  g.save();
+  g.clip(body2);
+  g.fillStyle = fillPat;
+  g.fillRect(x0, y0, r.w, r.h);
+  tint2(x0, y0, r.w, r.h);
+  const band = Math.min(0.35, r.w / 3, r.h / 3);
+  const shade = /* @__PURE__ */ __name((ax, ay, bx, by, x, y2, ww, hh2) => {
+    const gr2 = g.createLinearGradient(ax, ay, bx, by);
+    gr2.addColorStop(0, t2.shade + "8c");
+    gr2.addColorStop(1, t2.shade + "00");
+    g.fillStyle = gr2;
+    g.fillRect(x, y2, ww, hh2);
+  }, "shade");
+  for (const [a, b] of open.left) shade(x0, 0, x0 + band, 0, x0, a, band, b - a);
+  for (const [a, b] of open.right) shade(x1, 0, x1 - band, 0, x1 - band, a, band, b - a);
+  for (const [a, b] of open.bottom) shade(0, y0, 0, y0 + band, a, y0, b - a, band);
+  g.restore();
+  g.strokeStyle = INK2;
+  g.lineWidth = 0.12;
+  g.lineCap = "round";
+  g.lineJoin = "round";
+  const line = /* @__PURE__ */ __name((ax, ay, bx, by) => {
+    g.beginPath();
+    g.moveTo(ax, ay);
+    g.lineTo(bx, by);
+    g.stroke();
+  }, "line");
+  for (const [a, b] of open.bottom) line(Math.max(a, x0 + rBL), y0, Math.min(b, x1 - rBR), y0);
+  for (const [a, b] of open.left) line(x0, Math.max(a, y0 + rBL), x0, Math.min(b, y1 - rTL));
+  for (const [a, b] of open.right) line(x1, Math.max(a, y0 + rBR), x1, Math.min(b, y1 - rTR));
+  for (const [cx, cy, rr2, a0] of [[x0 + rBL, y0 + rBL, rBL, Math.PI], [x1 - rBR, y0 + rBR, rBR, -Math.PI / 2]])
+    if (rr2 > 0) {
+      g.beginPath();
+      g.arc(cx, cy, rr2, a0, a0 + Math.PI / 2);
+      g.stroke();
+    }
+  const capH = Math.min(t2.cap, r.h * 0.7), drop2 = Math.max(0, Math.min(t2.drop, r.h - capH));
+  const reach3 = t2.end === "turf" ? 0.6 : 0.3;
+  for (const [a, b] of open.top) {
+    const endL = a === x0 && has3(open.left, y1), endR = b === x1 && has3(open.right, y1);
+    const L2 = endL ? a - t2.lip : a, Rt2 = endR ? b + t2.lip : b;
+    const rl2 = endL ? Math.min(t2.round, capH / 2) : 0, rr2 = endR ? Math.min(t2.round, capH / 2) : 0;
+    const foot = /* @__PURE__ */ __name((x) => y1 - capH + t2.wave * wobble(x), "foot");
+    const endPiece = /* @__PURE__ */ __name((sx, ex) => t2.end === "turf" ? Array.from({ length: 9 }, (_, i) => {
+      const f = i / 8;
+      return [ex - sx * f * (reach3 + t2.lip), foot(ex - sx * f * (reach3 + t2.lip)) - drop2 * (1 - f) ** 1.5 * (0.8 + 0.2 * Math.sin(f * 9))];
+    }) : [[ex, y1 - capH - drop2], [ex - sx * (reach3 + t2.lip), y1 - capH - drop2], [ex - sx * (reach3 + t2.lip), foot(ex - sx * (reach3 + t2.lip))]], "endPiece");
+    const cap = new Path2D();
+    cap.moveTo(L2, y1 - rl2);
+    cap.arcTo(L2, y1, L2 + rl2, y1, rl2);
+    cap.lineTo(Rt2 - rr2, y1);
+    cap.arcTo(Rt2, y1, Rt2, y1 - rr2, rr2);
+    if (endR) for (const p2 of endPiece(1, Rt2)) cap.lineTo(...p2);
+    else cap.lineTo(Rt2, foot(Rt2));
+    const from = endR ? Rt2 - reach3 - t2.lip : Rt2, to2 = endL ? L2 + reach3 + t2.lip : L2, n = Math.max(2, Math.ceil(Math.abs(from - to2) / 0.08));
+    for (let i = 0; i <= n; i++) {
+      const x = from + (to2 - from) * i / n;
+      cap.lineTo(x, foot(x));
+    }
+    if (endL) for (const p2 of endPiece(-1, L2).reverse()) cap.lineTo(...p2);
+    else cap.lineTo(L2, foot(L2));
+    cap.closePath();
+    capPat.setTransform(new DOMMatrix().translate(0, y1).scale(1 / px, -1 / px));
+    g.fillStyle = capPat;
+    g.fill(cap);
+    if (t2.tint) {
+      g.save();
+      g.clip(cap);
+      tint2(L2, y0, Rt2 - L2, r.h);
+      g.restore();
+    }
+    if (t2.end === "post") for (const [on, ex, sx] of [[endL, L2, -1], [endR, Rt2, 1]]) {
+      if (!on) continue;
+      const ix = ex - sx * (reach3 + t2.lip), lo2 = y1 - capH - drop2;
+      g.save();
+      g.globalCompositeOperation = "multiply";
+      g.fillStyle = "#9a7a62";
+      g.fillRect(Math.min(ex, ix), lo2, reach3 + t2.lip, capH + drop2);
+      g.restore();
+      g.lineWidth = 0.06;
+      g.beginPath();
+      g.moveTo(ix, lo2);
+      g.lineTo(ix, y1);
+      g.stroke();
+      g.fillStyle = INK2;
+      for (const fy of [0.3, 0.75]) {
+        g.beginPath();
+        g.arc((ex + ix) / 2, lo2 + (capH + drop2) * fy, 0.04, 0, 7);
+        g.fill();
+      }
+    }
+    g.save();
+    g.clip(cap);
+    g.globalAlpha = 0.6;
+    g.lineWidth = 0.08;
+    g.stroke(cap);
+    g.restore();
+    g.lineWidth = 0.12;
+    g.beginPath();
+    if (endL) {
+      g.moveTo(L2, y1 - capH - drop2 * 0.6);
+      g.lineTo(L2, y1 - rl2);
+      g.arcTo(L2, y1, L2 + rl2, y1, rl2);
+    } else g.moveTo(L2, y1);
+    g.lineTo(Rt2 - rr2, y1);
+    if (endR) {
+      g.arcTo(Rt2, y1, Rt2, y1 - rr2, rr2);
+      g.lineTo(Rt2, y1 - capH - drop2 * 0.6);
+    }
+    g.stroke();
+    if (t2.tufts) for (let x = Math.ceil(L2 * 3) / 3; x < Rt2 - 0.15; x += 1 / 3) {
+      if (hash(x) < 0.6) continue;
+      const blades = 3 + Math.floor(hash(x + 0.3) * 3), cx = x + 0.15 * hash(x + 0.9);
+      for (let i = 0; i < blades; i++) {
+        const k2 = hash(x + i * 7.7), bx = cx + (i - (blades - 1) / 2) * 0.05, tall = 0.12 + 0.16 * k2, lean = (i - (blades - 1) / 2) * 0.05 + (k2 - 0.5) * 0.06;
+        g.beginPath();
+        g.moveTo(bx - 0.03, y1 - 0.04);
+        g.quadraticCurveTo(bx - 0.02 + lean * 0.3, y1 + tall * 0.6, bx + lean, y1 + tall);
+        g.quadraticCurveTo(bx + 0.02 + lean * 0.3, y1 + tall * 0.5, bx + 0.03, y1 - 0.04);
+        g.closePath();
+        g.fillStyle = i % 2 ? t2.tufts : "#86ad5a";
+        g.fill();
+      }
+    }
+  }
+}
+__name(paintBlock, "paintBlock");
 var edgeMat = new es({ color: 3877669 });
 function outline(m) {
   if (pal.edge === null) return;
@@ -29914,10 +30200,10 @@ function syncRoom() {
     pal = world.depth === 0 ? HUB : zoneAt(world.depth);
     scene.background.set(pal.bg);
     empty2(roomGroup);
-    if (pal.art) roomGroup.add(farBack = zoneBackdrop(pal));
-    else farBack = null;
-    for (const r of world.level.toArray()) roomGroup.add(block2(r));
     const rs = world.level.toArray();
+    if (pal.art) roomGroup.add(farBack = zoneBackdrop(pal, Math.max(...rs.map((r) => r.y + r.h))));
+    else farBack = null;
+    for (const r of rs) roomGroup.add(block2(r, rs));
     cam.focus = null;
     roomBox = { x0: Math.min(...rs.map((r) => r.x)), x1: Math.max(...rs.map((r) => r.x + r.w)), y0: Math.min(...rs.map((r) => r.y)), y1: Math.max(...rs.map((r) => r.y + r.h)) };
     enemyMood.clear();
