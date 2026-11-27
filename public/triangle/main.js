@@ -10153,8 +10153,8 @@ var List = class {
     return length3 - 1;
   }
 };
-function prepend(element, tail) {
-  return new NonEmpty(element, tail);
+function prepend(element2, tail) {
+  return new NonEmpty(element2, tail);
 }
 __name(prepend, "prepend");
 function toList(elements, tail) {
@@ -12800,6 +12800,18 @@ var Projectile = class extends CustomType {
     this.damage = damage3;
   }
 };
+var Physical = class extends CustomType {
+  static {
+    __name(this, "Physical");
+  }
+};
+var Element$Physical$const = new Physical();
+var Magic = class extends CustomType {
+  static {
+    __name(this, "Magic");
+  }
+};
+var Element$Magic$const = new Magic();
 var shot_damage = 8;
 var boss_rest = 1;
 var boss_charge_speed = 11;
@@ -13140,6 +13152,28 @@ function contact_damage(e) {
   );
 }
 __name(contact_damage, "contact_damage");
+function armor(e, element2) {
+  let $ = e.kind;
+  let $1 = e.mode;
+  if (element2 instanceof Physical) {
+    if ($ instanceof Charger) {
+      if ($1 instanceof Charging) {
+        return 50;
+      } else if ($1 instanceof Recover) {
+        return 150;
+      } else {
+        return 100;
+      }
+    } else {
+      return 100;
+    }
+  } else if ($ instanceof Charger && $1 instanceof Recover) {
+    return 150;
+  } else {
+    return 100;
+  }
+}
+__name(armor, "armor");
 function telegraphing(e) {
   let $ = e.mode;
   if ($ instanceof Windup) {
@@ -19418,12 +19452,13 @@ var Hit = class extends CustomType {
   static {
     __name(this, "Hit");
   }
-  constructor(x, y2, damage3, crit) {
+  constructor(x, y2, damage3, crit, armor2) {
     super();
     this.x = x;
     this.y = y2;
     this.damage = damage3;
     this.crit = crit;
+    this.armor = armor2;
   }
 };
 var Blocked = class extends CustomType {
@@ -20753,15 +20788,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      2807,
+      2826,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 84971,
-        end: 85023,
-        pattern_start: 84982,
-        pattern_end: 84989
+        start: 85513,
+        end: 85565,
+        pattern_start: 85524,
+        pattern_end: 85531
       }
     );
   } else {
@@ -22125,7 +22160,7 @@ function blocks(p2) {
   }
 }
 __name(blocks, "blocks");
-function hit_enemies(world2, targets, dmg, sure_crit, push) {
+function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
   let p2 = world2.player;
   let always_crit = sure_crit;
   let shove = pct(p2.mods.knockback_pct) * (() => {
@@ -22303,23 +22338,27 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
       }
       let d2 = _block2;
       let d$1 = max(1, globalThis.Math.trunc(d2 * bent(e, crit) / 100));
+      let d$2 = max(
+        1,
+        globalThis.Math.trunc(d$1 * armor(e, element2) / 100)
+      );
       let _block$12;
       let $22 = slammed(e);
       if ($22) {
-        _block$12 = d$1 + dmg;
+        _block$12 = d$2 + dmg;
       } else {
-        _block$12 = d$1;
+        _block$12 = d$2;
       }
-      let d$2 = _block$12;
+      let d$3 = _block$12;
       let _block$22;
       let $32 = has2(p2, Rule$Executioner$const) && !(e.kind instanceof Boss) && e.hp * 4 < e.max_hp;
       if ($32) {
-        _block$22 = max(d$2, e.hp);
+        _block$22 = max(d$3, e.hp);
       } else {
-        _block$22 = d$2;
+        _block$22 = d$3;
       }
-      let d$3 = _block$22;
-      return [seed$1, [e.id, d$3, crit]];
+      let d$4 = _block$22;
+      return [seed$1, [e.id, d$4, crit]];
     }
   );
   let seed = $[0];
@@ -22336,15 +22375,15 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        1102,
+        1120,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $12,
-          start: 31041,
-          end: 31097,
-          pattern_start: 31052,
-          pattern_end: 31057
+          start: 31515,
+          end: 31571,
+          pattern_start: 31526,
+          pattern_end: 31531
         }
       );
     }
@@ -22714,7 +22753,7 @@ function hit_enemies(world2, targets, dmg, sure_crit, push) {
       let $8 = roll(e.id);
       let d2 = $8[1];
       let crit = $8[2];
-      return new Hit(e.x, b.y + b.h, d2, crit);
+      return new Hit(e.x, b.y + b.h, d2, crit, armor(e, element2));
     }
   );
   let _pipe = new World(
@@ -22780,6 +22819,7 @@ function take_damage(world2) {
       _block = hit_enemies(
         world2,
         prepend(e, List$Empty$const),
+        Element$Physical$const,
         3 * damage2(p2),
         false,
         (_) => {
@@ -22918,6 +22958,18 @@ function rebounding(p2, damage3) {
   }
 }
 __name(rebounding, "rebounding");
+function element(effect) {
+  if (effect instanceof Bolt) {
+    return Element$Magic$const;
+  } else if (effect instanceof Orb) {
+    return Element$Magic$const;
+  } else if (effect instanceof Firebolt) {
+    return Element$Magic$const;
+  } else {
+    return Element$Physical$const;
+  }
+}
+__name(element, "element");
 function strikes_act(world2, dt2) {
   let p2 = world2.player;
   return fold2(
@@ -22987,6 +23039,7 @@ function strikes_act(world2, dt2) {
       let w$1 = hit_enemies(
         w2,
         targets,
+        element(s.effect),
         rebounding(p2, s.damage),
         far2(s) || ricocheting(p2),
         (e) => {
@@ -23511,6 +23564,7 @@ function strike(world2, a, box4) {
         world2.drops
       ),
       targets,
+      Element$Physical$const,
       dmg$1,
       sure,
       (_) => {
@@ -27057,15 +27111,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2757,
+        2776,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 83424,
-          end: 83475,
-          pattern_start: 83435,
-          pattern_end: 83443
+          start: 83966,
+          end: 84017,
+          pattern_start: 83977,
+          pattern_end: 83985
         }
       );
     }
@@ -27077,15 +27131,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2759,
+        2778,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 83558,
-          end: 83619,
-          pattern_start: 83569,
-          pattern_end: 83586
+          start: 84100,
+          end: 84161,
+          pattern_start: 84111,
+          pattern_end: 84128
         }
       );
     } else {
@@ -27095,15 +27149,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          2759,
+          2778,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 83558,
-            end: 83619,
-            pattern_start: 83569,
-            pattern_end: 83586
+            start: 84100,
+            end: 84161,
+            pattern_start: 84111,
+            pattern_end: 84128
           }
         );
       } else {
@@ -27975,6 +28029,10 @@ var SOUNDS = {
     tone("sawtooth", 300, 80, 0.22, 0.55);
     noise(500, 120, 0.18, 0.6);
   }, "hurt"),
+  clank: /* @__PURE__ */ __name(() => {
+    tone("square", 1500, 1100, 0.05, 0.3);
+    noise(4e3, 2500, 0.05, 0.35);
+  }, "clank"),
   block: /* @__PURE__ */ __name(() => {
     tone("triangle", 1250, 1180, 0.16, 0.5);
     tone("triangle", 1870, 1760, 0.12, 0.3);
@@ -29185,8 +29243,9 @@ function frame(now) {
     acc -= DT;
     for (const ev of world.events) {
       if (ev instanceof Hit) {
-        floatText(ev.x, ev.y, ev.crit ? `${ev.damage}!` : ev.damage, ev.crit ? "dmg crit" : "dmg");
-        play(ev.crit ? "crit" : "hit");
+        const armor2 = ev.armor < 100 ? " guard" : ev.armor > 100 ? " open" : "";
+        floatText(ev.x, ev.y, ev.crit ? `${ev.damage}!` : ev.damage, (ev.crit ? "dmg crit" : "dmg") + armor2);
+        play(ev.armor < 100 ? "clank" : ev.crit ? "crit" : "hit");
       }
       if (ev instanceof Blocked) play("block");
       if (ev instanceof LevelUp) play("level");
