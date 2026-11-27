@@ -29828,6 +29828,7 @@ addEventListener("keydown", (e) => {
     if (e.code === "KeyM") nextAttackMode();
     if (e.code === "KeyB") showBox = !showBox;
     if (e.code === "KeyP") saveRunLog();
+    if (e.code === "KeyO") toggleSharing();
   }
   if (e.code.startsWith("Arrow") || e.code === "Space") e.preventDefault();
 });
@@ -30067,6 +30068,7 @@ function saveRun(r) {
     localStorage.setItem(RUNS_KEY, JSON.stringify([...savedRuns(), r].slice(-200)));
   } catch {
   }
+  shareRun(r);
 }
 __name(saveRun, "saveRun");
 function track(before, after) {
@@ -30120,6 +30122,73 @@ function saveRunLog() {
   floatText(world.player.x, world.player.y + 3.4, `Run log saved (${runs.length} run${runs.length === 1 ? "" : "s"})`, "npc");
 }
 __name(saveRunLog, "saveRunLog");
+var UPLOAD_KEY = "trip.upload";
+var UPLOAD_URL = "/api/triangle-runs";
+var BUILD = true ? "5b6f33476b6d" : "dev";
+var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
+var sharing = true;
+var uploading = false;
+try {
+  sharing = localStorage.getItem("trip.share") !== "off";
+} catch {
+}
+var shareNote = /* @__PURE__ */ __name(() => !canShare ? "" : sharing ? "Finished runs are shared to help balance the game \xB7 O to stop" : "Run sharing is off \xB7 O to turn it on", "shareNote");
+function installId() {
+  try {
+    let id2 = localStorage.getItem("trip.install");
+    if (!id2) localStorage.setItem("trip.install", id2 = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join(""));
+    return id2;
+  } catch {
+    return null;
+  }
+}
+__name(installId, "installId");
+var uploads = /* @__PURE__ */ __name(() => {
+  try {
+    return JSON.parse(localStorage.getItem(UPLOAD_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}, "uploads");
+var setUploads = /* @__PURE__ */ __name((q2) => {
+  try {
+    localStorage.setItem(UPLOAD_KEY, JSON.stringify(q2));
+  } catch {
+  }
+}, "setUploads");
+function shareRun(r) {
+  const install = installId();
+  if (!canShare || !sharing || !install) return;
+  setUploads([...uploads(), { v: 1, install, build: BUILD, run: r, replay: { ...replay, log: replay.log.slice() } }].slice(-10));
+  if (r.end !== "left") sendUploads();
+}
+__name(shareRun, "shareRun");
+async function sendUploads() {
+  if (uploading || !canShare || !sharing) return;
+  uploading = true;
+  try {
+    for (let q2 = uploads(); q2.length; q2 = uploads()) {
+      const res = await fetch(UPLOAD_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(q2[0]) });
+      if (res.status === 429 || res.status >= 500) break;
+      const { replay: id2, from } = q2[0].run;
+      setUploads(uploads().filter((u2) => u2.run.replay !== id2 || u2.run.from !== from));
+    }
+  } catch {
+  }
+  uploading = false;
+}
+__name(sendUploads, "sendUploads");
+function toggleSharing() {
+  sharing = !sharing;
+  try {
+    localStorage.setItem("trip.share", sharing ? "on" : "off");
+  } catch {
+  }
+  if (!sharing) setUploads([]);
+  floatText(world.player.x, world.player.y + 3.4, sharing ? "Sharing runs: on" : "Sharing runs: off", "npc");
+}
+__name(toggleSharing, "toggleSharing");
+setTimeout(sendUploads, 3e3);
 function inReach() {
   const p2 = world.player, shoots = p2.weapon.shot instanceof Some;
   const far3 = shoots ? 9 : p2.weapon.long * reach2(p2) + 0.6;
@@ -30411,7 +30480,7 @@ function frame(now) {
     speech.style.top = `${sy}px`;
   }
   if (++frames % 15 === 0) {
-    hud.textContent = usingPad ? HINT.pad : HINT.keys;
+    hud.innerText = [usingPad ? HINT.pad : HINT.keys, shareNote()].filter(Boolean).join("\n");
     whoEl.textContent = class_name(world) === "No class" ? "No class yet" : class_name(world);
     const boss2 = world.depth === boss_depth, cleared = world.cleared && world.depth > 0;
     whereEl.textContent = world.depth === 0 ? "Hub" : boss2 ? "Boss" : `Room ${world.depth} / ${boss_depth - 1}`;
