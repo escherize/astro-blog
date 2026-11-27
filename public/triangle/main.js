@@ -29722,6 +29722,7 @@ var ATTACK_KEYS = ["KeyJ"];
 var prevJump = false;
 var prevDash = false;
 var prevAttack = false;
+var prevStart = false;
 var usingPad = false;
 var pendJump = false;
 var pendDash = false;
@@ -29742,7 +29743,7 @@ addEventListener("keydown", (e) => {
     }
     if (e.code === "KeyM") nextAttackMode();
     if (e.code === "KeyB") showBox = !showBox;
-    if (e.code === "KeyL") saveRunLog();
+    if (e.code === "KeyP") saveRunLog();
   }
   if (e.code.startsWith("Arrow") || e.code === "Space") e.preventDefault();
 });
@@ -29761,6 +29762,8 @@ function readInput() {
   const jump2 = key(...JUMP_KEYS) || btn(2, 3);
   const dash2 = key(...DASH_KEYS) || btn(4, 5, 6, 7);
   const attack = key(...ATTACK_KEYS) || btn(0);
+  if (btn(9) && !prevStart) saveRunLog();
+  prevStart = btn(9);
   pendJump ||= jump2 && !prevJump;
   pendDash ||= dash2 && !prevDash;
   pendAttack ||= attack && !prevAttack;
@@ -29839,7 +29842,7 @@ var treeScreen = createTreeScreen({ getWorld: /* @__PURE__ */ __name(() => world
 }, "setWorld"), onUnlock: saveUnlocks });
 var hud = document.getElementById("hud");
 var HINT = {
-  keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Up at doors & statues \xB7 T tree \xB7 M attack style \xB7 N sound \xB7 B body box \xB7 L save run log",
+  keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Up at doors & statues \xB7 T tree \xB7 M attack style \xB7 N sound \xB7 B body box \xB7 P (pad Start) save run log",
   pad: "Move stick \xB7 Jump X / Y \xB7 Dash LB / RB \xB7 Attack A (+up / +down in air) \xB7 Up at doors & statues \xB7 Select tree"
 };
 var treeKey = /* @__PURE__ */ __name(() => usingPad ? "Select" : "T", "treeKey");
