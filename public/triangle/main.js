@@ -28828,46 +28828,7 @@ var ZONES = [
   { name: "Spire", bg: 15654866, solid: 16776695, oneway: 15260879, edge: 3877669, art: "spire" }
 ];
 var zoneAt = /* @__PURE__ */ __name((depth) => ZONES[depth <= 4 ? 0 : depth <= 10 ? 1 : 2], "zoneAt");
-var LOOKS = [
-  { name: "the three zones", zones: true },
-  { name: "C: storybook castle", bg: 15722198, solid: 16776695, oneway: 15260879, edge: 3877669, paint: paintCastle },
-  { name: "A: paper diorama", bg: 16182488, solid: 13215098, oneway: 11898723, edge: 3877669, paint: paintPaper },
-  { name: "B: sticker-book dungeon", bg: 1910597, solid: 9410219, oneway: 7173520, edge: 16644334, paint: paintNight },
-  { name: "the old dark slabs", bg: 723723, solid: 15263976, oneway: 7829367, edge: null, paint: null }
-];
-var look = 0;
-try {
-  look = Number(localStorage.getItem("trip.look") ?? 0) % LOOKS.length;
-} catch {
-}
-var pal = LOOKS[look];
-function nextLook() {
-  look = (look + 1) % LOOKS.length;
-  try {
-    localStorage.setItem("trip.look", look);
-  } catch {
-  }
-  builtDepth = -1;
-  floatText(world.player.x, world.player.y + 3.4, `Rooms ${LOOKS[look].name}`, "npc");
-}
-__name(nextLook, "nextLook");
-var BACK = { w: 24, h: 40, px: 32 };
-function backdrop(paint) {
-  const c = document.createElement("canvas");
-  c.width = BACK.w * BACK.px;
-  c.height = BACK.h * BACK.px;
-  const g = c.getContext("2d"), y2 = /* @__PURE__ */ __name((t3) => (30 - t3) * BACK.px, "y"), x = /* @__PURE__ */ __name((t3) => t3 * BACK.px, "x");
-  paint(g, x, y2);
-  const t2 = new Vh(c);
-  t2.colorSpace = Je;
-  t2.wrapS = pt;
-  t2.repeat.set(12, 1);
-  const m = new Bs(new ha(BACK.w * 12, BACK.h), new es({ map: t2 }));
-  m.position.set(BACK.w * 3, 10, -6);
-  m.userData.ownsMap = true;
-  return m;
-}
-__name(backdrop, "backdrop");
+var pal = HUB;
 var ZONE_W = 36;
 var ZONE_H = ZONE_W * 9 / 16;
 var zoneTextures = /* @__PURE__ */ new Map();
@@ -28888,106 +28849,51 @@ function zoneBackdrop(zone) {
   return m;
 }
 __name(zoneBackdrop, "zoneBackdrop");
-function paintCastle(g, x, y2) {
-  g.fillStyle = "#efe6d6";
-  g.fillRect(0, 0, x(24), y2(-10));
-  g.strokeStyle = "rgba(120,100,80,0.10)";
-  g.lineWidth = 2;
-  for (let r = -10; r < 30; r += 2) for (let c = 0; c < 24; c += 4) g.strokeRect(x(c + (r % 4 ? 2 : 0)) - x(2), y2(r + 2), x(4), x(2));
-  [[4, "#d94c43"], [12, "#4f9e3f"], [20, "#5a5fd6"]].forEach(([cx, col]) => {
-    g.fillStyle = "#fbf3df";
-    g.strokeStyle = "rgba(90,70,55,0.35)";
-    g.lineWidth = 5;
-    g.beginPath();
-    g.moveTo(x(cx - 1.3), y2(2));
-    g.lineTo(x(cx - 1.3), y2(7.5));
-    g.arc(x(cx), y2(7.5), x(1.3), Math.PI, 0);
-    g.lineTo(x(cx + 1.3), y2(2));
-    g.closePath();
-    g.fill();
-    g.stroke();
-    const beam = g.createLinearGradient(x(cx), y2(8), x(cx + 3), y2(0));
-    beam.addColorStop(0, "rgba(255,240,190,0.55)");
-    beam.addColorStop(1, "rgba(255,240,190,0)");
-    g.fillStyle = beam;
-    g.beginPath();
-    g.moveTo(x(cx - 1.3), y2(7));
-    g.lineTo(x(cx + 1.3), y2(7));
-    g.lineTo(x(cx + 5), y2(0));
-    g.lineTo(x(cx + 1), y2(0));
-    g.closePath();
-    g.fill();
-    g.fillStyle = col;
-    g.globalAlpha = 0.75;
-    g.beginPath();
-    g.moveTo(x(cx + 3.4), y2(13));
-    g.lineTo(x(cx + 4.6), y2(13));
-    g.lineTo(x(cx + 4.6), y2(8.6));
-    g.lineTo(x(cx + 4), y2(9.4));
-    g.lineTo(x(cx + 3.4), y2(8.6));
-    g.closePath();
-    g.fill();
-    g.globalAlpha = 1;
-  });
-}
-__name(paintCastle, "paintCastle");
-function paintPaper(g, x, y2) {
-  g.fillStyle = "#f6ecd8";
-  g.fillRect(0, 0, x(24), y2(-10));
-  const hills = /* @__PURE__ */ __name((base, tall, col, shift) => {
-    g.fillStyle = col;
-    g.beginPath();
-    g.moveTo(0, y2(-10));
-    for (let i = 0; i <= 24; i += 0.5) g.lineTo(x(i), y2(base + tall * (0.5 + 0.5 * Math.sin((i + shift) / 24 * Math.PI * 2)) + 0.6 * Math.sin((i + shift) / 24 * Math.PI * 6)));
-    g.lineTo(x(24), y2(-10));
-    g.closePath();
-    g.fill();
-  }, "hills");
-  g.fillStyle = "#c9b6e0";
-  g.fillRect(x(15), y2(13), x(3), x(5));
-  g.fillRect(x(14.4), y2(15), x(1), x(7));
-  g.fillRect(x(17.6), y2(14.2), x(1), x(6.2));
-  [[14.9, 15], [18.1, 14.2], [16.5, 13]].forEach(([cx, top]) => {
-    g.beginPath();
-    g.moveTo(x(cx - 0.7), y2(top));
-    g.lineTo(x(cx), y2(top + 2));
-    g.lineTo(x(cx + 0.7), y2(top));
-    g.closePath();
-    g.fill();
-  });
-  hills(6, 5, "#c4d6e8", 0);
-  hills(3, 4, "#d6cbe6", 7);
-  hills(0.5, 3, "#cfe0c0", 15);
-}
-__name(paintPaper, "paintPaper");
-function paintNight(g, x, y2) {
-  g.fillStyle = "#1d2745";
-  g.fillRect(0, 0, x(24), y2(-10));
-  g.fillStyle = "rgba(255,255,255,0.08)";
-  for (let r = -10; r < 30; r++) for (let c = 0; c < 24; c++) {
-    g.beginPath();
-    g.arc(x(c + 0.5), y2(r + 0.5), 2, 0, Math.PI * 2);
-    g.fill();
+var TILES = {
+  // span: tiles per texture repeat; cap: the cap's height; tint: multiplies the textures
+  hedgelands: { fill: 4, cap: 0.55, capSpan: 3, plank: 3 },
+  warren: { fill: 4, cap: 0.5, capSpan: 4, plank: 5 },
+  spire: { fill: 4, cap: 0.4, capSpan: 3.5, plank: 3.2, tint: 14272176 }
+  // pale stone on a pale hall: darker so it reads
+};
+var tileTextures = /* @__PURE__ */ new Map();
+function tileTexture(name3, fill) {
+  if (!tileTextures.has(name3)) {
+    const t2 = stickerLoader.load(`art/tiles/${name3}.webp`);
+    t2.colorSpace = Je;
+    t2.wrapS = fill ? pt : ft;
+    if (fill) t2.wrapT = pt;
+    tileTextures.set(name3, t2);
   }
-  [6, 18].forEach((cx) => {
-    const glow = g.createRadialGradient(x(cx), y2(4.2), 4, x(cx), y2(4.2), x(4.5));
-    glow.addColorStop(0, "rgba(255,190,90,0.55)");
-    glow.addColorStop(1, "rgba(255,190,90,0)");
-    g.fillStyle = glow;
-    g.fillRect(x(cx - 5), y2(9), x(10), x(10));
-    g.fillStyle = "#7a5a3c";
-    g.fillRect(x(cx - 0.12), y2(4), x(0.24), x(0.9));
-    g.fillStyle = "#ffb347";
-    g.beginPath();
-    g.ellipse(x(cx), y2(4.3), x(0.28), x(0.42), 0, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = "#fff1b8";
-    g.beginPath();
-    g.ellipse(x(cx), y2(4.2), x(0.13), x(0.22), 0, 0, Math.PI * 2);
-    g.fill();
-  });
+  return tileTextures.get(name3);
 }
-__name(paintNight, "paintNight");
+__name(tileTexture, "tileTexture");
+function tiled(x, y2, w2, h, map5, sx, sy, color = 16777215) {
+  const g = new ha(w2, h), uv = g.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, (x + uv.getX(i) * w2) / sx, sy ? (y2 + uv.getY(i) * h) / sy : uv.getY(i));
+  const m = new Bs(g, new es({ map: map5, color }));
+  m.position.set(x + w2 / 2, y2 + h / 2, 0);
+  return m;
+}
+__name(tiled, "tiled");
+function block(r) {
+  const g = new jl(), ink = new Bs(new ha(r.w + 0.14, r.h + 0.14), edgeMat);
+  ink.position.set(r.x + r.w / 2, r.y + r.h / 2, -0.02);
+  g.add(ink);
+  const t2 = TILES[pal.art];
+  if (!t2) {
+    const m = new Bs(new ha(r.w, r.h), new es({ color: r.one_way ? pal.oneway : pal.solid }));
+    m.position.set(r.x + r.w / 2, r.y + r.h / 2, 0);
+    return g.add(m);
+  }
+  if (r.one_way) return g.add(tiled(r.x, r.y, r.w, r.h, tileTexture(`${pal.art}-plank`, false), t2.plank, 0, t2.tint));
+  g.add(tiled(r.x, r.y, r.w, r.h, tileTexture(`${pal.art}-fill`, true), t2.fill, t2.fill, t2.tint));
+  const cap = Math.min(t2.cap, r.h);
+  const top = tiled(r.x, r.y + r.h - cap, r.w, cap, tileTexture(`${pal.art}-cap`, false), t2.capSpan, 0, t2.tint);
+  top.position.z = 0.01;
+  return g.add(top);
+}
+__name(block, "block");
 var edgeMat = new es({ color: 3877669 });
 function outline(m) {
   if (pal.edge === null) return;
@@ -29254,18 +29160,12 @@ document.fonts?.ready.then(() => {
 function syncRoom() {
   if (world.depth !== builtDepth || world.level !== builtLevel) {
     [builtDepth, builtLevel] = [world.depth, world.level];
-    pal = world.depth === 0 ? HUB : LOOKS[look].zones ? zoneAt(world.depth) : LOOKS[look];
+    pal = world.depth === 0 ? HUB : zoneAt(world.depth);
     scene.background.set(pal.bg);
     empty2(roomGroup);
-    if (pal.paint) roomGroup.add(backdrop(pal.paint));
     if (pal.art) roomGroup.add(farBack = zoneBackdrop(pal));
     else farBack = null;
-    for (const r of world.level.toArray()) {
-      const m = box3(r.w, r.h, r.one_way ? pal.oneway : pal.solid);
-      outline(m);
-      m.position.set(r.x + r.w / 2, r.y + r.h / 2, 0);
-      roomGroup.add(m);
-    }
+    for (const r of world.level.toArray()) roomGroup.add(block(r));
     enemyMood.clear();
     enemyMeshes = new Map(
       world.enemies.toArray().map((e) => {
@@ -29659,7 +29559,6 @@ addEventListener("keydown", (e) => {
       treeScreen.toggle();
     }
     if (e.code === "KeyM") nextAttackMode();
-    if (e.code === "KeyV") nextLook();
     if (e.code === "KeyB") showBox = !showBox;
     if (e.code === "KeyL") copyRuns();
   }
@@ -29731,7 +29630,7 @@ var treeScreen = createTreeScreen({ getWorld: /* @__PURE__ */ __name(() => world
 }, "setWorld"), onUnlock: saveUnlocks });
 var hud = document.getElementById("hud");
 var HINT = {
-  keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Up at doors & statues \xB7 T tree \xB7 M attack style \xB7 V room look \xB7 N sound \xB7 B body box \xB7 L copy run log",
+  keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Up at doors & statues \xB7 T tree \xB7 M attack style \xB7 N sound \xB7 B body box \xB7 L copy run log",
   pad: "Move stick \xB7 Jump X / Y \xB7 Dash LB / RB \xB7 Attack A (+up / +down in air) \xB7 Up at doors & statues \xB7 Select tree"
 };
 var treeKey = /* @__PURE__ */ __name(() => usingPad ? "Select" : "T", "treeKey");
@@ -30154,7 +30053,7 @@ function frame(now) {
   const glide = 1 - Math.exp(-9.75 * frameDt);
   camera.position.x += (px - camera.position.x) * glide;
   camera.position.y += (py + 3 - camera.position.y) * glide;
-  if (farBack) farBack.position.x = camera.position.x * 0.5;
+  if (farBack) farBack.position.x = camera.position.x * 0.75;
   renderer.render(scene, camera);
   const unlockedNow = new Set(world.unlocked.toArray());
   const mine = world.player.class instanceof Some ? world.player.class[0] : -1;
