@@ -16054,22 +16054,23 @@ var hub_gap = 3;
 var shelf_top = 11;
 var shelf_step = 2.2;
 var shelf_tries = 80;
+var furnish_most = 2;
 var tunnel_end = 10;
 var layout_names = /* @__PURE__ */ toList([
-  "arena",
-  "mesa",
-  "pillars",
-  "ziggurat",
-  "tower",
-  "bowl",
-  "stairs",
-  "long hall",
-  "bridge",
+  "meadow",
+  "hedgerows",
+  "hill fort",
+  "stones",
+  "shaft",
+  "gallery",
+  "split",
+  "hall",
+  "drift",
   "canyon",
-  "box",
-  "cellar",
-  "gauntlet",
-  "decks"
+  "grand stair",
+  "balconies",
+  "keep",
+  "belfry"
 ]);
 function hub() {
   let rows = prepend(
@@ -16198,6 +16199,10 @@ function tunnel_inside() {
   return new Rect(-1, 0, 11, 3.2, false);
 }
 __name(tunnel_inside, "tunnel_inside");
+function plat(x, top, w2) {
+  return new Rect(x, top - 0.3, w2, 0.3, true);
+}
+__name(plat, "plat");
 function room(level, spawns, doors, air, tier) {
   return new Template(
     level,
@@ -16210,157 +16215,181 @@ function room(level, spawns, doors, air, tier) {
   );
 }
 __name(room, "room");
-function decks() {
+function belfry() {
   return room(
     prepend(
-      new Rect(-1, 8.5, 42, 1, false),
+      new Rect(13, 6, 23, 0.6, false),
       prepend(
-        new Rect(12, 3.4, 8, 0.6, false),
+        plat(12, 2.2, 4),
         prepend(
-          new Rect(23, 3.4, 8, 0.6, false),
+          new Rect(10, 12.6, 23, 0.6, false),
           prepend(
-            new Rect(20, 1.7, 3, 0.3, true),
-            prepend(new Rect(31.5, 1.7, 3, 0.3, true), walls(40, 12))
+            plat(33.5, 8.8, 2.5),
+            prepend(plat(33.5, 11, 2.5), walls(36, 20))
           )
         )
       )
     ),
     prepend(
-      [15, 0, Kind$Charger$const],
+      [24, 0, Kind$Charger$const],
       prepend(
-        [16, 4, Kind$Shooter$const],
+        [20, 6.6, Kind$Shooter$const],
         prepend(
-          [26, 0, Kind$Charger$const],
+          [30, 6.6, Kind$Hexer$const],
           prepend(
-            [27, 4, Kind$Hexer$const],
+            [16, 13.2, Kind$Shooter$const],
             prepend(
-              [29, 4, Kind$Charger$const],
-              prepend([37, 0, Kind$Shooter$const], List$Empty$const)
-            )
-          )
-        )
-      )
-    ),
-    prepend([35.5, 0], prepend([38.5, 0], List$Empty$const)),
-    [21.5, 6.2],
-    3
-  );
-}
-__name(decks, "decks");
-function gauntlet() {
-  return room(
-    prepend(
-      new Rect(13, 2.2, 6, 0.3, true),
-      prepend(
-        new Rect(21, 4.4, 6, 0.3, true),
-        prepend(
-          new Rect(29, 2.2, 6, 0.3, true),
-          prepend(
-            new Rect(37, 4.4, 6, 0.3, true),
-            prepend(new Rect(45, 2.2, 6, 0.3, true), walls(56, 18))
-          )
-        )
-      )
-    ),
-    prepend(
-      [16, 2.5, Kind$Shooter$const],
-      prepend(
-        [24, 4.7, Kind$Charger$const],
-        prepend(
-          [32, 2.5, Kind$Hexer$const],
-          prepend(
-            [40, 4.7, Kind$Shooter$const],
-            prepend(
-              [48, 2.5, Kind$Charger$const],
-              prepend([52, 0, Kind$Charger$const], List$Empty$const)
-            )
-          )
-        )
-      )
-    ),
-    prepend([50, 0], prepend([53, 0], List$Empty$const)),
-    [30, 8],
-    3
-  );
-}
-__name(gauntlet, "gauntlet");
-function cellar() {
-  return room(
-    prepend(
-      new Rect(-1, 6, 34, 1, false),
-      prepend(
-        new Rect(16, 0, 1.5, 2, false),
-        prepend(new Rect(24, 0, 1.5, 2, false), walls(32, 10))
-      )
-    ),
-    prepend(
-      [13, 0, Kind$Charger$const],
-      prepend(
-        [16.7, 2, Kind$Shooter$const],
-        prepend(
-          [20, 0, Kind$Charger$const],
-          prepend(
-            [24.7, 2, Kind$Hexer$const],
-            prepend(
-              [28, 0, Kind$Charger$const],
-              prepend([30, 0, Kind$Shooter$const], List$Empty$const)
-            )
-          )
-        )
-      )
-    ),
-    prepend([27, 0], prepend([30, 0], List$Empty$const)),
-    [20, 4.5],
-    3
-  );
-}
-__name(cellar, "cellar");
-function box2() {
-  return room(
-    prepend(
-      new Rect(-1, 8, 28, 1, false),
-      prepend(
-        new Rect(14, 2.2, 5, 0.3, true),
-        prepend(new Rect(19, 4.4, 4, 0.3, true), walls(26, 12))
-      )
-    ),
-    prepend(
-      [15, 2.5, Kind$Shooter$const],
-      prepend(
-        [18, 0, Kind$Charger$const],
-        prepend(
-          [21, 4.7, Kind$Shooter$const],
-          prepend(
-            [23, 0, Kind$Charger$const],
-            prepend(
-              [13, 0, Kind$Charger$const],
-              prepend([24, 0, Kind$Shooter$const], List$Empty$const)
-            )
-          )
-        )
-      )
-    ),
-    prepend([21, 0], prepend([24, 0], List$Empty$const)),
-    [18, 6],
-    3
-  );
-}
-__name(box2, "box");
-function canyon() {
-  return room(
-    prepend(
-      new Rect(13, 0, 4, 2.2, false),
-      prepend(
-        new Rect(17, 0, 5, 4.4, false),
-        prepend(
-          new Rect(24, 4.1, 4, 0.3, true),
-          prepend(
-            new Rect(30, 4.1, 4, 0.3, true),
-            prepend(
-              new Rect(27, 1.9, 4, 0.3, true),
+              [26, 6.6, Kind$Charger$const],
               prepend(
-                new Rect(36, 0, 10, 4.4, false),
-                walls(46, 20)
+                [30, 0, Kind$Bouncer$const],
+                prepend(
+                  [24, 13.2, Kind$Charger$const],
+                  prepend(
+                    [29, 13.2, Kind$Shooter$const],
+                    prepend(
+                      [18, 0, Kind$Charger$const],
+                      List$Empty$const
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    ),
+    prepend([13, 13.2], prepend([16, 13.2], List$Empty$const)),
+    [22, 9.5],
+    3
+  );
+}
+__name(belfry, "belfry");
+function keep() {
+  return room(
+    prepend(
+      new Rect(-1, 9.5, 62, 1, false),
+      prepend(
+        new Rect(12, 4, 12, 0.6, false),
+        prepend(
+          new Rect(27, 4, 12, 0.6, false),
+          prepend(
+            new Rect(42, 4, 12, 0.6, false),
+            prepend(
+              plat(24, 2.3, 3),
+              prepend(plat(39, 2.3, 3), walls(60, 14))
+            )
+          )
+        )
+      )
+    ),
+    prepend(
+      [18, 4.6, Kind$Shooter$const],
+      prepend(
+        [32, 0, Kind$Charger$const],
+        prepend(
+          [48, 4.6, Kind$Hexer$const],
+          prepend(
+            [33, 4.6, Kind$Charger$const],
+            prepend(
+              [46, 0, Kind$Charger$const],
+              prepend(
+                [52, 4.6, Kind$Shooter$const],
+                prepend(
+                  [20, 0, Kind$Bouncer$const],
+                  prepend(
+                    [57, 0, Kind$Shooter$const],
+                    prepend(
+                      [37, 4.6, Kind$Shooter$const],
+                      List$Empty$const
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    ),
+    prepend([55, 0], prepend([58, 0], List$Empty$const)),
+    [40, 6.5],
+    3
+  );
+}
+__name(keep, "keep");
+function balconies() {
+  return room(
+    prepend(
+      new Rect(10, 8, 14, 0.8, false),
+      prepend(
+        new Rect(38, 8, 22, 0.8, false),
+        prepend(
+          plat(27, 2.2, 5),
+          prepend(
+            plat(33, 4.4, 4),
+            prepend(
+              plat(27, 6.6, 5),
+              prepend(plat(33, 8.8, 4.4), walls(60, 24))
+            )
+          )
+        )
+      )
+    ),
+    prepend(
+      [16, 8.8, Kind$Shooter$const],
+      prepend(
+        [30, 0, Kind$Charger$const],
+        prepend(
+          [48, 8.8, Kind$Hexer$const],
+          prepend(
+            [44, 8.8, Kind$Shooter$const],
+            prepend(
+              [20, 0, Kind$Charger$const],
+              prepend(
+                [54, 8.8, Kind$Shooter$const],
+                prepend(
+                  [45, 0, Kind$Charger$const],
+                  prepend(
+                    [13, 8.8, Kind$Shooter$const],
+                    prepend(
+                      [52, 0, Kind$Bouncer$const],
+                      List$Empty$const
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    ),
+    prepend([54, 0], prepend([57, 0], List$Empty$const)),
+    [30, 14],
+    3
+  );
+}
+__name(balconies, "balconies");
+function block(x, w2, top) {
+  return new Rect(x, 0, w2, top, false);
+}
+__name(block, "block");
+function grand_stair() {
+  return room(
+    prepend(
+      block(12, 6, 1.8),
+      prepend(
+        block(18, 6, 3.6),
+        prepend(
+          block(24, 6, 5.4),
+          prepend(
+            block(30, 6, 7.2),
+            prepend(
+              block(36, 6, 9),
+              prepend(
+                block(42, 6, 10.8),
+                prepend(
+                  block(48, 6, 12.6),
+                  prepend(block(54, 10, 14.4), walls(64, 26))
+                )
               )
             )
           )
@@ -16368,352 +16397,500 @@ function canyon() {
       )
     ),
     prepend(
-      [15, 2.2, Kind$Charger$const],
+      [39, 9, Kind$Shooter$const],
       prepend(
-        [19.5, 4.4, Kind$Shooter$const],
+        [21, 3.6, Kind$Charger$const],
         prepend(
-          [25, 0, Kind$Charger$const],
+          [57, 14.4, Kind$Hexer$const],
           prepend(
-            [32, 4.4, Kind$Hexer$const],
+            [45, 10.8, Kind$Charger$const],
             prepend(
-              [39, 4.4, Kind$Charger$const],
-              prepend([33, 0, Kind$Charger$const], List$Empty$const)
+              [27, 5.4, Kind$Shooter$const],
+              prepend(
+                [60, 14.4, Kind$Shooter$const],
+                prepend(
+                  [33, 7.2, Kind$Charger$const],
+                  prepend(
+                    [51, 12.6, Kind$Shooter$const],
+                    prepend(
+                      [15, 1.8, Kind$Bouncer$const],
+                      List$Empty$const
+                    )
+                  )
+                )
+              )
             )
           )
         )
       )
     ),
-    prepend([41, 4.4], prepend([44, 4.4], List$Empty$const)),
-    [29, 9],
+    prepend([58, 14.4], prepend([61, 14.4], List$Empty$const)),
+    [30, 14],
+    3
+  );
+}
+__name(grand_stair, "grand_stair");
+function canyon() {
+  return room(
+    prepend(
+      block(13, 4, 2.2),
+      prepend(
+        block(17, 6, 4.4),
+        prepend(
+          plat(26, 4.4, 4),
+          prepend(
+            plat(33, 4.4, 4),
+            prepend(
+              plat(40, 4.4, 4),
+              prepend(
+                plat(29.5, 2.2, 4),
+                prepend(
+                  plat(37, 2.2, 3),
+                  prepend(block(46, 16, 4.4), walls(62, 20))
+                )
+              )
+            )
+          )
+        )
+      )
+    ),
+    prepend(
+      [35, 4.4, Kind$Shooter$const],
+      prepend(
+        [50, 4.4, Kind$Charger$const],
+        prepend(
+          [30, 0, Kind$Bouncer$const],
+          prepend(
+            [42, 4.4, Kind$Hexer$const],
+            prepend(
+              [56, 4.4, Kind$Shooter$const],
+              prepend(
+                [20, 4.4, Kind$Charger$const],
+                prepend([38, 0, Kind$Bouncer$const], List$Empty$const)
+              )
+            )
+          )
+        )
+      )
+    ),
+    prepend([57, 4.4], prepend([60, 4.4], List$Empty$const)),
+    [35, 10],
     2
   );
 }
 __name(canyon, "canyon");
-function bridge() {
+function drift() {
   return room(
-    prepend(new Rect(13, 2.2, 26, 0.3, true), walls(52, 18)),
     prepend(
-      [16, 2.5, Kind$Shooter$const],
+      new Rect(-1, 6, 60, 1, false),
       prepend(
-        [20, 0, Kind$Charger$const],
+        block(18, 1.2, 2),
         prepend(
-          [26, 2.5, Kind$Shooter$const],
+          block(30, 1.5, 2.4),
           prepend(
-            [30, 0, Kind$Charger$const],
+            block(44, 1.2, 2),
             prepend(
-              [36, 2.5, Kind$Charger$const],
-              prepend([46, 0, Kind$Shooter$const], List$Empty$const)
+              new Rect(24, 3.4, 1.2, 2.6, false),
+              prepend(
+                new Rect(37, 3.4, 1.2, 2.6, false),
+                prepend(
+                  new Rect(50, 3.4, 1.2, 2.6, false),
+                  walls(58, 10)
+                )
+              )
             )
           )
         )
       )
     ),
-    prepend([47, 0], prepend([50, 0], List$Empty$const)),
-    [30, 7],
+    prepend(
+      [26, 0, Kind$Bouncer$const],
+      prepend(
+        [36, 0, Kind$Shooter$const],
+        prepend(
+          [48, 0, Kind$Charger$const],
+          prepend(
+            [30.7, 2.4, Kind$Hexer$const],
+            prepend(
+              [40, 0, Kind$Charger$const],
+              prepend(
+                [52, 0, Kind$Shooter$const],
+                prepend([21, 0, Kind$Charger$const], List$Empty$const)
+              )
+            )
+          )
+        )
+      )
+    ),
+    prepend([53, 0], prepend([56, 0], List$Empty$const)),
+    [41, 4.4],
     2
   );
 }
-__name(bridge, "bridge");
-function long_hall() {
+__name(drift, "drift");
+function hall() {
   return room(
     prepend(
-      new Rect(20, 4.5, 8, 1, false),
+      block(22, 1.5, 2.4),
       prepend(
-        new Rect(40, 4.5, 8, 1, false),
+        block(36, 1.5, 2.4),
         prepend(
-          new Rect(31, 0, 2, 1.2, false),
-          prepend(new Rect(51, 0, 2, 1.2, false), walls(64, 16))
+          block(50, 1.5, 2.4),
+          prepend(
+            block(62, 1.5, 2.4),
+            prepend(
+              new Rect(26, 4.4, 8, 1, false),
+              prepend(
+                new Rect(40, 4.4, 8, 1, false),
+                prepend(
+                  new Rect(54, 4.4, 6, 1, false),
+                  walls(72, 16)
+                )
+              )
+            )
+          )
         )
       )
     ),
     prepend(
-      [15, 0, Kind$Charger$const],
+      [29, 0, Kind$Charger$const],
       prepend(
-        [24, 0, Kind$Shooter$const],
+        [44, 0, Kind$Shooter$const],
         prepend(
-          [35, 0, Kind$Charger$const],
+          [58, 0, Kind$Hexer$const],
           prepend(
-            [44, 0, Kind$Hexer$const],
+            [40, 0, Kind$Charger$const],
             prepend(
-              [55, 0, Kind$Charger$const],
-              prepend([59, 0, Kind$Shooter$const], List$Empty$const)
+              [66, 0, Kind$Shooter$const],
+              prepend(
+                [52, 0, Kind$Charger$const],
+                prepend([22.7, 2.4, Kind$Shooter$const], List$Empty$const)
+              )
+            )
+          )
+        )
+      )
+    ),
+    prepend([66, 0], prepend([69, 0], List$Empty$const)),
+    [64, 8],
+    2
+  );
+}
+__name(hall, "hall");
+function split4() {
+  return room(
+    prepend(
+      new Rect(34, 2.2, 1.5, 8, false),
+      prepend(
+        plat(28, 2.2, 4),
+        prepend(
+          plat(23, 4.4, 4),
+          prepend(
+            plat(29, 6.6, 4),
+            prepend(
+              plat(30, 8.8, 3.5),
+              prepend(
+                plat(40, 2.2, 6),
+                prepend(
+                  plat(47, 4.4, 6),
+                  prepend(plat(54, 2.2, 6), walls(64, 18))
+                )
+              )
+            )
+          )
+        )
+      )
+    ),
+    prepend(
+      [50, 4.4, Kind$Hexer$const],
+      prepend(
+        [42, 0, Kind$Charger$const],
+        prepend(
+          [25, 4.4, Kind$Shooter$const],
+          prepend(
+            [57, 2.2, Kind$Shooter$const],
+            prepend(
+              [43, 2.2, Kind$Bouncer$const],
+              prepend(
+                [52, 0, Kind$Charger$const],
+                prepend([31, 6.6, Kind$Shooter$const], List$Empty$const)
+              )
             )
           )
         )
       )
     ),
     prepend([59, 0], prepend([62, 0], List$Empty$const)),
-    [38, 9],
+    [20, 9],
     2
   );
 }
-__name(long_hall, "long_hall");
-function stairs() {
+__name(split4, "split");
+function gallery() {
   return room(
     prepend(
-      new Rect(12, 0, 6, 1.8, false),
+      plat(13, 2.2, 16),
       prepend(
-        new Rect(18, 0, 6, 3.6, false),
+        plat(32, 2.2, 16),
         prepend(
-          new Rect(24, 0, 6, 5.4, false),
+          plat(51, 2.2, 14),
           prepend(
-            new Rect(30, 0, 6, 7.2, false),
-            prepend(
-              new Rect(36, 0, 12, 9, false),
-              walls(48, 22)
-            )
+            new Rect(30, 2.6, 1.5, 4, false),
+            prepend(new Rect(49, 2.6, 1.5, 4, false), walls(70, 18))
           )
         )
       )
     ),
     prepend(
-      [15, 1.8, Kind$Charger$const],
+      [40, 2.2, Kind$Shooter$const],
       prepend(
-        [21, 3.6, Kind$Shooter$const],
+        [22, 0, Kind$Charger$const],
         prepend(
-          [27, 5.4, Kind$Charger$const],
+          [58, 2.2, Kind$Shooter$const],
           prepend(
-            [33, 7.2, Kind$Hexer$const],
+            [44, 0, Kind$Charger$const],
             prepend(
-              [40, 9, Kind$Charger$const],
-              prepend([44, 9, Kind$Shooter$const], List$Empty$const)
+              [20, 2.2, Kind$Hexer$const],
+              prepend(
+                [60, 0, Kind$Charger$const],
+                prepend([55, 2.2, Kind$Shooter$const], List$Empty$const)
+              )
             )
           )
         )
       )
     ),
-    prepend([42, 9], prepend([45, 9], List$Empty$const)),
-    [22, 11],
+    prepend([64, 0], prepend([67, 0], List$Empty$const)),
+    [40, 9],
     2
   );
 }
-__name(stairs, "stairs");
-function bowl() {
+__name(gallery, "gallery");
+function shaft() {
   return room(
     prepend(
-      new Rect(12, 0, 6, 2, false),
+      plat(12, 2.2, 7),
       prepend(
-        new Rect(27, 0, 13, 2, false),
-        prepend(new Rect(33, 2, 7, 2.2, false), walls(40, 20))
-      )
-    ),
-    prepend(
-      [15, 2, Kind$Shooter$const],
-      prepend(
-        [21, 0, Kind$Charger$const],
+        plat(21, 4.4, 7),
         prepend(
-          [24, 0, Kind$Charger$const],
+          plat(12, 6.6, 7),
           prepend(
-            [30, 2, Kind$Charger$const],
+            plat(21, 8.8, 7),
             prepend(
-              [36, 4.2, Kind$Shooter$const],
-              prepend([38, 4.2, Kind$Charger$const], List$Empty$const)
+              plat(12, 11, 7),
+              prepend(
+                plat(21, 13.2, 7),
+                prepend(
+                  plat(12, 15.4, 7),
+                  prepend(
+                    plat(21, 17.6, 7),
+                    prepend(
+                      plat(12, 19.8, 22),
+                      prepend(
+                        new Rect(30, 3.6, 4, 0.8, false),
+                        prepend(
+                          new Rect(0, 8, 10, 0.8, false),
+                          prepend(
+                            new Rect(30, 12.4, 4, 0.8, false),
+                            prepend(
+                              new Rect(0, 14.6, 10, 0.8, false),
+                              walls(34, 26)
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
             )
           )
         )
       )
     ),
-    prepend([35, 4.2], prepend([38, 4.2], List$Empty$const)),
-    [22, 7],
+    prepend(
+      [32, 4.4, Kind$Shooter$const],
+      prepend(
+        [15, 2.2, Kind$Bouncer$const],
+        prepend(
+          [5, 8.8, Kind$Shooter$const],
+          prepend(
+            [24, 8.8, Kind$Shooter$const],
+            prepend(
+              [32, 13.2, Kind$Hexer$const],
+              prepend(
+                [5, 15.4, Kind$Shooter$const],
+                prepend([26, 19.8, Kind$Charger$const], List$Empty$const)
+              )
+            )
+          )
+        )
+      )
+    ),
+    prepend([28, 19.8], prepend([31, 19.8], List$Empty$const)),
+    [24, 10.4],
     2
   );
 }
-__name(bowl, "bowl");
-function tower() {
+__name(shaft, "shaft");
+function stones() {
   return room(
     prepend(
-      new Rect(12, 2.2, 6, 0.3, true),
+      block(18, 1.2, 2),
       prepend(
-        new Rect(16, 4.4, 8, 0.3, true),
+        block(42, 1.2, 2),
         prepend(
-          new Rect(26, 6.6, 8, 0.3, true),
-          prepend(new Rect(16, 8.8, 8, 0.3, true), walls(40, 26))
-        )
-      )
-    ),
-    prepend(
-      [14, 0, Kind$Charger$const],
-      prepend(
-        [20, 4.7, Kind$Shooter$const],
-        prepend(
-          [30, 0, Kind$Charger$const],
+          new Rect(28, 2.6, 8.2, 0.6, false),
           prepend(
-            [30, 6.9, Kind$Shooter$const],
-            prepend(
-              [15, 2.5, Kind$Charger$const],
-              prepend([20, 9.1, Kind$Shooter$const], List$Empty$const)
-            )
+            plat(24, 2.2, 3),
+            prepend(plat(39, 4.4, 5), walls(56, 20))
           )
         )
       )
     ),
     prepend(
-      [17.5, 9.1],
-      prepend([20, 9.1], prepend([22.5, 9.1], List$Empty$const))
-    ),
-    [24, 12],
-    2
-  );
-}
-__name(tower, "tower");
-function ziggurat() {
-  return room(
-    prepend(
-      new Rect(14, 0, 16, 1.8, false),
+      [32, 0, Kind$Bouncer$const],
       prepend(
-        new Rect(18, 1.8, 8, 1.8, false),
-        prepend(new Rect(31, 2.2, 4, 0.3, true), walls(44, 20))
-      )
-    ),
-    prepend(
-      [16, 1.8, Kind$Charger$const],
-      prepend(
-        [22, 3.6, Kind$Shooter$const],
+        [46, 0, Kind$Charger$const],
         prepend(
-          [28, 1.8, Kind$Charger$const],
+          [32, 3.2, Kind$Shooter$const],
           prepend(
-            [33, 2.5, Kind$Shooter$const],
-            prepend(
-              [37, 0, Kind$Charger$const],
-              prepend([41, 0, Kind$Charger$const], List$Empty$const)
-            )
+            [41, 4.4, Kind$Shooter$const],
+            prepend([22, 0, Kind$Charger$const], List$Empty$const)
           )
         )
       )
     ),
-    prepend(
-      [36, 0],
-      prepend([39, 0], prepend([42, 0], List$Empty$const))
-    ),
-    [24, 9],
+    prepend([51, 0], prepend([54, 0], List$Empty$const)),
+    [36, 9],
     1
   );
 }
-__name(ziggurat, "ziggurat");
-function pillars() {
+__name(stones, "stones");
+function hill_fort() {
   return room(
     prepend(
-      new Rect(14, 0, 2, 2, false),
+      new Rect(20, 0, 18, 2.2, false),
       prepend(
-        new Rect(22, 0, 2, 2.4, false),
+        new Rect(24, 2.2, 10, 2.2, false),
         prepend(
-          new Rect(30, 0, 2, 2, false),
-          prepend(
-            new Rect(17, 4.2, 4, 0.3, true),
-            prepend(new Rect(33, 4.2, 4, 0.3, true), walls(44, 20))
-          )
+          new Rect(26, 4.4, 0.8, 1.2, false),
+          prepend(new Rect(31.2, 4.4, 0.8, 1.2, false), walls(54, 20))
         )
       )
     ),
     prepend(
-      [18, 0, Kind$Charger$const],
+      [28.6, 4.4, Kind$Shooter$const],
       prepend(
-        [23, 2.4, Kind$Shooter$const],
+        [45, 0, Kind$Charger$const],
         prepend(
-          [27, 0, Kind$Charger$const],
+          [22, 2.2, Kind$Charger$const],
           prepend(
-            [31, 2, Kind$Shooter$const],
-            prepend(
-              [38, 0, Kind$Charger$const],
-              prepend([19, 4.5, Kind$Charger$const], List$Empty$const)
-            )
+            [36, 2.2, Kind$Shooter$const],
+            prepend([48, 0, Kind$Bouncer$const], List$Empty$const)
           )
         )
       )
     ),
-    prepend([38, 0], prepend([41, 0], List$Empty$const)),
-    [28, 8],
+    prepend([49, 0], prepend([52, 0], List$Empty$const)),
+    [29, 10],
     1
   );
 }
-__name(pillars, "pillars");
-function mesa() {
+__name(hill_fort, "hill_fort");
+function hedgerows() {
   return room(
     prepend(
-      new Rect(16, 0, 8, 2.2, false),
+      block(20, 3, 4.4),
       prepend(
-        new Rect(10.5, 2.2, 3, 0.3, true),
+        block(38, 3, 4.4),
         prepend(
-          new Rect(26.5, 2.2, 3, 0.3, true),
-          prepend(new Rect(30, 4, 5, 0.5, false), walls(40, 20))
-        )
-      )
-    ),
-    prepend(
-      [14, 0, Kind$Charger$const],
-      prepend(
-        [20, 2.2, Kind$Shooter$const],
-        prepend(
-          [28, 0, Kind$Charger$const],
+          plat(16.5, 2.2, 3),
           prepend(
-            [31, 4.5, Kind$Shooter$const],
+            plat(23.5, 2.2, 3),
             prepend(
-              [33, 4.5, Kind$Charger$const],
-              prepend([37, 0, Kind$Charger$const], List$Empty$const)
+              plat(34.5, 2.2, 3),
+              prepend(
+                plat(41.5, 2.2, 3),
+                prepend(plat(25, 6.6, 6), walls(58, 20))
+              )
             )
           )
         )
       )
     ),
     prepend(
-      [30, 0],
-      prepend([34, 0], prepend([38, 0], List$Empty$const))
+      [30, 0, Kind$Charger$const],
+      prepend(
+        [21.5, 4.4, Kind$Shooter$const],
+        prepend(
+          [47, 0, Kind$Shooter$const],
+          prepend(
+            [28, 6.6, Kind$Shooter$const],
+            prepend([39.5, 4.4, Kind$Shooter$const], List$Empty$const)
+          )
+        )
+      )
     ),
-    [24, 8],
+    prepend([52, 0], prepend([55, 0], List$Empty$const)),
+    [31, 10],
     1
   );
 }
-__name(mesa, "mesa");
-function arena() {
+__name(hedgerows, "hedgerows");
+function meadow() {
   return room(
     prepend(
-      new Rect(12, 2.2, 6, 0.3, true),
+      block(19, 1.2, 1.8),
       prepend(
-        new Rect(26, 2.2, 6, 0.3, true),
-        prepend(new Rect(16, 4.4, 9, 0.3, true), walls(40, 20))
-      )
-    ),
-    prepend(
-      [16, 0, Kind$Charger$const],
-      prepend(
-        [20, 4.7, Kind$Shooter$const],
+        block(31, 1.2, 1.8),
         prepend(
-          [30, 0, Kind$Charger$const],
+          block(43, 1.2, 1.8),
           prepend(
-            [14, 2.5, Kind$Shooter$const],
+            plat(23, 2.2, 5),
             prepend(
-              [35, 0, Kind$Charger$const],
-              prepend([29, 2.5, Kind$Shooter$const], List$Empty$const)
+              plat(35, 2.2, 5),
+              prepend(plat(28, 4.4, 6), walls(54, 20))
             )
           )
         )
       )
     ),
     prepend(
-      [32, 0],
-      prepend([35, 0], prepend([38, 0], List$Empty$const))
+      [37, 2.2, Kind$Shooter$const],
+      prepend(
+        [26, 0, Kind$Shooter$const],
+        prepend(
+          [47, 0, Kind$Charger$const],
+          prepend(
+            [30, 4.4, Kind$Shooter$const],
+            prepend([38, 0, Kind$Charger$const], List$Empty$const)
+          )
+        )
+      )
     ),
-    [26, 8],
+    prepend([49, 0], prepend([52, 0], List$Empty$const)),
+    [30, 9],
     1
   );
 }
-__name(arena, "arena");
+__name(meadow, "meadow");
 function run_rooms() {
   return toList([
-    arena(),
-    mesa(),
-    pillars(),
-    ziggurat(),
-    tower(),
-    bowl(),
-    stairs(),
-    long_hall(),
-    bridge(),
+    meadow(),
+    hedgerows(),
+    hill_fort(),
+    stones(),
+    shaft(),
+    gallery(),
+    split4(),
+    hall(),
+    drift(),
     canyon(),
-    box2(),
-    cellar(),
-    gauntlet(),
-    decks()
+    grand_stair(),
+    balconies(),
+    keep(),
+    belfry()
   ]);
 }
 __name(run_rooms, "run_rooms");
@@ -16803,7 +16980,7 @@ function furnish(t2, seed) {
     }
   );
   let left = 12;
-  let want = truncate((right - left) / 5);
+  let want = min(furnish_most, truncate((right - left) / 5));
   let ground = filter(
     t2.level,
     (r) => {
@@ -23639,7 +23816,7 @@ function strikes_act(world2, dt2) {
       world2.drops
     ),
     (w2, s) => {
-      let box4 = strike_box(s, p2.x, p2.y);
+      let box3 = strike_box(s, p2.x, p2.y);
       let _block;
       let $ = s.wait > 0;
       if ($) {
@@ -23648,7 +23825,7 @@ function strikes_act(world2, dt2) {
         _block = filter(
           w2.enemies,
           (e) => {
-            return alive(e) && overlaps(box4, body(e));
+            return alive(e) && overlaps(box3, body(e));
           }
         );
       }
@@ -23662,7 +23839,7 @@ function strikes_act(world2, dt2) {
       let at_wall = any(
         w2.level,
         (r) => {
-          return !r.one_way && overlaps(box4, r);
+          return !r.one_way && overlaps(box3, r);
         }
       );
       let bursts = flying_firebolt(s) && (!(touching instanceof Empty) || at_wall);
@@ -23858,7 +24035,7 @@ function plunging(p2) {
   }
 }
 __name(plunging, "plunging");
-function strike(world2, a, box4) {
+function strike(world2, a, box3) {
   let p2 = world2.player;
   let room2 = max_targets(p2.stats) - length(a.hit);
   let dist = /* @__PURE__ */ __name((e) => {
@@ -23870,7 +24047,7 @@ function strike(world2, a, box4) {
     _pipe,
     (e) => {
       return alive(e) && !contains(a.hit, e.id) && overlaps(
-        box4,
+        box3,
         body(e)
       );
     }
@@ -24542,8 +24719,8 @@ function combat(world2) {
     } else {
       let $3 = active_hitbox(p2);
       if ($3 instanceof Some) {
-        let box4 = $3[0];
-        return strike(world2, a, box4);
+        let box3 = $3[0];
+        return strike(world2, a, box3);
       } else {
         return world2;
       }
@@ -26419,12 +26596,12 @@ function slashes(p2) {
           return prepend(side_slash(p2, p2.facing), List$Empty$const);
         }
       } else {
-        let box4 = $[0];
-        return prepend(box4, List$Empty$const);
+        let box3 = $[0];
+        return prepend(box3, List$Empty$const);
       }
     } else {
-      let box4 = $[0];
-      return prepend(box4, List$Empty$const);
+      let box3 = $[0];
+      return prepend(box3, List$Empty$const);
     }
   } else {
     return List$Empty$const;
@@ -28796,8 +28973,8 @@ window.game = { get world() {
 }, set world(w2) {
   world = w2;
 }, sounds: played };
-var box3 = /* @__PURE__ */ __name((w2, h, color, opts = {}) => new Bs(new ks(w2, h, 1), new es({ color, ...opts })), "box");
-var player = box3(width, height, 16777215);
+var box2 = /* @__PURE__ */ __name((w2, h, color, opts = {}) => new Bs(new ks(w2, h, 1), new es({ color, ...opts })), "box");
+var player = box2(width, height, 16777215);
 scene.add(player);
 var crescent = new Su();
 crescent.moveTo(-0.5, 0.5);
@@ -28816,13 +28993,15 @@ var roomGroup = new jl();
 var doorGroup = new jl();
 scene.add(roomGroup, doorGroup);
 var farBack = null;
+var roomBox = { x0: -Infinity, x1: Infinity, y0: -Infinity, y1: Infinity };
+var CAMERA_LEAD = 2.5;
 var builtDepth = -1;
 var builtLevel = null;
 var builtDoors = null;
 var enemyMeshes = /* @__PURE__ */ new Map();
 var npcMeshes = [];
 var npcLabels = [];
-var HUB = { bg: 16512750, solid: 16777215, oneway: 15260879, edge: 3877669 };
+var HUB = { name: "Outpost", bg: 15984332, solid: 16777215, oneway: 15260879, edge: 3877669, art: "outpost", tiles: "hedgelands" };
 var ZONES = [
   { name: "Hedgelands", bg: 14075350, solid: 16051414, oneway: 13215098, edge: 3877669, art: "hedgelands" },
   { name: "Warren", bg: 6373959, solid: 14861468, oneway: 11108954, edge: 3877669, art: "warren" },
@@ -28877,24 +29056,24 @@ function tiled(x, y2, w2, h, map5, sx, sy, color = 16777215) {
   return m;
 }
 __name(tiled, "tiled");
-function block(r) {
+function block2(r) {
   const g = new jl(), ink = new Bs(new ha(r.w + 0.14, r.h + 0.14), edgeMat);
   ink.position.set(r.x + r.w / 2, r.y + r.h / 2, -0.02);
   g.add(ink);
-  const t2 = TILES[pal.art];
+  const set = pal.tiles ?? pal.art, t2 = TILES[set];
   if (!t2) {
     const m = new Bs(new ha(r.w, r.h), new es({ color: r.one_way ? pal.oneway : pal.solid }));
     m.position.set(r.x + r.w / 2, r.y + r.h / 2, 0);
     return g.add(m);
   }
-  if (r.one_way) return g.add(tiled(r.x, r.y, r.w, r.h, tileTexture(`${pal.art}-plank`, false), t2.plank, 0, t2.tint));
-  g.add(tiled(r.x, r.y, r.w, r.h, tileTexture(`${pal.art}-fill`, true), t2.fill, t2.fill, t2.tint));
+  if (r.one_way) return g.add(tiled(r.x, r.y, r.w, r.h, tileTexture(`${set}-plank`, false), t2.plank, 0, t2.tint));
+  g.add(tiled(r.x, r.y, r.w, r.h, tileTexture(`${set}-fill`, true), t2.fill, t2.fill, t2.tint));
   const cap = Math.min(t2.cap, r.h);
-  const top = tiled(r.x, r.y + r.h - cap, r.w, cap, tileTexture(`${pal.art}-cap`, false), t2.capSpan, 0, t2.tint);
+  const top = tiled(r.x, r.y + r.h - cap, r.w, cap, tileTexture(`${set}-cap`, false), t2.capSpan, 0, t2.tint);
   top.position.z = 0.01;
   return g.add(top);
 }
-__name(block, "block");
+__name(block2, "block");
 var edgeMat = new es({ color: 3877669 });
 function outline(m) {
   if (pal.edge === null) return;
@@ -29166,7 +29345,9 @@ function syncRoom() {
     empty2(roomGroup);
     if (pal.art) roomGroup.add(farBack = zoneBackdrop(pal));
     else farBack = null;
-    for (const r of world.level.toArray()) roomGroup.add(block(r));
+    for (const r of world.level.toArray()) roomGroup.add(block2(r));
+    const rs = world.level.toArray();
+    roomBox = { x0: Math.min(...rs.map((r) => r.x)), x1: Math.max(...rs.map((r) => r.x + r.w)), y0: Math.min(...rs.map((r) => r.y)), y1: Math.max(...rs.map((r) => r.y + r.h)) };
     enemyMood.clear();
     enemyMeshes = new Map(
       world.enemies.toArray().map((e) => {
@@ -29176,7 +29357,7 @@ function syncRoom() {
         alert.material.color.set(16765501);
         alert.visible = false;
         const barW = w2 * (1 + 0.4 * (e.kind instanceof Boss ? 0 : e.tier - 1));
-        const bar = box3(barW, 0.12, 6732650);
+        const bar = box2(barW, 0.12, 6732650);
         roomGroup.add(body2, bar, alert);
         return [e.id, { body: body2, bar, alert, w: w2, barW, h }];
       })
@@ -29189,7 +29370,7 @@ function syncRoom() {
       hero.position.set(n.x, n.y + lift + HERO_H / 2, -0.6);
       roomGroup.add(hero);
       if (!statue) return { hero, n, statue, name: name3, y: hero.position.y };
-      const niche = alcove(n.x, n.y), pedestal = box3(1.5, PEDESTAL_H, STONE);
+      const niche = alcove(n.x, n.y), pedestal = box2(1.5, PEDESTAL_H, STONE);
       outline(pedestal);
       pedestal.position.set(n.x, n.y + PEDESTAL_H / 2, -1.2);
       roomGroup.add(niche, pedestal);
@@ -30090,8 +30271,12 @@ function frame(now) {
   }
   for (const k2 of Object.keys(ART)) SHOW[k2](flying[k2]);
   const glide = 1 - Math.exp(-9.75 * frameDt);
-  camera.position.x += (px - camera.position.x) * glide;
-  camera.position.y += (py + 3 - camera.position.y) * glide;
+  const halfW = (camera.right - camera.left) / 2, halfH = VIEW_H / 2;
+  const hold = /* @__PURE__ */ __name((v2, lo2, hi2) => lo2 > hi2 ? (lo2 + hi2) / 2 : Math.min(Math.max(v2, lo2), hi2), "hold");
+  const tx = hold(px + p2.facing * CAMERA_LEAD, roomBox.x0 + halfW, roomBox.x1 - halfW);
+  const ty = hold(py + 3, roomBox.y0 - 1 + halfH, roomBox.y1 - halfH);
+  camera.position.x += (tx - camera.position.x) * glide;
+  camera.position.y += (ty - camera.position.y) * glide;
   if (farBack) farBack.position.x = camera.position.x * 0.75;
   renderer.render(scene, camera);
   const unlockedNow = new Set(world.unlocked.toArray());
