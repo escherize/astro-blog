@@ -12862,6 +12862,7 @@ var stun_time = 0.25;
 var ward_time = 4;
 var ward_reach = 6;
 var shot_size = 0.4;
+var hex_turn = 1.4;
 function max_hp(kind) {
   if (kind instanceof Dummy) {
     return 40;
@@ -15877,27 +15878,72 @@ function shot_box(s) {
   );
 }
 __name(shot_box, "shot_box");
-function fly(s, level, dt2) {
-  let s$1 = new Projectile(
-    s.x + s.vx * dt2,
-    s.y + s.vy * dt2,
-    s.vx,
-    s.vy,
-    s.ttl - dt2,
-    s.damage,
-    s.hex
+function home(s, tx, ty, most) {
+  let speed3 = far(s.vx, s.vy);
+  let $ = normalize(s.vx, s.vy);
+  let hx = $[0];
+  let hy = $[1];
+  let $1 = normalize(tx - s.x, ty - s.y);
+  let wx = $1[0];
+  let wy = $1[1];
+  let cross = hx * wy - hy * wx;
+  let dot = hx * wx + hy * wy;
+  let $2 = dot < 0;
+  if ($2) {
+    return s;
+  } else {
+    let turn2 = min2(absolute_value2(cross), most);
+    let _block;
+    let $3 = cross < 0;
+    if ($3) {
+      _block = 0 - turn2;
+    } else {
+      _block = turn2;
+    }
+    let turn$1 = _block;
+    let c = cos2(turn$1);
+    let n = sin2(turn$1);
+    return new Projectile(
+      s.x,
+      s.y,
+      (hx * c - hy * n) * speed3,
+      (hx * n + hy * c) * speed3,
+      s.ttl,
+      s.damage,
+      s.hex
+    );
+  }
+}
+__name(home, "home");
+function fly(s, level, tx, ty, dt2) {
+  let _block;
+  let $ = s.hex;
+  if ($) {
+    _block = home(s, tx, ty, hex_turn * dt2);
+  } else {
+    _block = s;
+  }
+  let s$1 = _block;
+  let s$2 = new Projectile(
+    s$1.x + s$1.vx * dt2,
+    s$1.y + s$1.vy * dt2,
+    s$1.vx,
+    s$1.vy,
+    s$1.ttl - dt2,
+    s$1.damage,
+    s$1.hex
   );
   let hit_wall = any(
     level,
     (r) => {
-      return !r.one_way && overlaps(shot_box(s$1), r);
+      return !r.one_way && overlaps(shot_box(s$2), r);
     }
   );
-  let $ = s$1.ttl <= 0 || hit_wall;
-  if ($) {
+  let $1 = s$2.ttl <= 0 || hit_wall;
+  if ($1) {
     return Option$None$const;
   } else {
-    return new Some(s$1);
+    return new Some(s$2);
   }
 }
 __name(fly, "fly");
@@ -21509,15 +21555,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      2855,
+      2856,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 86336,
-        end: 86388,
-        pattern_start: 86347,
-        pattern_end: 86354
+        start: 86369,
+        end: 86421,
+        pattern_start: 86380,
+        pattern_end: 86387
       }
     );
   } else {
@@ -21586,7 +21632,7 @@ function plan_run(seed) {
   );
 }
 __name(plan_run, "plan_run");
-function home(world2) {
+function home2(world2) {
   let _block;
   let _record = new_world(next2(world2.seed));
   _block = new World(
@@ -21622,7 +21668,7 @@ function home(world2) {
     return fresh;
   }
 }
-__name(home, "home");
+__name(home2, "home");
 function door_box(d2) {
   return box(d2.x, d2.y, 1.2, 2);
 }
@@ -21646,7 +21692,7 @@ function use_door(world2, up_fresh) {
   let door = _block;
   if (door instanceof Ok) {
     if (world2.depth === 15) {
-      let _record = home(world2);
+      let _record = home2(world2);
       return new World(
         _record.player,
         _record.level,
@@ -22650,7 +22696,7 @@ function hurt(world2, damage3, from_x) {
             world2.drops
           );
         } else {
-          let _record = home(world2);
+          let _record = home2(world2);
           return new World(
             _record.player,
             _record.level,
@@ -24822,7 +24868,7 @@ function enemies_act(world2, dt2) {
   _block = filter_map(
     _pipe,
     (s) => {
-      let _pipe$1 = fly(s, world2.level, dt2);
+      let _pipe$1 = fly(s, world2.level, p2.x, p2.y + height / 2, dt2);
       return to_result(_pipe$1, void 0);
     }
   );
@@ -27972,15 +28018,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2805,
+        2806,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 84789,
-          end: 84840,
-          pattern_start: 84800,
-          pattern_end: 84808
+          start: 84822,
+          end: 84873,
+          pattern_start: 84833,
+          pattern_end: 84841
         }
       );
     }
@@ -27992,15 +28038,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2807,
+        2808,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 84923,
-          end: 84984,
-          pattern_start: 84934,
-          pattern_end: 84951
+          start: 84956,
+          end: 85017,
+          pattern_start: 84967,
+          pattern_end: 84984
         }
       );
     } else {
@@ -28010,15 +28056,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          2807,
+          2808,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 84923,
-            end: 84984,
-            pattern_start: 84934,
-            pattern_end: 84951
+            start: 84956,
+            end: 85017,
+            pattern_start: 84967,
+            pattern_end: 84984
           }
         );
       } else {
@@ -28995,6 +29041,7 @@ scene.add(roomGroup, doorGroup);
 var farBack = null;
 var roomBox = { x0: -Infinity, x1: Infinity, y0: -Infinity, y1: Infinity };
 var CAMERA_LEAD = 2.5;
+var doorStacks = [];
 var builtDepth = -1;
 var builtLevel = null;
 var builtDoors = null;
@@ -29031,9 +29078,10 @@ function zoneBackdrop(zone) {
 __name(zoneBackdrop, "zoneBackdrop");
 var TILES = {
   // span: tiles per texture repeat; cap: the cap's height; tint: multiplies the textures
-  hedgelands: { fill: 4, cap: 0.55, capSpan: 3, plank: 3 },
-  warren: { fill: 4, cap: 0.5, capSpan: 4, plank: 5 },
-  spire: { fill: 4, cap: 0.4, capSpan: 3.5, plank: 3.2, tint: 14272176 }
+  // slab: a one-way platform's top, face and underside colours, a seam every `plank` tiles
+  hedgelands: { fill: 4, cap: 0.55, capSpan: 3, plank: 2, slab: ["#e2b072", "#b98250", "#7a4e2c"] },
+  warren: { fill: 4, cap: 0.5, capSpan: 4, plank: 3, slab: ["#c79763", "#8f6340", "#5a3a22"] },
+  spire: { fill: 4, cap: 0.4, capSpan: 3.5, plank: 2, slab: ["#d8cbb8", "#a8998a", "#6e6258"], tint: 14272176 }
   // pale stone on a pale hall: darker so it reads
 };
 var tileTextures = /* @__PURE__ */ new Map();
@@ -29048,6 +29096,32 @@ function tileTexture(name3, fill) {
   return tileTextures.get(name3);
 }
 __name(tileTexture, "tileTexture");
+function slabTexture(set, [top, face, under]) {
+  const key2 = `${set}-slab`;
+  if (!tileTextures.has(key2)) {
+    const c = Object.assign(document.createElement("canvas"), { width: 128, height: 32 }), g = c.getContext("2d");
+    g.fillStyle = face;
+    g.fillRect(0, 0, 128, 32);
+    g.fillStyle = top;
+    g.fillRect(0, 0, 128, 9);
+    g.fillStyle = under;
+    g.fillRect(0, 25, 128, 7);
+    g.fillStyle = "#3b2b25";
+    g.fillRect(0, 0, 3, 32);
+    g.fillStyle = under;
+    for (const x of [12, 116]) {
+      g.beginPath();
+      g.arc(x, 17, 2.5, 0, 7);
+      g.fill();
+    }
+    const t2 = new Vh(c);
+    t2.colorSpace = Je;
+    t2.wrapS = pt;
+    tileTextures.set(key2, t2);
+  }
+  return tileTextures.get(key2);
+}
+__name(slabTexture, "slabTexture");
 function tiled(x, y2, w2, h, map5, sx, sy, color = 16777215) {
   const g = new ha(w2, h), uv = g.attributes.uv;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, (x + uv.getX(i) * w2) / sx, sy ? (y2 + uv.getY(i) * h) / sy : uv.getY(i));
@@ -29066,7 +29140,7 @@ function block2(r) {
     m.position.set(r.x + r.w / 2, r.y + r.h / 2, 0);
     return g.add(m);
   }
-  if (r.one_way) return g.add(tiled(r.x, r.y, r.w, r.h, tileTexture(`${set}-plank`, false), t2.plank, 0, t2.tint));
+  if (r.one_way) return g.add(tiled(r.x, r.y, r.w, r.h, slabTexture(set, t2.slab), t2.plank, 0));
   g.add(tiled(r.x, r.y, r.w, r.h, tileTexture(`${set}-fill`, true), t2.fill, t2.fill, t2.tint));
   const cap = Math.min(t2.cap, r.h);
   const top = tiled(r.x, r.y + r.h - cap, r.w, cap, tileTexture(`${set}-cap`, false), t2.capSpan, 0, t2.tint);
@@ -29392,21 +29466,26 @@ function syncRoom() {
   if (world.doors !== builtDoors) {
     builtDoors = world.doors;
     empty2(doorGroup);
+    doorStacks = [];
     for (const d2 of world.doors.toArray()) {
       const b = door_box(d2);
       const m = new Bs(new ha(DOOR_H * 299 / 420, DOOR_H), new es({ map: stickerTexture("door"), transparent: true }));
       m.position.set(d2.x, b.y + DOOR_H / 2, -0.5);
       let top = b.y + DOOR_H + 0.12;
-      const note = reward_note(d2.reward);
+      const note = reward_note(d2.reward), stack = [];
       if (note) {
         const card = noteCard(note);
         card.position.set(d2.x, top + card.userData.tall / 2, LABEL_Z);
         doorGroup.add(card);
+        stack.push(card);
         top += card.userData.tall + 0.06;
       }
       const label2 = nameLabel(world.depth > 0 && d2.reward instanceof None ? "Back to hub" : reward_label(d2.reward), false);
       label2.position.set(d2.x, top + label2.userData.tall / 2, LABEL_Z);
       doorGroup.add(m, label2);
+      stack.push(label2);
+      for (const it of stack) it.userData.y = it.position.y;
+      doorStacks.push({ stack, top: top + label2.userData.tall });
     }
   }
 }
@@ -29688,14 +29767,14 @@ var ART = {
     }
   })
 };
-function stickers(texture) {
+function stickers(texture, band) {
   const meshes = [];
   return (items) => {
     items.forEach((it, i) => {
       if (!meshes[i]) scene.add(meshes[i] = new Bs(new ha(1, 1), new es({ map: texture, transparent: true, side: p })));
       const m = meshes[i];
       m.visible = true;
-      m.position.set(it.x, it.y, (it.z ?? 1) + i * 1e-3);
+      m.position.set(it.x, it.y, (it.z ?? 1) + band * 0.02 + i * 5e-4);
       m.scale.set(it.w * (it.flip ? -1 : 1), it.h, 1);
       m.rotation.z = it.turn ?? 0;
     });
@@ -29703,7 +29782,7 @@ function stickers(texture) {
   };
 }
 __name(stickers, "stickers");
-var SHOW = Object.fromEntries(Object.keys(ART).map((k2) => [k2, stickers(ART[k2])]));
+var SHOW = Object.fromEntries(Object.keys(ART).map((k2, band) => [k2, stickers(ART[k2], band)]));
 function strikeArt(s) {
   const name3 = s.effect.constructor.name;
   if (name3 === "Firebolt") return s.pierce ? ["blast", 1, 1] : ["fire", 2, 1.4];
@@ -30281,6 +30360,10 @@ function frame(now) {
   camera.position.x += (tx - camera.position.x) * glide;
   camera.position.y += (ty - camera.position.y) * glide;
   if (farBack) farBack.position.x = camera.position.x * 0.75;
+  for (const { stack, top } of doorStacks) {
+    const over = Math.max(0, top - (camera.position.y + halfH - 0.15));
+    for (const it of stack) it.position.y = it.userData.y - over;
+  }
   renderer.render(scene, camera);
   const unlockedNow = new Set(world.unlocked.toArray());
   const mine = world.player.class instanceof Some ? world.player.class[0] : -1;
