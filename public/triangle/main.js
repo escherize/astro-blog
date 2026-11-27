@@ -12092,6 +12092,24 @@ function partition(list, categorise) {
   return partition_loop(list, categorise, List$Empty$const, List$Empty$const);
 }
 __name(partition, "partition");
+function last(loop$list) {
+  while (true) {
+    let list = loop$list;
+    if (list instanceof Empty) {
+      return new Error2(void 0);
+    } else {
+      let $ = list.tail;
+      if ($ instanceof Empty) {
+        let last$1 = list.head;
+        return new Ok(last$1);
+      } else {
+        let rest$1 = $;
+        loop$list = rest$1;
+      }
+    }
+  }
+}
+__name(last, "last");
 function max_loop(loop$list, loop$compare, loop$max) {
   while (true) {
     let list = loop$list;
@@ -12317,6 +12335,11 @@ function absolute_value2(x) {
   }
 }
 __name(absolute_value2, "absolute_value");
+function loosely_equals(a, b, tolerance) {
+  let difference2 = absolute_value2(a - b);
+  return difference2 <= tolerance;
+}
+__name(loosely_equals, "loosely_equals");
 function negate(x) {
   return -1 * x;
 }
@@ -16201,7 +16224,10 @@ function hub() {
         prepend([-8, 0, Kind$Dummy$const], List$Empty$const)
       )
     ),
-    prepend([3.5, 0], prepend([6.5, 0], List$Empty$const)),
+    prepend(
+      [-3.5, 0],
+      prepend([3.5, 0], prepend([6.5, 0], List$Empty$const))
+    ),
     prepend(new Npc(1, 0, Role$Mentor$const), statues),
     [0, 0],
     0
@@ -16940,6 +16966,63 @@ function run_rooms() {
   ]);
 }
 __name(run_rooms, "run_rooms");
+function spare_door(t2) {
+  let fits = /* @__PURE__ */ __name((d2) => {
+    let x = d2[0];
+    let y2 = d2[1];
+    let on_ground = any(
+      t2.level,
+      (r) => {
+        return loosely_equals(r.y + r.h, y2, 0.01) && r.x <= x - 0.6 && r.x + r.w >= x + 0.6;
+      }
+    );
+    let clear = !any(
+      t2.level,
+      (r) => {
+        return !r.one_way && overlaps(
+          r,
+          new Rect(x - 0.6, y2, 1.2, 2, false)
+        );
+      }
+    );
+    return on_ground && clear;
+  }, "fits");
+  let _block;
+  let $ = t2.doors;
+  let $1 = last(t2.doors);
+  if ($ instanceof Empty) {
+    _block = List$Empty$const;
+  } else if ($1 instanceof Ok) {
+    let fx = $.head[0];
+    let fy = $.head[1];
+    let lx = $1[0][0];
+    let ly = $1[0][1];
+    _block = prepend(
+      [lx + 3, ly],
+      prepend(
+        [fx - 3, fy],
+        prepend(
+          [fx - 4.5, fy],
+          prepend([fx - 6, fy], List$Empty$const)
+        )
+      )
+    );
+  } else {
+    _block = List$Empty$const;
+  }
+  let candidates = _block;
+  let $2 = find(candidates, fits);
+  if ($2 instanceof Ok) {
+    let d2 = $2[0];
+    return d2;
+  } else if (candidates instanceof Empty) {
+    return [0, 0];
+  } else {
+    let d2 = candidates.head;
+    return d2;
+  }
+}
+__name(spare_door, "spare_door");
 function has_room(shelf, level, doors) {
   let space = new Rect(
     shelf.x - 0.5,
@@ -17077,7 +17160,7 @@ function furnish(t2, seed) {
         let $7 = hi2 >= lo2 && y2 <= shelf_top && has_room(
           shelf,
           level2,
-          t2.doors
+          prepend(spare_door(t2), t2.doors)
         );
         if ($7) {
           return [
@@ -20318,12 +20401,48 @@ var Heal2 = class extends CustomType {
   }
 };
 var Reward$Heal$const = new Heal2();
+var Run = class extends CustomType {
+  static {
+    __name(this, "Run");
+  }
+  constructor($0) {
+    super();
+    this[0] = $0;
+  }
+};
+var Locked = class extends CustomType {
+  static {
+    __name(this, "Locked");
+  }
+};
+var Reward$Locked$const = new Locked();
+var Danger = class extends CustomType {
+  static {
+    __name(this, "Danger");
+  }
+  constructor($0) {
+    super();
+    this[0] = $0;
+  }
+};
 var Easy = class extends CustomType {
   static {
     __name(this, "Easy");
   }
 };
-var Reward$Easy$const = new Easy();
+var Difficulty$Easy$const = new Easy();
+var Normal = class extends CustomType {
+  static {
+    __name(this, "Normal");
+  }
+};
+var Difficulty$Normal$const = new Normal();
+var Hard = class extends CustomType {
+  static {
+    __name(this, "Hard");
+  }
+};
+var Difficulty$Hard$const = new Hard();
 var Door = class extends CustomType {
   static {
     __name(this, "Door");
@@ -20417,7 +20536,7 @@ var World = class extends CustomType {
   static {
     __name(this, "World");
   }
-  constructor(player2, level, enemies, projectiles, strikes, events, depth, cleared, doors, exits, seed, tree, unlocked, npcs, time, kills, room_time, safe_x, sealed, plan, easy, drops) {
+  constructor(player2, level, enemies, projectiles, strikes, events, depth, cleared, doors, exits, seed, tree, unlocked, npcs, time, kills, room_time, safe_x, sealed, plan, difficulty, hard_open, danger, drops) {
     super();
     this.player = player2;
     this.level = level;
@@ -20439,7 +20558,9 @@ var World = class extends CustomType {
     this.safe_x = safe_x;
     this.sealed = sealed;
     this.plan = plan;
-    this.easy = easy;
+    this.difficulty = difficulty;
+    this.hard_open = hard_open;
+    this.danger = danger;
     this.drops = drops;
   }
 };
@@ -20516,6 +20637,7 @@ var bare = /* @__PURE__ */ new Mods(
 );
 var height = 1.5;
 var width = 0.75;
+var danger_chance = 0.25;
 var points_per_level = 1;
 var level_up_heal = 10;
 var heart_pct = 5;
@@ -20528,6 +20650,8 @@ var knockback_y = 9;
 var knockback_x = 8;
 var invuln_time = 1;
 var phoenix_grace = 2;
+var hard_ramp = 7;
+var normal_ramp = 6;
 var crash_recharge = 8;
 var block_kills = 3;
 var blitz_time = 15;
@@ -20536,6 +20660,7 @@ var dash_grace = 0.15;
 var run_speed = 7;
 var pogo_speed = 15;
 var half_width = 0.375;
+var hard_windup = 0.9;
 var linger = 4;
 var orb_regrow = 6;
 var dash_duration = 0.14;
@@ -20560,6 +20685,23 @@ function xp_needed(lvl) {
   return 10 * lvl;
 }
 __name(xp_needed, "xp_needed");
+function has2(p2, rule) {
+  return contains(p2.mods.rules, rule);
+}
+__name(has2, "has");
+function tier_bump(world2) {
+  let one = /* @__PURE__ */ __name((b) => {
+    if (b) {
+      return 1;
+    } else {
+      return 0;
+    }
+  }, "one");
+  return one(world2.difficulty instanceof Hard) + one(world2.danger) + one(
+    has2(world2.player, Rule$Bounty$const)
+  );
+}
+__name(tier_bump, "tier_bump");
 function tier_at(depth, i) {
   let rank = (i * 7 + depth) % 4;
   let pick = /* @__PURE__ */ __name((top, high, low) => {
@@ -20597,10 +20739,6 @@ function tier_at(depth, i) {
   }
 }
 __name(tier_at, "tier_at");
-function has2(p2, rule) {
-  return contains(p2.mods.rules, rule);
-}
-__name(has2, "has");
 function load(world2, t2, depth) {
   let _block;
   if (depth === 0) {
@@ -20682,14 +20820,7 @@ function load(world2, t2, depth) {
       } else {
         return promote(
           e,
-          (() => {
-            let $3 = has2(world2.player, Rule$Bounty$const);
-            if ($3) {
-              return min(3, tier_at(depth, i) + 1);
-            } else {
-              return tier_at(depth, i);
-            }
-          })()
+          min(3, tier_at(depth, i) + tier_bump(world2))
         );
       }
     }
@@ -20772,11 +20903,61 @@ function load(world2, t2, depth) {
     tunnel_end,
     false,
     world2.plan,
-    world2.easy,
+    world2.difficulty,
+    world2.hard_open,
+    world2.danger,
     List$Empty$const
   );
 }
 __name(load, "load");
+function hub_doors(world2) {
+  let _block;
+  let $ = world2.hard_open;
+  if ($) {
+    _block = new Some(new Run(Difficulty$Hard$const));
+  } else {
+    _block = new Some(Reward$Locked$const);
+  }
+  let hard = _block;
+  return new World(
+    world2.player,
+    world2.level,
+    world2.enemies,
+    world2.projectiles,
+    world2.strikes,
+    world2.events,
+    world2.depth,
+    true,
+    map3(
+      zip(
+        world2.exits,
+        prepend(
+          new Some(new Run(Difficulty$Easy$const)),
+          prepend(Option$None$const, prepend(hard, List$Empty$const))
+        )
+      ),
+      (p2) => {
+        return new Door(p2[0][0], p2[0][1], p2[1]);
+      }
+    ),
+    world2.exits,
+    world2.seed,
+    world2.tree,
+    world2.unlocked,
+    world2.npcs,
+    world2.time,
+    world2.kills,
+    world2.room_time,
+    world2.safe_x,
+    world2.sealed,
+    world2.plan,
+    world2.difficulty,
+    world2.hard_open,
+    world2.danger,
+    world2.drops
+  );
+}
+__name(hub_doors, "hub_doors");
 function new_world(seed) {
   let player2 = new Player(
     0,
@@ -20845,51 +21026,76 @@ function new_world(seed) {
     0,
     false,
     List$Empty$const,
+    Difficulty$Normal$const,
+    false,
     false,
     List$Empty$const
   );
-  let world$1 = load(world2, hub(), 0);
-  return new World(
-    world$1.player,
-    world$1.level,
-    world$1.enemies,
-    world$1.projectiles,
-    world$1.strikes,
-    world$1.events,
-    world$1.depth,
-    true,
-    index_map(
-      world$1.exits,
-      (e, i) => {
-        return new Door(
-          e[0],
-          e[1],
-          (() => {
-            if (i === 0) {
-              return Option$None$const;
-            } else {
-              return new Some(Reward$Easy$const);
-            }
-          })()
-        );
-      }
-    ),
-    world$1.exits,
-    world$1.seed,
-    world$1.tree,
-    world$1.unlocked,
-    world$1.npcs,
-    world$1.time,
-    world$1.kills,
-    world$1.room_time,
-    world$1.safe_x,
-    world$1.sealed,
-    world$1.plan,
-    world$1.easy,
-    world$1.drops
-  );
+  return hub_doors(load(world2, hub(), 0));
 }
 __name(new_world, "new_world");
+function open_hard(world2) {
+  let world$1 = new World(
+    world2.player,
+    world2.level,
+    world2.enemies,
+    world2.projectiles,
+    world2.strikes,
+    world2.events,
+    world2.depth,
+    world2.cleared,
+    world2.doors,
+    world2.exits,
+    world2.seed,
+    world2.tree,
+    world2.unlocked,
+    world2.npcs,
+    world2.time,
+    world2.kills,
+    world2.room_time,
+    world2.safe_x,
+    world2.sealed,
+    world2.plan,
+    world2.difficulty,
+    true,
+    world2.danger,
+    world2.drops
+  );
+  let $ = world$1.depth;
+  if ($ === 0) {
+    return hub_doors(world$1);
+  } else {
+    return world$1;
+  }
+}
+__name(open_hard, "open_hard");
+function difficulty_name(world2) {
+  let $ = world2.difficulty;
+  if ($ instanceof Easy) {
+    return "easy";
+  } else if ($ instanceof Normal) {
+    return "normal";
+  } else {
+    return "hard";
+  }
+}
+__name(difficulty_name, "difficulty_name");
+function door_kind(d2) {
+  let $ = d2.reward;
+  if ($ instanceof Some) {
+    let $1 = $[0];
+    if ($1 instanceof Locked) {
+      return "locked";
+    } else if ($1 instanceof Danger) {
+      return "danger";
+    } else {
+      return "";
+    }
+  } else {
+    return "";
+  }
+}
+__name(door_kind, "door_kind");
 function pct(n) {
   return 1 + identity(n) / 100;
 }
@@ -20972,7 +21178,9 @@ function drop_loot(world2, killed) {
     world2.safe_x,
     world2.sealed,
     world2.plan,
-    world2.easy,
+    world2.difficulty,
+    world2.hard_open,
+    world2.danger,
     drops
   );
 }
@@ -21021,7 +21229,9 @@ function tick_enemies(world2, dt2) {
     world2.safe_x,
     world2.sealed,
     world2.plan,
-    world2.easy,
+    world2.difficulty,
+    world2.hard_open,
+    world2.danger,
     world2.drops
   );
   return drop_loot(_pipe$1, fallen);
@@ -21304,7 +21514,9 @@ function choose_class(world2, keystone) {
       world2.safe_x,
       world2.sealed,
       world2.plan,
-      world2.easy,
+      world2.difficulty,
+      world2.hard_open,
+      world2.danger,
       world2.drops
     );
   } else {
@@ -21353,8 +21565,20 @@ function reward_label(r) {
       }
     } else if ($ instanceof Heal2) {
       return "Full heal";
+    } else if ($ instanceof Run) {
+      let $1 = $[0];
+      if ($1 instanceof Easy) {
+        return "Easy run (half damage)";
+      } else if ($1 instanceof Normal) {
+        return "Normal run";
+      } else {
+        return "Hard run";
+      }
+    } else if ($ instanceof Locked) {
+      return "Hard run (locked)";
     } else {
-      return "Easy run (half damage)";
+      let axis = $[0];
+      return "Danger: +2 " + name2(axis);
     }
   } else {
     return "Normal run";
@@ -21391,159 +21615,172 @@ function mend(p2, amount) {
   return max(0, min(cap, p2.hp + amount) - p2.hp);
 }
 __name(mend, "mend");
-function apply_reward(p2, r) {
-  if (r instanceof Point) {
-    let axis = r[0];
-    let once = add2(p2.stats, axis);
-    let _block;
-    let $ = has2(p2, Rule$AllRounder$const) && lowest(p2.stats, axis);
-    if ($) {
-      _block = add2(once, axis);
+function apply_reward(loop$p, loop$r) {
+  while (true) {
+    let p2 = loop$p;
+    let r = loop$r;
+    if (r instanceof Point) {
+      let axis = r[0];
+      let once = add2(p2.stats, axis);
+      let _block;
+      let $ = has2(p2, Rule$AllRounder$const) && lowest(
+        p2.stats,
+        axis
+      );
+      if ($) {
+        _block = add2(once, axis);
+      } else {
+        _block = once;
+      }
+      let new$2 = _block;
+      let q2 = new Player(
+        p2.x,
+        p2.y,
+        p2.vx,
+        p2.vy,
+        p2.grounded,
+        p2.on_platform,
+        p2.wall,
+        p2.facing,
+        p2.coyote,
+        p2.jump_buffer,
+        p2.air_jumps,
+        p2.dash_time,
+        p2.dashes,
+        p2.can_cut,
+        p2.up_held,
+        p2.jumped,
+        p2.dashed,
+        p2.struck,
+        p2.plunged,
+        p2.grudge,
+        p2.conduit,
+        p2.quick,
+        p2.rebound,
+        p2.air_hits,
+        p2.weapon,
+        p2.loadout,
+        p2.trained,
+        p2.class,
+        p2.allocated,
+        p2.mods,
+        p2.shield,
+        p2.block_charge,
+        p2.crash_wait,
+        p2.swings,
+        p2.risen,
+        p2.attack,
+        new$2,
+        p2.lvl,
+        p2.xp,
+        p2.points,
+        p2.hp,
+        p2.invuln,
+        p2.hurt,
+        p2.hexed
+      );
+      return new Player(
+        q2.x,
+        q2.y,
+        q2.vx,
+        q2.vy,
+        q2.grounded,
+        q2.on_platform,
+        q2.wall,
+        q2.facing,
+        q2.coyote,
+        q2.jump_buffer,
+        q2.air_jumps,
+        q2.dash_time,
+        q2.dashes,
+        q2.can_cut,
+        q2.up_held,
+        q2.jumped,
+        q2.dashed,
+        q2.struck,
+        q2.plunged,
+        q2.grudge,
+        q2.conduit,
+        q2.quick,
+        q2.rebound,
+        q2.air_hits,
+        q2.weapon,
+        q2.loadout,
+        q2.trained,
+        q2.class,
+        q2.allocated,
+        q2.mods,
+        q2.shield,
+        q2.block_charge,
+        q2.crash_wait,
+        q2.swings,
+        q2.risen,
+        q2.attack,
+        q2.stats,
+        q2.lvl,
+        q2.xp,
+        q2.points,
+        p2.hp + max_hp3(q2) - max_hp3(p2),
+        q2.invuln,
+        q2.hurt,
+        q2.hexed
+      );
+    } else if (r instanceof Heal2) {
+      return new Player(
+        p2.x,
+        p2.y,
+        p2.vx,
+        p2.vy,
+        p2.grounded,
+        p2.on_platform,
+        p2.wall,
+        p2.facing,
+        p2.coyote,
+        p2.jump_buffer,
+        p2.air_jumps,
+        p2.dash_time,
+        p2.dashes,
+        p2.can_cut,
+        p2.up_held,
+        p2.jumped,
+        p2.dashed,
+        p2.struck,
+        p2.plunged,
+        p2.grudge,
+        p2.conduit,
+        p2.quick,
+        p2.rebound,
+        p2.air_hits,
+        p2.weapon,
+        p2.loadout,
+        p2.trained,
+        p2.class,
+        p2.allocated,
+        p2.mods,
+        p2.shield,
+        p2.block_charge,
+        p2.crash_wait,
+        p2.swings,
+        p2.risen,
+        p2.attack,
+        p2.stats,
+        p2.lvl,
+        p2.xp,
+        p2.points,
+        p2.hp + mend(p2, max_hp3(p2)),
+        p2.invuln,
+        p2.hurt,
+        p2.hexed
+      );
+    } else if (r instanceof Run) {
+      return p2;
+    } else if (r instanceof Locked) {
+      return p2;
     } else {
-      _block = once;
+      let axis = r[0];
+      loop$p = apply_reward(p2, new Point(axis));
+      loop$r = new Point(axis);
     }
-    let new$2 = _block;
-    let q2 = new Player(
-      p2.x,
-      p2.y,
-      p2.vx,
-      p2.vy,
-      p2.grounded,
-      p2.on_platform,
-      p2.wall,
-      p2.facing,
-      p2.coyote,
-      p2.jump_buffer,
-      p2.air_jumps,
-      p2.dash_time,
-      p2.dashes,
-      p2.can_cut,
-      p2.up_held,
-      p2.jumped,
-      p2.dashed,
-      p2.struck,
-      p2.plunged,
-      p2.grudge,
-      p2.conduit,
-      p2.quick,
-      p2.rebound,
-      p2.air_hits,
-      p2.weapon,
-      p2.loadout,
-      p2.trained,
-      p2.class,
-      p2.allocated,
-      p2.mods,
-      p2.shield,
-      p2.block_charge,
-      p2.crash_wait,
-      p2.swings,
-      p2.risen,
-      p2.attack,
-      new$2,
-      p2.lvl,
-      p2.xp,
-      p2.points,
-      p2.hp,
-      p2.invuln,
-      p2.hurt,
-      p2.hexed
-    );
-    return new Player(
-      q2.x,
-      q2.y,
-      q2.vx,
-      q2.vy,
-      q2.grounded,
-      q2.on_platform,
-      q2.wall,
-      q2.facing,
-      q2.coyote,
-      q2.jump_buffer,
-      q2.air_jumps,
-      q2.dash_time,
-      q2.dashes,
-      q2.can_cut,
-      q2.up_held,
-      q2.jumped,
-      q2.dashed,
-      q2.struck,
-      q2.plunged,
-      q2.grudge,
-      q2.conduit,
-      q2.quick,
-      q2.rebound,
-      q2.air_hits,
-      q2.weapon,
-      q2.loadout,
-      q2.trained,
-      q2.class,
-      q2.allocated,
-      q2.mods,
-      q2.shield,
-      q2.block_charge,
-      q2.crash_wait,
-      q2.swings,
-      q2.risen,
-      q2.attack,
-      q2.stats,
-      q2.lvl,
-      q2.xp,
-      q2.points,
-      p2.hp + max_hp3(q2) - max_hp3(p2),
-      q2.invuln,
-      q2.hurt,
-      q2.hexed
-    );
-  } else if (r instanceof Heal2) {
-    return new Player(
-      p2.x,
-      p2.y,
-      p2.vx,
-      p2.vy,
-      p2.grounded,
-      p2.on_platform,
-      p2.wall,
-      p2.facing,
-      p2.coyote,
-      p2.jump_buffer,
-      p2.air_jumps,
-      p2.dash_time,
-      p2.dashes,
-      p2.can_cut,
-      p2.up_held,
-      p2.jumped,
-      p2.dashed,
-      p2.struck,
-      p2.plunged,
-      p2.grudge,
-      p2.conduit,
-      p2.quick,
-      p2.rebound,
-      p2.air_hits,
-      p2.weapon,
-      p2.loadout,
-      p2.trained,
-      p2.class,
-      p2.allocated,
-      p2.mods,
-      p2.shield,
-      p2.block_charge,
-      p2.crash_wait,
-      p2.swings,
-      p2.risen,
-      p2.attack,
-      p2.stats,
-      p2.lvl,
-      p2.xp,
-      p2.points,
-      p2.hp + mend(p2, max_hp3(p2)),
-      p2.invuln,
-      p2.hurt,
-      p2.hexed
-    );
-  } else {
-    return p2;
   }
 }
 __name(apply_reward, "apply_reward");
@@ -21555,15 +21792,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      2856,
+      3054,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 86369,
-        end: 86421,
-        pattern_start: 86380,
-        pattern_end: 86387
+        start: 93501,
+        end: 93553,
+        pattern_start: 93512,
+        pattern_end: 93519
       }
     );
   } else {
@@ -21572,6 +21809,41 @@ function nth_room(i) {
   return t2;
 }
 __name(nth_room, "nth_room");
+function harder_next(plan, depth) {
+  let tier = /* @__PURE__ */ __name((i) => {
+    return nth_room(i).tier;
+  }, "tier");
+  let ahead = drop(plan, depth - 1);
+  if (ahead instanceof Empty) {
+    return plan;
+  } else {
+    let here = ahead.head;
+    let rest = ahead.tail;
+    let $ = find(rest, (j2) => {
+      return tier(j2) > tier(here);
+    });
+    if ($ instanceof Ok) {
+      let there = $[0];
+      return map3(
+        plan,
+        (j2) => {
+          let $1 = j2 === here;
+          let $2 = j2 === there;
+          if ($1) {
+            return there;
+          } else if ($2) {
+            return here;
+          } else {
+            return j2;
+          }
+        }
+      );
+    } else {
+      return plan;
+    }
+  }
+}
+__name(harder_next, "harder_next");
 function next2(seed) {
   return next(seed);
 }
@@ -21656,16 +21928,26 @@ function home2(world2) {
     _record.safe_x,
     _record.sealed,
     _record.plan,
-    _record.easy,
+    _record.difficulty,
+    _record.hard_open,
+    _record.danger,
     _record.drops
   );
   let fresh = _block;
-  let $ = world2.player.class;
-  if ($ instanceof Some) {
-    let k2 = $[0];
-    return choose_class(fresh, k2);
+  let _block$1;
+  let $ = world2.hard_open;
+  if ($) {
+    _block$1 = open_hard(fresh);
   } else {
-    return fresh;
+    _block$1 = fresh;
+  }
+  let fresh$1 = _block$1;
+  let $1 = world2.player.class;
+  if ($1 instanceof Some) {
+    let k2 = $1[0];
+    return choose_class(fresh$1, k2);
+  } else {
+    return fresh$1;
   }
 }
 __name(home2, "home");
@@ -21683,7 +21965,10 @@ function use_door(world2, up_fresh) {
     _block = find(
       world2.doors,
       (d2) => {
-        return overlaps(me3, door_box(d2));
+        return !isEqual(d2.reward, new Some(Reward$Locked$const)) && overlaps(
+          me3,
+          door_box(d2)
+        );
       }
     );
   } else {
@@ -21717,7 +22002,9 @@ function use_door(world2, up_fresh) {
         _record.safe_x,
         _record.sealed,
         _record.plan,
-        _record.easy,
+        _record.difficulty,
+        _record.hard_open,
+        _record.danger,
         _record.drops
       );
     } else {
@@ -21736,12 +22023,42 @@ function use_door(world2, up_fresh) {
       let seed$1 = $1[1];
       let _block$2;
       let $3 = world2.depth;
-      if ($3 === 0) {
-        _block$2 = isEqual(d2.reward, new Some(Reward$Easy$const));
+      let $4 = d2.reward;
+      if ($4 instanceof Some) {
+        let $52 = $4[0];
+        if ($52 instanceof Run) {
+          if ($3 === 0) {
+            let k2 = $52[0];
+            _block$2 = k2;
+          } else {
+            _block$2 = world2.difficulty;
+          }
+        } else if ($3 === 0) {
+          _block$2 = Difficulty$Normal$const;
+        } else {
+          _block$2 = world2.difficulty;
+        }
+      } else if ($3 === 0) {
+        _block$2 = Difficulty$Normal$const;
       } else {
-        _block$2 = world2.easy;
+        _block$2 = world2.difficulty;
       }
-      let easy = _block$2;
+      let difficulty = _block$2;
+      let _block$3;
+      let $5 = d2.reward;
+      if ($5 instanceof Some && $5[0] instanceof Danger) {
+        _block$3 = true;
+      } else {
+        _block$3 = false;
+      }
+      let danger = _block$3;
+      let _block$4;
+      if (danger) {
+        _block$4 = harder_next(plan, depth);
+      } else {
+        _block$4 = plan;
+      }
+      let plan$1 = _block$4;
       let world$1 = new World(
         world2.player,
         world2.level,
@@ -21762,22 +22079,24 @@ function use_door(world2, up_fresh) {
         world2.room_time,
         world2.safe_x,
         world2.sealed,
-        plan,
-        easy,
+        plan$1,
+        difficulty,
+        world2.hard_open,
+        danger,
         world2.drops
       );
-      let _block$3;
-      let $4 = depth === boss_depth;
-      let $5 = drop(plan, depth - 1);
-      if ($4) {
-        _block$3 = boss_room();
-      } else if ($5 instanceof Empty) {
-        _block$3 = nth_room(0);
+      let _block$5;
+      let $6 = depth === boss_depth;
+      let $7 = drop(plan$1, depth - 1);
+      if ($6) {
+        _block$5 = boss_room();
+      } else if ($7 instanceof Empty) {
+        _block$5 = nth_room(0);
       } else {
-        let i = $5.head;
-        _block$3 = nth_room(i);
+        let i = $7.head;
+        _block$5 = nth_room(i);
       }
-      let t2 = _block$3;
+      let t2 = _block$5;
       let world$2 = load(
         new World(
           world$1.player,
@@ -21800,29 +22119,38 @@ function use_door(world2, up_fresh) {
           world$1.safe_x,
           world$1.sealed,
           world$1.plan,
-          world$1.easy,
+          world$1.difficulty,
+          world$1.hard_open,
+          world$1.danger,
           world$1.drops
         ),
         t2,
         depth
       );
-      let _block$4;
-      let $6 = d2.reward;
-      if ($6 instanceof Some) {
-        let r = $6[0];
+      let _block$6;
+      let $8 = d2.reward;
+      if ($8 instanceof Some) {
+        let r = $8[0];
         let after = apply_reward(world$2.player, r);
         let total = /* @__PURE__ */ __name((p3) => {
           return p3.stats.fighter + p3.stats.rogue + p3.stats.mage;
         }, "total");
-        let _block$5;
-        let $7 = total(after) - total(world$2.player);
-        if ($7 === 2) {
-          _block$5 = replace(reward_label(new Some(r)), "+1", "+2");
+        let _block$7;
+        let $9 = total(after) - total(world$2.player);
+        if (r instanceof Point && $9 === 2) {
+          _block$7 = replace(reward_label(new Some(r)), "+1", "+2");
+        } else if (r instanceof Danger) {
+          let n = $9;
+          _block$7 = replace(
+            reward_label(new Some(r)),
+            "+2",
+            "+" + to_string(n)
+          );
         } else {
-          _block$5 = reward_label(new Some(r));
+          _block$7 = reward_label(new Some(r));
         }
-        let label2 = _block$5;
-        _block$4 = new World(
+        let label2 = _block$7;
+        _block$6 = new World(
           after,
           world$2.level,
           world$2.enemies,
@@ -21846,13 +22174,15 @@ function use_door(world2, up_fresh) {
           world$2.safe_x,
           world$2.sealed,
           world$2.plan,
-          world$2.easy,
+          world$2.difficulty,
+          world$2.hard_open,
+          world$2.danger,
           world$2.drops
         );
       } else {
-        _block$4 = world$2;
+        _block$6 = world$2;
       }
-      let world$3 = _block$4;
+      let world$3 = _block$6;
       return new World(
         world$3.player,
         world$3.level,
@@ -21877,7 +22207,9 @@ function use_door(world2, up_fresh) {
         world$3.safe_x,
         world$3.sealed,
         world$3.plan,
-        world$3.easy,
+        world$3.difficulty,
+        world$3.hard_open,
+        world$3.danger,
         world$3.drops
       );
     }
@@ -21886,6 +22218,16 @@ function use_door(world2, up_fresh) {
   }
 }
 __name(use_door, "use_door");
+function room_template(world2) {
+  let $ = drop(world2.plan, world2.depth - 1);
+  if ($ instanceof Empty) {
+    return nth_room(0);
+  } else {
+    let i = $.head;
+    return nth_room(i);
+  }
+}
+__name(room_template, "room_template");
 function check_clear(world2) {
   let hostile_left = any(
     world2.enemies,
@@ -21925,10 +22267,44 @@ function check_clear(world2) {
     let rewards = $2[0];
     let seed = $2[1];
     let n = 2 + seed % 2;
+    let $3 = unit(seed);
+    let seed$1 = $3[0];
+    let roll = $3[1];
+    let $4 = shuffle(
+      prepend(
+        Axis$Fighter$const,
+        prepend(
+          Axis$Rogue$const,
+          prepend(Axis$Mage$const, List$Empty$const)
+        )
+      ),
+      seed$1
+    );
+    let axes = $4[0];
+    let seed$2 = $4[1];
     let _block$1;
-    let $4 = world2.depth === boss_depth;
-    if ($4) {
-      _block$1 = [
+    let $5 = !(world2.difficulty instanceof Easy) && world2.depth > 0 && world2.depth < boss_depth - 1 && roll < danger_chance;
+    if ($5) {
+      if (axes instanceof Empty) {
+        _block$1 = List$Empty$const;
+      } else {
+        let axis = axes.head;
+        let $62 = spare_door(room_template(world2));
+        let x = $62[0];
+        let y2 = $62[1];
+        _block$1 = prepend(
+          new Door(x, y2, new Some(new Danger(axis))),
+          List$Empty$const
+        );
+      }
+    } else {
+      _block$1 = List$Empty$const;
+    }
+    let danger = _block$1;
+    let _block$2;
+    let $7 = world2.depth === boss_depth;
+    if ($7) {
+      _block$2 = [
         (() => {
           let _pipe = take(world2.exits, 1);
           return map3(
@@ -21944,38 +22320,40 @@ function check_clear(world2) {
         )
       ];
     } else {
-      _block$1 = [
+      _block$2 = [
         (() => {
           let _pipe = zip(
             take(world2.exits, n),
             take(rewards, n)
           );
-          return map3(
+          let _pipe$1 = map3(
             _pipe,
             (pair) => {
               return new Door(pair[0][0], pair[0][1], new Some(pair[1]));
             }
           );
+          return append(_pipe$1, danger);
         })(),
         List$Empty$const
       ];
     }
-    let $3 = _block$1;
-    let doors = $3[0];
-    let finale = $3[1];
+    let $6 = _block$2;
+    let doors = $6[0];
+    let finale = $6[1];
+    let hard_open = world2.hard_open || !(finale instanceof Empty) && !(world2.difficulty instanceof Easy);
     let p2 = world2.player;
-    let _block$2;
-    let $5 = fasting && world2.depth > 0;
-    if ($5) {
-      _block$2 = mend(p2, globalThis.Math.trunc(max_hp3(p2) * 15 / 100));
-    } else {
-      _block$2 = 0;
-    }
-    let fed = _block$2;
     let _block$3;
-    let $7 = fed > 0;
-    if ($7) {
-      _block$3 = [
+    let $8 = fasting && world2.depth > 0;
+    if ($8) {
+      _block$3 = mend(p2, globalThis.Math.trunc(max_hp3(p2) * 15 / 100));
+    } else {
+      _block$3 = 0;
+    }
+    let fed = _block$3;
+    let _block$4;
+    let $10 = fed > 0;
+    if ($10) {
+      _block$4 = [
         new Player(
           p2.x,
           p2.y,
@@ -22025,11 +22403,11 @@ function check_clear(world2) {
         prepend(new Healed(p2.x, p2.y + height, fed), List$Empty$const)
       ];
     } else {
-      _block$3 = [p2, List$Empty$const];
+      _block$4 = [p2, List$Empty$const];
     }
-    let $6 = _block$3;
-    let player2 = $6[0];
-    let events = $6[1];
+    let $9 = _block$4;
+    let player2 = $9[0];
+    let events = $9[1];
     return new World(
       player2,
       world2.level,
@@ -22046,7 +22424,7 @@ function check_clear(world2) {
       true,
       doors,
       world2.exits,
-      seed,
+      seed$2,
       world2.tree,
       world2.unlocked,
       world2.npcs,
@@ -22056,7 +22434,9 @@ function check_clear(world2) {
       world2.safe_x,
       world2.sealed,
       world2.plan,
-      world2.easy,
+      world2.difficulty,
+      hard_open,
+      world2.danger,
       world2.drops
     );
   }
@@ -22378,7 +22758,9 @@ function loot(world2, dt2) {
     world2.safe_x,
     world2.sealed,
     world2.plan,
-    world2.easy,
+    world2.difficulty,
+    world2.hard_open,
+    world2.danger,
     reverse2(drops)
   );
 }
@@ -22464,7 +22846,9 @@ function steal(world2) {
         world2.safe_x,
         world2.sealed,
         world2.plan,
-        world2.easy,
+        world2.difficulty,
+        world2.hard_open,
+        world2.danger,
         world2.drops
       );
     } else {
@@ -22489,7 +22873,9 @@ function steal(world2) {
         world2.safe_x,
         world2.sealed,
         world2.plan,
-        world2.easy,
+        world2.difficulty,
+        world2.hard_open,
+        world2.danger,
         world2.drops
       );
     }
@@ -22498,6 +22884,24 @@ function steal(world2) {
   }
 }
 __name(steal, "steal");
+function hit_pct(difficulty, depth) {
+  let rooms = max(0, depth - 1);
+  if (difficulty instanceof Easy) {
+    return 50;
+  } else if (difficulty instanceof Normal) {
+    return 100 + normal_ramp * rooms;
+  } else {
+    return 100 + hard_ramp * rooms;
+  }
+}
+__name(hit_pct, "hit_pct");
+function enemy_hit(difficulty, depth, damage3) {
+  return max(
+    1,
+    globalThis.Math.trunc((damage3 * hit_pct(difficulty, depth) + 99) / 100)
+  );
+}
+__name(enemy_hit, "enemy_hit");
 function blocked_by_shield(world2, k2) {
   let p2 = world2.player;
   let $ = p2.shield > 0;
@@ -22571,7 +22975,9 @@ function blocked_by_shield(world2, k2) {
       world2.safe_x,
       world2.sealed,
       world2.plan,
-      world2.easy,
+      world2.difficulty,
+      world2.hard_open,
+      world2.danger,
       world2.drops
     );
   } else {
@@ -22584,35 +22990,28 @@ function hurt(world2, damage3, from_x) {
   return blocked_by_shield(
     world2,
     () => {
-      let _block;
-      let $ = world2.easy;
-      if ($) {
-        _block = globalThis.Math.trunc((damage3 + 1) / 2);
-      } else {
-        _block = damage3;
-      }
-      let damage$1 = _block;
+      let damage$1 = enemy_hit(world2.difficulty, world2.depth, damage3);
       let firm = has2(p2, Rule$Aegis$const);
-      let _block$1;
+      let _block;
       if (firm) {
-        _block$1 = globalThis.Math.trunc((damage$1 + 1) / 2);
+        _block = globalThis.Math.trunc((damage$1 + 1) / 2);
       } else {
-        _block$1 = damage$1;
+        _block = damage$1;
       }
-      let damage$2 = _block$1;
-      let _block$2;
-      let $1 = p2.x >= from_x;
-      if ($1) {
-        _block$2 = 1;
+      let damage$2 = _block;
+      let _block$1;
+      let $ = p2.x >= from_x;
+      if ($) {
+        _block$1 = 1;
       } else {
-        _block$2 = -1;
+        _block$1 = -1;
       }
-      let away = _block$2;
+      let away = _block$1;
       let ouch = new Hurt(p2.x, p2.y + height, damage$2);
-      let $2 = p2.hp - damage$2 <= 0;
-      let $3 = has2(p2, Rule$Phoenix$const) && !p2.risen;
-      if ($2) {
-        if ($3) {
+      let $1 = p2.hp - damage$2 <= 0;
+      let $2 = has2(p2, Rule$Phoenix$const) && !p2.risen;
+      if ($1) {
+        if ($2) {
           let back = max(1, globalThis.Math.trunc(max_hp3(p2) / 2));
           return new World(
             new Player(
@@ -22692,7 +23091,9 @@ function hurt(world2, damage3, from_x) {
             world2.safe_x,
             world2.sealed,
             world2.plan,
-            world2.easy,
+            world2.difficulty,
+            world2.hard_open,
+            world2.danger,
             world2.drops
           );
         } else {
@@ -22724,7 +23125,9 @@ function hurt(world2, damage3, from_x) {
             _record.safe_x,
             _record.sealed,
             _record.plan,
-            _record.easy,
+            _record.difficulty,
+            _record.hard_open,
+            _record.danger,
             _record.drops
           );
         }
@@ -22775,11 +23178,11 @@ function hurt(world2, damage3, from_x) {
           p2.hurt,
           p2.hexed
         );
-        let _block$3;
+        let _block$2;
         if (firm) {
-          _block$3 = p$1;
+          _block$2 = p$1;
         } else {
-          _block$3 = new Player(
+          _block$2 = new Player(
             p$1.x,
             p$1.y,
             away * knockback_x,
@@ -22826,11 +23229,11 @@ function hurt(world2, damage3, from_x) {
             p$1.hexed
           );
         }
-        let p$2 = _block$3;
-        let _block$4;
-        let $5 = has2(p$2, Rule$Vengeance$const) && !p$2.grudge;
-        if ($5) {
-          _block$4 = [
+        let p$2 = _block$2;
+        let _block$3;
+        let $4 = has2(p$2, Rule$Vengeance$const) && !p$2.grudge;
+        if ($4) {
+          _block$3 = [
             new Player(
               p$2.x,
               p$2.y,
@@ -22880,11 +23283,11 @@ function hurt(world2, damage3, from_x) {
             prepend(new Said("Vengeance"), List$Empty$const)
           ];
         } else {
-          _block$4 = [p$2, List$Empty$const];
+          _block$3 = [p$2, List$Empty$const];
         }
-        let $4 = _block$4;
-        let p$3 = $4[0];
-        let said = $4[1];
+        let $3 = _block$3;
+        let p$3 = $3[0];
+        let said = $3[1];
         return new World(
           p$3,
           world2.level,
@@ -22914,7 +23317,9 @@ function hurt(world2, damage3, from_x) {
           world2.safe_x,
           world2.sealed,
           world2.plan,
-          world2.easy,
+          world2.difficulty,
+          world2.hard_open,
+          world2.danger,
           world2.drops
         );
       }
@@ -23152,15 +23557,15 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        1136,
+        1191,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $12,
-          start: 31946,
-          end: 32002,
-          pattern_start: 31957,
-          pattern_end: 31962
+          start: 33674,
+          end: 33730,
+          pattern_start: 33685,
+          pattern_end: 33690
         }
       );
     }
@@ -23565,7 +23970,9 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
     world2.safe_x,
     world2.sealed,
     world2.plan,
-    world2.easy,
+    world2.difficulty,
+    world2.hard_open,
+    world2.danger,
     world2.drops
   );
   return drop_loot(_pipe, killed);
@@ -23645,7 +24052,9 @@ function take_damage(world2) {
         world2.safe_x,
         world2.sealed,
         world2.plan,
-        world2.easy,
+        world2.difficulty,
+        world2.hard_open,
+        world2.danger,
         world2.drops
       ),
       s.damage,
@@ -23725,7 +24134,9 @@ function take_damage(world2) {
         w2.safe_x,
         w2.sealed,
         w2.plan,
-        w2.easy,
+        w2.difficulty,
+        w2.hard_open,
+        w2.danger,
         w2.drops
       );
     } else {
@@ -23800,7 +24211,9 @@ function afflict2(world2, ids, with$) {
       world2.safe_x,
       world2.sealed,
       world2.plan,
-      world2.easy,
+      world2.difficulty,
+      world2.hard_open,
+      world2.danger,
       world2.drops
     );
   } else {
@@ -23858,7 +24271,9 @@ function strikes_act(world2, dt2) {
       world2.safe_x,
       world2.sealed,
       world2.plan,
-      world2.easy,
+      world2.difficulty,
+      world2.hard_open,
+      world2.danger,
       world2.drops
     ),
     (w2, s) => {
@@ -24001,7 +24416,9 @@ function strikes_act(world2, dt2) {
           w$2.safe_x,
           w$2.sealed,
           w$2.plan,
-          w$2.easy,
+          w$2.difficulty,
+          w$2.hard_open,
+          w$2.danger,
           w$2.drops
         );
       } else {
@@ -24428,7 +24845,9 @@ function strike(world2, a, box3) {
         world2.safe_x,
         world2.sealed,
         world2.plan,
-        world2.easy,
+        world2.difficulty,
+        world2.hard_open,
+        world2.danger,
         world2.drops
       ),
       targets,
@@ -24672,7 +25091,9 @@ function loose(world2, dir, effect) {
     world2.safe_x,
     world2.sealed,
     world2.plan,
-    world2.easy,
+    world2.difficulty,
+    world2.hard_open,
+    world2.danger,
     world2.drops
   );
 }
@@ -24751,7 +25172,9 @@ function combat(world2) {
         world2.safe_x,
         world2.sealed,
         world2.plan,
-        world2.easy,
+        world2.difficulty,
+        world2.hard_open,
+        world2.danger,
         world2.drops
       );
     } else if ($2 instanceof Some) {
@@ -24858,7 +25281,48 @@ function enemies_act(world2, dt2) {
         _block$1 = next$1;
       }
       let next$2 = _block$1;
-      return [append(new$2, shots2), next$2];
+      let _block$2;
+      let $4 = world2.difficulty;
+      let $5 = e$1.mode;
+      let $6 = next$2.mode;
+      if ($4 instanceof Hard) {
+        if ($5 instanceof Windup) {
+          _block$2 = next$2;
+        } else if ($6 instanceof Windup) {
+          let t2 = $6.t;
+          _block$2 = new Enemy(
+            next$2.id,
+            next$2.kind,
+            next$2.x,
+            next$2.y,
+            next$2.vx,
+            next$2.vy,
+            next$2.home_x,
+            next$2.home_y,
+            next$2.facing,
+            next$2.grounded,
+            next$2.wall,
+            next$2.hp,
+            next$2.max_hp,
+            next$2.respawn,
+            next$2.flash,
+            new Windup(t2 * hard_windup),
+            next$2.cooldown,
+            next$2.pattern,
+            next$2.awake,
+            next$2.tier,
+            next$2.ail,
+            next$2.robbed,
+            next$2.ward
+          );
+        } else {
+          _block$2 = next$2;
+        }
+      } else {
+        _block$2 = next$2;
+      }
+      let next$3 = _block$2;
+      return [append(new$2, shots2), next$3];
     }
   );
   let shots = $[0];
@@ -24894,7 +25358,9 @@ function enemies_act(world2, dt2) {
     world2.safe_x,
     world2.sealed,
     world2.plan,
-    world2.easy,
+    world2.difficulty,
+    world2.hard_open,
+    world2.danger,
     world2.drops
   );
 }
@@ -24933,7 +25399,9 @@ function seal(world2) {
       world2.safe_x,
       true,
       world2.plan,
-      world2.easy,
+      world2.difficulty,
+      world2.hard_open,
+      world2.danger,
       world2.drops
     );
   } else {
@@ -25085,7 +25553,9 @@ function orbit(world2) {
       world2.safe_x,
       world2.sealed,
       world2.plan,
-      world2.easy,
+      world2.difficulty,
+      world2.hard_open,
+      world2.danger,
       world2.drops
     );
   } else {
@@ -25110,7 +25580,9 @@ function orbit(world2) {
       world2.safe_x,
       world2.sealed,
       world2.plan,
-      world2.easy,
+      world2.difficulty,
+      world2.hard_open,
+      world2.danger,
       world2.drops
     );
   }
@@ -25731,7 +26203,9 @@ function fire_skills(world2, before, dt2) {
     world2.safe_x,
     world2.sealed,
     world2.plan,
-    world2.easy,
+    world2.difficulty,
+    world2.hard_open,
+    world2.danger,
     world2.drops
   );
 }
@@ -26578,7 +27052,9 @@ function step2(world2, input, dt2) {
     world2.safe_x,
     world2.sealed,
     world2.plan,
-    world2.easy,
+    world2.difficulty,
+    world2.hard_open,
+    world2.danger,
     world2.drops
   );
   let _pipe$8 = fire_skills(_pipe$7, before, dt2);
@@ -26615,7 +27091,9 @@ function step2(world2, input, dt2) {
       w2.safe_x,
       w2.sealed,
       w2.plan,
-      w2.easy,
+      w2.difficulty,
+      w2.hard_open,
+      w2.danger,
       w2.drops
     );
   })(_pipe$16);
@@ -26660,6 +27138,12 @@ function reward_note(r) {
     if ($ instanceof Point) {
       let axis = $[0];
       return explain(axis);
+    } else if ($ instanceof Run && $[0] instanceof Hard) {
+      return "enemies a tier tougher \xB7 their hits grow faster room by room \xB7 shorter wind-ups";
+    } else if ($ instanceof Locked) {
+      return "Win a Normal run to open";
+    } else if ($ instanceof Danger) {
+      return "a room from further up the mountain \xB7 every enemy a tier tougher \xB7 two points";
     } else {
       return "";
     }
@@ -27779,7 +28263,9 @@ function level_up(world2, id2, otherwise) {
           world2.safe_x,
           world2.sealed,
           world2.plan,
-          world2.easy,
+          world2.difficulty,
+          world2.hard_open,
+          world2.danger,
           world2.drops
         );
       } else {
@@ -27900,7 +28386,9 @@ function allocate(world2, id2) {
           world2.safe_x,
           world2.sealed,
           world2.plan,
-          world2.easy,
+          world2.difficulty,
+          world2.hard_open,
+          world2.danger,
           world2.drops
         );
       } else {
@@ -27944,7 +28432,9 @@ function set_unlocked(world2, unlocked) {
     world2.safe_x,
     world2.sealed,
     world2.plan,
-    world2.easy,
+    world2.difficulty,
+    world2.hard_open,
+    world2.danger,
     world2.drops
   );
 }
@@ -27997,8 +28487,11 @@ function npc_lines(world2, n) {
                 prepend(
                   "When you're ready, the door next to me starts a run.",
                   prepend(
-                    "The door after it starts an easy run: everything hurts you half as much.",
-                    List$Empty$const
+                    "The door behind me starts an easy run: everything hurts you half as much.",
+                    prepend(
+                      "The far door is a hard run. It opens once you win a normal one.",
+                      List$Empty$const
+                    )
                   )
                 )
               )
@@ -28018,15 +28511,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2806,
+        2971,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 84822,
-          end: 84873,
-          pattern_start: 84833,
-          pattern_end: 84841
+          start: 90973,
+          end: 91024,
+          pattern_start: 90984,
+          pattern_end: 90992
         }
       );
     }
@@ -28038,15 +28531,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2808,
+        2973,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 84956,
-          end: 85017,
-          pattern_start: 84967,
-          pattern_end: 84984
+          start: 91107,
+          end: 91168,
+          pattern_start: 91118,
+          pattern_end: 91135
         }
       );
     } else {
@@ -28056,15 +28549,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          2808,
+          2973,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 84956,
-            end: 85017,
-            pattern_start: 84967,
-            pattern_end: 84984
+            start: 91107,
+            end: 91168,
+            pattern_start: 91118,
+            pattern_end: 91135
           }
         );
       } else {
@@ -29349,7 +29842,7 @@ function empty2(group2) {
 __name(empty2, "empty");
 var DOOR_H = 2.3;
 var LABEL_Z = 0.2;
-function nameLabel(text, small2) {
+function nameLabel(text, small2, danger = false) {
   const c = document.createElement("canvas"), g = c.getContext("2d");
   const font = `800 ${small2 ? 31 : 34}px "Baloo 2", system-ui, sans-serif`, h = 58;
   g.font = font;
@@ -29357,14 +29850,14 @@ function nameLabel(text, small2) {
   c.width = w2;
   c.height = h;
   g.font = font;
-  g.fillStyle = "#fff";
+  g.fillStyle = danger ? "#b3261e" : "#fff";
   g.strokeStyle = "#3b2b25";
   g.lineWidth = 5;
   g.beginPath();
   g.roundRect(3, 3, w2 - 6, h - 6, (h - 6) / 2);
   g.fill();
   g.stroke();
-  g.fillStyle = small2 ? "#5b4a43" : "#2b1d18";
+  g.fillStyle = danger ? "#fff" : small2 ? "#5b4a43" : "#2b1d18";
   g.textAlign = "center";
   g.textBaseline = "middle";
   g.fillText(text, w2 / 2, h / 2 + 3);
@@ -29476,6 +29969,8 @@ function syncRoom() {
       const b = door_box(d2);
       const m = new Bs(new ha(DOOR_H * 299 / 420, DOOR_H), new es({ map: stickerTexture("door"), transparent: true }));
       m.position.set(d2.x, b.y + DOOR_H / 2, -0.5);
+      const kind = door_kind(d2);
+      if (kind) m.material.color.set(kind === "locked" ? 5592405 : 16742246);
       let top = b.y + DOOR_H + 0.12;
       const note = reward_note(d2.reward), stack = [];
       if (note) {
@@ -29485,7 +29980,7 @@ function syncRoom() {
         stack.push(card);
         top += card.userData.tall + 0.06;
       }
-      const label2 = nameLabel(world.depth > 0 && d2.reward instanceof None ? "Back to hub" : reward_label(d2.reward), false);
+      const label2 = nameLabel((kind === "danger" ? "\u2620\uFE0F " : kind === "locked" ? "\u{1F512} " : "") + (world.depth > 0 && d2.reward instanceof None ? "Back to hub" : reward_label(d2.reward)), false, kind === "danger");
       label2.position.set(d2.x, top + label2.userData.tall / 2, LABEL_Z);
       doorGroup.add(m, label2);
       stack.push(label2);
@@ -29883,6 +30378,13 @@ function loadUnlocks() {
 }
 __name(loadUnlocks, "loadUnlocks");
 loadUnlocks();
+var HARD_KEY = "trip.hard";
+var hardOpen = false;
+try {
+  hardOpen = localStorage.getItem(HARD_KEY) === "1";
+} catch {
+}
+if (hardOpen) world = open_hard(world);
 if (new URLSearchParams(location.search).has("unlock")) world = set_unlocked(world, toList([...Array(16).keys()]));
 var CLASS_KEY = "trip.class";
 var savedClass = null;
@@ -29897,7 +30399,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), class: startClass, steps: 0, log: [] };
+var replay = { v: 1, id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -29975,7 +30477,7 @@ function showSummary(ev) {
   const m = Math.floor(ev.seconds / 60), s = Math.floor(ev.seconds % 60).toString().padStart(2, "0");
   const skills = world.player.loadout.toArray().length;
   summary.innerHTML = `<h2>Run complete</h2>
-    <p>${class_name(world)} \xB7 level ${ev.level}${world.easy ? " \xB7 easy run" : ""}</p>
+    <p>${class_name(world)} \xB7 level ${ev.level} \xB7 ${difficulty_name(world)} run</p>
     <p>Time ${m}:${s} \xB7 ${ev.kills} kills \xB7 ${skills} skill${skills === 1 ? "" : "s"}</p>
     <p class="dim">A door back to the hub has opened.</p>`;
   summary.style.display = "block";
@@ -30073,7 +30575,7 @@ function saveRun(r) {
 __name(saveRun, "saveRun");
 function track(before, after) {
   for (const ev of after.events.toArray()) {
-    if (ev instanceof EnteredRoom && ev.depth === 1) run = { v: 1, at: (/* @__PURE__ */ new Date()).toISOString(), class: class_name(after), easy: after.easy, hits: 0, damage: 0, rooms: [], replay: replay.id, from: replay.steps - 1 };
+    if (ev instanceof EnteredRoom && ev.depth === 1) run = { v: 1, at: (/* @__PURE__ */ new Date()).toISOString(), class: class_name(after), easy: difficulty_name(after) === "easy", difficulty: difficulty_name(after), hits: 0, damage: 0, rooms: [], replay: replay.id, from: replay.steps - 1 };
     if (!run) continue;
     if (ev instanceof EnteredRoom && ev.depth > 0) run.rooms.push([ev.depth === boss_depth ? "boss" : layout_names.toArray()[after.plan.toArray()[ev.depth - 1]], Math.round(after.time), after.player.hp]);
     if (ev instanceof Hurt) {
@@ -30124,7 +30626,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "5b6f33476b6d" : "dev";
+var BUILD = true ? "fae061c56a0c" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
@@ -30286,7 +30788,13 @@ function frame(now) {
         summary.style.display = "none";
         if (ev.depth > 0) floatText(world.player.x, world.player.y + 2.5, ev.depth === boss_depth ? "BOSS" : `DEPTH ${ev.depth}`, ev.depth === boss_depth ? "hurt" : "lvl");
       }
-      if (ev instanceof RunComplete) showSummary(ev);
+      if (ev instanceof RunComplete) {
+        showSummary(ev);
+        if (world.hard_open) try {
+          localStorage.setItem(HARD_KEY, "1");
+        } catch {
+        }
+      }
       if (ev instanceof GateShut) floatText(world.safe_x - 1, 3.6, "the gate shuts", "npc");
       if (ev instanceof Unlocked) {
         floatText(world.player.x, world.player.y + 3, `UNLOCKED ${ev.name}`, "lvl");
@@ -30484,7 +30992,7 @@ function frame(now) {
     whoEl.textContent = class_name(world) === "No class" ? "No class yet" : class_name(world);
     const boss2 = world.depth === boss_depth, cleared = world.cleared && world.depth > 0;
     whereEl.textContent = world.depth === 0 ? "Hub" : boss2 ? "Boss" : `Room ${world.depth} / ${boss_depth - 1}`;
-    if (world.easy && world.depth > 0) whereEl.textContent += " \xB7 easy";
+    if (difficulty_name(world) !== "normal" && world.depth > 0) whereEl.textContent += ` \xB7 ${difficulty_name(world)}`;
     if (cleared) whereEl.textContent += " \xB7 cleared";
     whereEl.className = boss2 ? "boss" : cleared ? "cleared" : "";
     pointsEl.innerHTML = p2.points ? `<span class="pill gold">${p2.points} point${p2.points > 1 ? "s" : ""} \xB7 ${treeKey()}</span>` : "";
