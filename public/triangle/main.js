@@ -28814,6 +28814,7 @@ scene.add(slashBack);
 var roomGroup = new jl();
 var doorGroup = new jl();
 scene.add(roomGroup, doorGroup);
+var farBack = null;
 var builtDepth = -1;
 var builtLevel = null;
 var builtDoors = null;
@@ -28821,7 +28822,14 @@ var enemyMeshes = /* @__PURE__ */ new Map();
 var npcMeshes = [];
 var npcLabels = [];
 var HUB = { bg: 16512750, solid: 16777215, oneway: 15260879, edge: 3877669 };
+var ZONES = [
+  { name: "Hedgelands", bg: 14075350, solid: 16051414, oneway: 13215098, edge: 3877669, art: "hedgelands" },
+  { name: "Warren", bg: 6373959, solid: 14861468, oneway: 11108954, edge: 3877669, art: "warren" },
+  { name: "Spire", bg: 15654866, solid: 16776695, oneway: 15260879, edge: 3877669, art: "spire" }
+];
+var zoneAt = /* @__PURE__ */ __name((depth) => ZONES[depth <= 4 ? 0 : depth <= 10 ? 1 : 2], "zoneAt");
 var LOOKS = [
+  { name: "the three zones", zones: true },
   { name: "C: storybook castle", bg: 15722198, solid: 16776695, oneway: 15260879, edge: 3877669, paint: paintCastle },
   { name: "A: paper diorama", bg: 16182488, solid: 13215098, oneway: 11898723, edge: 3877669, paint: paintPaper },
   { name: "B: sticker-book dungeon", bg: 1910597, solid: 9410219, oneway: 7173520, edge: 16644334, paint: paintNight },
@@ -28860,6 +28868,26 @@ function backdrop(paint) {
   return m;
 }
 __name(backdrop, "backdrop");
+var ZONE_W = 36;
+var ZONE_H = ZONE_W * 9 / 16;
+var zoneTextures = /* @__PURE__ */ new Map();
+function zoneBackdrop(zone) {
+  const art = zone.art;
+  if (!zoneTextures.has(art)) {
+    const t2 = stickerLoader.load(`art/zones/${art}.webp`);
+    t2.colorSpace = Je;
+    t2.wrapS = ft;
+    t2.repeat.set(4, 1);
+    zoneTextures.set(art, t2);
+  }
+  const m = new Bs(new ha(ZONE_W * 4, ZONE_H), new es({ map: zoneTextures.get(art) }));
+  m.position.set(0, ZONE_H / 2 - 4, -6);
+  const wash = new Bs(new ha(ZONE_W * 4, ZONE_H), new es({ color: zone.bg, transparent: true, opacity: 0.3 }));
+  wash.position.z = 0.1;
+  m.add(wash);
+  return m;
+}
+__name(zoneBackdrop, "zoneBackdrop");
 function paintCastle(g, x, y2) {
   g.fillStyle = "#efe6d6";
   g.fillRect(0, 0, x(24), y2(-10));
@@ -29226,10 +29254,12 @@ document.fonts?.ready.then(() => {
 function syncRoom() {
   if (world.depth !== builtDepth || world.level !== builtLevel) {
     [builtDepth, builtLevel] = [world.depth, world.level];
-    pal = world.depth === 0 ? HUB : LOOKS[look];
+    pal = world.depth === 0 ? HUB : LOOKS[look].zones ? zoneAt(world.depth) : LOOKS[look];
     scene.background.set(pal.bg);
     empty2(roomGroup);
     if (pal.paint) roomGroup.add(backdrop(pal.paint));
+    if (pal.art) roomGroup.add(farBack = zoneBackdrop(pal));
+    else farBack = null;
     for (const r of world.level.toArray()) {
       const m = box3(r.w, r.h, r.one_way ? pal.oneway : pal.solid);
       outline(m);
@@ -30124,6 +30154,7 @@ function frame(now) {
   const glide = 1 - Math.exp(-9.75 * frameDt);
   camera.position.x += (px - camera.position.x) * glide;
   camera.position.y += (py + 3 - camera.position.y) * glide;
+  if (farBack) farBack.position.x = camera.position.x * 0.5;
   renderer.render(scene, camera);
   const unlockedNow = new Set(world.unlocked.toArray());
   const mine = world.player.class instanceof Some ? world.player.class[0] : -1;
