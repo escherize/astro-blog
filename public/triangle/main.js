@@ -28166,7 +28166,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
   document.body.appendChild(cv);
   const ctx2 = cv.getContext("2d");
   let open = false, focusId = null, wholeTree = false, tab = 0, kitIndex = 0;
-  let cam = null;
+  let cam2 = null;
   let view = { s: 1, ox: 0, oy: 0 };
   let lastMove = 0, held = null, padPrev = {};
   const w0 = getWorld();
@@ -28405,7 +28405,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     open = !open;
     if (open) {
       if (focusId == null || !byId.has(focusId)) focusId = defaultFocus();
-      cam = null;
+      cam2 = null;
     }
   }
   __name(toggle, "toggle");
@@ -28491,7 +28491,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
   __name(baseScale, "baseScale");
   function project(x, y2) {
     const zoom = wholeTree ? 0.92 : ZOOM, sc = baseScale() * zoom;
-    const c = wholeTree ? [(bounds.x0 + bounds.x1) / 2, (bounds.y0 + bounds.y1) / 2] : cam;
+    const c = wholeTree ? [(bounds.x0 + bounds.x1) / 2, (bounds.y0 + bounds.y1) / 2] : cam2;
     return [PANE_AREA.x + PANE_AREA.w / 2 + (x - c[0]) * sc, PANE_AREA.y + PANE_AREA.h / 2 - (y2 - c[1]) * sc - (wholeTree ? 0 : 40)];
   }
   __name(project, "project");
@@ -28499,7 +28499,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
   function drawPane(d2) {
     const f = byId.get(focusId);
     const target = [f.x, f.y];
-    cam = cam ? [cam[0] + (target[0] - cam[0]) * 0.18, cam[1] + (target[1] - cam[1]) * 0.18] : target;
+    cam2 = cam2 ? [cam2[0] + (target[0] - cam2[0]) * 0.18, cam2[1] + (target[1] - cam2[1]) * 0.18] : target;
     card(PANE_AREA.x, PANE_AREA.y, PANE_AREA.w, PANE_AREA.h, PANE);
     const s = scaleOf();
     ctx2.save();
@@ -29041,6 +29041,10 @@ scene.add(roomGroup, doorGroup);
 var farBack = null;
 var roomBox = { x0: -Infinity, x1: Infinity, y0: -Infinity, y1: Infinity };
 var CAMERA_LEAD = 2.5;
+var LEAD_TURN = 3;
+var LEAD_EASE = 2.5;
+var WINDOW = 1.5;
+var cam = { lead: 0, side: 1, turnX: null, focus: null };
 var doorStacks = [];
 var builtDepth = -1;
 var builtLevel = null;
@@ -29421,6 +29425,7 @@ function syncRoom() {
     else farBack = null;
     for (const r of world.level.toArray()) roomGroup.add(block2(r));
     const rs = world.level.toArray();
+    cam.focus = null;
     roomBox = { x0: Math.min(...rs.map((r) => r.x)), x1: Math.max(...rs.map((r) => r.x + r.w)), y0: Math.min(...rs.map((r) => r.y)), y1: Math.max(...rs.map((r) => r.y + r.h)) };
     enemyMood.clear();
     enemyMeshes = new Map(
@@ -30262,8 +30267,8 @@ function frame(now) {
       [wide, tall] = [ME_H * sheet.cell[0] / sheet.px, ME_H * sheet.cell[1] / sheet.px];
       me2.userData.frame = f;
     } else [wide, tall] = stickerSize(t2.image, ME_H);
-    const want = p2.facing * (FACES_LEFT.has(myClass) && !sheet ? -1 : 1);
-    turn = calm ? want : Math.max(-1, Math.min(1, turn + Math.sign(want - turn) * frameDt / 0.09));
+    const want2 = p2.facing * (FACES_LEFT.has(myClass) && !sheet ? -1 : 1);
+    turn = calm ? want2 : Math.max(-1, Math.min(1, turn + Math.sign(want2 - turn) * frameDt / 0.09));
     const pose = stickerPose(p2, frameDt, !!sheet), high = tall * pose.sy;
     me2.scale.set(wide * pose.sx * Math.sin(turn * Math.PI / 2), high, 1);
     me2.rotation.z = pose.tilt;
@@ -30355,7 +30360,21 @@ function frame(now) {
   const glide = 1 - Math.exp(-9.75 * frameDt);
   const halfW = (camera.right - camera.left) / 2, halfH = VIEW_H / 2;
   const hold = /* @__PURE__ */ __name((v2, lo2, hi2) => lo2 > hi2 ? (lo2 + hi2) / 2 : Math.min(Math.max(v2, lo2), hi2), "hold");
-  const tx = hold(px + p2.facing * CAMERA_LEAD, roomBox.x0 + halfW, roomBox.x1 - halfW);
+  if (p2.facing === cam.side) cam.turnX = null;
+  else if (cam.turnX === null) cam.turnX = px;
+  else if ((px - cam.turnX) * p2.facing > LEAD_TURN) {
+    cam.side = p2.facing;
+    cam.turnX = null;
+  }
+  cam.lead += (cam.side * CAMERA_LEAD - cam.lead) * (1 - Math.exp(-LEAD_EASE * frameDt));
+  const want = px + cam.lead;
+  if (cam.focus === null) {
+    cam.focus = want;
+    cam.side = p2.facing;
+    cam.lead = p2.facing * CAMERA_LEAD;
+  }
+  cam.focus = Math.min(Math.max(cam.focus, want - WINDOW / 2), want + WINDOW / 2);
+  const tx = hold(cam.focus, roomBox.x0 + halfW, roomBox.x1 - halfW);
   const ty = hold(py + 3, roomBox.y0 - 1 + halfH, roomBox.y1 - halfH);
   camera.position.x += (tx - camera.position.x) * glide;
   camera.position.y += (ty - camera.position.y) * glide;
