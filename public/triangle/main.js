@@ -28166,7 +28166,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     const { w: w2, picking } = derive();
     const n = byId.get(focusId);
     const after = picking ? choose_class(w2, n.id) : allocate(w2, n.id);
-    setWorld(after);
+    setWorld(after, [picking ? "c" : "n", n.id]);
     if (after.events.toArray().some((ev) => ev instanceof Unlocked)) onUnlock();
   }
   __name(take3, "take");
@@ -28789,7 +28789,8 @@ function resize() {
 __name(resize, "resize");
 addEventListener("resize", resize);
 resize();
-var world = new_world(Math.floor(Math.random() * 2 ** 31));
+var SEED = Math.floor(Math.random() * 2 ** 31);
+var world = new_world(SEED);
 window.game = { get world() {
   return world;
 }, set world(w2) {
@@ -29560,7 +29561,7 @@ addEventListener("keydown", (e) => {
     }
     if (e.code === "KeyM") nextAttackMode();
     if (e.code === "KeyB") showBox = !showBox;
-    if (e.code === "KeyL") copyRuns();
+    if (e.code === "KeyL") saveRunLog();
   }
   if (e.code.startsWith("Arrow") || e.code === "Space") e.preventDefault();
 });
@@ -29616,21 +29617,48 @@ loadUnlocks();
 if (new URLSearchParams(location.search).has("unlock")) world = set_unlocked(world, toList([...Array(16).keys()]));
 var CLASS_KEY = "trip.class";
 var savedClass = null;
-{
+var startClass = (() => {
   let k2 = NaN;
   try {
     k2 = Number(localStorage.getItem(CLASS_KEY) ?? NaN);
   } catch {
   }
   const open = world.unlocked.toArray();
-  world = choose_class(world, open.includes(k2) ? k2 : open[Math.floor(Math.random() * open.length)]);
+  return open.includes(k2) ? k2 : open[Math.floor(Math.random() * open.length)];
+})();
+world = choose_class(world, startClass);
+var REPLAYS_KEY = "trip.replays";
+var replay = { v: 1, id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), class: startClass, steps: 0, log: [] };
+var lastInput = "";
+function recordInput(input) {
+  const s = input.join();
+  if (s !== lastInput) {
+    lastInput = s;
+    replay.log.push(["i", replay.steps, ...input.map(Number)]);
+  }
 }
-var treeScreen = createTreeScreen({ getWorld: /* @__PURE__ */ __name(() => world, "getWorld"), setWorld: /* @__PURE__ */ __name((w2) => {
+__name(recordInput, "recordInput");
+var savedReplays = /* @__PURE__ */ __name(() => {
+  try {
+    return JSON.parse(localStorage.getItem(REPLAYS_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}, "savedReplays");
+function saveReplay() {
+  try {
+    localStorage.setItem(REPLAYS_KEY, JSON.stringify([...savedReplays().filter((r) => r.id !== replay.id), replay].slice(-5)));
+  } catch {
+  }
+}
+__name(saveReplay, "saveReplay");
+var treeScreen = createTreeScreen({ getWorld: /* @__PURE__ */ __name(() => world, "getWorld"), setWorld: /* @__PURE__ */ __name((w2, act) => {
   world = w2;
+  if (act) replay.log.push([act[0], replay.steps, act[1]]);
 }, "setWorld"), onUnlock: saveUnlocks });
 var hud = document.getElementById("hud");
 var HINT = {
-  keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Up at doors & statues \xB7 T tree \xB7 M attack style \xB7 N sound \xB7 B body box \xB7 L copy run log",
+  keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Up at doors & statues \xB7 T tree \xB7 M attack style \xB7 N sound \xB7 B body box \xB7 L save run log",
   pad: "Move stick \xB7 Jump X / Y \xB7 Dash LB / RB \xB7 Attack A (+up / +down in air) \xB7 Up at doors & statues \xB7 Select tree"
 };
 var treeKey = /* @__PURE__ */ __name(() => usingPad ? "Select" : "T", "treeKey");
@@ -29775,7 +29803,7 @@ function saveRun(r) {
 __name(saveRun, "saveRun");
 function track(before, after) {
   for (const ev of after.events.toArray()) {
-    if (ev instanceof EnteredRoom && ev.depth === 1) run = { v: 1, at: (/* @__PURE__ */ new Date()).toISOString(), class: class_name(after), easy: after.easy, hits: 0, damage: 0, rooms: [] };
+    if (ev instanceof EnteredRoom && ev.depth === 1) run = { v: 1, at: (/* @__PURE__ */ new Date()).toISOString(), class: class_name(after), easy: after.easy, hits: 0, damage: 0, rooms: [], replay: replay.id, from: replay.steps - 1 };
     if (!run) continue;
     if (ev instanceof EnteredRoom && ev.depth > 0) run.rooms.push([ev.depth === boss_depth ? "boss" : layout_names.toArray()[after.plan.toArray()[ev.depth - 1]], Math.round(after.time), after.player.hp]);
     if (ev instanceof Hurt) {
@@ -29804,18 +29832,26 @@ function endRun(end, w2) {
     levels: count2(p2.trained.toArray().map((e) => e.constructor.name)),
     rules: p2.mods.rules.toArray().map((r) => r.constructor.name),
     pad: usingPad,
-    attack: ATTACK_MODES[attackMode].id
+    attack: ATTACK_MODES[attackMode].id,
+    to: replay.steps
   });
   run = null;
+  saveReplay();
 }
 __name(endRun, "endRun");
-addEventListener("pagehide", () => endRun("left", world));
-function copyRuns() {
-  const runs = savedRuns(), text = JSON.stringify(runs);
-  const say = /* @__PURE__ */ __name((t2) => floatText(world.player.x, world.player.y + 3.4, t2, "npc"), "say");
-  (navigator.clipboard?.writeText(text) ?? Promise.reject()).then(() => say(`Run log copied (${runs.length} run${runs.length === 1 ? "" : "s"})`), () => say("Could not copy the run log"));
+addEventListener("pagehide", () => {
+  endRun("left", world);
+  saveReplay();
+});
+function saveRunLog() {
+  saveReplay();
+  const runs = savedRuns(), file = new Blob([JSON.stringify({ runs, replays: savedReplays() })], { type: "application/json" });
+  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(file), download: `trip-runs-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.json` });
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1e3);
+  floatText(world.player.x, world.player.y + 3.4, `Run log saved (${runs.length} run${runs.length === 1 ? "" : "s"})`, "npc");
 }
-__name(copyRuns, "copyRuns");
+__name(saveRunLog, "saveRunLog");
 function inReach() {
   const p2 = world.player, shoots = p2.weapon.shot instanceof Some;
   const far3 = shoots ? 9 : p2.weapon.long * reach2(p2) + 0.6;
@@ -29874,7 +29910,10 @@ function frame(now) {
     const t0 = performance.now();
     remember();
     const prior = world;
-    world = step2(world, new Input(mx, my, jump2, pendJump, pendDash, pendAttack), DT);
+    const input = [Math.round(mx * 100) / 100, Math.round(my * 100) / 100, jump2, pendJump, pendDash, pendAttack];
+    recordInput(input);
+    world = step2(world, new Input(...input), DT);
+    replay.steps++;
     hear(prior, world);
     track(prior, world);
     stepMs = stepMs * 0.95 + (performance.now() - t0) * 0.05;
