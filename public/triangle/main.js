@@ -12650,6 +12650,12 @@ var Flyer = class extends CustomType {
   }
 };
 var Kind$Flyer$const = new Flyer();
+var Wisp = class extends CustomType {
+  static {
+    __name(this, "Wisp");
+  }
+};
+var Kind$Wisp$const = new Wisp();
 var Bouncer = class extends CustomType {
   static {
     __name(this, "Bouncer");
@@ -12865,6 +12871,8 @@ function max_hp(kind) {
     return 20;
   } else if (kind instanceof Flyer) {
     return 18;
+  } else if (kind instanceof Wisp) {
+    return 9;
   } else if (kind instanceof Bouncer) {
     return 25;
   } else if (kind instanceof Hexer) {
@@ -12895,7 +12903,7 @@ function spawn(id2, kind, x, y2) {
     Mode$Idle$const,
     1,
     0,
-    kind instanceof Flyer || kind instanceof Bouncer || kind instanceof Dummy,
+    kind instanceof Flyer || kind instanceof Wisp || kind instanceof Bouncer || kind instanceof Dummy,
     1,
     new Ailments(0, 0, 0, 0, 0),
     false,
@@ -13098,6 +13106,8 @@ function xp_value(kind) {
     return 15;
   } else if (kind instanceof Flyer) {
     return 15;
+  } else if (kind instanceof Wisp) {
+    return 15;
   } else if (kind instanceof Bouncer) {
     return 15;
   } else if (kind instanceof Hexer) {
@@ -13127,6 +13137,8 @@ function size3(kind) {
   } else if (kind instanceof Shooter) {
     return [0.8, 1.4];
   } else if (kind instanceof Flyer) {
+    return [0.9, 0.7];
+  } else if (kind instanceof Wisp) {
     return [0.9, 0.7];
   } else if (kind instanceof Bouncer) {
     return [1, 1];
@@ -13160,6 +13172,8 @@ function contact_damage(e) {
         return 20;
       } else if ($ instanceof Flyer && $1 instanceof Charging) {
         return 12;
+      } else if ($ instanceof Wisp && $1 instanceof Charging) {
+        return 12;
       } else if ($ instanceof Boss) {
         if ($1 instanceof Charging) {
           return 20;
@@ -13179,21 +13193,39 @@ function armor(e, element2) {
   let $ = e.kind;
   let $1 = e.mode;
   if (element2 instanceof Physical) {
-    if ($1 instanceof Charging && $ instanceof Charger) {
-      return 50;
+    if ($1 instanceof Windup) {
+      if ($ instanceof Wisp) {
+        return 100;
+      } else {
+        return 100;
+      }
+    } else if ($1 instanceof Charging) {
+      if ($ instanceof Charger) {
+        return 50;
+      } else if ($ instanceof Wisp) {
+        return 100;
+      } else {
+        return 100;
+      }
     } else if ($1 instanceof Recover) {
       if ($ instanceof Charger) {
         return 150;
+      } else if ($ instanceof Wisp) {
+        return 50;
       } else if ($ instanceof Hexer) {
         return 150;
       } else {
         return 100;
       }
+    } else if ($ instanceof Wisp) {
+      return 50;
     } else {
       return 100;
     }
   } else if ($1 instanceof Recover) {
     if ($ instanceof Charger) {
+      return 150;
+    } else if ($ instanceof Wisp) {
       return 150;
     } else if ($ instanceof Hexer) {
       return 150;
@@ -13202,6 +13234,8 @@ function armor(e, element2) {
     } else {
       return 100;
     }
+  } else if ($ instanceof Wisp) {
+    return 150;
   } else if ($ instanceof Hexer) {
     return 50;
   } else if (e.ward > 0) {
@@ -14564,7 +14598,7 @@ function clear_line(level, ax, ay, bx, by) {
 }
 __name(clear_line, "clear_line");
 function flyer(e, level, px, py, dt2, alert) {
-  let $ = size3(Kind$Flyer$const);
+  let $ = size3(e.kind);
   let w2 = $[0];
   let h = $[1];
   let _block;
@@ -15137,6 +15171,109 @@ function think(e, level, px, py, dt2, alert) {
       return [e, List$Empty$const];
     }
   } else if ($ instanceof Flyer) {
+    if ($1) {
+      if (!e.awake) {
+        return [
+          fall(
+            new Enemy(
+              e.id,
+              e.kind,
+              e.x,
+              e.y,
+              0,
+              e.vy,
+              e.home_x,
+              e.home_y,
+              e.facing,
+              e.grounded,
+              e.wall,
+              e.hp,
+              e.max_hp,
+              e.respawn,
+              e.flash,
+              e.mode,
+              e.cooldown,
+              e.pattern,
+              e.awake,
+              e.tier,
+              e.ail,
+              e.robbed,
+              e.ward
+            ),
+            level,
+            dt2
+          ),
+          List$Empty$const
+        ];
+      } else if (e.ail.stun > 0) {
+        return [
+          new Enemy(
+            e.id,
+            e.kind,
+            e.x,
+            e.y,
+            0,
+            0,
+            e.home_x,
+            e.home_y,
+            e.facing,
+            e.grounded,
+            e.wall,
+            e.hp,
+            e.max_hp,
+            e.respawn,
+            e.flash,
+            e.mode,
+            e.cooldown,
+            e.pattern,
+            e.awake,
+            e.tier,
+            e.ail,
+            e.robbed,
+            e.ward
+          ),
+          List$Empty$const
+        ];
+      } else if (e.ail.stun > 0) {
+        return [
+          fall(
+            new Enemy(
+              e.id,
+              e.kind,
+              e.x,
+              e.y,
+              approach(e.vx, 0, 20 * dt2),
+              e.vy,
+              e.home_x,
+              e.home_y,
+              e.facing,
+              e.grounded,
+              e.wall,
+              e.hp,
+              e.max_hp,
+              e.respawn,
+              e.flash,
+              e.mode,
+              e.cooldown,
+              e.pattern,
+              e.awake,
+              e.tier,
+              e.ail,
+              e.robbed,
+              e.ward
+            ),
+            level,
+            dt2
+          ),
+          List$Empty$const
+        ];
+      } else {
+        return [flyer(e, level, px, py, dt2, alert), List$Empty$const];
+      }
+    } else {
+      return [e, List$Empty$const];
+    }
+  } else if ($ instanceof Wisp) {
     if ($1) {
       if (!e.awake) {
         return [
@@ -20254,19 +20391,34 @@ function load(world2, t2, depth) {
   let ay = $[1];
   let _block$1;
   let $1 = depth === boss_depth || depth === 0;
-  let $2 = depth >= 6;
-  let $3 = depth >= 4;
   if ($1) {
     _block$1 = List$Empty$const;
-  } else if ($2) {
-    _block$1 = prepend(
-      [ax, ay, Kind$Flyer$const],
-      prepend([ax + 4, ay, Kind$Bouncer$const], List$Empty$const)
-    );
-  } else if ($3) {
-    _block$1 = prepend([ax, ay, Kind$Flyer$const], List$Empty$const);
   } else {
-    _block$1 = List$Empty$const;
+    let d2 = depth;
+    if (d2 >= 6) {
+      _block$1 = prepend(
+        [ax, ay, Kind$Flyer$const],
+        prepend(
+          [ax + 4, ay, Kind$Bouncer$const],
+          List$Empty$const
+        )
+      );
+    } else if (depth === 5) {
+      _block$1 = prepend(
+        [ax, ay, Kind$Flyer$const],
+        List$Empty$const
+      );
+    } else {
+      let d$1 = depth;
+      if (d$1 >= 2) {
+        _block$1 = prepend(
+          [ax, ay, Kind$Wisp$const],
+          List$Empty$const
+        );
+      } else {
+        _block$1 = List$Empty$const;
+      }
+    }
   }
   let roamers = _block$1;
   let _block$2;
@@ -20277,8 +20429,8 @@ function load(world2, t2, depth) {
     _pipe$2,
     (s, i) => {
       let e = spawn(i + 1, s[2], s[0], s[1]);
-      let $4 = e.kind;
-      if ($4 instanceof Boss) {
+      let $2 = e.kind;
+      if ($2 instanceof Boss) {
         return new Enemy(
           e.id,
           e.kind,
@@ -20308,8 +20460,8 @@ function load(world2, t2, depth) {
         return promote(
           e,
           (() => {
-            let $5 = has2(world2.player, Rule$Bounty$const);
-            if ($5) {
+            let $3 = has2(world2.player, Rule$Bounty$const);
+            if ($3) {
               return min(3, tier_at(depth, i) + 1);
             } else {
               return tier_at(depth, i);
@@ -20369,11 +20521,11 @@ function load(world2, t2, depth) {
       p2.hexed
     ),
     (() => {
-      let $4 = depth === 0;
-      let $5 = depth === boss_depth;
-      if ($4) {
+      let $2 = depth === 0;
+      let $3 = depth === boss_depth;
+      if ($2) {
         return t2.level;
-      } else if ($5) {
+      } else if ($3) {
         return prepend(tunnel(), t2.level);
       } else {
         return prepend(tunnel(), furnish(t2, world2.seed).level);
@@ -21180,15 +21332,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      2854,
+      2855,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 86295,
-        end: 86347,
-        pattern_start: 86306,
-        pattern_end: 86313
+        start: 86336,
+        end: 86388,
+        pattern_start: 86347,
+        pattern_end: 86354
       }
     );
   } else {
@@ -27643,15 +27795,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2804,
+        2805,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 84748,
-          end: 84799,
-          pattern_start: 84759,
-          pattern_end: 84767
+          start: 84789,
+          end: 84840,
+          pattern_start: 84800,
+          pattern_end: 84808
         }
       );
     }
@@ -27663,15 +27815,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2806,
+        2807,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 84882,
-          end: 84943,
-          pattern_start: 84893,
-          pattern_end: 84910
+          start: 84923,
+          end: 84984,
+          pattern_start: 84934,
+          pattern_end: 84951
         }
       );
     } else {
@@ -27681,15 +27833,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          2806,
+          2807,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 84882,
-            end: 84943,
-            pattern_start: 84893,
-            pattern_end: 84910
+            start: 84923,
+            end: 84984,
+            pattern_start: 84934,
+            pattern_end: 84951
           }
         );
       } else {
@@ -28845,6 +28997,7 @@ function sticker(path) {
 __name(sticker, "sticker");
 var ENEMY_ART = {
   Flyer: { wide: 1.26, tiers: true, flies: true },
+  Wisp: { wide: 1.3, tiers: true, flies: true },
   Charger: { wide: 1.5, tiers: true },
   Shooter: { wide: 1.85, tiers: true },
   Hexer: { wide: 1.85, tiers: true },
@@ -29174,7 +29327,10 @@ function enemyPose(e, now, dt2) {
   const f = e.facing > 0 ? 1 : -1, t2 = (now - m.since) / 1e3;
   let sx = 1, sy = 1, tilt = 0, dx = 0, dy = 0;
   if (kind === "Flyer") sy += Math.sin(now / 80 + e.id) * 0.07;
-  else if (kind === "Bouncer") {
+  else if (kind === "Wisp") {
+    sy += Math.sin(now / 140 + e.id) * 0.09;
+    tilt += Math.sin(now / 230 + e.id) * 0.08;
+  } else if (kind === "Bouncer") {
     const k2 = Math.min(1, Math.abs(e.vy) / 14) * 0.2;
     sy += k2;
     sx -= k2 * 0.6;
