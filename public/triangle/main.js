@@ -18606,7 +18606,7 @@ function when(t2) {
   } else if (t2 instanceof OnDash) {
     return "on dash";
   } else if (t2 instanceof OnHardLanding) {
-    return "on hard landing";
+    return "on a slam landing (fall fast or dash down)";
   } else if (t2 instanceof Every) {
     let p2 = t2.period;
     return "autocast, " + float_to_string(p2) + "s";
@@ -19575,6 +19575,12 @@ var ShockwavePct = class extends CustomType {
     this[0] = $0;
   }
 };
+var Quake = class extends CustomType {
+  static {
+    __name(this, "Quake");
+  }
+};
+var Bonus$Quake$const = new Quake();
 var SlashPct = class extends CustomType {
   static {
     __name(this, "SlashPct");
@@ -19929,15 +19935,15 @@ function signature_node(t2, keystone) {
         "let_assert",
         FILEPATH,
         "tree",
-        332,
+        334,
         "signature_node",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $,
-          start: 11697,
-          end: 11753,
-          pattern_start: 11708,
-          pattern_end: 11723
+          start: 11792,
+          end: 11848,
+          pattern_start: 11803,
+          pattern_end: 11818
         }
       );
     } else {
@@ -19948,15 +19954,15 @@ function signature_node(t2, keystone) {
       "let_assert",
       FILEPATH,
       "tree",
-      332,
+      334,
       "signature_node",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 11697,
-        end: 11753,
-        pattern_start: 11708,
-        pattern_end: 11723
+        start: 11792,
+        end: 11848,
+        pattern_start: 11803,
+        pattern_end: 11818
       }
     );
   }
@@ -19987,7 +19993,7 @@ function grant_name(g) {
     } else if ($ instanceof ThirdSwingBig) {
       return "Every third swing is twice as big";
     } else if ($ instanceof Crash) {
-      return "Crash: a hard landing readies a block (one at a time)";
+      return "Crash: a slam landing readies a block (one at a time)";
     } else if ($ instanceof Bow) {
       return "Bow: attack fires arrows; they crit past 6 tiles";
     } else if ($ instanceof Orbit) {
@@ -20021,7 +20027,7 @@ function grant_name(g) {
     } else if ($ instanceof Punish) {
       return "Punish: hitting an enemy while it winds up always crits";
     } else if ($ instanceof Heavy) {
-      return "Heavy: every landing is a hard landing, but no air jumps";
+      return "Heavy: a faster fast-fall and 50% bigger shockwaves, but no air jumps";
     } else if ($ instanceof LastStand) {
       return "Last stand: below a third of your health you deal double, but healing stops at half";
     } else if ($ instanceof Juggernaut) {
@@ -20180,7 +20186,12 @@ function upgrades(s) {
   } else if ($ instanceof Rush) {
     return [Bonus$ExtraDash$const, new DamagePct(10)];
   } else if ($ instanceof Shockwave) {
-    return [new ShockwavePct(30), new ShockwavePct(30)];
+    let $1 = s.trigger;
+    if ($1 instanceof OnHardLanding) {
+      return [new ShockwavePct(30), Bonus$Quake$const];
+    } else {
+      return [new ShockwavePct(30), new ShockwavePct(30)];
+    }
   } else if ($ instanceof Knife) {
     return [Bonus$ExtraKnife$const, Bonus$KnifePierce$const];
   } else if ($ instanceof Caltrops) {
@@ -20268,15 +20279,15 @@ function nth(items, i) {
       "let_assert",
       FILEPATH,
       "tree",
-      444,
+      451,
       "nth",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 14860,
-        end: 14912,
-        pattern_start: 14871,
-        pattern_end: 14876
+        start: 15123,
+        end: 15175,
+        pattern_start: 15134,
+        pattern_end: 15139
       }
     );
   }
@@ -20390,15 +20401,15 @@ function find2(acc2, id2) {
       "let_assert",
       FILEPATH,
       "tree",
-      564,
+      571,
       "find",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 18292,
-        end: 18353,
-        pattern_start: 18303,
-        pattern_end: 18308
+        start: 18555,
+        end: 18616,
+        pattern_start: 18566,
+        pattern_end: 18571
       }
     );
   }
@@ -20600,15 +20611,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        652,
+        659,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 21664,
-          end: 21710,
-          pattern_start: 21675,
-          pattern_end: 21683
+          start: 21927,
+          end: 21973,
+          pattern_start: 21938,
+          pattern_end: 21946
         }
       );
     }
@@ -20633,15 +20644,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        653,
+        660,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 21715,
-          end: 21889,
-          pattern_start: 21726,
-          pattern_end: 21733
+          start: 21978,
+          end: 22152,
+          pattern_start: 21989,
+          pattern_end: 21996
         }
       );
     } else {
@@ -20710,15 +20721,15 @@ function build() {
               "let_assert",
               FILEPATH,
               "tree",
-              697,
+              704,
               "build",
               "Pattern match failed, no pattern matched the value.",
               {
                 value: chain2,
-                start: 23504,
-                end: 23533,
-                pattern_start: 23515,
-                pattern_end: 23525
+                start: 23767,
+                end: 23796,
+                pattern_start: 23778,
+                pattern_end: 23788
               }
             );
           } else {
@@ -20735,15 +20746,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          700,
+          707,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: chain,
-            start: 23609,
-            end: 23638,
-            pattern_start: 23620,
-            pattern_end: 23630
+            start: 23872,
+            end: 23901,
+            pattern_start: 23883,
+            pattern_end: 23893
           }
         );
       } else {
@@ -20871,15 +20882,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          758,
+          765,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $4,
-            start: 25853,
-            end: 26073,
-            pattern_start: 25864,
-            pattern_end: 25884
+            start: 26116,
+            end: 26336,
+            pattern_start: 26127,
+            pattern_end: 26147
           }
         );
       }
@@ -21060,6 +21071,8 @@ function bonus_name(b) {
   } else if (b instanceof ShockwavePct) {
     let n = b[0];
     return pct2(n, "shockwave size");
+  } else if (b instanceof Quake) {
+    return "A dash that ends on the ground is a slam too";
   } else if (b instanceof SlashPct) {
     let n = b[0];
     return pct2(n, "slash size");
@@ -21494,7 +21507,7 @@ var Player = class extends CustomType {
   static {
     __name(this, "Player");
   }
-  constructor(x, y2, vx, vy, grounded, on_platform, wall, facing, coyote, jump_buffer, air_jumps, dash_time, dashes, can_cut, up_held, jumped, dashed, struck, plunged, grudge, conduit, quick, rebound, air_hits, weapon, loadout, trained, class$, allocated, mods, shield, block_charge, crash_wait, swings, risen, attack, stats, lvl, xp2, points, hp2, invuln, hurt2, hexed, rush, orbs_away) {
+  constructor(x, y2, vx, vy, grounded, on_platform, wall, facing, coyote, jump_buffer, air_jumps, dash_time, dashes, can_cut, up_held, jumped, dashed, struck, plunged, slam, grudge, conduit, quick, rebound, air_hits, weapon, loadout, trained, class$, allocated, mods, shield, block_charge, crash_wait, swings, risen, attack, stats, lvl, xp2, points, hp2, invuln, hurt2, hexed, rush, orbs_away) {
     super();
     this.x = x;
     this.y = y2;
@@ -21515,6 +21528,7 @@ var Player = class extends CustomType {
     this.dashed = dashed;
     this.struck = struck;
     this.plunged = plunged;
+    this.slam = slam;
     this.grudge = grudge;
     this.conduit = conduit;
     this.quick = quick;
@@ -21544,11 +21558,29 @@ var Player = class extends CustomType {
     this.orbs_away = orbs_away;
   }
 };
+var NoSlam = class extends CustomType {
+  static {
+    __name(this, "NoSlam");
+  }
+};
+var Slam$NoSlam$const = new NoSlam();
+var FastFall = class extends CustomType {
+  static {
+    __name(this, "FastFall");
+  }
+};
+var Slam$FastFall$const = new FastFall();
+var DownDash = class extends CustomType {
+  static {
+    __name(this, "DownDash");
+  }
+};
+var Slam$DownDash$const = new DownDash();
 var Mods = class extends CustomType {
   static {
     __name(this, "Mods");
   }
-  constructor(bonus_hp, damage_pct, attack_speed_pct, reach_pct, cooldown_pct, iframes, xp_pct, knockback_pct, crit_pct, shields, knives, pierce, shockwave_pct, slash_pct, air_jumps, dashes, wall_jump, rules) {
+  constructor(bonus_hp, damage_pct, attack_speed_pct, reach_pct, cooldown_pct, iframes, xp_pct, knockback_pct, crit_pct, shields, knives, pierce, shockwave_pct, slash_pct, quake, air_jumps, dashes, wall_jump, rules) {
     super();
     this.bonus_hp = bonus_hp;
     this.damage_pct = damage_pct;
@@ -21564,6 +21596,7 @@ var Mods = class extends CustomType {
     this.pierce = pierce;
     this.shockwave_pct = shockwave_pct;
     this.slash_pct = slash_pct;
+    this.quake = quake;
     this.air_jumps = air_jumps;
     this.dashes = dashes;
     this.wall_jump = wall_jump;
@@ -21667,6 +21700,7 @@ var sandbox = /* @__PURE__ */ new Mods(
   false,
   0,
   0,
+  false,
   1,
   1,
   true,
@@ -21688,6 +21722,7 @@ var bare = /* @__PURE__ */ new Mods(
   false,
   0,
   0,
+  false,
   0,
   0,
   false,
@@ -21722,6 +21757,8 @@ var half_width = 0.375;
 var hard_windup = 0.9;
 var linger = 4;
 var orb_rooms = 1;
+var fast_fall = 32;
+var heavy_fall = 40;
 var dash_duration = 0.14;
 var dash_speed = 20;
 var air_jump_speed = 17;
@@ -21836,15 +21873,15 @@ function player(world2) {
       "let_assert",
       FILEPATH2,
       "game",
-      710,
+      739,
       "player",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 20080,
-        end: 20114,
-        pattern_start: 20091,
-        pattern_end: 20098
+        start: 21027,
+        end: 21061,
+        pattern_start: 21038,
+        pattern_end: 21045
       }
     );
   } else {
@@ -22077,6 +22114,7 @@ function load(world2, t2, depth) {
           p2.dashed,
           p2.struck,
           p2.plunged,
+          p2.slam,
           p2.grudge,
           p2.conduit,
           p2.quick,
@@ -22211,6 +22249,7 @@ function new_world(seed) {
     false,
     false,
     false,
+    Slam$NoSlam$const,
     false,
     0,
     false,
@@ -22492,6 +22531,7 @@ function kit_mods(name3) {
       bare.pierce,
       bare.shockwave_pct,
       bare.slash_pct,
+      bare.quake,
       bare.air_jumps,
       1,
       bare.wall_jump,
@@ -22513,6 +22553,7 @@ function kit_mods(name3) {
       bare.pierce,
       bare.shockwave_pct,
       bare.slash_pct,
+      bare.quake,
       bare.air_jumps,
       1,
       bare.wall_jump,
@@ -22534,6 +22575,7 @@ function kit_mods(name3) {
       bare.pierce,
       bare.shockwave_pct,
       bare.slash_pct,
+      bare.quake,
       bare.air_jumps,
       1,
       bare.wall_jump,
@@ -22555,6 +22597,7 @@ function kit_mods(name3) {
       bare.pierce,
       bare.shockwave_pct,
       bare.slash_pct,
+      bare.quake,
       bare.air_jumps,
       1,
       bare.wall_jump,
@@ -22576,6 +22619,7 @@ function kit_mods(name3) {
       bare.pierce,
       bare.shockwave_pct,
       bare.slash_pct,
+      bare.quake,
       bare.air_jumps,
       1,
       bare.wall_jump,
@@ -22597,6 +22641,7 @@ function kit_mods(name3) {
       bare.pierce,
       bare.shockwave_pct,
       bare.slash_pct,
+      bare.quake,
       bare.air_jumps,
       1,
       true,
@@ -22618,6 +22663,7 @@ function kit_mods(name3) {
       bare.pierce,
       bare.shockwave_pct,
       bare.slash_pct,
+      bare.quake,
       bare.air_jumps,
       bare.dashes,
       true,
@@ -22639,6 +22685,7 @@ function kit_mods(name3) {
       bare.pierce,
       bare.shockwave_pct,
       bare.slash_pct,
+      bare.quake,
       1,
       bare.dashes,
       bare.wall_jump,
@@ -22680,6 +22727,7 @@ function choose_class(world2, keystone) {
           p2.dashed,
           p2.struck,
           p2.plunged,
+          p2.slam,
           p2.grudge,
           p2.conduit,
           p2.quick,
@@ -22713,6 +22761,7 @@ function choose_class(world2, keystone) {
               _record.pierce,
               _record.shockwave_pct,
               _record.slash_pct,
+              _record.quake,
               _record.air_jumps,
               _record.dashes,
               _record.wall_jump,
@@ -22939,6 +22988,7 @@ function apply_reward(loop$p, loop$r) {
         p2.dashed,
         p2.struck,
         p2.plunged,
+        p2.slam,
         p2.grudge,
         p2.conduit,
         p2.quick,
@@ -22987,6 +23037,7 @@ function apply_reward(loop$p, loop$r) {
         q2.dashed,
         q2.struck,
         q2.plunged,
+        q2.slam,
         q2.grudge,
         q2.conduit,
         q2.quick,
@@ -23036,6 +23087,7 @@ function apply_reward(loop$p, loop$r) {
         p2.dashed,
         p2.struck,
         p2.plunged,
+        p2.slam,
         p2.grudge,
         p2.conduit,
         p2.quick,
@@ -23084,15 +23136,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      3511,
+      3591,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 109269,
-        end: 109319,
-        pattern_start: 109280,
-        pattern_end: 109287
+        start: 111946,
+        end: 111996,
+        pattern_start: 111957,
+        pattern_end: 111964
       }
     );
   } else {
@@ -23565,6 +23617,7 @@ function use_door(world2, up_fresh) {
               p$1.dashed,
               p$1.struck,
               p$1.plunged,
+              p$1.slam,
               p$1.grudge,
               p$1.conduit,
               p$1.quick,
@@ -23884,6 +23937,7 @@ function check_clear(world2) {
           p2.dashed,
           p2.struck,
           p2.plunged,
+          p2.slam,
           p2.grudge,
           p2.conduit,
           p2.quick,
@@ -23943,6 +23997,7 @@ function check_clear(world2) {
         player$1.dashed,
         player$1.struck,
         player$1.plunged,
+        player$1.slam,
         player$1.grudge,
         player$1.conduit,
         player$1.quick,
@@ -24105,6 +24160,7 @@ function gain_xp(loop$p, loop$xp, loop$events) {
         p2.dashed,
         p2.struck,
         p2.plunged,
+        p2.slam,
         p2.grudge,
         p2.conduit,
         p2.quick,
@@ -24172,6 +24228,7 @@ function gain_xp(loop$p, loop$xp, loop$events) {
           p2.dashed,
           p2.struck,
           p2.plunged,
+          p2.slam,
           p2.grudge,
           p2.conduit,
           p2.quick,
@@ -24320,6 +24377,7 @@ function loot(world2, dt2) {
     p2.dashed,
     p2.struck,
     p2.plunged,
+    p2.slam,
     p2.grudge,
     p2.conduit,
     p2.quick,
@@ -24555,6 +24613,7 @@ function blocked_by_shield(world2, k2) {
           p2.dashed,
           p2.struck,
           p2.plunged,
+          p2.slam,
           p2.grudge,
           p2.conduit,
           p2.quick,
@@ -24670,6 +24729,7 @@ function hurt(world2, damage3, from_x) {
                 p2.dashed,
                 p2.struck,
                 p2.plunged,
+                p2.slam,
                 p2.grudge,
                 p2.conduit,
                 p2.quick,
@@ -24759,6 +24819,7 @@ function hurt(world2, damage3, from_x) {
                 p2.dashed,
                 p2.struck,
                 p2.plunged,
+                p2.slam,
                 p2.grudge,
                 p2.conduit,
                 p2.quick,
@@ -24869,6 +24930,7 @@ function hurt(world2, damage3, from_x) {
           p2.dashed,
           p2.struck,
           p2.plunged,
+          p2.slam,
           p2.grudge,
           p2.conduit,
           p2.quick,
@@ -24921,6 +24983,7 @@ function hurt(world2, damage3, from_x) {
             p$1.dashed,
             p$1.struck,
             p$1.plunged,
+            p$1.slam,
             p$1.grudge,
             p$1.conduit,
             p$1.quick,
@@ -24975,6 +25038,7 @@ function hurt(world2, damage3, from_x) {
               p$2.dashed,
               p$2.struck,
               p$2.plunged,
+              p$2.slam,
               true,
               p$2.conduit,
               p$2.quick,
@@ -25307,15 +25371,15 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        1433,
+        1500,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $12,
-          start: 41598,
-          end: 41654,
-          pattern_start: 41609,
-          pattern_end: 41614
+          start: 43921,
+          end: 43977,
+          pattern_start: 43932,
+          pattern_end: 43937
         }
       );
     }
@@ -25370,6 +25434,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
       p2.dashed,
       p2.struck,
       p2.plunged,
+      p2.slam,
       p2.grudge,
       p2.conduit,
       p2.quick,
@@ -25428,6 +25493,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
       p$1.dashed,
       p$1.struck,
       p$1.plunged,
+      p$1.slam,
       p$1.grudge,
       p$1.conduit,
       p$1.quick,
@@ -25487,6 +25553,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
           p$2.dashed,
           p$2.struck,
           p$2.plunged,
+          p$2.slam,
           p$2.grudge,
           p$2.conduit,
           p$2.quick,
@@ -25539,6 +25606,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
           p$2.dashed,
           p$2.struck,
           p$2.plunged,
+          p$2.slam,
           p$2.grudge,
           p$2.conduit,
           p$2.quick,
@@ -25592,6 +25660,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         p$2.dashed,
         p$2.struck,
         p$2.plunged,
+        p$2.slam,
         p$2.grudge,
         p$2.conduit,
         p$2.quick,
@@ -25660,6 +25729,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
     p$3.dashed,
     p$3.struck,
     p$3.plunged,
+    p$3.slam,
     p$3.grudge,
     p$3.conduit,
     p$3.quick,
@@ -25852,6 +25922,7 @@ function take_damage(world2) {
                   _record.dashed,
                   _record.struck,
                   _record.plunged,
+                  _record.slam,
                   _record.grudge,
                   _record.conduit,
                   _record.quick,
@@ -26336,9 +26407,9 @@ function strike(world2, a, box3) {
     let ids = map3(targets, (e) => {
       return e.id;
     });
-    let dive = plunging(p2);
+    let dive$1 = plunging(p2);
     let _block$1;
-    if (dive) {
+    if (dive$1) {
       _block$1 = new Player(
         p2.x,
         p2.y,
@@ -26359,6 +26430,7 @@ function strike(world2, a, box3) {
         p2.dashed,
         p2.struck,
         true,
+        p2.slam,
         p2.grudge,
         p2.conduit,
         p2.quick,
@@ -26408,6 +26480,7 @@ function strike(world2, a, box3) {
         p2.dashed,
         p2.struck,
         p2.plunged,
+        p2.slam,
         p2.grudge,
         p2.conduit,
         p2.quick,
@@ -26463,6 +26536,7 @@ function strike(world2, a, box3) {
           p$1.dashed,
           p$1.struck,
           p$1.plunged,
+          p$1.slam,
           p$1.grudge,
           p$1.conduit,
           p$1.quick,
@@ -26515,6 +26589,7 @@ function strike(world2, a, box3) {
         p$1.dashed,
         p$1.struck,
         p$1.plunged,
+        p$1.slam,
         p$1.grudge,
         p$1.conduit,
         p$1.quick,
@@ -26548,7 +26623,7 @@ function strike(world2, a, box3) {
     }
     let p$2 = _block$2;
     let _block$3;
-    if (dive) {
+    if (dive$1) {
       _block$3 = damage2(p$2);
     } else {
       _block$3 = round(identity(damage2(p$2)) * p$2.weapon.power);
@@ -26571,7 +26646,7 @@ function strike(world2, a, box3) {
       _block$5 = hit$2;
     }
     let hit$3 = _block$5;
-    let sure = dive || quickdrawn(p$2) || ricocheting(p$2);
+    let sure = dive$1 || quickdrawn(p$2) || ricocheting(p$2);
     let _block$6;
     let $4 = p$2.grudge;
     if ($4) {
@@ -26601,6 +26676,7 @@ function strike(world2, a, box3) {
       p$2.dashed,
       true,
       p$2.plunged,
+      p$2.slam,
       false,
       p$2.conduit + 1,
       false,
@@ -26681,7 +26757,7 @@ function strike(world2, a, box3) {
       _pipe$5,
       ids,
       (() => {
-        if (dive) {
+        if (dive$1) {
           return new Some([Status$Root$const, 1.5]);
         } else {
           return Option$None$const;
@@ -26817,7 +26893,16 @@ function boost(p2) {
     })(),
     reach2(p2),
     pct(m.slash_pct),
-    pct(m.shockwave_pct),
+    pct(
+      m.shockwave_pct + (() => {
+        let $ = has2(p2, Rule$Heavy$const);
+        if ($) {
+          return 50;
+        } else {
+          return 0;
+        }
+      })()
+    ),
     m.knives,
     m.pierce,
     1
@@ -26951,6 +27036,7 @@ function combat(world2) {
             p2.dashed,
             p2.struck,
             p2.plunged,
+            p2.slam,
             p2.grudge,
             p2.conduit,
             false,
@@ -27468,6 +27554,7 @@ function orbit(world2) {
           p2.dashed,
           p2.struck,
           p2.plunged,
+          p2.slam,
           p2.grudge,
           p2.conduit,
           p2.quick,
@@ -27662,10 +27749,16 @@ function aim_at_nearest(world2) {
 __name(aim_at_nearest, "aim_at_nearest");
 function fire_skills(world2, before, dt2) {
   let p2 = player(world2);
-  let hard_landing = !before.grounded && p2.grounded && (before.vy < -15 || has2(
-    p2,
-    Rule$Heavy$const
-  ));
+  let hard_landing = !before.grounded && p2.grounded && (() => {
+    let $11 = p2.slam;
+    if ($11 instanceof NoSlam) {
+      return false;
+    } else if ($11 instanceof FastFall) {
+      return true;
+    } else {
+      return p2.mods.quake;
+    }
+  })();
   let _block;
   let $1 = hard_landing && has2(p2, Rule$Crash$const) && !has2(
     p2,
@@ -27693,6 +27786,7 @@ function fire_skills(world2, before, dt2) {
         p2.dashed,
         p2.struck,
         p2.plunged,
+        p2.slam,
         p2.grudge,
         p2.conduit,
         p2.quick,
@@ -28062,6 +28156,7 @@ function fire_skills(world2, before, dt2) {
         p$1.dashed,
         false,
         p$1.plunged,
+        p$1.slam,
         p$1.grudge,
         conduit_count,
         p$1.quick,
@@ -28164,6 +28259,7 @@ function start_attack(p2, input) {
       p2.dashed,
       p2.struck,
       p2.plunged,
+      p2.slam,
       p2.grudge,
       p2.conduit,
       p2.quick,
@@ -28313,6 +28409,7 @@ function move(p2, level, dt2) {
     p2.dashed,
     p2.struck,
     p2.plunged,
+    p2.slam,
     p2.grudge,
     p2.conduit,
     p2.quick,
@@ -28343,6 +28440,104 @@ function move(p2, level, dt2) {
   );
 }
 __name(move, "move");
+function dive(p2, input) {
+  let _block;
+  let $ = p2.attack;
+  if ($ instanceof Some && $[0].dir instanceof Down) {
+    _block = true;
+  } else {
+    _block = false;
+  }
+  let swinging_down = _block;
+  let down = input.move_y < -0.5 && !input.jump_held && !swinging_down;
+  let dashing = p2.dash_time > 0;
+  let _block$1;
+  let $1 = p2.grounded;
+  if ($1) {
+    _block$1 = Slam$NoSlam$const;
+  } else {
+    let $22 = p2.slam;
+    if (dashing) {
+      if (p2.vy < -9) {
+        _block$1 = Slam$DownDash$const;
+      } else {
+        _block$1 = Slam$NoSlam$const;
+      }
+    } else if ($22 instanceof DownDash && p2.dash_time > 0 - 0.1 && p2.vy < 0) {
+      _block$1 = $22;
+    } else if (p2.vy <= 0 && (down || p2.slam instanceof FastFall)) {
+      _block$1 = Slam$FastFall$const;
+    } else {
+      _block$1 = Slam$NoSlam$const;
+    }
+  }
+  let slam = _block$1;
+  let _block$2;
+  let $2 = has2(p2, Rule$Heavy$const);
+  if ($2) {
+    _block$2 = heavy_fall;
+  } else {
+    _block$2 = fast_fall;
+  }
+  let speed$1 = _block$2;
+  let _block$3;
+  if (slam instanceof FastFall) {
+    _block$3 = min2(p2.vy, 0 - speed$1);
+  } else {
+    _block$3 = p2.vy;
+  }
+  let vy = _block$3;
+  return new Player(
+    p2.x,
+    p2.y,
+    p2.vx,
+    vy,
+    p2.grounded,
+    p2.on_platform,
+    p2.wall,
+    p2.facing,
+    p2.coyote,
+    p2.jump_buffer,
+    p2.air_jumps,
+    p2.dash_time,
+    p2.dashes,
+    p2.can_cut,
+    p2.up_held,
+    p2.jumped,
+    p2.dashed,
+    p2.struck,
+    p2.plunged,
+    slam,
+    p2.grudge,
+    p2.conduit,
+    p2.quick,
+    p2.rebound,
+    p2.air_hits,
+    p2.weapon,
+    p2.loadout,
+    p2.trained,
+    p2.class,
+    p2.allocated,
+    p2.mods,
+    p2.shield,
+    p2.block_charge,
+    p2.crash_wait,
+    p2.swings,
+    p2.risen,
+    p2.attack,
+    p2.stats,
+    p2.lvl,
+    p2.xp,
+    p2.points,
+    p2.hp,
+    p2.invuln,
+    p2.hurt,
+    p2.hexed,
+    p2.rush,
+    p2.orbs_away
+  );
+}
+__name(dive, "dive");
 function unless_attacking(p2, k2) {
   let $ = p2.attack;
   if ($ instanceof Some) {
@@ -28390,6 +28585,7 @@ function dash(p2, input) {
           true,
           p2.struck,
           p2.plunged,
+          p2.slam,
           p2.grudge,
           p2.conduit,
           true,
@@ -28452,6 +28648,7 @@ function jump(p2, input) {
         p2.dashed,
         p2.struck,
         p2.plunged,
+        p2.slam,
         p2.grudge,
         p2.conduit,
         p2.quick,
@@ -28501,6 +28698,7 @@ function jump(p2, input) {
         p2.dashed,
         p2.struck,
         p2.plunged,
+        p2.slam,
         p2.grudge,
         p2.conduit,
         p2.quick,
@@ -28550,6 +28748,7 @@ function jump(p2, input) {
         p2.dashed,
         p2.struck,
         p2.plunged,
+        p2.slam,
         p2.grudge,
         p2.conduit,
         p2.quick,
@@ -28601,6 +28800,7 @@ function jump(p2, input) {
           p2.dashed,
           p2.struck,
           p2.plunged,
+          p2.slam,
           p2.grudge,
           p2.conduit,
           p2.quick,
@@ -28656,6 +28856,7 @@ function jump(p2, input) {
         p2.dashed,
         p2.struck,
         p2.plunged,
+        p2.slam,
         p2.grudge,
         p2.conduit,
         p2.quick,
@@ -28748,6 +28949,7 @@ function vertical(p2, input, dt2) {
         p2.dashed,
         p2.struck,
         p2.plunged,
+        p2.slam,
         p2.grudge,
         p2.conduit,
         p2.quick,
@@ -28833,6 +29035,7 @@ function horizontal(p2, input, dt2) {
         p2.dashed,
         p2.struck,
         p2.plunged,
+        p2.slam,
         p2.grudge,
         p2.conduit,
         p2.quick,
@@ -28942,6 +29145,7 @@ function tick2(p2, input, dt2) {
     false,
     p2.struck,
     p2.plunged && !p2.grounded,
+    p2.slam,
     p2.grudge,
     p2.conduit,
     p2.quick,
@@ -29002,7 +29206,8 @@ function move_player(p2, input, level, dt2) {
   let _pipe$4 = vertical(_pipe$3, input$1, dt2);
   let _pipe$5 = jump(_pipe$4, input$1);
   let _pipe$6 = dash(_pipe$5, input$1);
-  _block$1 = move(_pipe$6, fall_through(level, input$1), dt2);
+  let _pipe$7 = dive(_pipe$6, input$1);
+  _block$1 = move(_pipe$7, fall_through(level, input$1), dt2);
   let p$1 = _block$1;
   let _block$2;
   let $1 = has2(p$1, Rule$LandingCancel$const) && !before.grounded && p$1.grounded && recovering(
@@ -29030,6 +29235,7 @@ function move_player(p2, input, level, dt2) {
         p$1.dashed,
         p$1.struck,
         p$1.plunged,
+        p$1.slam,
         p$1.grudge,
         p$1.conduit,
         false,
@@ -29084,6 +29290,7 @@ function move_player(p2, input, level, dt2) {
     p$2.dashed,
     p$2.struck,
     p$2.plunged,
+    p$2.slam,
     p$2.grudge,
     p$2.conduit,
     p$2.quick,
@@ -29326,6 +29533,7 @@ function apply_node(p2, kind) {
       p2.dashed,
       p2.struck,
       p2.plunged,
+      p2.slam,
       p2.grudge,
       p2.conduit,
       p2.quick,
@@ -29380,6 +29588,7 @@ function apply_node(p2, kind) {
           m.pierce,
           m.shockwave_pct,
           m.slash_pct,
+          m.quake,
           m.air_jumps,
           m.dashes,
           m.wall_jump,
@@ -29406,6 +29615,7 @@ function apply_node(p2, kind) {
         q2.dashed,
         q2.struck,
         q2.plunged,
+        q2.slam,
         q2.grudge,
         q2.conduit,
         q2.quick,
@@ -29452,6 +29662,7 @@ function apply_node(p2, kind) {
           m.pierce,
           m.shockwave_pct,
           m.slash_pct,
+          m.quake,
           m.air_jumps,
           m.dashes,
           m.wall_jump,
@@ -29476,6 +29687,7 @@ function apply_node(p2, kind) {
           m.pierce,
           m.shockwave_pct,
           m.slash_pct,
+          m.quake,
           m.air_jumps,
           m.dashes,
           m.wall_jump,
@@ -29500,6 +29712,7 @@ function apply_node(p2, kind) {
           m.pierce,
           m.shockwave_pct,
           m.slash_pct,
+          m.quake,
           m.air_jumps,
           m.dashes,
           m.wall_jump,
@@ -29524,6 +29737,7 @@ function apply_node(p2, kind) {
           m.pierce,
           m.shockwave_pct,
           m.slash_pct,
+          m.quake,
           m.air_jumps,
           m.dashes,
           m.wall_jump,
@@ -29548,6 +29762,7 @@ function apply_node(p2, kind) {
           m.pierce,
           m.shockwave_pct,
           m.slash_pct,
+          m.quake,
           m.air_jumps,
           m.dashes,
           m.wall_jump,
@@ -29572,6 +29787,7 @@ function apply_node(p2, kind) {
           m.pierce,
           m.shockwave_pct,
           m.slash_pct,
+          m.quake,
           m.air_jumps,
           m.dashes,
           m.wall_jump,
@@ -29596,6 +29812,7 @@ function apply_node(p2, kind) {
           m.pierce,
           m.shockwave_pct,
           m.slash_pct,
+          m.quake,
           m.air_jumps,
           m.dashes,
           m.wall_jump,
@@ -29620,6 +29837,7 @@ function apply_node(p2, kind) {
           m.pierce,
           m.shockwave_pct,
           m.slash_pct,
+          m.quake,
           m.air_jumps,
           m.dashes,
           m.wall_jump,
@@ -29643,6 +29861,7 @@ function apply_node(p2, kind) {
           m.pierce,
           m.shockwave_pct,
           m.slash_pct,
+          m.quake,
           m.air_jumps,
           m.dashes,
           m.wall_jump,
@@ -29669,6 +29888,7 @@ function apply_node(p2, kind) {
         p$1.dashed,
         p$1.struck,
         p$1.plunged,
+        p$1.slam,
         p$1.grudge,
         p$1.conduit,
         p$1.quick,
@@ -29714,6 +29934,7 @@ function apply_node(p2, kind) {
           m.pierce,
           m.shockwave_pct,
           m.slash_pct,
+          m.quake,
           m.air_jumps,
           m.dashes,
           m.wall_jump,
@@ -29737,6 +29958,7 @@ function apply_node(p2, kind) {
           true,
           m.shockwave_pct,
           m.slash_pct,
+          m.quake,
           m.air_jumps,
           m.dashes,
           m.wall_jump,
@@ -29761,6 +29983,31 @@ function apply_node(p2, kind) {
           m.pierce,
           m.shockwave_pct + n,
           m.slash_pct,
+          m.quake,
+          m.air_jumps,
+          m.dashes,
+          m.wall_jump,
+          m.rules
+        )
+      );
+    } else if ($ instanceof Quake) {
+      return with$(
+        new Mods(
+          m.bonus_hp,
+          m.damage_pct,
+          m.attack_speed_pct,
+          m.reach_pct,
+          m.cooldown_pct,
+          m.iframes,
+          m.xp_pct,
+          m.knockback_pct,
+          m.crit_pct,
+          m.shields,
+          m.knives,
+          m.pierce,
+          m.shockwave_pct,
+          m.slash_pct,
+          true,
           m.air_jumps,
           m.dashes,
           m.wall_jump,
@@ -29785,6 +30032,7 @@ function apply_node(p2, kind) {
           m.pierce,
           m.shockwave_pct,
           m.slash_pct + n,
+          m.quake,
           m.air_jumps,
           m.dashes,
           m.wall_jump,
@@ -29808,6 +30056,7 @@ function apply_node(p2, kind) {
           m.pierce,
           m.shockwave_pct,
           m.slash_pct,
+          m.quake,
           m.air_jumps,
           m.dashes + 1,
           m.wall_jump,
@@ -29839,6 +30088,7 @@ function apply_node(p2, kind) {
         p2.dashed,
         p2.struck,
         p2.plunged,
+        p2.slam,
         p2.grudge,
         p2.conduit,
         p2.quick,
@@ -29886,6 +30136,7 @@ function apply_node(p2, kind) {
             m.pierce,
             m.shockwave_pct,
             m.slash_pct,
+            m.quake,
             m.air_jumps + 1,
             m.dashes,
             m.wall_jump,
@@ -29909,6 +30160,7 @@ function apply_node(p2, kind) {
             m.pierce,
             m.shockwave_pct,
             m.slash_pct,
+            m.quake,
             m.air_jumps,
             m.dashes + 1,
             m.wall_jump,
@@ -29932,6 +30184,7 @@ function apply_node(p2, kind) {
             m.pierce,
             m.shockwave_pct,
             m.slash_pct,
+            m.quake,
             m.air_jumps,
             m.dashes,
             true,
@@ -29957,6 +30210,7 @@ function apply_node(p2, kind) {
           m.pierce,
           m.shockwave_pct,
           m.slash_pct,
+          m.quake,
           m.air_jumps,
           m.dashes,
           m.wall_jump,
@@ -29985,6 +30239,7 @@ function apply_node(p2, kind) {
           p$1.dashed,
           p$1.struck,
           p$1.plunged,
+          p$1.slam,
           p$1.grudge,
           p$1.conduit,
           p$1.quick,
@@ -30034,6 +30289,7 @@ function apply_node(p2, kind) {
           p$1.dashed,
           p$1.struck,
           p$1.plunged,
+          p$1.slam,
           p$1.grudge,
           p$1.conduit,
           p$1.quick,
@@ -30059,6 +30315,7 @@ function apply_node(p2, kind) {
             m$1.pierce,
             m$1.shockwave_pct,
             m$1.slash_pct,
+            m$1.quake,
             m$1.air_jumps + 1,
             m$1.dashes,
             m$1.wall_jump,
@@ -30102,6 +30359,7 @@ function apply_node(p2, kind) {
           p$1.dashed,
           p$1.struck,
           p$1.plunged,
+          p$1.slam,
           p$1.grudge,
           p$1.conduit,
           p$1.quick,
@@ -30151,6 +30409,7 @@ function apply_node(p2, kind) {
           p$1.dashed,
           p$1.struck,
           p$1.plunged,
+          p$1.slam,
           p$1.grudge,
           p$1.conduit,
           p$1.quick,
@@ -30200,6 +30459,7 @@ function apply_node(p2, kind) {
           p$1.dashed,
           p$1.struck,
           p$1.plunged,
+          p$1.slam,
           p$1.grudge,
           p$1.conduit,
           p$1.quick,
@@ -30225,6 +30485,7 @@ function apply_node(p2, kind) {
             m$1.pierce,
             m$1.shockwave_pct,
             m$1.slash_pct,
+            m$1.quake,
             m$1.air_jumps,
             m$1.dashes,
             m$1.wall_jump,
@@ -30268,6 +30529,7 @@ function apply_node(p2, kind) {
           p$1.dashed,
           p$1.struck,
           p$1.plunged,
+          p$1.slam,
           p$1.grudge,
           p$1.conduit,
           p$1.quick,
@@ -30376,6 +30638,7 @@ function level_up(world2, id2, otherwise) {
               p2.dashed,
               p2.struck,
               p2.plunged,
+              p2.slam,
               p2.grudge,
               p2.conduit,
               p2.quick,
@@ -30476,6 +30739,7 @@ function allocate(world2, id2) {
           p2.dashed,
           p2.struck,
           p2.plunged,
+          p2.slam,
           p2.grudge,
           p2.conduit,
           p2.quick,
@@ -30675,15 +30939,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3399,
+        3479,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 105607,
-          end: 105658,
-          pattern_start: 105618,
-          pattern_end: 105626
+          start: 108284,
+          end: 108335,
+          pattern_start: 108295,
+          pattern_end: 108303
         }
       );
     }
@@ -30695,15 +30959,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3401,
+        3481,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 105741,
-          end: 105802,
-          pattern_start: 105752,
-          pattern_end: 105769
+          start: 108418,
+          end: 108479,
+          pattern_start: 108429,
+          pattern_end: 108446
         }
       );
     } else {
@@ -30713,15 +30977,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          3401,
+          3481,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 105741,
-            end: 105802,
-            pattern_start: 105752,
-            pattern_end: 105769
+            start: 108418,
+            end: 108479,
+            pattern_start: 108429,
+            pattern_end: 108446
           }
         );
       } else {
@@ -30820,6 +31084,7 @@ var BONUS = [
   [XpPct, "xp", "utility"],
   [CooldownPct, "cooldown", "utility"],
   [ShockwavePct, "shockwave", "upgrade"],
+  [Quake, "shockwave", "upgrade"],
   [SlashPct, "slash", "upgrade"],
   [ExtraKnife, "knife", "upgrade"],
   [KnifePierce, "pierce", "upgrade"],
@@ -32485,7 +32750,15 @@ __name(stickerPose, "stickerPose");
 var me2 = new Bs(new ha(1, 1), new es({ transparent: true, side: p }));
 me2.visible = false;
 scene.add(me2);
-window.game.view = { camera, me: me2, player: player2 };
+var speedLines = new jl();
+for (const [x, len] of [[-0.28, 0.8], [0, 1.2], [0.28, 0.8]]) {
+  const line = new Bs(new ha(0.07, len), new es({ color: 3877669, transparent: true, opacity: 0.5 }));
+  line.position.set(x, height + 0.25 + len / 2, 0.8);
+  speedLines.add(line);
+}
+speedLines.visible = false;
+scene.add(speedLines);
+window.game.view = { camera, me: me2, player: player2, speedLines };
 function tint(cell) {
   const c = new Kr(0, 0, 0), n = cell.f + cell.r + cell.m;
   [cell.f, cell.r, cell.m].forEach((w2, i) => c.add(new Kr(AXIS[i]).multiplyScalar(w2 / n)));
@@ -33201,7 +33474,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "e51b4a151d06" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "b0b7618d7937" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -33231,8 +33504,8 @@ var treeScreen = createTreeScreen({ getWorld: /* @__PURE__ */ __name(() => world
 }, "setWorld"), onUnlock: saveUnlocks });
 var hud = document.getElementById("hud");
 var HINT = {
-  keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Up at doors & statues \xB7 T tree \xB7 M attack style \xB7 N sound \xB7 B body box \xB7 P (pad Start) save run log",
-  pad: "Move stick \xB7 Jump X / Y \xB7 Dash LB / RB \xB7 Attack A (+up / +down in air) \xB7 Up at doors & statues \xB7 Select tree"
+  keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Hold S in air to fall fast \xB7 Up at doors & statues \xB7 T tree \xB7 M attack style \xB7 N sound \xB7 B body box \xB7 P (pad Start) save run log",
+  pad: "Move stick \xB7 Jump X / Y \xB7 Dash LB / RB \xB7 Attack A (+up / +down in air) \xB7 Hold down in air to fall fast \xB7 Up at doors & statues \xB7 Select tree"
 };
 var treeKey = /* @__PURE__ */ __name(() => usingPad ? "Select" : "T", "treeKey");
 hud.textContent = HINT.keys;
@@ -33465,7 +33738,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "e51b4a151d06" : "dev";
+var BUILD = true ? "b0b7618d7937" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
@@ -33667,6 +33940,8 @@ function frame(now) {
   player2.material.opacity = myClass ? 0.45 : 1;
   player2.position.z = myClass ? 0.9 : 0;
   me2.visible = shown && !!myClass;
+  speedLines.visible = shown && !p2.grounded && (p2.slam instanceof FastFall || p2.slam instanceof DownDash && p2.mods.quake);
+  speedLines.position.set(px, py + (calm ? 0 : Math.floor(now / 50) % 2 * 0.12), 0);
   if (myClass) {
     loadSprites(myClass);
     const sheet = SPRITES[myClass];
