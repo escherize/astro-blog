@@ -28648,6 +28648,139 @@ var BTN = { A: GREEN, B: RED, X: BLUE, Y: GOLD };
 var PANE_AREA = { x: 468, y: 16, w: 796, h: 650 };
 var ZOOM = 2.5;
 var RING_BEND = 1;
+var FAMILY = { offence: "#cf6a26", defence: "#c2477b", utility: "#66788a", upgrade: "#a67c0c" };
+var BONUS = [
+  // [class, glyph, family]
+  [DamagePct, "damage", "offence"],
+  [AttackSpeedPct, "speed", "offence"],
+  [CritPct, "crit", "offence"],
+  [ReachPct, "reach", "offence"],
+  [KnockbackPct, "knockback", "offence"],
+  [MaxHp, "hp", "defence"],
+  [Iframes, "iframes", "defence"],
+  [Shield, "shield", "defence"],
+  [XpPct, "xp", "utility"],
+  [CooldownPct, "cooldown", "utility"],
+  [ShockwavePct, "shockwave", "upgrade"],
+  [SlashPct, "slash", "upgrade"],
+  [ExtraKnife, "knife", "upgrade"],
+  [KnifePierce, "pierce", "upgrade"],
+  [ExtraDash, "dash", "upgrade"]
+];
+var bonusOf = /* @__PURE__ */ __name((b) => BONUS.find(([c]) => b instanceof c) ?? [null, null, "utility"], "bonusOf");
+var BONUS_R = 12;
+function bonusGlyph(ctx2, g, x, y2, u2, col) {
+  const P2 = /* @__PURE__ */ __name((px, py) => [x + px * u2, y2 + py * u2], "P");
+  const line = /* @__PURE__ */ __name((...pts) => {
+    ctx2.beginPath();
+    ctx2.moveTo(...P2(...pts[0]));
+    for (const p2 of pts.slice(1)) ctx2.lineTo(...P2(...p2));
+    ctx2.stroke();
+  }, "line");
+  const shape2 = /* @__PURE__ */ __name((...pts) => {
+    ctx2.beginPath();
+    ctx2.moveTo(...P2(...pts[0]));
+    for (const p2 of pts.slice(1)) ctx2.lineTo(...P2(...p2));
+    ctx2.closePath();
+    ctx2.fill();
+  }, "shape");
+  const ring = /* @__PURE__ */ __name((cx, cy, r, a0 = 0, a1 = Math.PI * 2) => {
+    ctx2.beginPath();
+    ctx2.arc(...P2(cx, cy), r * u2, a0, a1);
+    ctx2.stroke();
+  }, "ring");
+  ctx2.save();
+  ctx2.fillStyle = col;
+  ctx2.strokeStyle = col;
+  ctx2.lineWidth = Math.max(1.2, u2 * 0.28);
+  ctx2.lineCap = "round";
+  ctx2.lineJoin = "round";
+  switch (g) {
+    case "damage":
+      line([-0.8, 0.8], [0.85, -0.85]);
+      line([-0.75, 0.1], [-0.1, 0.75]);
+      break;
+    // sword, as on the sheet
+    case "speed":
+      ring(0, 0, 0.85);
+      line([0, -0.5], [0, 0], [0.42, 0.22]);
+      break;
+    // clock, as on the sheet
+    case "crit":
+      shape2([0, -1], [0.25, -0.25], [1, 0], [0.25, 0.25], [0, 1], [-0.25, 0.25], [-1, 0], [-0.25, -0.25]);
+      break;
+    // a spark
+    case "reach":
+      line([-0.95, 0], [0.95, 0]);
+      line([-0.55, -0.4], [-0.95, 0], [-0.55, 0.4]);
+      line([0.55, -0.4], [0.95, 0], [0.55, 0.4]);
+      break;
+    case "knockback":
+      line([-0.85, -0.75], [-0.85, 0.75]);
+      line([-0.4, 0], [0.9, 0]);
+      line([0.45, -0.45], [0.9, 0], [0.45, 0.45]);
+      break;
+    case "hp":
+      ctx2.beginPath();
+      ctx2.moveTo(...P2(0, 0.85));
+      ctx2.bezierCurveTo(...P2(-1.3, -0.1), ...P2(-0.6, -1.15), ...P2(0, -0.4));
+      ctx2.bezierCurveTo(...P2(0.6, -1.15), ...P2(1.3, -0.1), ...P2(0, 0.85));
+      ctx2.fill();
+      break;
+    case "iframes":
+      line([-0.65, -0.9], [0.65, -0.9]);
+      line([-0.65, 0.9], [0.65, 0.9]);
+      line([-0.5, -0.9], [0.5, 0.9]);
+      line([0.5, -0.9], [-0.5, 0.9]);
+      shape2([0, 0.25], [0.4, 0.9], [-0.4, 0.9]);
+      break;
+    // hourglass
+    case "shield":
+      shape2([-0.85, -0.85], [0.85, -0.85], [0.75, 0.2], [0, 0.95], [-0.75, 0.2]);
+      break;
+    case "xp":
+      ctx2.font = `800 ${u2 * 1.5}px "Baloo 2"`;
+      ctx2.textAlign = "center";
+      ctx2.textBaseline = "middle";
+      ctx2.fillText("XP", x, y2 + u2 * 0.08);
+      break;
+    case "cooldown":
+      ring(0, 0, 0.75, -Math.PI * 0.35, Math.PI * 1.35);
+      shape2([0.15, -1.1], [0.75, -0.55], [0.05, -0.3]);
+      break;
+    // turning arrow
+    case "shockwave":
+      line([-1, 0.7], [1, 0.7]);
+      ring(0, 0.7, 0.4, Math.PI, Math.PI * 2);
+      ring(0, 0.7, 0.9, Math.PI * 1.08, Math.PI * 1.92);
+      break;
+    case "slash":
+      ctx2.beginPath();
+      ctx2.arc(...P2(-0.7, 0.75), 1.55 * u2, -Math.PI * 0.47, -Math.PI * 0.03);
+      ctx2.lineWidth *= 1.5;
+      ctx2.stroke();
+      break;
+    case "knife":
+      shape2([-0.3, -0.35], [1, -0.35], [-0.3, 0.3]);
+      ctx2.lineWidth *= 1.6;
+      line([-0.95, 0], [-0.45, 0]);
+      break;
+    // a throwing knife
+    case "pierce":
+      ring(0, 0, 0.45);
+      line([-1, 0], [0.95, 0]);
+      line([0.6, -0.35], [0.95, 0], [0.6, 0.35]);
+      break;
+    case "dash":
+      line([-1, -0.45], [-0.35, -0.45]);
+      line([-1, 0], [-0.15, 0]);
+      line([-1, 0.45], [-0.35, 0.45]);
+      line([0.15, -0.65], [0.8, 0], [0.15, 0.65]);
+      break;
+  }
+  ctx2.restore();
+}
+__name(bonusGlyph, "bonusGlyph");
 var heroImages = /* @__PURE__ */ new Map();
 function heroImage(name3) {
   const key2 = name3.toLowerCase();
@@ -28707,7 +28840,13 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     return n.kind.grant instanceof GrantSkill ? "skill" : n.kind.grant instanceof GrantMove ? "move" : "rule";
   }, "kindOf");
   const AX = /* @__PURE__ */ __name((a) => a instanceof Fighter ? RED : a instanceof Rogue ? GREEN : BLUE, "AX");
-  const colorOf = /* @__PURE__ */ __name((n) => kindOf(n) === "stat" ? AX(n.kind.bonus[0]) : n.kind instanceof Keystone ? INK : KIND[kindOf(n)], "colorOf");
+  const colorOf = /* @__PURE__ */ __name((n) => {
+    const k2 = kindOf(n);
+    if (k2 === "stat") return AX(n.kind.bonus[0]);
+    if (k2 === "bonus") return FAMILY[bonusOf(n.kind.bonus)[2]];
+    return n.kind instanceof Keystone ? INK : KIND[k2];
+  }, "colorOf");
+  const radiusOf = /* @__PURE__ */ __name((k2) => k2 === "bonus" && !wholeTree ? BONUS_R : R2[k2] * scaleOf(), "radiusOf");
   const say = /* @__PURE__ */ __name((s, x, y2, font, color, align = "left") => {
     ctx2.font = font;
     ctx2.fillStyle = color;
@@ -28973,7 +29112,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     mouseNode = null;
     for (const n of nodes2) {
       const [x, y2] = project(n.x, n.y);
-      if (Math.hypot(mx - x, my - y2) < R2[kindOf(n)] * scaleOf() + 6 && inPane(mx, my)) {
+      if (Math.hypot(mx - x, my - y2) < radiusOf(kindOf(n)) + 6 && inPane(mx, my)) {
         mouseNode = n.id;
         break;
       }
@@ -29000,7 +29139,6 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     const target = [f.x, f.y];
     cam2 = cam2 ? [cam2[0] + (target[0] - cam2[0]) * 0.18, cam2[1] + (target[1] - cam2[1]) * 0.18] : target;
     card(PANE_AREA.x, PANE_AREA.y, PANE_AREA.w, PANE_AREA.h, PANE);
-    const s = scaleOf();
     ctx2.save();
     ctx2.beginPath();
     ctx2.roundRect(PANE_AREA.x + 2, PANE_AREA.y + 2, PANE_AREA.w - 4, PANE_AREA.h - 4, 12);
@@ -29020,7 +29158,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     for (const n of nodes2) {
       const [x, y2] = project(n.x, n.y);
       if (x < PANE_AREA.x - 30 || x > PANE_AREA.x + PANE_AREA.w + 30 || y2 < PANE_AREA.y - 30 || y2 > PANE_AREA.y + PANE_AREA.h + 30) continue;
-      const k2 = kindOf(n), r = R2[k2] * s, has3 = d2.owned.has(n.id), can = d2.available(n);
+      const k2 = kindOf(n), r = radiusOf(k2), has3 = d2.owned.has(n.id), can = d2.available(n);
       const col = k2 === "key" ? d2.unlocked.has(n.id) ? INK : "#9a8d86" : colorOf(n);
       ctx2.globalAlpha = has3 || can || k2 === "key" ? 1 : 0.5;
       shapePath(k2, x, y2, r);
@@ -29029,6 +29167,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
       ctx2.lineWidth = can ? 3.5 : k2 === "key" ? 3 : 2;
       ctx2.strokeStyle = can ? TEAL : col;
       ctx2.stroke();
+      if (k2 === "bonus" && !wholeTree) bonusGlyph(ctx2, bonusOf(n.kind.bonus)[1], x, y2, r * 0.64, has3 ? "#fff" : col);
       ctx2.globalAlpha = 1;
       const lv2 = d2.levelOf(n);
       if (lv2 > 0) {
@@ -29052,7 +29191,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
       ctx2.fillStyle = d2.unlocked.has(c.id) ? STRONG : "#8a7a73";
       ctx2.fillText(c.name, x, ly);
     }
-    const [fx, fy] = project(f.x, f.y), fr2 = R2[kindOf(f)] * s + 8;
+    const [fx, fy] = project(f.x, f.y), fr2 = radiusOf(kindOf(f)) + 8;
     ctx2.strokeStyle = INK;
     ctx2.lineWidth = 4;
     shapePath(kindOf(f), fx, fy, fr2);
