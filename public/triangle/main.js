@@ -31603,6 +31603,66 @@ var star = /* @__PURE__ */ __name((n, x, y2, far3, near, turn2 = 0) => Array.fro
   const a = turn2 + i * Math.PI / n, r = i % 2 ? near : far3;
   return [x + r * Math.cos(a), y2 + r * Math.sin(a)];
 }), "star");
+function paintCard(g, suit) {
+  const red = suit === "heart" || suit === "diamond", ink = red ? "#d8433f" : "#3b2b25";
+  const card = /* @__PURE__ */ __name((x, y2, w2, h, r) => {
+    g.beginPath();
+    g.roundRect(x, y2, w2, h, r);
+  }, "card");
+  card(22, 8, 52, 80, 9);
+  g.fillStyle = "#fffaf0";
+  g.fill();
+  g.stroke();
+  card(29, 15, 38, 66, 5);
+  g.save();
+  g.lineWidth = 2.5;
+  g.strokeStyle = ink;
+  g.globalAlpha = 0.55;
+  g.stroke();
+  g.restore();
+  g.save();
+  g.translate(48, 48);
+  g.fillStyle = ink;
+  g.beginPath();
+  const heart = /* @__PURE__ */ __name((k2) => {
+    g.moveTo(0, 14 * k2);
+    g.bezierCurveTo(-18, 2 * k2, -15, -13 * k2, -7.5, -13 * k2);
+    g.bezierCurveTo(-3, -13 * k2, 0, -9 * k2, 0, -6 * k2);
+    g.bezierCurveTo(0, -9 * k2, 3, -13 * k2, 7.5, -13 * k2);
+    g.bezierCurveTo(15, -13 * k2, 18, 2 * k2, 0, 14 * k2);
+    g.closePath();
+  }, "heart");
+  const stem = /* @__PURE__ */ __name(() => {
+    g.moveTo(0, 4);
+    g.lineTo(6, 16);
+    g.lineTo(-6, 16);
+    g.closePath();
+  }, "stem");
+  if (suit === "heart") heart(1);
+  if (suit === "diamond") {
+    g.moveTo(0, -16);
+    g.lineTo(12, 0);
+    g.lineTo(0, 16);
+    g.lineTo(-12, 0);
+    g.closePath();
+  }
+  if (suit === "spade") {
+    g.translate(0, -3);
+    heart(-1);
+    stem();
+  }
+  if (suit === "club") {
+    g.translate(0, -2);
+    for (const [x, y2] of [[0, -8], [-8, 4], [8, 4]]) {
+      g.moveTo(x + 7.5, y2);
+      g.arc(x, y2, 7.5, 0, Math.PI * 2);
+    }
+    stem();
+  }
+  g.fill();
+  g.restore();
+}
+__name(paintCard, "paintCard");
 var ART = {
   // an enemy's shot: a slung stone
   stone: drawn((g) => {
@@ -31777,7 +31837,10 @@ var ART = {
       g.stroke();
       g.restore();
     }
-  })
+  }),
+  // the Trickster's razor cards (TRIP-55): a playing card standing upright, one per suit, fanned
+  // along the slash. Pips only, no letters: a letter is mush at this size
+  ...Object.fromEntries(["spade", "heart", "club", "diamond"].map((suit) => [`card_${suit}`, drawn((g) => paintCard(g, suit))]))
 };
 function stickers(texture, band) {
   const meshes = [];
@@ -31795,6 +31858,26 @@ function stickers(texture, band) {
 }
 __name(stickers, "stickers");
 var SHOW = Object.fromEntries(Object.keys(ART).map((k2, band) => [k2, stickers(ART[k2], band)]));
+function swingPart(p2) {
+  const a = p2.attack[0], w2 = p2.weapon;
+  return w2.active > 0 ? Math.min(1, Math.max(0, (a.time * speed2(p2) - w2.startup) / w2.active)) : 1;
+}
+__name(swingPart, "swingPart");
+var SUITS = ["card_spade", "card_heart", "card_club", "card_diamond"];
+function cardFan(m, part) {
+  const sx = m.scale.x, sy = m.scale.y, c = Math.cos(m.rotation.z), s = Math.sin(m.rotation.z);
+  const turn2 = /* @__PURE__ */ __name((u2, v2) => [c * u2 - s * v2, s * u2 + c * v2], "turn");
+  const open = calm ? 1 : 1 - (1 - part) ** 2;
+  const size3 = 0.62 * Math.min(Math.abs(sx), Math.abs(sy));
+  return SUITS.map((art, i) => {
+    const t2 = 0.14 + 0.72 * (i / (SUITS.length - 1)) * open, q2 = 1 - t2;
+    const u2 = -0.5 * q2 * q2 + 2.1 * t2 * q2 - 0.5 * t2 * t2, v2 = 0.5 * q2 * q2 - 0.5 * t2 * t2;
+    const du2 = 2 * q2 * 1.55 + 2 * t2 * -1.55, dv = -2 * q2 * 0.5 - 2 * t2 * 0.5;
+    const [nx, ny] = turn2(-dv / sx, du2 / sy), [x, y2] = turn2(u2 * sx, v2 * sy);
+    return { art, x: m.position.x + x, y: m.position.y + y2, w: size3, h: size3, turn: Math.atan2(ny, nx) - Math.PI / 2 };
+  });
+}
+__name(cardFan, "cardFan");
 function strikeArt(s) {
   const name3 = s.effect.constructor.name;
   if (name3 === "Firebolt") return s.pierce ? ["blast", 1, 1] : ["fire", 2, 1.4];
@@ -32404,6 +32487,7 @@ function frame(now) {
   drawRings(p2, px, py + ME_H / 2, !!myClass && p2.hp > 0, frameDt);
   drawMini(p2, px, py + (SPRITES[myClass] ? ME_H : myClass ? stickerSize(heroTexture(myClass).image, ME_H)[1] : height));
   const boxes = slashes(p2).toArray();
+  const cards = [];
   [slash, slashBack].forEach((m, i) => {
     const r = boxes[i];
     m.visible = !!r;
@@ -32413,6 +32497,7 @@ function frame(now) {
     m.rotation.z = dir === "Up" ? Math.PI / 2 : dir === "Down" ? -Math.PI / 2 : 0;
     if (dir === "Forward") m.scale.set(r.w * side2, r.h, 1);
     else m.scale.set(r.h, r.w, 1);
+    if (myClass === "Trickster") cards.push(...cardFan(m, swingPart(p2)));
   });
   const marks = [];
   for (const e of world.enemies) {
@@ -32478,6 +32563,7 @@ function frame(now) {
     flying[art].push(moving ? { x, y: y2, w: long * kw, h: short * kh, turn: Math.atan2(s.vy, s.vx) } : { x, y: y2, w: r.w * kw, h: r.h * kh, flip: art === "sweep" && (Math.abs(x - px) > 0.05 ? x < px : p2.facing < 0) });
   }
   for (const m of marks) flying[m.art].push(m);
+  for (const c of cards) flying[c.art].push(c);
   for (const d2 of world.drops.toArray()) {
     const heart = d2.loot.constructor.name === "Heart", bob = Math.sin(now / 220 + d2.x * 3) * 0.06;
     flying[heart ? "heart" : "shard"].push({ x: d2.x, y: d2.y + drop_size / 2 + 0.05 + bob, w: heart ? 0.55 : 0.55, h: heart ? 0.55 : 0.75 });
