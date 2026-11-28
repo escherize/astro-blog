@@ -33846,7 +33846,8 @@ function frame(now) {
     if (difficulty_name(world) !== "normal" && world.depth > 0) whereEl.textContent += ` \xB7 ${difficulty_name(world)}`;
     if (cleared && !is_rest(world.depth)) whereEl.textContent += " \xB7 cleared";
     whereEl.className = boss2 ? "boss" : cleared ? "cleared" : "";
-    pointsEl.innerHTML = p2.points ? `<span class="pill gold">${p2.points} point${p2.points > 1 ? "s" : ""} \xB7 ${treeKey()}</span>` : "";
+    const pts = p2.points ? `<span class="pill gold${p2.points > 1 ? " urgent" : ""}">Press ${treeKey()} to spend ${p2.points} point${p2.points > 1 ? "s" : ""}</span>` : "";
+    if (pointsEl.innerHTML !== pts) pointsEl.innerHTML = pts;
   }
   treeScreen.draw();
   requestAnimationFrame(frame);

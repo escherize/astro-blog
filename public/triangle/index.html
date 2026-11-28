@@ -61,6 +61,9 @@
       .pill { font: 800 0.75rem/1 Nunito; color: #fff; border-radius: 999px; padding: 5px 10px; white-space: nowrap; }
       .pill.gold { background: var(--gold); color: var(--strong); border: 2px solid var(--ink); }
       .pill.teal { background: var(--teal); }
+      .pill.urgent { font-size: 0.95rem; padding: 7px 13px; animation: nudge 1.2s ease-in-out infinite; }
+      @keyframes nudge { 50% { transform: scale(1.08); box-shadow: 0 0 0 4px rgba(245, 185, 40, 0.45); } }
+      @media (prefers-reduced-motion: reduce) { .pill.urgent { animation: none; } }
       @keyframes pulse { from { border-color: var(--ink); } to { border-color: #ff1744; } }
 
       /* controls hint, bottom left */
