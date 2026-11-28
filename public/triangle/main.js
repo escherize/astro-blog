@@ -41259,7 +41259,20 @@ var ART = {
     g.strokeText(String(n), 48, 60);
     g.fillStyle = "#ffffff";
     g.fillText(String(n), 48, 60);
-  })]))
+  })])),
+  // landing dust (TRIP-29): a little cloud of three lumps, the colour of the paper, inked round the
+  // outside only (each lump's edge first, then all the fills over them)
+  puff: drawn((g) => {
+    const lumps = [[30, 60, 22], [52, 46, 26], [70, 62, 18]];
+    g.lineWidth = 10;
+    for (const [x, y2, r] of lumps) {
+      g.beginPath();
+      g.arc(x, y2, r, 0, Math.PI * 2);
+      g.stroke();
+    }
+    for (const [x, y2, r] of lumps) blob(g, x, y2, r, "#f6eedd");
+    blob(g, 46, 40, 9, "#ffffff");
+  })
 };
 function stickers(texture, band) {
   const meshes = [];
@@ -41315,6 +41328,20 @@ var smiting = /* @__PURE__ */ __name((p2) => p2.mods.rules.toArray().some((r) =>
 var halos = /* @__PURE__ */ new Map();
 var HALO_LIVE = 0.15;
 var HALO_FADE = 0.3;
+var puffs = [];
+var PUFF = { land: { n: 1, size: 0.5, out: 0.55, live: 0.3 }, hard: { n: 2, size: 0.8, out: 1.2, live: 0.45 } };
+function dust(a, b, now) {
+  if (b.depth !== a.depth) {
+    puffs.length = 0;
+    return;
+  }
+  const p2 = b.players.head, q2 = a.players.head;
+  if (!(p2.grounded && !q2.grounded && q2.vy < -6)) return;
+  const kind = q2.vy < HARD_FALL ? PUFF.hard : PUFF.land;
+  for (const side2 of [-1, 1]) for (let i = 0; i < kind.n; i++) puffs.push({ x: p2.x, y: p2.y, side: side2, reach: kind.out * (1 - i * 0.45), size: kind.size * (1 - i * 0.3), live: kind.live, born: now });
+}
+__name(dust, "dust");
+window.game.view.puffs = puffs;
 var keys = /* @__PURE__ */ new Set();
 var prevJump = false;
 var prevDash = false;
@@ -42060,6 +42087,7 @@ function frame(now) {
     world = step(world, new Input(...input), DT);
     replay.steps++;
     hear(prior, world);
+    dust(prior, world, now);
     track(prior, world);
     stepMs = stepMs * 0.95 + (performance.now() - t0) * 0.05;
     pendJump = pendDash = pendAttack = false;
@@ -42317,6 +42345,16 @@ function frame(now) {
       const k2 = 0.3 + 0.12 * (i % 2);
       flying.glint.push({ x: h.x + (i - 2) * w2 * 0.17, y: h.ground + 0.5 + i % 2 * 0.45 + (calm ? 0 : age * 2.2), w: k2, h: k2, turn: calm ? 0 : age * 3 + i, alpha: fade, z: 1.5 });
     }
+  }
+  const band = Object.keys(ART).indexOf("puff");
+  for (let i = puffs.length - 1; i >= 0; i--) {
+    const f = puffs[i], u2 = (now - f.born) / 1e3 / f.live;
+    if (u2 >= 1 || u2 < 0) {
+      puffs.splice(i, 1);
+      continue;
+    }
+    const go2 = calm ? 0 : 1 - (1 - u2) ** 2, k2 = f.size * (calm ? 1 : 0.6 + 0.5 * go2);
+    flying.puff.push({ x: f.x + f.side * (0.25 + f.reach * go2), y: f.y + k2 * 0.4 + go2 * 0.25, w: k2, h: k2 * 0.8, flip: f.side < 0, alpha: 1 - u2, z: 0.55 - band * 0.02 });
   }
   for (const m of marks) flying[m.art].push(m);
   for (const c of cards) flying[c.art].push(c);
