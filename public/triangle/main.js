@@ -13699,12 +13699,12 @@ function fall(e, level, dt2) {
   );
 }
 __name(fall, "fall");
-function fan(e, y2, nx, ny, speed3, ttl, spread, angles) {
+function fan(e, y2, nx, ny, speed3, ttl, spread2, angles) {
   return map3(
     angles,
     (k2) => {
-      let c = cos(k2 * spread);
-      let sn = sin(k2 * spread);
+      let c = cos(k2 * spread2);
+      let sn = sin(k2 * spread2);
       return new Projectile(
         e.x,
         y2,
@@ -18678,9 +18678,9 @@ function volley(effect, cx, cy, w2, h, speed3, ttl, damage3, shots, b, aim) {
   return map3(
     upto(0, shots - 1),
     (i) => {
-      let spread = (identity(i) - identity(shots - 1) / 2) * 0.15;
-      let c = cos(spread);
-      let s = sin(spread);
+      let spread2 = (identity(i) - identity(shots - 1) / 2) * 0.15;
+      let c = cos(spread2);
+      let s = sin(spread2);
       let vx = aim[0] * c - aim[1] * s;
       let vy = aim[0] * s + aim[1] * c;
       return new Strike(
@@ -19339,11 +19339,11 @@ function name2(axis) {
 __name(name2, "name");
 function explain(axis) {
   if (axis instanceof Fighter) {
-    return "+12 max health and +2 damage";
+    return "+12 max health, +2 damage and +1% to the low end of every hit";
   } else if (axis instanceof Rogue) {
     return "+3 damage, faster attacks and +3 max health";
   } else {
-    return "+8% reach, +1 damage and +3 max health; every second point lets a swing hit 1 more enemy";
+    return "+8% reach, +1 damage, +2% to the high end of every hit and +3 max health; every second point lets a swing hit 1 more enemy";
   }
 }
 __name(explain, "explain");
@@ -19355,6 +19355,21 @@ function damage(s) {
   return 5 + 2 * s.fighter + 3 * s.rogue + s.mage;
 }
 __name(damage, "damage");
+function spread(s) {
+  return [min(100, 90 + s.fighter), min(140, 110 + 2 * s.mage)];
+}
+__name(spread, "spread");
+function roll(s, u2) {
+  let $ = spread(s);
+  let lo2 = $[0];
+  let hi2 = $[1];
+  return min(hi2, lo2 + truncate(u2 * identity(hi2 - lo2 + 1)));
+}
+__name(roll, "roll");
+function scaled(damage3, pct2) {
+  return max(1, globalThis.Math.trunc((damage3 * pct2 + 50) / 100));
+}
+__name(scaled, "scaled");
 function max_targets(s) {
   return 1 + globalThis.Math.trunc(s.mage / 2);
 }
@@ -23753,15 +23768,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      3715,
+      3726,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 116598,
-        end: 116648,
-        pattern_start: 116609,
-        pattern_end: 116616
+        start: 117100,
+        end: 117150,
+        pattern_start: 117111,
+        pattern_end: 117118
       }
     );
   } else {
@@ -24437,7 +24452,7 @@ function check_clear(world2) {
     let n = 2 + seed % 2;
     let $3 = unit(seed);
     let seed$1 = $3[0];
-    let roll = $3[1];
+    let roll2 = $3[1];
     let $4 = shuffle(
       prepend(
         Axis$Fighter$const,
@@ -24452,7 +24467,7 @@ function check_clear(world2) {
     let seed$2 = $4[1];
     let next_fights = !is_boss(world2.depth + 1) && !is_rest(world2.depth + 1);
     let _block$1;
-    let $5 = !(world2.difficulty instanceof Easy) && world2.depth > 0 && world2.depth < final_depth && next_fights && roll < danger_chance;
+    let $5 = !(world2.difficulty instanceof Easy) && world2.depth > 0 && world2.depth < final_depth && next_fights && roll2 < danger_chance;
     if ($5) {
       if (axes instanceof Empty) {
         _block$1 = List$Empty$const;
@@ -26051,6 +26066,10 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
       let $22 = unit(seed2);
       let seed$1 = $22[0];
       let u2 = $22[1];
+      let $32 = unit(seed$1);
+      let seed$2 = $32[0];
+      let spread2 = $32[1];
+      let rolled = roll(p2.stats, spread2);
       let crit = always_crit || has2(p2, Rule$Punish$const) && telegraphing(
         e
       ) || u2 * 100 < identity(p2.mods.crit_pct);
@@ -26066,28 +26085,29 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         1,
         globalThis.Math.trunc(d$1 * armor(e, element2) / 100)
       );
+      let d$3 = scaled(d$2, rolled);
       let _block$12;
-      let $32 = slammed(e);
-      if ($32) {
-        _block$12 = d$2 + dmg;
-      } else {
-        _block$12 = d$2;
-      }
-      let d$3 = _block$12;
-      let _block$22;
-      let $42 = has2(p2, Rule$Executioner$const) && !(e.kind instanceof Boss) && e.hp * 4 < e.max_hp;
+      let $42 = slammed(e);
       if ($42) {
-        _block$22 = max(d$3, e.hp);
+        _block$12 = d$3 + scaled(dmg, rolled);
       } else {
-        _block$22 = d$3;
+        _block$12 = d$3;
       }
-      let d$4 = _block$22;
-      return [seed$1, [e.id, d$4, crit]];
+      let d$4 = _block$12;
+      let _block$22;
+      let $52 = has2(p2, Rule$Executioner$const) && !(e.kind instanceof Boss) && e.hp * 4 < e.max_hp;
+      if ($52) {
+        _block$22 = max(d$4, e.hp);
+      } else {
+        _block$22 = d$4;
+      }
+      let d$5 = _block$22;
+      return [seed$2, [e.id, d$5, crit]];
     }
   );
   let seed = $1[0];
   let rolls = $1[1];
-  let roll = /* @__PURE__ */ __name((id2) => {
+  let roll2 = /* @__PURE__ */ __name((id2) => {
     let $22 = find(rolls, (r2) => {
       return r2[0] === id2;
     });
@@ -26099,15 +26119,15 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        1551,
+        1556,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $22,
-          start: 46165,
-          end: 46221,
-          pattern_start: 46176,
-          pattern_end: 46181
+          start: 46438,
+          end: 46494,
+          pattern_start: 46449,
+          pattern_end: 46454
         }
       );
     }
@@ -26124,7 +26144,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         let $32 = push(e);
         let push_x = $32[0];
         let push_y = $32[1];
-        return take_hit(e, roll(e.id)[1], push_x * shove, push_y * shove);
+        return take_hit(e, roll2(e.id)[1], push_x * shove, push_y * shove);
       } else {
         return e;
       }
@@ -26516,7 +26536,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
     targets$1,
     (e) => {
       let b = body(e);
-      let $9 = roll(e.id);
+      let $9 = roll2(e.id);
       let d2 = $9[1];
       let crit = $9[2];
       return new Hit(e.x, b.y + b.h, d2, crit, armor(e, element2));
@@ -31750,6 +31770,13 @@ function class_name(world2) {
   }
 }
 __name(class_name, "class_name");
+function damage_range(p2) {
+  let $ = spread(p2.stats);
+  let lo2 = $[0];
+  let hi2 = $[1];
+  return [scaled(damage2(p2), lo2), scaled(damage2(p2), hi2)];
+}
+__name(damage_range, "damage_range");
 function kit_move(name3) {
   let m = kit_mods(name3);
   let $ = m.dashes;
@@ -31809,15 +31836,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3593,
+        3604,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 112506,
-          end: 112557,
-          pattern_start: 112517,
-          pattern_end: 112525
+          start: 113008,
+          end: 113059,
+          pattern_start: 113019,
+          pattern_end: 113027
         }
       );
     }
@@ -31829,15 +31856,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3595,
+        3606,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 112640,
-          end: 112701,
-          pattern_start: 112651,
-          pattern_end: 112668
+          start: 113142,
+          end: 113203,
+          pattern_start: 113153,
+          pattern_end: 113170
         }
       );
     } else {
@@ -31847,15 +31874,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          3595,
+          3606,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 112640,
-            end: 112701,
-            pattern_start: 112651,
-            pattern_end: 112668
+            start: 113142,
+            end: 113203,
+            pattern_start: 113153,
+            pattern_end: 113170
           }
         );
       } else {
@@ -32691,10 +32718,11 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     const ranked = [...axes].sort((a, b) => b[1] - a[1]);
     const lean = tot === 0 ? "Untrained" : ranked[0][1] === ranked[2][1] ? "Perfectly balanced" : ranked[1][1] > 0 && ranked[1][1] < ranked[0][1] ? `Leaning ${ranked[0][0]}, a touch of ${ranked[1][0]}` : ranked[1][1] === ranked[0][1] ? `${ranked[0][0]} and ${ranked[1][0]} in step` : `Pure ${ranked[0][0]}`;
     say(lean, x + 162, 312, F2.small, SECTION);
+    const [dlo, dhi] = damage_range(p2);
     const vitals = [
       ["heart", `${p2.hp}`, `HP of ${max_hp3(p2)}`, RED],
       ["shield", `${p2.shield}`, "Blocks ready", TEAL],
-      ["sword", `${damage2(p2)}`, "Damage", INK],
+      ["sword", `${damage2(p2)}`, `Damage ${dlo}\u2013${dhi}`, INK],
       ["clock", `${speed2(p2).toFixed(2)}\xD7`, "Atk speed", INK]
     ];
     vitals.forEach(([g, v2, label2, col], i) => {
@@ -32735,7 +32763,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     const m = p2.mods, tabs = ["Offense", "Defense", "Movement"];
     const rows = [
       [
-        ["Damage", `${damage2(p2)}`, true],
+        ["Damage", `${damage2(p2)} (${dlo}\u2013${dhi})`, true],
         ["Attack speed", `${speed2(p2).toFixed(2)}\xD7`, speed2(p2) > 1.001],
         ["Crit chance", `${m.crit_pct}%`, m.crit_pct > 0],
         ["Reach", pct2((reach2(p2) - 1) * 100), reach2(p2) > 1.001],
@@ -34473,7 +34501,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "9b37428fc567" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "fa68f4bdc5d4" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -34884,7 +34912,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "9b37428fc567" : "dev";
+var BUILD = true ? "fa68f4bdc5d4" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
