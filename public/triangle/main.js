@@ -21521,7 +21521,7 @@ var Player = class extends CustomType {
   static {
     __name(this, "Player");
   }
-  constructor(x, y2, vx, vy, grounded, on_platform, wall, facing, coyote, jump_buffer, air_jumps, dash_time, dashes, can_cut, up_held, jumped, dashed, struck, plunged, slam, grudge, conduit, quick, rebound, air_hits, weapon, loadout, trained, class$, allocated, mods, shield, block_charge, crash_wait, swings, risen, attack, stats, lvl, xp2, points, hp2, invuln, hurt2, hexed, rush, orbs_away) {
+  constructor(x, y2, vx, vy, grounded, on_platform, wall, facing, coyote, jump_buffer, air_jumps, dash_time, dashes, can_cut, up_held, down_held, jumped, dashed, struck, plunged, slam, grudge, conduit, quick, rebound, air_hits, weapon, loadout, trained, class$, allocated, mods, shield, block_charge, crash_wait, swings, risen, attack, stats, lvl, xp2, points, hp2, invuln, hurt2, hexed, rush, orbs_away) {
     super();
     this.x = x;
     this.y = y2;
@@ -21538,6 +21538,7 @@ var Player = class extends CustomType {
     this.dashes = dashes;
     this.can_cut = can_cut;
     this.up_held = up_held;
+    this.down_held = down_held;
     this.jumped = jumped;
     this.dashed = dashed;
     this.struck = struck;
@@ -21886,15 +21887,15 @@ function player(world2) {
       "let_assert",
       FILEPATH2,
       "game",
-      738,
+      741,
       "player",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 21012,
-        end: 21046,
-        pattern_start: 21023,
-        pattern_end: 21030
+        start: 21169,
+        end: 21203,
+        pattern_start: 21180,
+        pattern_end: 21187
       }
     );
   } else {
@@ -22123,6 +22124,7 @@ function load(world2, t2, depth) {
           p2.dashes,
           p2.can_cut,
           p2.up_held,
+          p2.down_held,
           p2.jumped,
           p2.dashed,
           p2.struck,
@@ -22256,6 +22258,7 @@ function new_world(seed) {
     1,
     no_dash,
     1,
+    false,
     false,
     false,
     false,
@@ -22736,6 +22739,7 @@ function choose_class(world2, keystone) {
           0,
           p2.can_cut,
           p2.up_held,
+          p2.down_held,
           p2.jumped,
           p2.dashed,
           p2.struck,
@@ -22997,6 +23001,7 @@ function apply_reward(loop$p, loop$r) {
         p2.dashes,
         p2.can_cut,
         p2.up_held,
+        p2.down_held,
         p2.jumped,
         p2.dashed,
         p2.struck,
@@ -23046,6 +23051,7 @@ function apply_reward(loop$p, loop$r) {
         q2.dashes,
         q2.can_cut,
         q2.up_held,
+        q2.down_held,
         q2.jumped,
         q2.dashed,
         q2.struck,
@@ -23096,6 +23102,7 @@ function apply_reward(loop$p, loop$r) {
         p2.dashes,
         p2.can_cut,
         p2.up_held,
+        p2.down_held,
         p2.jumped,
         p2.dashed,
         p2.struck,
@@ -23149,15 +23156,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      3601,
+      3606,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 112407,
-        end: 112457,
-        pattern_start: 112418,
-        pattern_end: 112425
+        start: 112667,
+        end: 112717,
+        pattern_start: 112678,
+        pattern_end: 112685
       }
     );
   } else {
@@ -23626,6 +23633,7 @@ function use_door(world2, up_fresh) {
               p$1.dashes,
               p$1.can_cut,
               p$1.up_held,
+              p$1.down_held,
               p$1.jumped,
               p$1.dashed,
               p$1.struck,
@@ -23946,6 +23954,7 @@ function check_clear(world2) {
           p2.dashes,
           p2.can_cut,
           p2.up_held,
+          p2.down_held,
           p2.jumped,
           p2.dashed,
           p2.struck,
@@ -24006,6 +24015,7 @@ function check_clear(world2) {
         player$1.dashes,
         player$1.can_cut,
         player$1.up_held,
+        player$1.down_held,
         player$1.jumped,
         player$1.dashed,
         player$1.struck,
@@ -24169,6 +24179,7 @@ function gain_xp(loop$p, loop$xp, loop$events) {
         p2.dashes,
         p2.can_cut,
         p2.up_held,
+        p2.down_held,
         p2.jumped,
         p2.dashed,
         p2.struck,
@@ -24237,6 +24248,7 @@ function gain_xp(loop$p, loop$xp, loop$events) {
           p2.dashes,
           p2.can_cut,
           p2.up_held,
+          p2.down_held,
           p2.jumped,
           p2.dashed,
           p2.struck,
@@ -24386,6 +24398,7 @@ function loot(world2, dt2) {
     p2.dashes,
     p2.can_cut,
     p2.up_held,
+    p2.down_held,
     p2.jumped,
     p2.dashed,
     p2.struck,
@@ -24622,6 +24635,7 @@ function blocked_by_shield(world2, k2) {
           p2.dashes,
           p2.can_cut,
           p2.up_held,
+          p2.down_held,
           p2.jumped,
           p2.dashed,
           p2.struck,
@@ -24738,6 +24752,7 @@ function hurt(world2, damage3, from_x) {
                 p2.dashes,
                 p2.can_cut,
                 p2.up_held,
+                p2.down_held,
                 p2.jumped,
                 p2.dashed,
                 p2.struck,
@@ -24828,6 +24843,7 @@ function hurt(world2, damage3, from_x) {
                 p2.dashes,
                 p2.can_cut,
                 p2.up_held,
+                p2.down_held,
                 p2.jumped,
                 p2.dashed,
                 p2.struck,
@@ -24939,6 +24955,7 @@ function hurt(world2, damage3, from_x) {
           p2.dashes,
           p2.can_cut,
           p2.up_held,
+          p2.down_held,
           p2.jumped,
           p2.dashed,
           p2.struck,
@@ -24992,6 +25009,7 @@ function hurt(world2, damage3, from_x) {
             p$1.dashes,
             false,
             p$1.up_held,
+            p$1.down_held,
             p$1.jumped,
             p$1.dashed,
             p$1.struck,
@@ -25047,6 +25065,7 @@ function hurt(world2, damage3, from_x) {
               p$2.dashes,
               p$2.can_cut,
               p$2.up_held,
+              p$2.down_held,
               p$2.jumped,
               p$2.dashed,
               p$2.struck,
@@ -25384,15 +25403,15 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        1500,
+        1505,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $12,
-          start: 43948,
-          end: 44004,
-          pattern_start: 43959,
-          pattern_end: 43964
+          start: 44208,
+          end: 44264,
+          pattern_start: 44219,
+          pattern_end: 44224
         }
       );
     }
@@ -25443,6 +25462,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
       p2.mods.dashes,
       p2.can_cut,
       p2.up_held,
+      p2.down_held,
       p2.jumped,
       p2.dashed,
       p2.struck,
@@ -25502,6 +25522,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
       p$1.dashes,
       p$1.can_cut,
       p$1.up_held,
+      p$1.down_held,
       p$1.jumped,
       p$1.dashed,
       p$1.struck,
@@ -25562,6 +25583,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
           p$2.dashes,
           p$2.can_cut,
           p$2.up_held,
+          p$2.down_held,
           p$2.jumped,
           p$2.dashed,
           p$2.struck,
@@ -25615,6 +25637,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
           p$2.dashes,
           p$2.can_cut,
           p$2.up_held,
+          p$2.down_held,
           p$2.jumped,
           p$2.dashed,
           p$2.struck,
@@ -25669,6 +25692,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         p$2.dashes,
         p$2.can_cut,
         p$2.up_held,
+        p$2.down_held,
         p$2.jumped,
         p$2.dashed,
         p$2.struck,
@@ -25738,6 +25762,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
     p$3.dashes,
     p$3.can_cut,
     p$3.up_held,
+    p$3.down_held,
     p$3.jumped,
     p$3.dashed,
     p$3.struck,
@@ -25931,6 +25956,7 @@ function take_damage(world2) {
                   _record.dashes,
                   _record.can_cut,
                   _record.up_held,
+                  _record.down_held,
                   _record.jumped,
                   _record.dashed,
                   _record.struck,
@@ -26439,6 +26465,7 @@ function strike(world2, a, box3) {
         p2.dashes,
         p2.can_cut,
         p2.up_held,
+        p2.down_held,
         p2.jumped,
         p2.dashed,
         p2.struck,
@@ -26489,6 +26516,7 @@ function strike(world2, a, box3) {
         p2.dashes,
         p2.can_cut,
         p2.up_held,
+        p2.down_held,
         p2.jumped,
         p2.dashed,
         p2.struck,
@@ -26545,6 +26573,7 @@ function strike(world2, a, box3) {
           p$1.dashes,
           false,
           p$1.up_held,
+          p$1.down_held,
           p$1.jumped,
           p$1.dashed,
           p$1.struck,
@@ -26598,6 +26627,7 @@ function strike(world2, a, box3) {
         p$1.dashes,
         false,
         p$1.up_held,
+        p$1.down_held,
         p$1.jumped,
         p$1.dashed,
         p$1.struck,
@@ -26685,6 +26715,7 @@ function strike(world2, a, box3) {
       p$2.dashes,
       p$2.can_cut,
       p$2.up_held,
+      p$2.down_held,
       p$2.jumped,
       p$2.dashed,
       true,
@@ -27045,6 +27076,7 @@ function combat(world2) {
             p2.dashes,
             p2.can_cut,
             p2.up_held,
+            p2.down_held,
             p2.jumped,
             p2.dashed,
             p2.struck,
@@ -27563,6 +27595,7 @@ function orbit(world2) {
           p2.dashes,
           p2.can_cut,
           p2.up_held,
+          p2.down_held,
           p2.jumped,
           p2.dashed,
           p2.struck,
@@ -27795,6 +27828,7 @@ function fire_skills(world2, before, dt2) {
         p2.dashes,
         p2.can_cut,
         p2.up_held,
+        p2.down_held,
         p2.jumped,
         p2.dashed,
         p2.struck,
@@ -28165,6 +28199,7 @@ function fire_skills(world2, before, dt2) {
         p$1.dashes,
         p$1.can_cut,
         p$1.up_held,
+        p$1.down_held,
         p$1.jumped,
         p$1.dashed,
         false,
@@ -28268,6 +28303,7 @@ function start_attack(p2, input) {
       p2.dashes,
       p2.can_cut,
       p2.up_held,
+      p2.down_held,
       p2.jumped,
       p2.dashed,
       p2.struck,
@@ -28418,6 +28454,7 @@ function move(p2, level, dt2) {
     p2.dashes,
     p2.can_cut,
     p2.up_held,
+    p2.down_held,
     p2.jumped,
     p2.dashed,
     p2.struck,
@@ -28462,7 +28499,7 @@ function dive(p2, input) {
     _block = false;
   }
   let swinging_down = _block;
-  let down = has2(p2, Rule$Heavy$const) && input.move_y < -0.5 && !input.jump_held && !swinging_down;
+  let down = has2(p2, Rule$Heavy$const) && input.move_y < -0.5 && !p2.down_held && !input.jump_held && !swinging_down;
   let dashing = p2.dash_time > 0;
   let _block$1;
   let $1 = p2.grounded;
@@ -28508,6 +28545,7 @@ function dive(p2, input) {
     p2.dashes,
     p2.can_cut,
     p2.up_held,
+    p2.down_held,
     p2.jumped,
     p2.dashed,
     p2.struck,
@@ -28586,6 +28624,7 @@ function dash(p2, input) {
           p2.dashes - 1,
           p2.can_cut,
           p2.up_held,
+          p2.down_held,
           p2.jumped,
           true,
           p2.struck,
@@ -28649,6 +28688,7 @@ function jump(p2, input) {
         p2.dashes,
         p2.can_cut,
         p2.up_held,
+        p2.down_held,
         p2.jumped,
         p2.dashed,
         p2.struck,
@@ -28699,6 +28739,7 @@ function jump(p2, input) {
         p2.dashes,
         true,
         p2.up_held,
+        p2.down_held,
         true,
         p2.dashed,
         p2.struck,
@@ -28749,6 +28790,7 @@ function jump(p2, input) {
         p2.dashes,
         true,
         p2.up_held,
+        p2.down_held,
         true,
         p2.dashed,
         p2.struck,
@@ -28801,6 +28843,7 @@ function jump(p2, input) {
           p2.dashes,
           true,
           p2.up_held,
+          p2.down_held,
           true,
           p2.dashed,
           p2.struck,
@@ -28857,6 +28900,7 @@ function jump(p2, input) {
         p2.dashes,
         true,
         p2.up_held,
+        p2.down_held,
         true,
         p2.dashed,
         p2.struck,
@@ -28950,6 +28994,7 @@ function vertical(p2, input, dt2) {
         p2.dashes,
         p2.can_cut && vy$2 > 0,
         p2.up_held,
+        p2.down_held,
         p2.jumped,
         p2.dashed,
         p2.struck,
@@ -29036,6 +29081,7 @@ function horizontal(p2, input, dt2) {
         p2.dashes,
         p2.can_cut,
         p2.up_held,
+        p2.down_held,
         p2.jumped,
         p2.dashed,
         p2.struck,
@@ -29146,6 +29192,7 @@ function tick2(p2, input, dt2) {
     })(),
     p2.can_cut,
     p2.up_held,
+    p2.down_held,
     false,
     false,
     p2.struck,
@@ -29236,6 +29283,7 @@ function move_player(p2, input, level, dt2) {
         p$1.dashes,
         p$1.can_cut,
         p$1.up_held,
+        p$1.down_held,
         p$1.jumped,
         p$1.dashed,
         p$1.struck,
@@ -29291,6 +29339,7 @@ function move_player(p2, input, level, dt2) {
     p$2.dashes,
     p$2.can_cut,
     input$1.move_y > 0.5,
+    input$1.move_y < -0.5,
     p$2.jumped,
     p$2.dashed,
     p$2.struck,
@@ -29534,6 +29583,7 @@ function apply_node(p2, kind) {
       p2.dashes,
       p2.can_cut,
       p2.up_held,
+      p2.down_held,
       p2.jumped,
       p2.dashed,
       p2.struck,
@@ -29616,6 +29666,7 @@ function apply_node(p2, kind) {
         q2.dashes,
         q2.can_cut,
         q2.up_held,
+        q2.down_held,
         q2.jumped,
         q2.dashed,
         q2.struck,
@@ -29889,6 +29940,7 @@ function apply_node(p2, kind) {
         p$1.dashes,
         p$1.can_cut,
         p$1.up_held,
+        p$1.down_held,
         p$1.jumped,
         p$1.dashed,
         p$1.struck,
@@ -30089,6 +30141,7 @@ function apply_node(p2, kind) {
         p2.dashes,
         p2.can_cut,
         p2.up_held,
+        p2.down_held,
         p2.jumped,
         p2.dashed,
         p2.struck,
@@ -30240,6 +30293,7 @@ function apply_node(p2, kind) {
           p$1.dashes,
           p$1.can_cut,
           p$1.up_held,
+          p$1.down_held,
           p$1.jumped,
           p$1.dashed,
           p$1.struck,
@@ -30290,6 +30344,7 @@ function apply_node(p2, kind) {
           p$1.dashes,
           p$1.can_cut,
           p$1.up_held,
+          p$1.down_held,
           p$1.jumped,
           p$1.dashed,
           p$1.struck,
@@ -30360,6 +30415,7 @@ function apply_node(p2, kind) {
           p$1.dashes,
           p$1.can_cut,
           p$1.up_held,
+          p$1.down_held,
           p$1.jumped,
           p$1.dashed,
           p$1.struck,
@@ -30410,6 +30466,7 @@ function apply_node(p2, kind) {
           p$1.dashes,
           p$1.can_cut,
           p$1.up_held,
+          p$1.down_held,
           p$1.jumped,
           p$1.dashed,
           p$1.struck,
@@ -30460,6 +30517,7 @@ function apply_node(p2, kind) {
           p$1.dashes,
           p$1.can_cut,
           p$1.up_held,
+          p$1.down_held,
           p$1.jumped,
           p$1.dashed,
           p$1.struck,
@@ -30530,6 +30588,7 @@ function apply_node(p2, kind) {
           p$1.dashes,
           p$1.can_cut,
           p$1.up_held,
+          p$1.down_held,
           p$1.jumped,
           p$1.dashed,
           p$1.struck,
@@ -30639,6 +30698,7 @@ function level_up(world2, id2, otherwise) {
               p2.dashes,
               p2.can_cut,
               p2.up_held,
+              p2.down_held,
               p2.jumped,
               p2.dashed,
               p2.struck,
@@ -30740,6 +30800,7 @@ function allocate(world2, id2) {
           p2.dashes,
           p2.can_cut,
           p2.up_held,
+          p2.down_held,
           p2.jumped,
           p2.dashed,
           p2.struck,
@@ -30944,15 +31005,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3479,
+        3484,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 108315,
-          end: 108366,
-          pattern_start: 108326,
-          pattern_end: 108334
+          start: 108575,
+          end: 108626,
+          pattern_start: 108586,
+          pattern_end: 108594
         }
       );
     }
@@ -30964,15 +31025,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3481,
+        3486,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 108449,
-          end: 108510,
-          pattern_start: 108460,
-          pattern_end: 108477
+          start: 108709,
+          end: 108770,
+          pattern_start: 108720,
+          pattern_end: 108737
         }
       );
     } else {
@@ -30982,15 +31043,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          3481,
+          3486,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 108449,
-            end: 108510,
-            pattern_start: 108460,
-            pattern_end: 108477
+            start: 108709,
+            end: 108770,
+            pattern_start: 108720,
+            pattern_end: 108737
           }
         );
       } else {
@@ -33504,7 +33565,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "7f521bcc2c76" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "3e6b370e40bb" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -33768,7 +33829,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "7f521bcc2c76" : "dev";
+var BUILD = true ? "3e6b370e40bb" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
