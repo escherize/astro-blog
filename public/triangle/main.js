@@ -17622,26 +17622,32 @@ function name(effect) {
   }
 }
 __name(name, "name");
-function describe(s) {
-  let _block;
-  let $ = s.trigger;
-  if ($ instanceof OnJump) {
-    _block = "on jump (" + float_to_string(jump_recharge) + "s recharge)";
-  } else if ($ instanceof OnDash) {
-    _block = "on dash";
-  } else if ($ instanceof OnHardLanding) {
-    _block = "on hard landing";
-  } else if ($ instanceof Every) {
-    let p2 = $.period;
-    _block = "every " + float_to_string(p2) + "s";
-  } else if ($ instanceof OnHit) {
-    let p2 = $.period;
-    _block = "on swing hit (" + float_to_string(p2) + "s recharge)";
+function when(t2) {
+  if (t2 instanceof OnJump) {
+    return "on jump (" + float_to_string(jump_recharge) + "s recharge)";
+  } else if (t2 instanceof OnDash) {
+    return "on dash";
+  } else if (t2 instanceof OnHardLanding) {
+    return "on hard landing";
+  } else if (t2 instanceof Every) {
+    let p2 = t2.period;
+    return "autocast, " + float_to_string(p2) + "s";
+  } else if (t2 instanceof OnHit) {
+    let p2 = t2.period;
+    return "on swing hit (" + float_to_string(p2) + "s recharge)";
   } else {
-    _block = "always";
+    return "always";
   }
-  let when = _block;
-  return when + " -> " + name(s.effect);
+}
+__name(when, "when");
+function describe(s) {
+  let $ = s.trigger;
+  if ($ instanceof Every) {
+    let p2 = $.period;
+    return "autocast " + name(s.effect) + " (" + float_to_string(p2) + "s)";
+  } else {
+    return when(s.trigger) + " -> " + name(s.effect);
+  }
 }
 __name(describe, "describe");
 function period(effect, base, level) {
@@ -24433,7 +24439,7 @@ function quickdrawn(p2) {
 }
 __name(quickdrawn, "quickdrawn");
 function surge(p2) {
-  let when = /* @__PURE__ */ __name((rule, yes, no2, cond) => {
+  let when2 = /* @__PURE__ */ __name((rule, yes, no2, cond) => {
     let $2 = has2(p2, rule);
     if ($2) {
       if (cond) {
@@ -24463,17 +24469,17 @@ function surge(p2) {
     _block$1 = 1;
   }
   let hoard = _block$1;
-  return broom * hoard * when(
+  return broom * hoard * when2(
     Rule$Executioner$const,
     0.85,
     0.85,
     true
-  ) * when(Rule$LastStand$const, 2, 1, p2.hp * 3 < max_hp3(p2)) * when(
+  ) * when2(Rule$LastStand$const, 2, 1, p2.hp * 3 < max_hp3(p2)) * when2(
     Rule$GlassCannon$const,
     1.6,
     1.6,
     true
-  ) * when(Rule$Aerialist$const, 1.4, 0.7, !p2.grounded) * (() => {
+  ) * when2(Rule$Aerialist$const, 1.4, 0.7, !p2.grounded) * (() => {
     let $2 = has2(p2, Rule$Momentum$const);
     if ($2) {
       if (fast) {
@@ -29099,8 +29105,8 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
   function kitTiles(p2) {
     const tiles = [];
     for (const s of p2.loadout.toArray()) {
-      const [when, what] = describe(s).split(" -> "), lv = skill_level(p2, s.effect);
-      tiles.push({ k: "skill", name: what[0].toUpperCase() + what.slice(1), sub: lv > 1 ? `level ${lv}` : when, detail: `${describe(s)}${lv > 1 ? `, at level ${lv}` : ""}` });
+      const when2 = when(s.trigger), what = name(s.effect), lv = skill_level(p2, s.effect);
+      tiles.push({ k: "skill", name: what[0].toUpperCase() + what.slice(1), sub: lv > 1 ? `level ${lv}` : when2, detail: `${describe(s)}${lv > 1 ? `, at level ${lv}` : ""}` });
     }
     const m = p2.mods;
     if (m.air_jumps > 0) tiles.push({ k: "move", name: "Air jump", sub: `\xD7${m.air_jumps}`, detail: `${m.air_jumps} extra jump${m.air_jumps > 1 ? "s" : ""} in the air` });
@@ -30912,7 +30918,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "fae061c56a0c" : "dev";
+var BUILD = true ? "46aff23b3e8b" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
