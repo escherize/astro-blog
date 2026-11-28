@@ -23149,15 +23149,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      3591,
+      3601,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 111977,
-        end: 112027,
-        pattern_start: 111988,
-        pattern_end: 111995
+        start: 112407,
+        end: 112457,
+        pattern_start: 112418,
+        pattern_end: 112425
       }
     );
   } else {
@@ -31039,6 +31039,18 @@ function npc_lines(world2, n) {
   }
 }
 __name(npc_lines, "npc_lines");
+function door_spots(world2) {
+  let $ = world2.depth > 0 && !is_boss(world2.depth) && !is_rest(world2.depth);
+  if ($) {
+    return append(
+      world2.exits,
+      prepend(spare_door(room_template(world2)), List$Empty$const)
+    );
+  } else {
+    return world2.exits;
+  }
+}
+__name(door_spots, "door_spots");
 
 // treescreen.js
 var W2 = 1280;
@@ -32160,7 +32172,8 @@ var TILES = {
   // fill, capSpan: tiles per texture repeat; cap: the cap's height; tint: multiplies the block
   // round: an open corner's radius; lip: how far the cap overhangs an end; end: the end piece, `drop`
   // below the cap ('turf' hangs over, 'post' and 'stone' are square); wave: how ragged the cap's foot is;
-  // shade: the open sides' shadow; tufts: grass over the top
+  // shade: the open sides' shadow; tufts: grass over the top; wash: a colour laid over the fill at
+  // some opacity, to soften a fill that reads louder than its zone's painting
   // deco: painted pieces (design/tiles/cut_deco.sh) on open tops and hanging under open undersides,
   // [name, height in tiles]; about one a tile, picked by the world's x
   // slab: a one-way platform's top, face and underside colours, a seam every `plank` tiles
@@ -32190,6 +32203,8 @@ var TILES = {
     wave: 0,
     shade: "#3a2416",
     plank: 3,
+    wash: ["#a88672", 0.5],
+    // the bricks were louder and brighter than the mine's dusky rock
     slab: ["#c79763", "#8f6340", "#5a3a22"],
     deco: { top: [["crystals", 0.8], ["crystal", 0.9], ["rubble", 0.4], ["rocks", 0.45], ["stake", 0.8], ["glowcaps", 0.6], ["crate", 0.55], ["drygrass", 0.55]], under: [["hang-stalactites", 0.8], ["hang-chain", 0.9], ["hang-moss", 0.7]] }
   },
@@ -32295,7 +32310,7 @@ function tiled(x, y2, w2, h, map4, sx, sy, color = 16777215) {
   return m;
 }
 __name(tiled, "tiled");
-function block2(r, rs) {
+function block2(r, rs, doors = []) {
   const set = pal.tiles ?? pal.art, t2 = TILES[set];
   if (!t2 || r.one_way) {
     const g = new jl(), ink = new Bs(new ha(r.w + 0.14, r.h + 0.14), edgeMat);
@@ -32317,7 +32332,7 @@ function block2(r, rs) {
   const open = openEdges(r, rs.filter((o) => !o.one_way)), group2 = new jl().add(m);
   if (t2.deco) {
     const bottom = Math.min(...rs.map((o) => o.y)), top = Math.max(...rs.map((o) => o.y + o.h));
-    decorate(group2, r, { top: r.y + r.h + 1.8 < top ? open.top : [], bottom: r.y > bottom ? open.bottom : [] }, set, t2.deco);
+    decorate(group2, r, { top: r.y + r.h + 1.8 < top ? open.top : [], bottom: r.y > bottom ? open.bottom : [] }, set, t2.deco, doors);
   }
   Promise.all([tileImage(`${set}-fill`), tileImage(`${set}-cap`)]).then(([fill, cap]) => {
     const g = c.getContext("2d");
@@ -32334,13 +32349,16 @@ function decoTexture(path) {
   return decoTextures.get(path);
 }
 __name(decoTexture, "decoTexture");
-function decorate(group2, r, open, set, deco) {
+function decorate(group2, r, open, set, deco, doors) {
+  const DOOR_HALF = DOOR_H * 299 / 420 / 2 + 0.15;
+  const onDoor = /* @__PURE__ */ __name((cx, half, y0, y1) => doors.some(([dx, dy]) => Math.abs(cx - dx) < half + DOOR_HALF && y0 < dy + DOOR_H && y1 > dy), "onDoor");
   const place2 = /* @__PURE__ */ __name((list, a, b, y2, hang) => {
     for (let x = Math.ceil(a) + 0.5; x < b; x += 1) {
       const k2 = x + y2 * 7.31;
       if (hash(k2 * 1.37) < (hang ? 0.6 : 0.3)) continue;
       const [name3, tall] = list[Math.floor(hash(k2 + 3.1) * list.length)], cx = x + (hash(k2 + 7.7) - 0.5) * 0.5;
       if (cx - tall * 0.5 < a || cx + tall * 0.5 > b) continue;
+      if (onDoor(cx, tall * 0.5, hang ? y2 - tall : y2 - 0.06, hang ? y2 : y2 + tall)) continue;
       const tex = decoTexture(`art/tiles/${set}-deco/${name3}.webp`), flip = hash(k2 + 5.3) < 0.5 ? -1 : 1;
       const m = new Bs(new ha(1, 1), new es({ map: tex, transparent: true, side: p }));
       const fit = /* @__PURE__ */ __name(() => m.scale.set(flip * tall * tex.image.width / tex.image.height, tall, 1), "fit");
@@ -32391,6 +32409,12 @@ function paintBlock(g, r, t2, open, px, fillPat, capPat) {
   g.fillStyle = fillPat;
   g.fillRect(x0, y0, r.w, r.h);
   tint2(x0, y0, r.w, r.h);
+  if (t2.wash) {
+    g.globalAlpha = t2.wash[1];
+    g.fillStyle = t2.wash[0];
+    g.fillRect(x0, y0, r.w, r.h);
+    g.globalAlpha = 1;
+  }
   const band = Math.min(0.35, r.w / 3, r.h / 3);
   const shade = /* @__PURE__ */ __name((ax, ay, bx, by, x, y2, ww, hh2) => {
     const gr2 = g.createLinearGradient(ax, ay, bx, by);
@@ -32876,7 +32900,8 @@ function syncRoom() {
     else farBack = null;
     const floor2 = Math.min(...rs.map((r) => r.y)), DEEP = VIEW_H / 2;
     const drawn2 = rs.map((r) => r.y === floor2 && !r.one_way ? { ...r, y: r.y - DEEP, h: r.h + DEEP } : r);
-    for (const r of drawn2) roomGroup.add(block2(r, drawn2));
+    const doors = door_spots(world).toArray();
+    for (const r of drawn2) roomGroup.add(block2(r, drawn2, doors));
     cam.focus = null;
     roomBox = { x0: Math.min(...rs.map((r) => r.x)), x1: Math.max(...rs.map((r) => r.x + r.w)), y0: Math.min(...rs.map((r) => r.y)), y1: Math.max(...rs.map((r) => r.y + r.h)) };
     enemyMood.clear();
@@ -33479,7 +33504,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "a7e133256462" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "7f521bcc2c76" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -33510,7 +33535,7 @@ var treeScreen = createTreeScreen({ getWorld: /* @__PURE__ */ __name(() => world
 var hud = document.getElementById("hud");
 var HINT = {
   keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Up at doors & statues \xB7 T tree \xB7 M attack style \xB7 N sound \xB7 B body box \xB7 P (pad Start) save run log",
-  pad: "Move stick \xB7 Jump X / Y \xB7 Dash LB / RB \xB7 Attack A (+up / +down in air) \xB7 Hold down in air to fall fast \xB7 Up at doors & statues \xB7 Select tree"
+  pad: "Move stick \xB7 Jump X / Y \xB7 Dash LB / RB \xB7 Attack A (+up / +down in air) \xB7 Up at doors & statues \xB7 Select tree"
 };
 var treeKey = /* @__PURE__ */ __name(() => usingPad ? "Select" : "T", "treeKey");
 hud.textContent = HINT.keys;
@@ -33743,7 +33768,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "a7e133256462" : "dev";
+var BUILD = true ? "7f521bcc2c76" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
