@@ -11178,14 +11178,6 @@ function then$(option, fun) {
   }
 }
 __name(then$, "then$");
-function or2(first2, second) {
-  if (first2 instanceof Some) {
-    return first2;
-  } else {
-    return second;
-  }
-}
-__name(or2, "or");
 function values_loop(loop$list, loop$acc) {
   while (true) {
     let list = loop$list;
@@ -13150,7 +13142,7 @@ var Ailments = class extends CustomType {
   static {
     __name(this, "Ailments");
   }
-  constructor(chill, root, weak, poison, stun, stacks) {
+  constructor(chill, root, weak, poison, stun, stacks, venom) {
     super();
     this.chill = chill;
     this.root = root;
@@ -13158,6 +13150,7 @@ var Ailments = class extends CustomType {
     this.poison = poison;
     this.stun = stun;
     this.stacks = stacks;
+    this.venom = venom;
   }
 };
 var Enemy = class extends CustomType {
@@ -13305,7 +13298,7 @@ function poison_bite(e) {
     _block = globalThis.Math.trunc(e.max_hp * 2 / 100);
   }
   let share = _block;
-  let share$1 = identity(max(1, share));
+  let share$1 = identity(max(1, max(share, e.ail.venom)));
   let k2 = 1 + 0.5 * identity(max(0, e.ail.stacks - 1));
   return max(1, round(share$1 * k2));
 }
@@ -13348,6 +13341,7 @@ function detonate(e) {
             _record.weak,
             0,
             _record.stun,
+            0,
             0
           );
         })(),
@@ -13427,7 +13421,7 @@ function spawn(id2, kind, x, y2) {
     0,
     kind instanceof Flyer || kind instanceof Wisp || kind instanceof Bouncer || kind instanceof Dummy || kind instanceof Totem,
     1,
-    new Ailments(0, 0, 0, 0, 0, 0),
+    new Ailments(0, 0, 0, 0, 0, 0, 0),
     false,
     0,
     0 - pause,
@@ -13454,7 +13448,8 @@ function afflict(e, status, seconds) {
         a.weak,
         a.poison,
         a.stun,
-        a.stacks
+        a.stacks,
+        a.venom
       );
     } else {
       _block = new Ailments(
@@ -13463,7 +13458,8 @@ function afflict(e, status, seconds) {
         a.weak,
         a.poison,
         a.stun,
-        a.stacks
+        a.stacks,
+        a.venom
       );
     }
   } else if (status instanceof Root) {
@@ -13476,7 +13472,8 @@ function afflict(e, status, seconds) {
         a.weak,
         a.poison,
         a.stun,
-        a.stacks
+        a.stacks,
+        a.venom
       );
     }
   } else if (status instanceof Weak) {
@@ -13486,7 +13483,8 @@ function afflict(e, status, seconds) {
       max3(a.weak, seconds),
       a.poison,
       a.stun,
-      a.stacks
+      a.stacks,
+      a.venom
     );
   } else if (status instanceof Poison) {
     _block = new Ailments(
@@ -13495,7 +13493,8 @@ function afflict(e, status, seconds) {
       a.weak,
       max3(a.poison, seconds),
       a.stun,
-      min(poison_cap, a.stacks + 1)
+      min(poison_cap, a.stacks + 1),
+      a.venom
     );
   } else if ($ instanceof Boss) {
     _block = a;
@@ -13506,7 +13505,8 @@ function afflict(e, status, seconds) {
       a.weak,
       a.poison,
       max3(a.stun, seconds),
-      a.stacks
+      a.stacks,
+      a.venom
     );
   }
   let ail = _block;
@@ -13546,6 +13546,55 @@ function afflict(e, status, seconds) {
   );
 }
 __name(afflict, "afflict");
+function envenom(e, seconds, bite) {
+  let e$1 = afflict(e, Status$Poison$const, seconds);
+  return new Enemy(
+    e$1.id,
+    e$1.kind,
+    e$1.x,
+    e$1.y,
+    e$1.vx,
+    e$1.vy,
+    e$1.home_x,
+    e$1.home_y,
+    e$1.facing,
+    e$1.grounded,
+    e$1.wall,
+    e$1.hp,
+    e$1.max_hp,
+    e$1.respawn,
+    e$1.flash,
+    e$1.mode,
+    e$1.cooldown,
+    e$1.pattern,
+    e$1.awake,
+    e$1.tier,
+    (() => {
+      let _record = e$1.ail;
+      return new Ailments(
+        _record.chill,
+        _record.root,
+        _record.weak,
+        _record.poison,
+        _record.stun,
+        _record.stacks,
+        max(e$1.ail.venom, bite)
+      );
+    })(),
+    e$1.robbed,
+    e$1.ward,
+    e$1.stroll,
+    e$1.seed,
+    e$1.tether,
+    e$1.mend,
+    e$1.dead,
+    e$1.grace,
+    e$1.linked,
+    e$1.guard,
+    e$1.risen
+  );
+}
+__name(envenom, "envenom");
 function statuses(e) {
   let _pipe = prepend(
     [Status$Chill$const, e.ail.chill],
@@ -19279,7 +19328,7 @@ function raise(e) {
     0,
     true,
     e.tier,
-    new Ailments(0, 0, 0, 0, 0, 0),
+    new Ailments(0, 0, 0, 0, 0, 0, 0),
     e.robbed,
     0,
     e.stroll,
@@ -19977,13 +20026,15 @@ function tick(e, dt2) {
     }
     let bite = _block;
     let _block$1;
-    let $2 = down(a.poison) > 0;
-    if ($2) {
-      _block$1 = a.stacks;
+    let $3 = down(a.poison) > 0;
+    if ($3) {
+      _block$1 = [a.stacks, a.venom];
     } else {
-      _block$1 = 0;
+      _block$1 = [0, 0];
     }
-    let stacks = _block$1;
+    let $2 = _block$1;
+    let stacks = $2[0];
+    let venom = $2[1];
     return new Enemy(
       e.id,
       e.kind,
@@ -20011,7 +20062,8 @@ function tick(e, dt2) {
         down(a.weak),
         down(a.poison),
         down(a.stun),
-        stacks
+        stacks,
+        venom
       ),
       e.robbed,
       max3(0, e.ward - dt2),
@@ -20020,8 +20072,8 @@ function tick(e, dt2) {
       e.tether,
       e.mend,
       (() => {
-        let $3 = e.hp > 0;
-        if ($3) {
+        let $4 = e.hp > 0;
+        if ($4) {
           return 0;
         } else {
           return e.dead + dt2;
@@ -23831,15 +23883,15 @@ function signature_node(t2, keystone) {
         "let_assert",
         FILEPATH,
         "tree",
-        384,
+        385,
         "signature_node",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $,
-          start: 14038,
-          end: 14094,
-          pattern_start: 14049,
-          pattern_end: 14064
+          start: 14095,
+          end: 14151,
+          pattern_start: 14106,
+          pattern_end: 14121
         }
       );
     } else {
@@ -23850,15 +23902,15 @@ function signature_node(t2, keystone) {
       "let_assert",
       FILEPATH,
       "tree",
-      384,
+      385,
       "signature_node",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 14038,
-        end: 14094,
-        pattern_start: 14049,
-        pattern_end: 14064
+        start: 14095,
+        end: 14151,
+        pattern_start: 14106,
+        pattern_end: 14121
       }
     );
   }
@@ -23961,7 +24013,7 @@ function grant_name(g) {
     } else if ($ instanceof Hoarder) {
       return "Hoarder: each point you have not spent is +10% damage (ten at most)";
     } else if ($ instanceof Venom) {
-      return "Venom: your weapon poisons what it hits, but its hits do 30% less";
+      return "Venom: your weapon's hits do 15% less, but each one adds a dose of poison (up to 5) that bites for 15% of the hit every half second";
     } else if ($ instanceof Executioner) {
       return "Executioner: any hit finishes an enemy below a quarter of its health (not the boss), but you deal 15% less";
     } else if ($ instanceof Phoenix) {
@@ -24197,15 +24249,15 @@ function nth(items, i) {
       "let_assert",
       FILEPATH,
       "tree",
-      503,
+      504,
       "nth",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 17550,
-        end: 17602,
-        pattern_start: 17561,
-        pattern_end: 17566
+        start: 17607,
+        end: 17659,
+        pattern_start: 17618,
+        pattern_end: 17623
       }
     );
   }
@@ -24338,15 +24390,15 @@ function find2(acc2, id2) {
       "let_assert",
       FILEPATH,
       "tree",
-      639,
+      640,
       "find",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 21393,
-        end: 21454,
-        pattern_start: 21404,
-        pattern_end: 21409
+        start: 21450,
+        end: 21511,
+        pattern_start: 21461,
+        pattern_end: 21466
       }
     );
   }
@@ -24589,15 +24641,15 @@ function build_rolled(roll2) {
         "let_assert",
         FILEPATH,
         "tree",
-        756,
+        757,
         "build_rolled",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 25911,
-          end: 25957,
-          pattern_start: 25922,
-          pattern_end: 25930
+          start: 25968,
+          end: 26014,
+          pattern_start: 25979,
+          pattern_end: 25987
         }
       );
     }
@@ -24622,15 +24674,15 @@ function build_rolled(roll2) {
         "let_assert",
         FILEPATH,
         "tree",
-        757,
+        758,
         "build_rolled",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 25962,
-          end: 26136,
-          pattern_start: 25973,
-          pattern_end: 25980
+          start: 26019,
+          end: 26193,
+          pattern_start: 26030,
+          pattern_end: 26037
         }
       );
     } else {
@@ -24699,15 +24751,15 @@ function build_rolled(roll2) {
               "let_assert",
               FILEPATH,
               "tree",
-              801,
+              802,
               "build_rolled",
               "Pattern match failed, no pattern matched the value.",
               {
                 value: chain2,
-                start: 27751,
-                end: 27780,
-                pattern_start: 27762,
-                pattern_end: 27772
+                start: 27808,
+                end: 27837,
+                pattern_start: 27819,
+                pattern_end: 27829
               }
             );
           } else {
@@ -24724,15 +24776,15 @@ function build_rolled(roll2) {
           "let_assert",
           FILEPATH,
           "tree",
-          804,
+          805,
           "build_rolled",
           "Pattern match failed, no pattern matched the value.",
           {
             value: chain,
-            start: 27856,
-            end: 27885,
-            pattern_start: 27867,
-            pattern_end: 27877
+            start: 27913,
+            end: 27942,
+            pattern_start: 27924,
+            pattern_end: 27934
           }
         );
       } else {
@@ -24860,15 +24912,15 @@ function build_rolled(roll2) {
           "let_assert",
           FILEPATH,
           "tree",
-          862,
+          863,
           "build_rolled",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $4,
-            start: 30100,
-            end: 30320,
-            pattern_start: 30111,
-            pattern_end: 30131
+            start: 30157,
+            end: 30377,
+            pattern_start: 30168,
+            pattern_end: 30188
           }
         );
       }
@@ -25978,6 +26030,8 @@ var block_kills = 3;
 var blitz_time = 15;
 var duel_reach = 6;
 var dash_grace = 0.15;
+var venom_share = 0.15;
+var venom_keep = 0.85;
 var run_speed = 7;
 var pogo_speed = 15;
 var half_width = 0.375;
@@ -28010,15 +28064,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      4360,
+      4393,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 140012,
-        end: 140062,
-        pattern_start: 140023,
-        pattern_end: 140030
+        start: 141290,
+        end: 141340,
+        pattern_start: 141301,
+        pattern_end: 141308
       }
     );
   } else {
@@ -30770,10 +30824,10 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         "Pattern match failed, no pattern matched the value.",
         {
           value: $22,
-          start: 51038,
-          end: 51094,
-          pattern_start: 51049,
-          pattern_end: 51054
+          start: 51082,
+          end: 51138,
+          pattern_start: 51093,
+          pattern_end: 51098
         }
       );
     }
@@ -31537,15 +31591,66 @@ function come_down(p2, s, box3, over, level, dt2) {
   }
 }
 __name(come_down, "come_down");
-function venom(p2) {
+function envenom2(world2, ids, p2, dmg) {
   let $ = has2(p2, Rule$Venom$const);
   if ($) {
-    return new Some([Status$Poison$const, 3]);
+    let bite = round(identity(dmg) * venom_share);
+    return new World(
+      world2.players,
+      world2.level,
+      map3(
+        world2.enemies,
+        (e) => {
+          let $1 = contains(ids, e.id) && present(e);
+          if ($1) {
+            return envenom(e, 3, bite);
+          } else {
+            return e;
+          }
+        }
+      ),
+      world2.projectiles,
+      world2.strikes,
+      world2.events,
+      world2.depth,
+      world2.cleared,
+      world2.doors,
+      world2.exits,
+      world2.seed,
+      world2.tree,
+      world2.unlocked,
+      world2.npcs,
+      world2.time,
+      world2.kills,
+      world2.room_time,
+      world2.safe_x,
+      world2.sealed,
+      world2.plan,
+      world2.difficulty,
+      world2.hard_open,
+      world2.danger,
+      world2.drops,
+      world2.rerolls
+    );
   } else {
-    return Option$None$const;
+    return world2;
   }
 }
-__name(venom, "venom");
+__name(envenom2, "envenom");
+function venomous(p2, s) {
+  let $ = s.effect;
+  let $1 = p2.weapon.shot;
+  if ($ instanceof Bolt) {
+    return inflicts(p2.weapon) instanceof None;
+  } else if ($ instanceof Arrow) {
+    return inflicts(p2.weapon) instanceof None;
+  } else if ($ instanceof Firebolt && $1 instanceof Some && $1[0] instanceof Firebolt) {
+    return true;
+  } else {
+    return false;
+  }
+}
+__name(venomous, "venomous");
 function strike_status(p2, s) {
   let $ = s.effect;
   let $1 = p2.weapon.shot;
@@ -31560,13 +31665,11 @@ function strike_status(p2, s) {
   } else if ($ instanceof Puddle) {
     return new Some([Status$Poison$const, 3]);
   } else if ($ instanceof Bolt) {
-    return or2(inflicts(p2.weapon), venom(p2));
+    return inflicts(p2.weapon);
   } else if ($ instanceof Arrow) {
-    return or2(inflicts(p2.weapon), venom(p2));
+    return inflicts(p2.weapon);
   } else if ($ instanceof Orb) {
     return new Some([Status$Chill$const, 1]);
-  } else if ($ instanceof Firebolt && $1 instanceof Some && $1[0] instanceof Firebolt) {
-    return venom(p2);
   } else {
     return Option$None$const;
   }
@@ -31815,8 +31918,8 @@ function strikes_act(world2, me3, dt2) {
         far2(s) || ricocheting(p2),
         (e) => {
           let _block$32;
-          let $6 = s.effect;
-          if ($6 instanceof Shockwave) {
+          let $62 = s.effect;
+          if ($62 instanceof Shockwave) {
             _block$32 = [7, 4];
           } else {
             _block$32 = [4, 3];
@@ -31838,6 +31941,14 @@ function strikes_act(world2, me3, dt2) {
         });
       }, "ids");
       let w$3 = afflict2(w$2, ids(targets), strike_status(p2, s));
+      let _block$3;
+      let $5 = venomous(p2, s);
+      if ($5) {
+        _block$3 = envenom2(w$3, ids(targets), p2, s.damage);
+      } else {
+        _block$3 = w$3;
+      }
+      let w$4 = _block$3;
       let s$1 = new Strike(
         s.effect,
         s.x,
@@ -31851,8 +31962,8 @@ function strikes_act(world2, me3, dt2) {
         s.pierce,
         s.damage,
         (() => {
-          let $52 = s.effect;
-          if ($52 instanceof Orb) {
+          let $62 = s.effect;
+          if ($62 instanceof Orb) {
             return ids(over);
           } else {
             return append(ids(targets), s.hit);
@@ -31872,64 +31983,64 @@ function strikes_act(world2, me3, dt2) {
         ),
         s$1.effect
       );
-      let _block$3;
-      let $5 = s$1.pierce;
+      let _block$4;
+      let $6 = s$1.pierce;
       {
         if (lands) {
-          _block$3 = come_down(p2, s$1, box3, ids(over), w$3.level, dt2);
+          _block$4 = come_down(p2, s$1, box3, ids(over), w$4.level, dt2);
         } else if (bursts) {
-          _block$3 = prepend(burst(s$1), List$Empty$const);
+          _block$4 = prepend(burst(s$1), List$Empty$const);
         } else if (walled) {
-          _block$3 = List$Empty$const;
-        } else if (!$5) {
+          _block$4 = List$Empty$const;
+        } else if (!$6) {
           if (targets instanceof Empty) {
-            let $6 = advance(s$1, dt2);
-            if ($6 instanceof Ok) {
-              let s$2 = $6[0];
-              _block$3 = prepend(s$2, List$Empty$const);
+            let $7 = advance(s$1, dt2);
+            if ($7 instanceof Ok) {
+              let s$2 = $7[0];
+              _block$4 = prepend(s$2, List$Empty$const);
             } else {
-              _block$3 = List$Empty$const;
+              _block$4 = List$Empty$const;
             }
           } else {
-            _block$3 = List$Empty$const;
+            _block$4 = List$Empty$const;
           }
         } else {
-          let $6 = advance(s$1, dt2);
-          if ($6 instanceof Ok) {
-            let s$2 = $6[0];
-            _block$3 = prepend(s$2, List$Empty$const);
+          let $7 = advance(s$1, dt2);
+          if ($7 instanceof Ok) {
+            let s$2 = $7[0];
+            _block$4 = prepend(s$2, List$Empty$const);
           } else {
-            _block$3 = List$Empty$const;
+            _block$4 = List$Empty$const;
           }
         }
       }
-      let next$1 = _block$3;
+      let next$1 = _block$4;
       return new World(
-        w$3.players,
-        w$3.level,
-        w$3.enemies,
-        w$3.projectiles,
-        append(next$1, w$3.strikes),
-        w$3.events,
-        w$3.depth,
-        w$3.cleared,
-        w$3.doors,
-        w$3.exits,
-        w$3.seed,
-        w$3.tree,
-        w$3.unlocked,
-        w$3.npcs,
-        w$3.time,
-        w$3.kills,
-        w$3.room_time,
-        w$3.safe_x,
-        w$3.sealed,
-        w$3.plan,
-        w$3.difficulty,
-        w$3.hard_open,
-        w$3.danger,
-        w$3.drops,
-        w$3.rerolls
+        w$4.players,
+        w$4.level,
+        w$4.enemies,
+        w$4.projectiles,
+        append(next$1, w$4.strikes),
+        w$4.events,
+        w$4.depth,
+        w$4.cleared,
+        w$4.doors,
+        w$4.exits,
+        w$4.seed,
+        w$4.tree,
+        w$4.unlocked,
+        w$4.npcs,
+        w$4.time,
+        w$4.kills,
+        w$4.room_time,
+        w$4.safe_x,
+        w$4.sealed,
+        w$4.plan,
+        w$4.difficulty,
+        w$4.hard_open,
+        w$4.danger,
+        w$4.drops,
+        w$4.rerolls
       );
     }
   );
@@ -32325,7 +32436,7 @@ function strike(world2, a, box3) {
     let _block$5;
     let $3 = has2(p$2, Rule$Venom$const);
     if ($3) {
-      _block$5 = max(1, globalThis.Math.trunc(hit$2 * 7 / 10));
+      _block$5 = max(1, round(identity(hit$2) * venom_keep));
     } else {
       _block$5 = hit$2;
     }
@@ -32444,7 +32555,7 @@ function strike(world2, a, box3) {
       }
     );
     let _pipe$4 = afflict2(_pipe$3, ids, inflicts(p$3.weapon));
-    let _pipe$5 = afflict2(_pipe$4, ids, venom(p$3));
+    let _pipe$5 = envenom2(_pipe$4, ids, p$3, dmg$1);
     return afflict2(
       _pipe$5,
       ids,
@@ -32686,7 +32797,7 @@ function loose(world2, dir, effect, me3) {
           })() * (() => {
             let $1 = has2(p2, Rule$Venom$const);
             if ($1) {
-              return 0.7;
+              return venom_keep;
             } else {
               return 1;
             }
@@ -37384,15 +37495,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        4218,
+        4251,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 135283,
-          end: 135334,
-          pattern_start: 135294,
-          pattern_end: 135302
+          start: 136561,
+          end: 136612,
+          pattern_start: 136572,
+          pattern_end: 136580
         }
       );
     }
@@ -37404,15 +37515,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        4220,
+        4253,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 135417,
-          end: 135478,
-          pattern_start: 135428,
-          pattern_end: 135445
+          start: 136695,
+          end: 136756,
+          pattern_start: 136706,
+          pattern_end: 136723
         }
       );
     } else {
@@ -37422,15 +37533,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          4220,
+          4253,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 135417,
-            end: 135478,
-            pattern_start: 135428,
-            pattern_end: 135445
+            start: 136695,
+            end: 136756,
+            pattern_start: 136706,
+            pattern_end: 136723
           }
         );
       } else {
@@ -40812,7 +40923,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "596b81896613" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "a264d9565b7e" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -41247,7 +41358,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "596b81896613" : "dev";
+var BUILD = true ? "a264d9565b7e" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
