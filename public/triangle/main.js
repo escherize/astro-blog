@@ -18617,7 +18617,7 @@ function when(t2) {
   } else if (t2 instanceof OnDash) {
     return "on dash";
   } else if (t2 instanceof OnHardLanding) {
-    return "on a slam landing (fall fast or dash down)";
+    return "on a hard landing (a long fall)";
   } else if (t2 instanceof Every) {
     let p2 = t2.period;
     return "autocast, " + float_to_string(p2) + "s";
@@ -20007,7 +20007,7 @@ function grant_name(g) {
     } else if ($ instanceof ThirdSwingBig) {
       return "Every third swing is twice as big";
     } else if ($ instanceof Crash) {
-      return "Crash: a slam landing readies a block (one at a time)";
+      return "Crash: a hard landing readies a block (one at a time)";
     } else if ($ instanceof Bow) {
       return "Bow: attack fires arrows; they crit past 6 tiles";
     } else if ($ instanceof Orbit) {
@@ -20041,7 +20041,7 @@ function grant_name(g) {
     } else if ($ instanceof Punish) {
       return "Punish: hitting an enemy while it winds up always crits";
     } else if ($ instanceof Heavy) {
-      return "Heavy: a faster fast-fall and 50% bigger shockwaves, but no air jumps";
+      return "Heavy: hold down in the air to fall fast and land hard, and 50% bigger shockwaves, but no air jumps";
     } else if ($ instanceof LastStand) {
       return "Last stand: below a third of your health you deal double, but healing stops at half";
     } else if ($ instanceof Juggernaut) {
@@ -21086,7 +21086,7 @@ function bonus_name(b) {
     let n = b[0];
     return pct2(n, "shockwave size");
   } else if (b instanceof Quake) {
-    return "A dash that ends on the ground is a slam too";
+    return "A dash that ends on the ground lands hard too";
   } else if (b instanceof SlashPct) {
     let n = b[0];
     return pct2(n, "slash size");
@@ -21771,7 +21771,6 @@ var half_width = 0.375;
 var hard_windup = 0.9;
 var linger = 4;
 var orb_rooms = 1;
-var fast_fall = 32;
 var heavy_fall = 40;
 var dash_duration = 0.14;
 var dash_speed = 20;
@@ -21887,15 +21886,15 @@ function player(world2) {
       "let_assert",
       FILEPATH2,
       "game",
-      739,
+      738,
       "player",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 21027,
-        end: 21061,
-        pattern_start: 21038,
-        pattern_end: 21045
+        start: 21012,
+        end: 21046,
+        pattern_start: 21023,
+        pattern_end: 21030
       }
     );
   } else {
@@ -23155,10 +23154,10 @@ function nth_room(i) {
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 111946,
-        end: 111996,
-        pattern_start: 111957,
-        pattern_end: 111964
+        start: 111977,
+        end: 112027,
+        pattern_start: 111988,
+        pattern_end: 111995
       }
     );
   } else {
@@ -25390,10 +25389,10 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         "Pattern match failed, no pattern matched the value.",
         {
           value: $12,
-          start: 43921,
-          end: 43977,
-          pattern_start: 43932,
-          pattern_end: 43937
+          start: 43948,
+          end: 44004,
+          pattern_start: 43959,
+          pattern_end: 43964
         }
       );
     }
@@ -27766,7 +27765,7 @@ function fire_skills(world2, before, dt2) {
   let hard_landing = !before.grounded && p2.grounded && (() => {
     let $11 = p2.slam;
     if ($11 instanceof NoSlam) {
-      return false;
+      return before.vy < -15;
     } else if ($11 instanceof FastFall) {
       return true;
     } else {
@@ -28463,22 +28462,22 @@ function dive(p2, input) {
     _block = false;
   }
   let swinging_down = _block;
-  let down = input.move_y < -0.5 && !input.jump_held && !swinging_down;
+  let down = has2(p2, Rule$Heavy$const) && input.move_y < -0.5 && !input.jump_held && !swinging_down;
   let dashing = p2.dash_time > 0;
   let _block$1;
   let $1 = p2.grounded;
   if ($1) {
     _block$1 = Slam$NoSlam$const;
   } else {
-    let $22 = p2.slam;
+    let $2 = p2.slam;
     if (dashing) {
       if (p2.vy < -9) {
         _block$1 = Slam$DownDash$const;
       } else {
         _block$1 = Slam$NoSlam$const;
       }
-    } else if ($22 instanceof DownDash && p2.dash_time > 0 - 0.1 && p2.vy < 0) {
-      _block$1 = $22;
+    } else if ($2 instanceof DownDash && p2.dash_time > 0 - 0.1 && p2.vy < 0) {
+      _block$1 = $2;
     } else if (p2.vy <= 0 && (down || p2.slam instanceof FastFall)) {
       _block$1 = Slam$FastFall$const;
     } else {
@@ -28487,20 +28486,12 @@ function dive(p2, input) {
   }
   let slam = _block$1;
   let _block$2;
-  let $2 = has2(p2, Rule$Heavy$const);
-  if ($2) {
-    _block$2 = heavy_fall;
-  } else {
-    _block$2 = fast_fall;
-  }
-  let speed$1 = _block$2;
-  let _block$3;
   if (slam instanceof FastFall) {
-    _block$3 = min2(p2.vy, 0 - speed$1);
+    _block$2 = min2(p2.vy, 0 - heavy_fall);
   } else {
-    _block$3 = p2.vy;
+    _block$2 = p2.vy;
   }
-  let vy = _block$3;
+  let vy = _block$2;
   return new Player(
     p2.x,
     p2.y,
@@ -30958,10 +30949,10 @@ function npc_lines(world2, n) {
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 108284,
-          end: 108335,
-          pattern_start: 108295,
-          pattern_end: 108303
+          start: 108315,
+          end: 108366,
+          pattern_start: 108326,
+          pattern_end: 108334
         }
       );
     }
@@ -30978,10 +30969,10 @@ function npc_lines(world2, n) {
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 108418,
-          end: 108479,
-          pattern_start: 108429,
-          pattern_end: 108446
+          start: 108449,
+          end: 108510,
+          pattern_start: 108460,
+          pattern_end: 108477
         }
       );
     } else {
@@ -30996,10 +30987,10 @@ function npc_lines(world2, n) {
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 108418,
-            end: 108479,
-            pattern_start: 108429,
-            pattern_end: 108446
+            start: 108449,
+            end: 108510,
+            pattern_start: 108460,
+            pattern_end: 108477
           }
         );
       } else {
@@ -33488,7 +33479,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "e9105f5329db" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "a7e133256462" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -33518,7 +33509,7 @@ var treeScreen = createTreeScreen({ getWorld: /* @__PURE__ */ __name(() => world
 }, "setWorld"), onUnlock: saveUnlocks });
 var hud = document.getElementById("hud");
 var HINT = {
-  keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Hold S in air to fall fast \xB7 Up at doors & statues \xB7 T tree \xB7 M attack style \xB7 N sound \xB7 B body box \xB7 P (pad Start) save run log",
+  keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Up at doors & statues \xB7 T tree \xB7 M attack style \xB7 N sound \xB7 B body box \xB7 P (pad Start) save run log",
   pad: "Move stick \xB7 Jump X / Y \xB7 Dash LB / RB \xB7 Attack A (+up / +down in air) \xB7 Hold down in air to fall fast \xB7 Up at doors & statues \xB7 Select tree"
 };
 var treeKey = /* @__PURE__ */ __name(() => usingPad ? "Select" : "T", "treeKey");
@@ -33752,7 +33743,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "e9105f5329db" : "dev";
+var BUILD = true ? "a7e133256462" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
