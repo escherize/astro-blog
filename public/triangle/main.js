@@ -32047,8 +32047,8 @@ function drawMini(p2, x, top) {
 }
 __name(drawMini, "drawMini");
 var RING_R = 2.1;
-var RING_GAP = 0.26;
-var RING_W = 0.07;
+var RING_GAP = 0.3;
+var RING_W = 0.14;
 var RING_SEG = 128;
 var MAX_RINGS = MAX_PIES;
 var rings = [];
@@ -32064,7 +32064,7 @@ function drawRings(p2, x, y2, shown, dt2) {
   const timed = shown ? p2.loadout.toArray().filter((s) => s.trigger.constructor.name === "Every").slice(0, MAX_RINGS) : [];
   const conduit = p2.mods.rules.toArray().some((r) => r.constructor.name === "Conduit");
   for (let i = 0; i < Math.max(rings.length, timed.length); i++) {
-    if (!rings[i]) rings[i] = { track: ringMesh(RING_R + i * RING_GAP, 0.1), fill: ringMesh(RING_R + i * RING_GAP, 0.3), last: 0, pulse: 0 };
+    if (!rings[i]) rings[i] = { track: ringMesh(RING_R + i * RING_GAP, 0.15), fill: ringMesh(RING_R + i * RING_GAP, 0.75), last: 0, pulse: 0 };
     const ring = rings[i], s = timed[i];
     ring.track.visible = ring.fill.visible = !!s;
     if (!s) continue;
@@ -32078,7 +32078,7 @@ function drawRings(p2, x, y2, shown, dt2) {
       m.material.color.set(color);
     }
     ring.fill.geometry.setDrawRange(0, 6 * Math.round((ring.pulse > 0 ? 1 : f) * RING_SEG));
-    ring.fill.material.opacity = ring.pulse > 0 ? 0.3 + 0.4 * (ring.pulse / 0.18) : 0.3;
+    ring.fill.material.opacity = ring.pulse > 0 ? 0.75 + 0.25 * (ring.pulse / 0.18) : 0.75;
   }
 }
 __name(drawRings, "drawRings");
