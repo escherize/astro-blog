@@ -28508,15 +28508,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      4468,
+      4494,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 144115,
-        end: 144165,
-        pattern_start: 144126,
-        pattern_end: 144133
+        start: 145080,
+        end: 145130,
+        pattern_start: 145091,
+        pattern_end: 145098
       }
     );
   } else {
@@ -32036,6 +32036,27 @@ function come_down(p2, s, box3, over, level, dt2) {
   }
 }
 __name(come_down, "come_down");
+function flying_into(box3, vx, vy, r) {
+  let _block;
+  let $ = vx > 0;
+  if ($) {
+    _block = r.x + r.w;
+  } else {
+    _block = r.x;
+  }
+  let far_x = _block;
+  let _block$1;
+  let $1 = vy > 0;
+  if ($1) {
+    _block$1 = r.y + r.h;
+  } else {
+    _block$1 = r.y;
+  }
+  let far_y = _block$1;
+  let ahead = (far_x - (box3.x + box3.w / 2)) * vx + (far_y - (box3.y + box3.h / 2)) * vy;
+  return ahead > 0;
+}
+__name(flying_into, "flying_into");
 function envenom2(world2, ids, p2, dmg) {
   let $ = has2(p2, Rule$Venom$const);
   if ($) {
@@ -32418,7 +32439,7 @@ function strikes_act(world2, me3, dt2) {
         s.bounces,
         s.owner
       );
-      let walled = at_wall && contains(
+      let walled = contains(
         prepend(
           Effect$Arrow$const,
           prepend(
@@ -32427,6 +32448,16 @@ function strikes_act(world2, me3, dt2) {
           )
         ),
         s$1.effect
+      ) && any(
+        w$4.level,
+        (r) => {
+          return !r.one_way && overlaps(box3, r) && flying_into(
+            box3,
+            s$1.vx,
+            s$1.vy,
+            r
+          );
+        }
       );
       let _block$4;
       let $6 = s$1.pierce;
@@ -38004,15 +38035,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        4326,
+        4352,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 139386,
-          end: 139437,
-          pattern_start: 139397,
-          pattern_end: 139405
+          start: 140351,
+          end: 140402,
+          pattern_start: 140362,
+          pattern_end: 140370
         }
       );
     }
@@ -38024,15 +38055,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        4328,
+        4354,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 139520,
-          end: 139581,
-          pattern_start: 139531,
-          pattern_end: 139548
+          start: 140485,
+          end: 140546,
+          pattern_start: 140496,
+          pattern_end: 140513
         }
       );
     } else {
@@ -38042,15 +38073,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          4328,
+          4354,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 139520,
-            end: 139581,
-            pattern_start: 139531,
-            pattern_end: 139548
+            start: 140485,
+            end: 140546,
+            pattern_start: 140496,
+            pattern_end: 140513
           }
         );
       } else {
@@ -41465,7 +41496,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "e49367a0f6de" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "7a9a191843d1" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -41900,7 +41931,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "e49367a0f6de" : "dev";
+var BUILD = true ? "7a9a191843d1" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
