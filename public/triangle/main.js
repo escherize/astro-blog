@@ -13157,7 +13157,7 @@ var Enemy = class extends CustomType {
   static {
     __name(this, "Enemy");
   }
-  constructor(id2, kind, x, y2, vx, vy, home_x, home_y, facing, grounded, wall, hp2, max_hp4, respawn, flash, mode, cooldown, pattern, awake, tier, ail, robbed, ward, stroll, seed, tether, mend3, dead2, grace, linked, guard2, risen) {
+  constructor(id2, kind, x, y2, vx, vy, home_x, home_y, facing, grounded, wall, hp2, max_hp4, respawn, flash, mode, cooldown, pattern, awake, tier, ail, robbed, ward, stroll, seed, tether, mend3, dead2, grace, linked, guard2, risen, elite) {
     super();
     this.id = id2;
     this.kind = kind;
@@ -13191,8 +13191,39 @@ var Enemy = class extends CustomType {
     this.linked = linked;
     this.guard = guard2;
     this.risen = risen;
+    this.elite = elite;
   }
 };
+var Plain = class extends CustomType {
+  static {
+    __name(this, "Plain");
+  }
+};
+var Elite$Plain$const = new Plain();
+var Swift = class extends CustomType {
+  static {
+    __name(this, "Swift");
+  }
+};
+var Elite$Swift$const = new Swift();
+var Thorned = class extends CustomType {
+  static {
+    __name(this, "Thorned");
+  }
+};
+var Elite$Thorned$const = new Thorned();
+var Splitting = class extends CustomType {
+  static {
+    __name(this, "Splitting");
+  }
+};
+var Elite$Splitting$const = new Splitting();
+var Splinter = class extends CustomType {
+  static {
+    __name(this, "Splinter");
+  }
+};
+var Elite$Splinter$const = new Splinter();
 var Projectile = class extends CustomType {
   static {
     __name(this, "Projectile");
@@ -13221,8 +13252,11 @@ var Magic = class extends CustomType {
 };
 var Element$Magic$const = new Magic();
 var catalyst_burst = 1.5;
+var thorn_prick = 6;
 var poison_cap = 5;
+var swift_pace = 1.4;
 var shot_damage = 8;
+var elite_xp = 2;
 var dying_time = 0.2;
 var hair = 1e-3;
 var boss_rest = 1;
@@ -13289,6 +13323,7 @@ var mend_break = 1.2;
 var ward_time = 4;
 var ward_reach = 6;
 var hex_turn = 1.4;
+var splinter_share = 30;
 function poison_bite(e) {
   let _block;
   let $ = e.kind;
@@ -13355,7 +13390,8 @@ function detonate(e) {
         e.grace,
         e.linked,
         e.guard,
-        e.risen
+        e.risen,
+        e.elite
       ),
       burst2
     ];
@@ -13364,6 +13400,68 @@ function detonate(e) {
   }
 }
 __name(detonate, "detonate");
+function is_elite(e) {
+  let $ = e.elite;
+  if ($ instanceof Plain) {
+    return false;
+  } else if ($ instanceof Swift) {
+    return true;
+  } else if ($ instanceof Thorned) {
+    return true;
+  } else if ($ instanceof Splitting) {
+    return true;
+  } else {
+    return false;
+  }
+}
+__name(is_elite, "is_elite");
+function can_be_elite(kind) {
+  if (kind instanceof Charger) {
+    return true;
+  } else if (kind instanceof Shooter) {
+    return true;
+  } else if (kind instanceof Flyer) {
+    return true;
+  } else if (kind instanceof Wisp) {
+    return true;
+  } else if (kind instanceof Hexer) {
+    return true;
+  } else {
+    return false;
+  }
+}
+__name(can_be_elite, "can_be_elite");
+function hits(e, damage3) {
+  let _block;
+  let $ = e.tier;
+  if ($ === 2) {
+    _block = 1.3;
+  } else if ($ === 3) {
+    _block = 1.6;
+  } else {
+    _block = 1;
+  }
+  let k2 = _block;
+  let _block$1;
+  let $1 = e.ail.weak > 0;
+  if ($1) {
+    _block$1 = k2 * 0.6;
+  } else {
+    _block$1 = k2;
+  }
+  let k$1 = _block$1;
+  return round(identity(damage3) * k$1);
+}
+__name(hits, "hits");
+function thorns(e) {
+  let $ = e.elite;
+  if ($ instanceof Thorned) {
+    return hits(e, thorn_prick);
+  } else {
+    return 0;
+  }
+}
+__name(thorns, "thorns");
 function max_hp(kind) {
   if (kind instanceof Dummy) {
     return 40;
@@ -13432,7 +13530,8 @@ function spawn(id2, kind, x, y2) {
     0,
     false,
     0,
-    false
+    false,
+    Elite$Plain$const
   );
 }
 __name(spawn, "spawn");
@@ -13542,7 +13641,8 @@ function afflict(e, status, seconds) {
     e.grace,
     e.linked,
     e.guard,
-    e.risen
+    e.risen,
+    e.elite
   );
 }
 __name(afflict, "afflict");
@@ -13591,7 +13691,8 @@ function envenom(e, seconds, bite) {
     e$1.grace,
     e$1.linked,
     e$1.guard,
-    e$1.risen
+    e$1.risen,
+    e$1.elite
   );
 }
 __name(envenom, "envenom");
@@ -13618,14 +13719,22 @@ function statuses(e) {
 }
 __name(statuses, "statuses");
 function pace(e) {
+  let _block;
   let $ = e.ail.chill > 0;
   let $1 = e.ail.poison > 0;
   if ($) {
-    return 0.5;
+    _block = 0.5;
   } else if ($1) {
-    return 0.7;
+    _block = 0.7;
   } else {
-    return 1;
+    _block = 1;
+  }
+  let k2 = _block;
+  let $2 = e.elite;
+  if ($2 instanceof Swift) {
+    return k2 * swift_pace;
+  } else {
+    return k2;
   }
 }
 __name(pace, "pace");
@@ -13671,32 +13780,11 @@ function promote(e, tier) {
     e.grace,
     e.linked,
     e.guard,
-    e.risen
+    e.risen,
+    e.elite
   );
 }
 __name(promote, "promote");
-function hits(e, damage3) {
-  let _block;
-  let $ = e.tier;
-  if ($ === 2) {
-    _block = 1.3;
-  } else if ($ === 3) {
-    _block = 1.6;
-  } else {
-    _block = 1;
-  }
-  let k2 = _block;
-  let _block$1;
-  let $1 = e.ail.weak > 0;
-  if ($1) {
-    _block$1 = k2 * 0.6;
-  } else {
-    _block$1 = k2;
-  }
-  let k$1 = _block$1;
-  return round(identity(damage3) * k$1);
-}
-__name(hits, "hits");
 function shot_hit(e) {
   return hits(e, shot_damage);
 }
@@ -13730,7 +13818,19 @@ function xp_value(kind) {
 }
 __name(xp_value, "xp_value");
 function xp(e) {
-  return globalThis.Math.trunc(xp_value(e.kind) * (1 + e.tier) / 2);
+  let base = globalThis.Math.trunc(xp_value(e.kind) * (1 + e.tier) / 2);
+  let $ = e.elite;
+  if ($ instanceof Plain) {
+    return base;
+  } else if ($ instanceof Swift) {
+    return base * elite_xp;
+  } else if ($ instanceof Thorned) {
+    return base * elite_xp;
+  } else if ($ instanceof Splitting) {
+    return base * elite_xp;
+  } else {
+    return globalThis.Math.trunc(base / 2);
+  }
 }
 __name(xp, "xp");
 function respawn_delay(kind) {
@@ -13950,7 +14050,8 @@ function fall(e, level, dt2) {
     e.grace,
     e.linked,
     e.guard,
-    e.risen
+    e.risen,
+    e.elite
   );
 }
 __name(fall, "fall");
@@ -14031,7 +14132,8 @@ function boss(e, level, px, py, dt2) {
           e.grace,
           e.linked,
           e.guard,
-          e.risen
+          e.risen,
+          e.elite
         ),
         List$Empty$const
       ];
@@ -14069,7 +14171,8 @@ function boss(e, level, px, py, dt2) {
           e.grace,
           e.linked,
           e.guard,
-          e.risen
+          e.risen,
+          e.elite
         ),
         List$Empty$const
       ];
@@ -14113,7 +14216,8 @@ function boss(e, level, px, py, dt2) {
             e.grace,
             e.linked,
             e.guard,
-            e.risen
+            e.risen,
+            e.elite
           ),
           List$Empty$const
         ];
@@ -14174,7 +14278,8 @@ function boss(e, level, px, py, dt2) {
             e.grace,
             e.linked,
             e.guard,
-            e.risen
+            e.risen,
+            e.elite
           ),
           shots
         ];
@@ -14213,7 +14318,8 @@ function boss(e, level, px, py, dt2) {
             e.grace,
             e.linked,
             e.guard,
-            e.risen
+            e.risen,
+            e.elite
           ),
           List$Empty$const
         ];
@@ -14252,7 +14358,8 @@ function boss(e, level, px, py, dt2) {
           e.grace,
           e.linked,
           e.guard,
-          e.risen
+          e.risen,
+          e.elite
         ),
         List$Empty$const
       ];
@@ -14294,7 +14401,8 @@ function boss(e, level, px, py, dt2) {
           e.grace,
           e.linked,
           e.guard,
-          e.risen
+          e.risen,
+          e.elite
         ),
         List$Empty$const
       ];
@@ -14332,7 +14440,8 @@ function boss(e, level, px, py, dt2) {
           e.grace,
           e.linked,
           e.guard,
-          e.risen
+          e.risen,
+          e.elite
         ),
         List$Empty$const
       ];
@@ -14374,7 +14483,8 @@ function boss(e, level, px, py, dt2) {
           e.grace,
           e.linked,
           e.guard,
-          e.risen
+          e.risen,
+          e.elite
         ),
         List$Empty$const
       ];
@@ -14412,7 +14522,8 @@ function boss(e, level, px, py, dt2) {
           e.grace,
           e.linked,
           e.guard,
-          e.risen
+          e.risen,
+          e.elite
         ),
         List$Empty$const
       ];
@@ -14451,7 +14562,8 @@ function boss(e, level, px, py, dt2) {
         e.grace,
         e.linked,
         e.guard,
-        e.risen
+        e.risen,
+        e.elite
       ),
       List$Empty$const
     ];
@@ -14503,7 +14615,8 @@ function boss(e, level, px, py, dt2) {
           e.grace,
           e.linked,
           e.guard,
-          e.risen
+          e.risen,
+          e.elite
         ),
         prepend(wave(1), prepend(wave(-1), List$Empty$const))
       ];
@@ -14541,7 +14654,8 @@ function boss(e, level, px, py, dt2) {
           e.grace,
           e.linked,
           e.guard,
-          e.risen
+          e.risen,
+          e.elite
         ),
         List$Empty$const
       ];
@@ -14595,7 +14709,8 @@ function wander(e, level, dt2) {
       e2.grace,
       e2.linked,
       e2.guard,
-      e2.risen
+      e2.risen,
+      e2.elite
     );
   }, "pause");
   let $1 = e.stroll > 0;
@@ -14637,7 +14752,8 @@ function wander(e, level, dt2) {
           e.grace,
           e.linked,
           e.guard,
-          e.risen
+          e.risen,
+          e.elite
         );
       } else {
         return pause(e, negate(e.facing));
@@ -14681,7 +14797,8 @@ function wander(e, level, dt2) {
         e.grace,
         e.linked,
         e.guard,
-        e.risen
+        e.risen,
+        e.elite
       );
     } else {
       let $3 = unit(e.seed);
@@ -14733,7 +14850,8 @@ function wander(e, level, dt2) {
           e.grace,
           e.linked,
           e.guard,
-          e.risen
+          e.risen,
+          e.elite
         );
       } else {
         return pause(
@@ -14769,7 +14887,8 @@ function wander(e, level, dt2) {
             e.grace,
             e.linked,
             e.guard,
-            e.risen
+            e.risen,
+            e.elite
           ),
           e.facing
         );
@@ -14813,7 +14932,8 @@ function countdown(e, t2, dt2, mode) {
       e.grace,
       e.linked,
       e.guard,
-      e.risen
+      e.risen,
+      e.elite
     );
   } else {
     return new Enemy(
@@ -14848,7 +14968,8 @@ function countdown(e, t2, dt2, mode) {
       e.grace,
       e.linked,
       e.guard,
-      e.risen
+      e.risen,
+      e.elite
     );
   }
 }
@@ -14953,7 +15074,8 @@ function shooter(e, level, px, py, dt2) {
     e.grace,
     e.linked,
     e.guard,
-    e.risen
+    e.risen,
+    e.elite
   );
   let away = negate(sign(dx));
   let shy = e$1.grounded && absolute_value2(dx) < shooter_shy && absolute_value2(
@@ -15046,7 +15168,8 @@ function shooter(e, level, px, py, dt2) {
             e$1.grace,
             e$1.linked,
             e$1.guard,
-            e$1.risen
+            e$1.risen,
+            e$1.elite
           ),
           hex
         ];
@@ -15100,7 +15223,8 @@ function shooter(e, level, px, py, dt2) {
             e$1.grace,
             e$1.linked,
             e$1.guard,
-            e$1.risen
+            e$1.risen,
+            e$1.elite
           ),
           sy,
           nx,
@@ -15143,7 +15267,8 @@ function shooter(e, level, px, py, dt2) {
             e$1.grace,
             e$1.linked,
             e$1.guard,
-            e$1.risen
+            e$1.risen,
+            e$1.elite
           ),
           shots
         ];
@@ -15182,7 +15307,8 @@ function shooter(e, level, px, py, dt2) {
           e$1.grace,
           e$1.linked,
           e$1.guard,
-          e$1.risen
+          e$1.risen,
+          e$1.elite
         ),
         List$Empty$const
       ];
@@ -15223,7 +15349,8 @@ function shooter(e, level, px, py, dt2) {
           e$1.grace,
           e$1.linked,
           e$1.guard,
-          e$1.risen
+          e$1.risen,
+          e$1.elite
         ),
         t2,
         dt2,
@@ -15286,7 +15413,8 @@ function shooter(e, level, px, py, dt2) {
           e$1.grace,
           e$1.linked,
           e$1.guard,
-          e$1.risen
+          e$1.risen,
+          e$1.elite
         ),
         List$Empty$const
       ];
@@ -15324,7 +15452,8 @@ function shooter(e, level, px, py, dt2) {
           e$1.grace,
           e$1.linked,
           e$1.guard,
-          e$1.risen
+          e$1.risen,
+          e$1.elite
         ),
         List$Empty$const
       ];
@@ -15362,7 +15491,8 @@ function shooter(e, level, px, py, dt2) {
           e$1.grace,
           e$1.linked,
           e$1.guard,
-          e$1.risen
+          e$1.risen,
+          e$1.elite
         ),
         List$Empty$const
       ];
@@ -15400,7 +15530,8 @@ function shooter(e, level, px, py, dt2) {
           e$1.grace,
           e$1.linked,
           e$1.guard,
-          e$1.risen
+          e$1.risen,
+          e$1.elite
         ),
         List$Empty$const
       ];
@@ -15439,7 +15570,8 @@ function shooter(e, level, px, py, dt2) {
             e$1.grace,
             e$1.linked,
             e$1.guard,
-            e$1.risen
+            e$1.risen,
+            e$1.elite
           ),
           level,
           dt2
@@ -15486,7 +15618,8 @@ function keep_away(e, level, px, py, dt2) {
     e.grace,
     e.linked,
     e.guard,
-    e.risen
+    e.risen,
+    e.elite
   );
   let away = negate(sign(dx));
   let close = absolute_value2(dx) < mender_shy && absolute_value2(
@@ -15535,7 +15668,8 @@ function keep_away(e, level, px, py, dt2) {
       _record.grace,
       _record.linked,
       _record.guard,
-      _record.risen
+      _record.risen,
+      _record.elite
     );
   } else {
     if (close) {
@@ -15572,7 +15706,8 @@ function keep_away(e, level, px, py, dt2) {
           e$1.grace,
           e$1.linked,
           e$1.guard,
-          e$1.risen
+          e$1.risen,
+          e$1.elite
         );
       } else {
         return new Enemy(
@@ -15607,7 +15742,8 @@ function keep_away(e, level, px, py, dt2) {
           e$1.grace,
           e$1.linked,
           e$1.guard,
-          e$1.risen
+          e$1.risen,
+          e$1.elite
         );
       }
     } else {
@@ -15650,7 +15786,8 @@ function keep_away(e, level, px, py, dt2) {
         e$1.grace,
         e$1.linked,
         e$1.guard,
-        e$1.risen
+        e$1.risen,
+        e$1.elite
       );
     }
   }
@@ -15715,7 +15852,8 @@ function charger(e, level, px, py, dt2) {
       e.grace,
       e.linked,
       e.guard,
-      e.risen
+      e.risen,
+      e.elite
     );
   } else {
     _block = e;
@@ -15764,7 +15902,8 @@ function charger(e, level, px, py, dt2) {
         e$1.grace,
         e$1.linked,
         e$1.guard,
-        e$1.risen
+        e$1.risen,
+        e$1.elite
       );
     } else if (blocked) {
       return new Enemy(
@@ -15799,7 +15938,8 @@ function charger(e, level, px, py, dt2) {
         e$1.grace,
         e$1.linked,
         e$1.guard,
-        e$1.risen
+        e$1.risen,
+        e$1.elite
       );
     } else {
       return new Enemy(
@@ -15834,7 +15974,8 @@ function charger(e, level, px, py, dt2) {
         e$1.grace,
         e$1.linked,
         e$1.guard,
-        e$1.risen
+        e$1.risen,
+        e$1.elite
       );
     }
   } else if ($1 instanceof Windup) {
@@ -15873,7 +16014,8 @@ function charger(e, level, px, py, dt2) {
         e$1.grace,
         e$1.linked,
         e$1.guard,
-        e$1.risen
+        e$1.risen,
+        e$1.elite
       );
     } else {
       return new Enemy(
@@ -15908,7 +16050,8 @@ function charger(e, level, px, py, dt2) {
         e$1.grace,
         e$1.linked,
         e$1.guard,
-        e$1.risen
+        e$1.risen,
+        e$1.elite
       );
     }
   } else if ($1 instanceof Charging) {
@@ -15949,7 +16092,8 @@ function charger(e, level, px, py, dt2) {
           e$1.grace,
           e$1.linked,
           e$1.guard,
-          e$1.risen
+          e$1.risen,
+          e$1.elite
         );
       } else {
         return new Enemy(
@@ -15984,7 +16128,8 @@ function charger(e, level, px, py, dt2) {
           e$1.grace,
           e$1.linked,
           e$1.guard,
-          e$1.risen
+          e$1.risen,
+          e$1.elite
         );
       }
     } else {
@@ -16020,7 +16165,8 @@ function charger(e, level, px, py, dt2) {
         e$1.grace,
         e$1.linked,
         e$1.guard,
-        e$1.risen
+        e$1.risen,
+        e$1.elite
       );
     }
   } else if ($1 instanceof Recover) {
@@ -16058,7 +16204,8 @@ function charger(e, level, px, py, dt2) {
         e$1.grace,
         e$1.linked,
         e$1.guard,
-        e$1.risen
+        e$1.risen,
+        e$1.elite
       ),
       t2,
       dt2,
@@ -16101,7 +16248,8 @@ function charger(e, level, px, py, dt2) {
         e$1.grace,
         e$1.linked,
         e$1.guard,
-        e$1.risen
+        e$1.risen,
+        e$1.elite
       ),
       t2,
       dt2,
@@ -16142,7 +16290,8 @@ function charger(e, level, px, py, dt2) {
       e$1.grace,
       e$1.linked,
       e$1.guard,
-      e$1.risen
+      e$1.risen,
+      e$1.elite
     );
   }
 }
@@ -16215,7 +16364,8 @@ function bouncer(e, level, dt2) {
     e.grace,
     e.linked,
     e.guard,
-    e.risen
+    e.risen,
+    e.elite
   );
 }
 __name(bouncer, "bouncer");
@@ -16284,7 +16434,8 @@ function flyer(e, level, px, py, dt2, alert) {
           e.grace,
           e.linked,
           e.guard,
-          e.risen
+          e.risen,
+          e.elite
         );
       } else {
         let $4 = normalize(tx, ty);
@@ -16323,7 +16474,8 @@ function flyer(e, level, px, py, dt2, alert) {
           e.grace,
           e.linked,
           e.guard,
-          e.risen
+          e.risen,
+          e.elite
         );
       }
     } else if (!hunter && alert && cooldown <= 0) {
@@ -16359,7 +16511,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.grace,
         e.linked,
         e.guard,
-        e.risen
+        e.risen,
+        e.elite
       );
     } else {
       _block = new Enemy(
@@ -16394,7 +16547,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.grace,
         e.linked,
         e.guard,
-        e.risen
+        e.risen,
+        e.elite
       );
     }
   } else if ($1 instanceof Windup) {
@@ -16436,7 +16590,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.grace,
         e.linked,
         e.guard,
-        e.risen
+        e.risen,
+        e.elite
       );
     } else {
       _block = new Enemy(
@@ -16471,7 +16626,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.grace,
         e.linked,
         e.guard,
-        e.risen
+        e.risen,
+        e.elite
       );
     }
   } else if ($1 instanceof Charging) {
@@ -16510,7 +16666,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.grace,
         e.linked,
         e.guard,
-        e.risen
+        e.risen,
+        e.elite
       );
     } else {
       _block = new Enemy(
@@ -16545,7 +16702,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.grace,
         e.linked,
         e.guard,
-        e.risen
+        e.risen,
+        e.elite
       );
     }
   } else if ($1 instanceof Recover) {
@@ -16584,7 +16742,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.grace,
         e.linked,
         e.guard,
-        e.risen
+        e.risen,
+        e.elite
       );
     } else {
       _block = new Enemy(
@@ -16619,7 +16778,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.grace,
         e.linked,
         e.guard,
-        e.risen
+        e.risen,
+        e.elite
       );
     }
   } else if ($1 instanceof Stunned) {
@@ -16657,7 +16817,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.grace,
         e.linked,
         e.guard,
-        e.risen
+        e.risen,
+        e.elite
       ),
       t2,
       dt2,
@@ -16698,7 +16859,8 @@ function flyer(e, level, px, py, dt2, alert) {
       e.grace,
       e.linked,
       e.guard,
-      e.risen
+      e.risen,
+      e.elite
     );
   }
   let e$1 = _block;
@@ -16743,7 +16905,8 @@ function flyer(e, level, px, py, dt2, alert) {
     e$1.grace,
     e$1.linked,
     e$1.guard,
-    e$1.risen
+    e$1.risen,
+    e$1.elite
   );
 }
 __name(flyer, "flyer");
@@ -16790,7 +16953,8 @@ function think(e, level, px, py, dt2, alert) {
                 e.grace,
                 e.linked,
                 e.guard,
-                e.risen
+                e.risen,
+                e.elite
               ),
               level,
               dt2
@@ -16834,7 +16998,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -16876,7 +17041,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -16929,7 +17095,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -16978,7 +17145,8 @@ function think(e, level, px, py, dt2, alert) {
                 e.grace,
                 e.linked,
                 e.guard,
-                e.risen
+                e.risen,
+                e.elite
               ),
               level,
               dt2
@@ -17022,7 +17190,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -17064,7 +17233,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -17114,7 +17284,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -17162,7 +17333,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -17203,7 +17375,8 @@ function think(e, level, px, py, dt2, alert) {
             e.grace,
             e.linked,
             e.guard,
-            e.risen
+            e.risen,
+            e.elite
           ),
           List$Empty$const
         ];
@@ -17242,7 +17415,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -17289,7 +17463,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -17337,7 +17512,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -17378,7 +17554,8 @@ function think(e, level, px, py, dt2, alert) {
             e.grace,
             e.linked,
             e.guard,
-            e.risen
+            e.risen,
+            e.elite
           ),
           List$Empty$const
         ];
@@ -17417,7 +17594,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -17464,7 +17642,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -17512,7 +17691,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -17554,7 +17734,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -17601,7 +17782,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -17650,7 +17832,8 @@ function think(e, level, px, py, dt2, alert) {
                 e.grace,
                 e.linked,
                 e.guard,
-                e.risen
+                e.risen,
+                e.elite
               ),
               level,
               dt2
@@ -17694,7 +17877,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -17736,7 +17920,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -17786,7 +17971,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -17835,7 +18021,8 @@ function think(e, level, px, py, dt2, alert) {
                 e.grace,
                 e.linked,
                 e.guard,
-                e.risen
+                e.risen,
+                e.elite
               ),
               level,
               dt2
@@ -17879,7 +18066,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -17921,7 +18109,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -17974,7 +18163,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -18023,7 +18213,8 @@ function think(e, level, px, py, dt2, alert) {
                 e.grace,
                 e.linked,
                 e.guard,
-                e.risen
+                e.risen,
+                e.elite
               ),
               level,
               dt2
@@ -18067,7 +18258,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -18109,7 +18301,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -18162,7 +18355,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -18209,7 +18403,8 @@ function think(e, level, px, py, dt2, alert) {
             e.grace,
             e.linked,
             e.guard,
-            e.risen
+            e.risen,
+            e.elite
           ),
           level,
           dt2
@@ -18253,7 +18448,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -18302,7 +18498,8 @@ function think(e, level, px, py, dt2, alert) {
                 e.grace,
                 e.linked,
                 e.guard,
-                e.risen
+                e.risen,
+                e.elite
               ),
               level,
               dt2
@@ -18346,7 +18543,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -18388,7 +18586,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -18430,7 +18629,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -18483,7 +18683,8 @@ function think(e, level, px, py, dt2, alert) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             ),
             level,
             dt2
@@ -18530,7 +18731,8 @@ function think(e, level, px, py, dt2, alert) {
             e.grace,
             e.linked,
             e.guard,
-            e.risen
+            e.risen,
+            e.elite
           ),
           level,
           dt2
@@ -18572,7 +18774,8 @@ function think(e, level, px, py, dt2, alert) {
             e.grace,
             e.linked,
             e.guard,
-            e.risen
+            e.risen,
+            e.elite
           ),
           level,
           dt2
@@ -18622,7 +18825,8 @@ function think(e, level, px, py, dt2, alert) {
             e.grace,
             e.linked,
             e.guard,
-            e.risen
+            e.risen,
+            e.elite
           ),
           level,
           dt2
@@ -18778,7 +18982,8 @@ function mend(enemies, level, dt2) {
             e.grace,
             e.linked,
             e.guard,
-            e.risen
+            e.risen,
+            e.elite
           );
         } else {
           _block = e;
@@ -18833,7 +19038,8 @@ function mend(enemies, level, dt2) {
             e$1.grace,
             e$1.linked,
             e$1.guard,
-            e$1.risen
+            e$1.risen,
+            e$1.elite
           );
         } else {
           return e$1;
@@ -18907,7 +19113,8 @@ function link(enemies, level, dt2) {
             e.grace,
             false,
             e.guard,
-            e.risen
+            e.risen,
+            e.elite
           );
         }
       );
@@ -19036,7 +19243,8 @@ function link(enemies, level, dt2) {
             e.grace,
             e.linked,
             e.guard,
-            e.risen
+            e.risen,
+            e.elite
           );
         } else {
           _block = e;
@@ -19074,7 +19282,8 @@ function link(enemies, level, dt2) {
           e$1.grace,
           e$1.id !== 0 && contains(held, e$1.id),
           e$1.guard,
-          e$1.risen
+          e$1.risen,
+          e$1.elite
         );
       }
     );
@@ -19130,7 +19339,8 @@ function pulse(enemies, dt2) {
               t2.grace,
               t2.linked,
               t2.guard,
-              t2.risen
+              t2.risen,
+              t2.elite
             ),
             true
           ];
@@ -19168,7 +19378,8 @@ function pulse(enemies, dt2) {
               t2.grace,
               t2.linked,
               t2.guard,
-              t2.risen
+              t2.risen,
+              t2.elite
             ),
             false
           ];
@@ -19244,7 +19455,8 @@ function pulse(enemies, dt2) {
             e$1.grace,
             e$1.linked,
             guard_time,
-            e$1.risen
+            e$1.risen,
+            e$1.elite
           );
         } else {
           return e$1;
@@ -19339,7 +19551,8 @@ function raise(e) {
     spawn_grace,
     e.linked,
     0,
-    true
+    true,
+    e.elite
   );
 }
 __name(raise, "raise");
@@ -19454,7 +19667,8 @@ function dig(enemies, level, dt2) {
                   g.grace,
                   g.linked,
                   g.guard,
-                  g.risen
+                  g.risen,
+                  g.elite
                 ),
                 c.id
               ];
@@ -19492,7 +19706,8 @@ function dig(enemies, level, dt2) {
                   g.grace,
                   g.linked,
                   g.guard,
-                  g.risen
+                  g.risen,
+                  g.elite
                 ),
                 0
               ];
@@ -19531,7 +19746,8 @@ function dig(enemies, level, dt2) {
                 g.grace,
                 g.linked,
                 g.guard,
-                g.risen
+                g.risen,
+                g.elite
               ),
               0
             ];
@@ -19574,7 +19790,8 @@ function dig(enemies, level, dt2) {
                 g.grace,
                 g.linked,
                 g.guard,
-                g.risen
+                g.risen,
+                g.elite
               ),
               0
             ];
@@ -19677,7 +19894,8 @@ function take_hit(e, damage3, push_x, push_y) {
     e.grace,
     e.linked,
     e.guard,
-    e.risen
+    e.risen,
+    e.elite
   );
   let hit$1 = new Enemy(
     hit.id,
@@ -19711,7 +19929,8 @@ function take_hit(e, damage3, push_x, push_y) {
     hit.grace,
     hit.linked,
     hit.guard,
-    hit.risen
+    hit.risen,
+    hit.elite
   );
   let $ = e.kind;
   if ($ instanceof Dummy) {
@@ -19749,7 +19968,8 @@ function take_hit(e, damage3, push_x, push_y) {
       hit$1.grace,
       hit$1.linked,
       hit$1.guard,
-      hit$1.risen
+      hit$1.risen,
+      hit$1.elite
     );
   } else if ($ instanceof Mender) {
     return new Enemy(
@@ -19784,7 +20004,8 @@ function take_hit(e, damage3, push_x, push_y) {
       hit$1.grace,
       hit$1.linked,
       hit$1.guard,
-      hit$1.risen
+      hit$1.risen,
+      hit$1.elite
     );
   } else if ($ instanceof Linker) {
     return new Enemy(
@@ -19819,7 +20040,8 @@ function take_hit(e, damage3, push_x, push_y) {
       hit$1.grace,
       hit$1.linked,
       hit$1.guard,
-      hit$1.risen
+      hit$1.risen,
+      hit$1.elite
     );
   } else if ($ instanceof Totem) {
     return hit$1;
@@ -19856,7 +20078,8 @@ function take_hit(e, damage3, push_x, push_y) {
       hit$1.grace,
       hit$1.linked,
       hit$1.guard,
-      hit$1.risen
+      hit$1.risen,
+      hit$1.elite
     );
   } else if ($ instanceof Boss) {
     return hit$1;
@@ -19893,7 +20116,8 @@ function take_hit(e, damage3, push_x, push_y) {
       hit$1.grace,
       hit$1.linked,
       hit$1.guard,
-      hit$1.risen
+      hit$1.risen,
+      hit$1.elite
     );
   }
 }
@@ -19954,7 +20178,8 @@ function spread_wards(enemies) {
             e.grace,
             e.linked,
             e.guard,
-            e.risen
+            e.risen,
+            e.elite
           );
         } else {
           _block = e;
@@ -19994,7 +20219,8 @@ function spread_wards(enemies) {
             e$1.grace,
             e$1.linked,
             e$1.guard,
-            e$1.risen
+            e$1.risen,
+            e$1.elite
           );
         } else {
           return e$1;
@@ -20082,7 +20308,8 @@ function tick(e, dt2) {
       max3(0, e.grace - dt2),
       e.linked,
       max3(0, e.guard - dt2),
-      e.risen
+      e.risen,
+      e.elite
     );
   }
 }
@@ -20166,6 +20393,47 @@ function fly(s, level, tx, ty, dt2) {
   }
 }
 __name(fly, "fly");
+function splinter(e, id2, from) {
+  let away = sign(e.x - from(e.x, e.y));
+  let hp2 = max(1, globalThis.Math.trunc(e.max_hp * splinter_share / 100));
+  let _record = spawn(id2, e.kind, e.x, e.y);
+  return new Enemy(
+    _record.id,
+    _record.kind,
+    _record.x,
+    _record.y,
+    away * 3,
+    6,
+    _record.home_x,
+    _record.home_y,
+    away,
+    _record.grounded,
+    _record.wall,
+    hp2,
+    hp2,
+    _record.respawn,
+    _record.flash,
+    _record.mode,
+    _record.cooldown,
+    _record.pattern,
+    true,
+    _record.tier,
+    _record.ail,
+    _record.robbed,
+    _record.ward,
+    _record.stroll,
+    _record.seed,
+    _record.tether,
+    _record.mend,
+    _record.dead,
+    spawn_grace,
+    _record.linked,
+    _record.guard,
+    _record.risen,
+    Elite$Splinter$const
+  );
+}
+__name(splinter, "splinter");
 function split2(enemies, from) {
   let next3 = fold2(enemies, 0, (m, e) => {
     return max(m, e.id);
@@ -20176,10 +20444,55 @@ function split2(enemies, from) {
     (acc2, e) => {
       let id2 = acc2[0];
       let out2 = acc2[1];
-      let $1 = e.kind instanceof Bouncer && e.tier >= 2 && !alive(e) && !dying(
-        e
-      );
+      let done = !alive(e) && !dying(e);
+      let $1 = e.elite instanceof Splitting && done;
+      let $2 = e.kind instanceof Bouncer && e.tier >= 2 && done;
       if ($1) {
+        return [
+          id2 + 1,
+          prepend(
+            splinter(e, id2, from),
+            prepend(
+              new Enemy(
+                e.id,
+                e.kind,
+                e.x,
+                e.y,
+                e.vx,
+                e.vy,
+                e.home_x,
+                e.home_y,
+                e.facing,
+                e.grounded,
+                e.wall,
+                e.hp,
+                e.max_hp,
+                e.respawn,
+                e.flash,
+                e.mode,
+                e.cooldown,
+                e.pattern,
+                e.awake,
+                e.tier,
+                e.ail,
+                e.robbed,
+                e.ward,
+                e.stroll,
+                e.seed,
+                e.tether,
+                e.mend,
+                e.dead,
+                e.grace,
+                e.linked,
+                e.guard,
+                e.risen,
+                Elite$Plain$const
+              ),
+              out2
+            )
+          )
+        ];
+      } else if ($2) {
         let away = sign(e.x - from(e.x, e.y));
         let child = /* @__PURE__ */ __name((id3, pop) => {
           let _record = spawn(id3, Kind$Bouncer$const, e.x, e.y);
@@ -20215,7 +20528,8 @@ function split2(enemies, from) {
             spawn_grace,
             _record.linked,
             _record.guard,
-            _record.risen
+            _record.risen,
+            _record.elite
           );
         }, "child");
         return [
@@ -20257,7 +20571,8 @@ function split2(enemies, from) {
                   e.grace,
                   e.linked,
                   e.guard,
-                  e.risen
+                  e.risen,
+                  e.elite
                 ),
                 out2
               )
@@ -25948,6 +26263,10 @@ var zone_names = /* @__PURE__ */ prepend(
 );
 var xp_per_level = 15;
 var no_dash = -1;
+var elite_chance = /* @__PURE__ */ prepend(
+  0,
+  prepend(0.35, prepend(0.5, prepend(0.65, List$Empty$const)))
+);
 var pace_tenths = 25;
 var boss_hp = /* @__PURE__ */ prepend(
   1e3,
@@ -26146,6 +26465,127 @@ function xp_needed(lvl) {
   return xp_per_level * lvl;
 }
 __name(xp_needed, "xp_needed");
+function elite_pool(depth) {
+  let $ = zone_at(depth);
+  if ($ === 0) {
+    return List$Empty$const;
+  } else if ($ === 1) {
+    return prepend(Elite$Swift$const, List$Empty$const);
+  } else if ($ === 2) {
+    return prepend(
+      Elite$Swift$const,
+      prepend(Elite$Splitting$const, List$Empty$const)
+    );
+  } else {
+    return prepend(
+      Elite$Swift$const,
+      prepend(
+        Elite$Splitting$const,
+        prepend(Elite$Thorned$const, List$Empty$const)
+      )
+    );
+  }
+}
+__name(elite_pool, "elite_pool");
+function make_elite(enemies, seed, depth) {
+  let fights = depth > 0 && !is_boss(depth) && !is_rest(depth);
+  let _block;
+  let $ = drop(elite_chance, zone_at(depth));
+  if ($ instanceof Empty) {
+    _block = 0;
+  } else {
+    let c = $.head;
+    _block = c;
+  }
+  let chance = _block;
+  let pool2 = elite_pool(depth);
+  let _block$1;
+  let _pipe = filter(
+    enemies,
+    (e) => {
+      return can_be_elite(e.kind);
+    }
+  );
+  _block$1 = map3(_pipe, (e) => {
+    return e.id;
+  });
+  let picks = _block$1;
+  let _block$2;
+  let _pipe$1 = absolute_value(seed * 31 + depth * 7919) % 2147483646 + 1;
+  let _pipe$2 = next(_pipe$1);
+  _block$2 = next(_pipe$2);
+  let seed$1 = _block$2;
+  let $1 = unit(seed$1);
+  let seed$2 = $1[0];
+  let roll2 = $1[1];
+  let $2 = unit(seed$2);
+  let seed$3 = $2[0];
+  let which = $2[1];
+  let $3 = unit(seed$3);
+  let mod = $3[1];
+  let nth2 = /* @__PURE__ */ __name((xs2, u2) => {
+    let _pipe$3 = drop(
+      xs2,
+      truncate(u2 * identity(length(xs2)))
+    );
+    return first(_pipe$3);
+  }, "nth");
+  let $4 = fights && roll2 < chance;
+  let $5 = nth2(picks, which);
+  let $6 = nth2(pool2, mod);
+  if ($4 && $5 instanceof Ok && $6 instanceof Ok) {
+    let id2 = $5[0];
+    let elite = $6[0];
+    return map3(
+      enemies,
+      (e) => {
+        let $7 = e.id === id2;
+        if ($7) {
+          return new Enemy(
+            e.id,
+            e.kind,
+            e.x,
+            e.y,
+            e.vx,
+            e.vy,
+            e.home_x,
+            e.home_y,
+            e.facing,
+            e.grounded,
+            e.wall,
+            e.hp,
+            e.max_hp,
+            e.respawn,
+            e.flash,
+            e.mode,
+            e.cooldown,
+            e.pattern,
+            e.awake,
+            e.tier,
+            e.ail,
+            e.robbed,
+            e.ward,
+            e.stroll,
+            e.seed,
+            e.tether,
+            e.mend,
+            e.dead,
+            e.grace,
+            e.linked,
+            e.guard,
+            e.risen,
+            elite
+          );
+        } else {
+          return e;
+        }
+      }
+    );
+  } else {
+    return enemies;
+  }
+}
+__name(make_elite, "make_elite");
 function cursed(p2, kind) {
   return any(p2.curses, (c) => {
     return isEqual(c.kind, kind);
@@ -26370,7 +26810,7 @@ function load(world2, t2, depth) {
   let _pipe$1 = take(_pipe, count2);
   let _pipe$2 = append(_pipe$1, roamers);
   let _pipe$3 = append(_pipe$2, support(t2, depth, count2));
-  _block$4 = index_map(
+  let _pipe$4 = index_map(
     _pipe$3,
     (s, i) => {
       let e = spawn(i + 1, s[2], s[0], s[1]);
@@ -26410,7 +26850,8 @@ function load(world2, t2, depth) {
           e.grace,
           e.linked,
           e.guard,
-          e.risen
+          e.risen,
+          e.elite
         );
       } else {
         let e$1 = promote(
@@ -26450,11 +26891,13 @@ function load(world2, t2, depth) {
           e$1.grace,
           e$1.linked,
           e$1.guard,
-          e$1.risen
+          e$1.risen,
+          e$1.elite
         );
       }
     }
   );
+  _block$4 = make_elite(_pipe$4, world2.seed, depth);
   let enemies = _block$4;
   return new World(
     map3(
@@ -27009,7 +27452,8 @@ function hold_grace(world2, dt2) {
             max3(e.grace, dt2 + 2e-3),
             e.linked,
             e.guard,
-            e.risen
+            e.risen,
+            e.elite
           );
         } else {
           return e;
@@ -28064,15 +28508,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      4393,
+      4468,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 141290,
-        end: 141340,
-        pattern_start: 141301,
-        pattern_end: 141308
+        start: 144115,
+        end: 144165,
+        pattern_start: 144126,
+        pattern_end: 144133
       }
     );
   } else {
@@ -29811,7 +30255,8 @@ function steal(world2) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             )
           ];
         } else {
@@ -30819,15 +31264,15 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        1690,
+        1710,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $22,
-          start: 51082,
-          end: 51138,
-          pattern_start: 51093,
-          pattern_end: 51098
+          start: 51905,
+          end: 51961,
+          pattern_start: 51916,
+          pattern_end: 51921
         }
       );
     }
@@ -32073,6 +32518,63 @@ function strikes_act(world2, me3, dt2) {
   );
 }
 __name(strikes_act, "strikes_act");
+function pricked(world2, targets) {
+  let p2 = player(world2);
+  let thorny = filter(
+    targets,
+    (e) => {
+      return present(e) && thorns(e) > 0;
+    }
+  );
+  let worst = sort(
+    thorny,
+    (a, b) => {
+      return compare(thorns(b), thorns(a));
+    }
+  );
+  let safe = p2.invuln > 0 || p2.dash_time > 0 - dash_grace || p2.hp <= 0;
+  if (worst instanceof Empty) {
+    return world2;
+  } else if (!safe) {
+    let e = worst.head;
+    let _pipe = hurt(world2, thorns(e), e.x);
+    return ((w2) => {
+      return new World(
+        w2.players,
+        w2.level,
+        w2.enemies,
+        w2.projectiles,
+        w2.strikes,
+        append(
+          w2.events,
+          prepend(new Said("Thorns"), List$Empty$const)
+        ),
+        w2.depth,
+        w2.cleared,
+        w2.doors,
+        w2.exits,
+        w2.seed,
+        w2.tree,
+        w2.unlocked,
+        w2.npcs,
+        w2.time,
+        w2.kills,
+        w2.room_time,
+        w2.safe_x,
+        w2.sealed,
+        w2.plan,
+        w2.difficulty,
+        w2.hard_open,
+        w2.danger,
+        w2.drops,
+        w2.rerolls
+      );
+    })(_pipe);
+  } else {
+    return world2;
+  }
+}
+__name(pricked, "pricked");
 function quickdrawn(p2) {
   return p2.quick && has2(p2, Rule$Quickdraw$const);
 }
@@ -32556,7 +33058,7 @@ function strike(world2, a, box3) {
     );
     let _pipe$4 = afflict2(_pipe$3, ids, inflicts(p$3.weapon));
     let _pipe$5 = envenom2(_pipe$4, ids, p$3, dmg$1);
-    return afflict2(
+    let _pipe$6 = afflict2(
       _pipe$5,
       ids,
       (() => {
@@ -32567,6 +33069,7 @@ function strike(world2, a, box3) {
         }
       })()
     );
+    return pricked(_pipe$6, targets);
   }
 }
 __name(strike, "strike");
@@ -33083,7 +33586,8 @@ function off_the_roof(world2) {
               e.grace,
               e.linked,
               e.guard,
-              e.risen
+              e.risen,
+              e.elite
             );
           } else {
             return e;
@@ -33165,7 +33669,8 @@ function enemies_act(world2, dt2) {
           e.grace,
           e.linked,
           e.guard,
-          e.risen
+          e.risen,
+          e.elite
         );
       } else {
         _block2 = e;
@@ -33211,7 +33716,8 @@ function enemies_act(world2, dt2) {
                 e$1.grace,
                 e$1.linked,
                 e$1.guard,
-                e$1.risen
+                e$1.risen,
+                e$1.elite
               );
             } else if ($32 instanceof Charging) {
               return new Enemy(
@@ -33246,7 +33752,8 @@ function enemies_act(world2, dt2) {
                 e$1.grace,
                 e$1.linked,
                 e$1.guard,
-                e$1.risen
+                e$1.risen,
+                e$1.elite
               );
             } else {
               return e$1;
@@ -33309,7 +33816,8 @@ function enemies_act(world2, dt2) {
           next$1.grace,
           next$1.linked,
           next$1.guard,
-          next$1.risen
+          next$1.risen,
+          next$1.elite
         );
       } else {
         _block$2 = next$1;
@@ -33356,7 +33864,8 @@ function enemies_act(world2, dt2) {
             next$2.grace,
             next$2.linked,
             next$2.guard,
-            next$2.risen
+            next$2.risen,
+            next$2.elite
           );
         } else {
           _block$3 = next$2;
@@ -37495,15 +38004,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        4251,
+        4326,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 136561,
-          end: 136612,
-          pattern_start: 136572,
-          pattern_end: 136580
+          start: 139386,
+          end: 139437,
+          pattern_start: 139397,
+          pattern_end: 139405
         }
       );
     }
@@ -37515,15 +38024,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        4253,
+        4328,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 136695,
-          end: 136756,
-          pattern_start: 136706,
-          pattern_end: 136723
+          start: 139520,
+          end: 139581,
+          pattern_start: 139531,
+          pattern_end: 139548
         }
       );
     } else {
@@ -37533,15 +38042,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          4253,
+          4328,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 136695,
-            end: 136756,
-            pattern_start: 136706,
-            pattern_end: 136723
+            start: 139520,
+            end: 139581,
+            pattern_start: 139531,
+            pattern_end: 139548
           }
         );
       } else {
@@ -39086,6 +39595,7 @@ window.game = { get world() {
 }, set world(w2) {
   world = w2;
 }, sounds: played };
+window.game.elites = { Swift, Thorned, Splitting };
 var box2 = /* @__PURE__ */ __name((w2, h, color, opts = {}) => new Bs(new ks(w2, h, 1), new es({ color, ...opts })), "box");
 var player2 = box2(width, height, 16777215);
 scene.add(player2);
@@ -40191,6 +40701,15 @@ function diggerMarks(e, ex, ey, w2, h, tall, marks, now) {
   }
 }
 __name(diggerMarks, "diggerMarks");
+var ELITE_BADGE = 0.55;
+function eliteMarks(e, ex, ey, h, wide, tall, barW, marks, now) {
+  const name3 = e.elite.constructor.name, aura = `aura${name3}`;
+  const cy = artOf(e).flies ? ey + h / 2 : ey + tall / 2;
+  const beat = calm ? 1 : 0.85 + 0.15 * Math.sin(now / 260 + e.id), r = Math.max(wide, tall) * 1.5 * beat;
+  marks.push({ art: aura, x: ex, y: cy, w: r, h: r, z: 0.53 - Object.keys(ART).indexOf(aura) * 0.02 });
+  marks.push({ art: `elite${name3}`, x: ex - barW / 2 - ELITE_BADGE / 2 - 0.05, y: ey + h + 0.3, w: ELITE_BADGE, h: ELITE_BADGE });
+}
+__name(eliteMarks, "eliteMarks");
 function menderMarks(e, ex, ey, w2, h, tall, marks, now) {
   const bob = calm ? 0 : Math.sin(now / 300 + e.id) * 0.08;
   marks.push({ art: "mend", x: ex, y: ey + tall + 0.35 + bob, w: 0.42, h: 0.42 });
@@ -40529,6 +41048,29 @@ var ART = {
     g.stroke();
     blob(g, 36, 48, 9, "#3b2b25");
     blob(g, 60, 48, 9, "#3b2b25");
+  }),
+  // elites (TRIP-19): a soft glow of the modifier's colour, and its mark (`eliteMarks`)
+  ...Object.fromEntries(Object.entries({ Swift: "95,208,255", Thorned: "232,72,79", Splitting: "192,124,255" }).map(([name3, rgb]) => [`aura${name3}`, drawn((g) => {
+    const glow = g.createRadialGradient(48, 48, 6, 48, 48, 47);
+    glow.addColorStop(0, `rgba(${rgb},0.85)`);
+    glow.addColorStop(0.55, `rgba(${rgb},0.5)`);
+    glow.addColorStop(1, `rgba(${rgb},0)`);
+    g.fillStyle = glow;
+    g.fillRect(0, 0, 96, 96);
+  })])),
+  eliteSwift: drawn((g) => {
+    for (const x of [0, 34]) shape(g, [[8 + x, 14], [30 + x, 14], [58 + x, 48], [30 + x, 82], [8 + x, 82], [36 + x, 48]], "#5fd0ff");
+  }),
+  eliteThorned: drawn((g) => {
+    shape(g, star2(9, 48, 48, 46, 24), "#e8484f");
+    blob(g, 48, 48, 12, "#ffd0d0");
+  }),
+  eliteSplitting: drawn((g) => {
+    blob(g, 38, 54, 32, "#c07cff");
+    g.stroke();
+    blob(g, 76, 26, 16, "#c07cff");
+    g.stroke();
+    blob(g, 30, 46, 8, "#ecdcff");
   }),
   // warded by a hexer (magic does half): a violet shield
   Ward: drawn((g) => {
@@ -40923,7 +41465,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "a264d9565b7e" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "e49367a0f6de" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -41358,7 +41900,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "a264d9565b7e" : "dev";
+var BUILD = true ? "e49367a0f6de" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
@@ -41637,7 +42179,8 @@ function frame(now) {
     const old = same ? was.enemies.get(e.id) : null;
     const ex = old ? between2(old.x, e.x, part) : e.x, ey = old ? between2(old.y, e.y, part) : e.y;
     const pose = enemyPose(e, now, frameDt);
-    const img = body2.material.map.image, wide = w2 * artOf(e).wide, tall = (img ? wide * img.height / img.width : wide) * pose.sy;
+    const small2 = e.elite.constructor.name === "Splinter" ? 0.7 : 1;
+    const img = body2.material.map.image, wide = w2 * artOf(e).wide * small2, tall = (img ? wide * img.height / img.width : wide) * pose.sy;
     body2.scale.set(wide * pose.sx * (e.facing > 0 ? -1 : 1), tall, 1);
     body2.rotation.z = pose.tilt;
     if (lying) body2.position.set(ex, ey + wide * pose.sx / 2 - 0.08, 0.35);
@@ -41675,6 +42218,7 @@ function frame(now) {
     if (e.hp > 0 && kind === "Linker") linkerMarks(e, ex, ey, w2, h, tall, marks, now);
     if (e.hp > 0 && kind === "Totem") totemMarks(e, ex, ey, h, marks);
     if (e.hp > 0 && kind === "Gravedigger") diggerMarks(e, ex, ey, w2, h, tall, marks, now);
+    if (e.hp > 0 && is_elite(e)) eliteMarks(e, ex, ey, h, wide, tall, barW, marks, now);
     if (!e.awake) body2.material.color.multiplyScalar(0.45);
     body2.material.opacity = gone ? pose.fade : 1;
     if (lying) body2.material.color.set(9407126);
