@@ -17729,7 +17729,7 @@ function spawn2(effect, px, py, base, b, aim, facing) {
       aim
     );
   } else if (effect instanceof Orb) {
-    let d2 = 0.5 * b.reach;
+    let d2 = 0.5 * (1 + (b.reach - 1) / 4);
     let count2 = 1 + b.level;
     return map3(
       upto(0, count2 - 1),
@@ -31911,7 +31911,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "9eb8ef08311c" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -32174,7 +32174,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "a2bf62eeb51e" : "dev";
+var BUILD = true ? "9eb8ef08311c" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
