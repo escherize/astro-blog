@@ -18179,8 +18179,9 @@ var Boost = class extends CustomType {
 var orbit_squash = 0.35;
 var orbit_radius = 1.8;
 var middle = 0.75;
-var arrow_ttl = 0.8;
+var arrow_ttl = 1.2;
 var arrow_speed = 22;
+var arrow_lift = 0.13;
 var burst_gap = 0.1;
 var firebolt_ttl = 1.2;
 var firebolt_fall = 20;
@@ -18198,6 +18199,7 @@ var rush_time = 10;
 var jump_recharge = 0.6;
 var firebolt_wait = 0.5;
 var firebolt_blast = 6;
+var arrow_gravity = 16;
 var caltrops_bite = 1;
 var orbit_speed = 3.9;
 var arrow_far = 6;
@@ -18419,16 +18421,25 @@ function spawn2(effect, px, py, base, b, aim, facing) {
       aim
     );
   } else if (effect instanceof Arrow) {
+    let level = absolute_value2(aim[1]) <= absolute_value2(aim[0]);
     let _block;
-    let $1 = absolute_value2(aim[1]) > absolute_value2(aim[0]);
-    if ($1) {
-      _block = [0.15, 0.7];
-    } else {
+    if (level) {
       _block = [0.7, 0.15];
+    } else {
+      _block = [0.15, 0.7];
     }
     let $ = _block;
     let w2 = $[0];
     let h = $[1];
+    let _block$1;
+    if (level) {
+      let c = cos(arrow_lift);
+      let s = sign2(aim[0]) * sin(arrow_lift);
+      _block$1 = [aim[0] * c - aim[1] * s, aim[0] * s + aim[1] * c];
+    } else {
+      _block$1 = aim;
+    }
+    let aim$1 = _block$1;
     return volley(
       effect,
       px,
@@ -18440,7 +18451,7 @@ function spawn2(effect, px, py, base, b, aim, facing) {
       dmg(1),
       shots,
       b,
-      aim
+      aim$1
     );
   } else if (effect instanceof Orb) {
     let d2 = 0.5 * (1 + (b.reach - 1) / 4);
@@ -18755,8 +18766,11 @@ function advance(s, dt2) {
     let hit = _block;
     let _block$1;
     let $3 = lobbed(s);
+    let $4 = s.effect;
     if ($3) {
       _block$1 = s.vy - gravity * dt2;
+    } else if ($4 instanceof Arrow) {
+      _block$1 = s.vy - arrow_gravity * dt2;
     } else {
       _block$1 = s.vy;
     }
@@ -18776,8 +18790,8 @@ function advance(s, dt2) {
       hit,
       s.wait
     );
-    let $4 = s$1.ttl > 0;
-    if ($4) {
+    let $5 = s$1.ttl > 0;
+    if ($5) {
       return new Ok(s$1);
     } else {
       return new Error2(void 0);
@@ -33474,7 +33488,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "b0b7618d7937" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "e9105f5329db" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -33738,7 +33752,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "b0b7618d7937" : "dev";
+var BUILD = true ? "e9105f5329db" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
