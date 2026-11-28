@@ -11162,6 +11162,40 @@ function sum(numbers) {
   return sum_loop(numbers, 0);
 }
 __name(sum, "sum");
+function range_loop(loop$current, loop$stop, loop$increment, loop$acc, loop$reducer) {
+  while (true) {
+    let current = loop$current;
+    let stop = loop$stop;
+    let increment = loop$increment;
+    let acc2 = loop$acc;
+    let reducer = loop$reducer;
+    let $ = current === stop;
+    if ($) {
+      return acc2;
+    } else {
+      let acc$1 = reducer(acc2, current);
+      let current$1 = current + increment;
+      loop$current = current$1;
+      loop$stop = stop;
+      loop$increment = increment;
+      loop$acc = acc$1;
+      loop$reducer = reducer;
+    }
+  }
+}
+__name(range_loop, "range_loop");
+function range(start, stop, acc2, reducer) {
+  let _block;
+  let $ = start < stop;
+  if ($) {
+    _block = 1;
+  } else {
+    _block = -1;
+  }
+  let increment = _block;
+  return range_loop(start, stop, increment, acc2, reducer);
+}
+__name(range, "range");
 
 // build/dev/javascript/gleam_stdlib/gleam/list.mjs
 var Continue = class extends CustomType {
@@ -12571,6 +12605,24 @@ function normalize(x, y2) {
 }
 __name(normalize, "normalize");
 
+// build/dev/javascript/triangle_platformer/rng.mjs
+function next(seed) {
+  return seed * 48271 % 2147483647;
+}
+__name(next, "next");
+function unit(seed) {
+  let s = next(seed);
+  return [s, identity(s) / 2147483647];
+}
+__name(unit, "unit");
+function between(seed, lo2, hi2) {
+  let $ = unit(seed);
+  let s = $[0];
+  let u2 = $[1];
+  return [s, lo2 + u2 * (hi2 - lo2)];
+}
+__name(between, "between");
+
 // build/dev/javascript/triangle_platformer/trig.mjs
 var pio2_3 = 20222662487111665e-37;
 var pio2_2 = 6077100506303966e-26;
@@ -12857,20 +12909,21 @@ var Ailments = class extends CustomType {
   static {
     __name(this, "Ailments");
   }
-  constructor(chill, root, weak, poison, stun) {
+  constructor(chill, root, weak, poison, stun, stacks) {
     super();
     this.chill = chill;
     this.root = root;
     this.weak = weak;
     this.poison = poison;
     this.stun = stun;
+    this.stacks = stacks;
   }
 };
 var Enemy = class extends CustomType {
   static {
     __name(this, "Enemy");
   }
-  constructor(id2, kind, x, y2, vx, vy, home_x, home_y, facing, grounded, wall, hp2, max_hp4, respawn, flash, mode, cooldown, pattern, awake, tier, ail, robbed, ward) {
+  constructor(id2, kind, x, y2, vx, vy, home_x, home_y, facing, grounded, wall, hp2, max_hp4, respawn, flash, mode, cooldown, pattern, awake, tier, ail, robbed, ward, stroll, seed) {
     super();
     this.id = id2;
     this.kind = kind;
@@ -12895,6 +12948,8 @@ var Enemy = class extends CustomType {
     this.ail = ail;
     this.robbed = robbed;
     this.ward = ward;
+    this.stroll = stroll;
+    this.seed = seed;
   }
 };
 var Projectile = class extends CustomType {
@@ -12924,12 +12979,18 @@ var Magic = class extends CustomType {
   }
 };
 var Element$Magic$const = new Magic();
+var poison_cap = 5;
 var shot_damage = 8;
 var boss_rest = 1;
 var boss_charge_speed = 11;
 var boss_walk = 2.5;
 var boss_windup = 0.7;
+var stroll_walk = [0.8, 2.2];
+var stroll_speed = 1.2;
+var stroll_pause = [0.7, 2];
+var stroll_leash = 3;
 var shooter_back = 3;
+var ledge_walk = 2.5;
 var fire_windup = 0.4;
 var hex_windup = 0.7;
 var fan_spread = 0.25;
@@ -12939,6 +13000,8 @@ var fire_cooldown = 1.8;
 var hex_cooldown = 3.2;
 var hex_recover = 1.2;
 var hex_speed = 6;
+var shot_size = 0.4;
+var ledge_reach = 8;
 var shooter_leash = 4;
 var shooter_shy = 3.5;
 var shooter_range = 12;
@@ -12959,8 +13022,21 @@ var flyer_sight = 9;
 var stun_time = 0.25;
 var ward_time = 4;
 var ward_reach = 6;
-var shot_size = 0.4;
 var hex_turn = 1.4;
+function poison_bite(e) {
+  let _block;
+  let $ = e.kind;
+  if ($ instanceof Boss) {
+    _block = globalThis.Math.trunc(e.max_hp / 200);
+  } else {
+    _block = globalThis.Math.trunc(e.max_hp * 2 / 100);
+  }
+  let share = _block;
+  let share$1 = identity(max(1, share));
+  let k2 = 1 + 0.5 * identity(max(0, e.ail.stacks - 1));
+  return max(1, round(share$1 * k2));
+}
+__name(poison_bite, "poison_bite");
 function max_hp(kind) {
   if (kind instanceof Dummy) {
     return 40;
@@ -12983,6 +13059,12 @@ function max_hp(kind) {
 __name(max_hp, "max_hp");
 function spawn(id2, kind, x, y2) {
   let hp2 = max_hp(kind);
+  let seed = absolute_value(
+    id2 * 7919 + round(x * 13 + y2 * 7)
+  ) % 2147483646 + 1;
+  let $ = between(seed, 0.2, 1.6);
+  let seed$1 = $[0];
+  let pause = $[1];
   return new Enemy(
     id2,
     kind,
@@ -13004,9 +13086,11 @@ function spawn(id2, kind, x, y2) {
     0,
     kind instanceof Flyer || kind instanceof Wisp || kind instanceof Bouncer || kind instanceof Dummy,
     1,
-    new Ailments(0, 0, 0, 0, 0),
+    new Ailments(0, 0, 0, 0, 0, 0),
     false,
-    0
+    0,
+    0 - pause,
+    seed$1
   );
 }
 __name(spawn, "spawn");
@@ -13021,7 +13105,8 @@ function afflict(e, status, seconds) {
         a.root,
         a.weak,
         a.poison,
-        a.stun
+        a.stun,
+        a.stacks
       );
     } else {
       _block = new Ailments(
@@ -13029,7 +13114,8 @@ function afflict(e, status, seconds) {
         a.root,
         a.weak,
         a.poison,
-        a.stun
+        a.stun,
+        a.stacks
       );
     }
   } else if (status instanceof Root) {
@@ -13041,7 +13127,8 @@ function afflict(e, status, seconds) {
         max3(a.root, seconds),
         a.weak,
         a.poison,
-        a.stun
+        a.stun,
+        a.stacks
       );
     }
   } else if (status instanceof Weak) {
@@ -13050,7 +13137,8 @@ function afflict(e, status, seconds) {
       a.root,
       max3(a.weak, seconds),
       a.poison,
-      a.stun
+      a.stun,
+      a.stacks
     );
   } else if (status instanceof Poison) {
     _block = new Ailments(
@@ -13058,7 +13146,8 @@ function afflict(e, status, seconds) {
       a.root,
       a.weak,
       max3(a.poison, seconds),
-      a.stun
+      a.stun,
+      min(poison_cap, a.stacks + 1)
     );
   } else if ($ instanceof Boss) {
     _block = a;
@@ -13068,7 +13157,8 @@ function afflict(e, status, seconds) {
       a.root,
       a.weak,
       a.poison,
-      max3(a.stun, seconds)
+      max3(a.stun, seconds),
+      a.stacks
     );
   }
   let ail = _block;
@@ -13095,7 +13185,9 @@ function afflict(e, status, seconds) {
     e.tier,
     ail,
     e.robbed,
-    e.ward
+    e.ward,
+    e.stroll,
+    e.seed
   );
 }
 __name(afflict, "afflict");
@@ -13166,7 +13258,9 @@ function promote(e, tier) {
     tier,
     e.ail,
     e.robbed,
-    e.ward
+    e.ward,
+    e.stroll,
+    e.seed
   );
 }
 __name(promote, "promote");
@@ -13388,7 +13482,9 @@ function fall(e, level, dt2) {
     e.tier,
     e.ail,
     e.robbed,
-    e.ward
+    e.ward,
+    e.stroll,
+    e.seed
   );
 }
 __name(fall, "fall");
@@ -13460,7 +13556,9 @@ function boss(e, level, px, py, dt2) {
           e.tier,
           e.ail,
           e.robbed,
-          e.ward
+          e.ward,
+          e.stroll,
+          e.seed
         ),
         List$Empty$const
       ];
@@ -13489,7 +13587,9 @@ function boss(e, level, px, py, dt2) {
           e.tier,
           e.ail,
           e.robbed,
-          e.ward
+          e.ward,
+          e.stroll,
+          e.seed
         ),
         List$Empty$const
       ];
@@ -13524,7 +13624,9 @@ function boss(e, level, px, py, dt2) {
             e.tier,
             e.ail,
             e.robbed,
-            e.ward
+            e.ward,
+            e.stroll,
+            e.seed
           ),
           List$Empty$const
         ];
@@ -13576,7 +13678,9 @@ function boss(e, level, px, py, dt2) {
             e.tier,
             e.ail,
             e.robbed,
-            e.ward
+            e.ward,
+            e.stroll,
+            e.seed
           ),
           shots
         ];
@@ -13606,7 +13710,9 @@ function boss(e, level, px, py, dt2) {
             e.tier,
             e.ail,
             e.robbed,
-            e.ward
+            e.ward,
+            e.stroll,
+            e.seed
           ),
           List$Empty$const
         ];
@@ -13636,7 +13742,9 @@ function boss(e, level, px, py, dt2) {
           e.tier,
           e.ail,
           e.robbed,
-          e.ward
+          e.ward,
+          e.stroll,
+          e.seed
         ),
         List$Empty$const
       ];
@@ -13669,7 +13777,9 @@ function boss(e, level, px, py, dt2) {
           e.tier,
           e.ail,
           e.robbed,
-          e.ward
+          e.ward,
+          e.stroll,
+          e.seed
         ),
         List$Empty$const
       ];
@@ -13698,7 +13808,9 @@ function boss(e, level, px, py, dt2) {
           e.tier,
           e.ail,
           e.robbed,
-          e.ward
+          e.ward,
+          e.stroll,
+          e.seed
         ),
         List$Empty$const
       ];
@@ -13731,7 +13843,9 @@ function boss(e, level, px, py, dt2) {
           e.tier,
           e.ail,
           e.robbed,
-          e.ward
+          e.ward,
+          e.stroll,
+          e.seed
         ),
         List$Empty$const
       ];
@@ -13760,7 +13874,9 @@ function boss(e, level, px, py, dt2) {
           e.tier,
           e.ail,
           e.robbed,
-          e.ward
+          e.ward,
+          e.stroll,
+          e.seed
         ),
         List$Empty$const
       ];
@@ -13790,7 +13906,9 @@ function boss(e, level, px, py, dt2) {
         e.tier,
         e.ail,
         e.robbed,
-        e.ward
+        e.ward,
+        e.stroll,
+        e.seed
       ),
       List$Empty$const
     ];
@@ -13833,7 +13951,9 @@ function boss(e, level, px, py, dt2) {
           e.tier,
           e.ail,
           e.robbed,
-          e.ward
+          e.ward,
+          e.stroll,
+          e.seed
         ),
         prepend(wave(1), prepend(wave(-1), List$Empty$const))
       ];
@@ -13862,7 +13982,9 @@ function boss(e, level, px, py, dt2) {
           e.tier,
           e.ail,
           e.robbed,
-          e.ward
+          e.ward,
+          e.stroll,
+          e.seed
         ),
         List$Empty$const
       ];
@@ -13870,6 +13992,200 @@ function boss(e, level, px, py, dt2) {
   }
 }
 __name(boss, "boss");
+function wander(e, level, dt2) {
+  let $ = size2(e.kind);
+  let w2 = $[0];
+  let open = /* @__PURE__ */ __name((dir) => {
+    return e.grounded && e.wall !== dir && (e.x - e.home_x) * dir < stroll_leash && ground_at(
+      level,
+      e.x + dir * (w2 / 2 + 0.1),
+      e.y
+    );
+  }, "open");
+  let pause = /* @__PURE__ */ __name((e2, facing) => {
+    let $12 = between(e2.seed, stroll_pause[0], stroll_pause[1]);
+    let seed = $12[0];
+    let t2 = $12[1];
+    return new Enemy(
+      e2.id,
+      e2.kind,
+      e2.x,
+      e2.y,
+      0,
+      e2.vy,
+      e2.home_x,
+      e2.home_y,
+      facing,
+      e2.grounded,
+      e2.wall,
+      e2.hp,
+      e2.max_hp,
+      e2.respawn,
+      e2.flash,
+      e2.mode,
+      e2.cooldown,
+      e2.pattern,
+      e2.awake,
+      e2.tier,
+      e2.ail,
+      e2.robbed,
+      e2.ward,
+      0 - t2,
+      seed
+    );
+  }, "pause");
+  let $1 = e.stroll > 0;
+  if ($1) {
+    let stroll = e.stroll - dt2;
+    let $2 = stroll > 0;
+    let $3 = e.grounded && open(e.facing);
+    if ($2) {
+      if ($3) {
+        return new Enemy(
+          e.id,
+          e.kind,
+          e.x,
+          e.y,
+          e.facing * stroll_speed,
+          e.vy,
+          e.home_x,
+          e.home_y,
+          e.facing,
+          e.grounded,
+          e.wall,
+          e.hp,
+          e.max_hp,
+          e.respawn,
+          e.flash,
+          e.mode,
+          e.cooldown,
+          e.pattern,
+          e.awake,
+          e.tier,
+          e.ail,
+          e.robbed,
+          e.ward,
+          stroll,
+          e.seed
+        );
+      } else {
+        return pause(e, negate(e.facing));
+      }
+    } else {
+      return pause(e, e.facing);
+    }
+  } else {
+    let stroll = e.stroll + dt2;
+    let $2 = stroll < 0 || !e.grounded;
+    if ($2) {
+      return new Enemy(
+        e.id,
+        e.kind,
+        e.x,
+        e.y,
+        0,
+        e.vy,
+        e.home_x,
+        e.home_y,
+        e.facing,
+        e.grounded,
+        e.wall,
+        e.hp,
+        e.max_hp,
+        e.respawn,
+        e.flash,
+        e.mode,
+        e.cooldown,
+        e.pattern,
+        e.awake,
+        e.tier,
+        e.ail,
+        e.robbed,
+        e.ward,
+        min2(stroll, 0),
+        e.seed
+      );
+    } else {
+      let $3 = unit(e.seed);
+      let seed = $3[0];
+      let u2 = $3[1];
+      let $4 = between(seed, stroll_walk[0], stroll_walk[1]);
+      let seed$1 = $4[0];
+      let t2 = $4[1];
+      let turned = negate(e.facing);
+      let _block;
+      let $5 = u2 < 0.5 && open(turned) || !open(e.facing);
+      if ($5) {
+        _block = turned;
+      } else {
+        _block = e.facing;
+      }
+      let dir = _block;
+      let $6 = open(dir);
+      if ($6) {
+        return new Enemy(
+          e.id,
+          e.kind,
+          e.x,
+          e.y,
+          0,
+          e.vy,
+          e.home_x,
+          e.home_y,
+          dir,
+          e.grounded,
+          e.wall,
+          e.hp,
+          e.max_hp,
+          e.respawn,
+          e.flash,
+          e.mode,
+          e.cooldown,
+          e.pattern,
+          e.awake,
+          e.tier,
+          e.ail,
+          e.robbed,
+          e.ward,
+          t2,
+          seed$1
+        );
+      } else {
+        return pause(
+          new Enemy(
+            e.id,
+            e.kind,
+            e.x,
+            e.y,
+            e.vx,
+            e.vy,
+            e.home_x,
+            e.home_y,
+            e.facing,
+            e.grounded,
+            e.wall,
+            e.hp,
+            e.max_hp,
+            e.respawn,
+            e.flash,
+            e.mode,
+            e.cooldown,
+            e.pattern,
+            e.awake,
+            e.tier,
+            e.ail,
+            e.robbed,
+            e.ward,
+            e.stroll,
+            seed$1
+          ),
+          e.facing
+        );
+      }
+    }
+  }
+}
+__name(wander, "wander");
 function countdown(e, t2, dt2, mode) {
   let $ = t2 - dt2 <= 0;
   if ($) {
@@ -13896,7 +14212,9 @@ function countdown(e, t2, dt2, mode) {
       e.tier,
       e.ail,
       e.robbed,
-      e.ward
+      e.ward,
+      e.stroll,
+      e.seed
     );
   } else {
     return new Enemy(
@@ -13922,11 +14240,68 @@ function countdown(e, t2, dt2, mode) {
       e.tier,
       e.ail,
       e.robbed,
-      e.ward
+      e.ward,
+      e.stroll,
+      e.seed
     );
   }
 }
 __name(countdown, "countdown");
+function far(dx, dy) {
+  let $ = square_root(dx * dx + dy * dy);
+  if ($ instanceof Ok) {
+    let d2 = $[0];
+    return d2;
+  } else {
+    return 0;
+  }
+}
+__name(far, "far");
+function clear_line(level, ax, ay, bx, by) {
+  let solids = filter(level, (r) => {
+    return !r.one_way;
+  });
+  let steps = truncate(far(bx - ax, by - ay) * 3) + 1;
+  return all(
+    (() => {
+      let _pipe = repeat(void 0, steps);
+      return index_map(_pipe, (_, i) => {
+        return i;
+      });
+    })(),
+    (i) => {
+      let k2 = divideFloat(identity(i), identity(steps));
+      let x = ax + (bx - ax) * k2;
+      let y2 = ay + (by - ay) * k2;
+      return !any(
+        solids,
+        (r) => {
+          return x > r.x && x < r.x + r.w && y2 > r.y && y2 < r.y + r.h;
+        }
+      );
+    }
+  );
+}
+__name(clear_line, "clear_line");
+function clear_shot(level, ax, ay, bx, by) {
+  let r = shot_size / 2;
+  return all(
+    prepend(
+      [r, r],
+      prepend(
+        [r, 0 - r],
+        prepend(
+          [0 - r, r],
+          prepend([0 - r, 0 - r], List$Empty$const)
+        )
+      )
+    ),
+    (d2) => {
+      return clear_line(level, ax + d2[0], ay + d2[1], bx + d2[0], by + d2[1]);
+    }
+  );
+}
+__name(clear_shot, "clear_shot");
 function shooter(e, level, px, py, dt2) {
   let $ = size2(e.kind);
   let w2 = $[0];
@@ -13963,7 +14338,9 @@ function shooter(e, level, px, py, dt2) {
     e.tier,
     e.ail,
     e.robbed,
-    e.ward
+    e.ward,
+    e.stroll,
+    e.seed
   );
   let away = negate(sign(dx));
   let shy = e$1.grounded && absolute_value2(dx) < shooter_shy && absolute_value2(
@@ -13973,20 +14350,39 @@ function shooter(e, level, px, py, dt2) {
     e$1.x + away * (w2 / 2 + 0.1),
     e$1.y
   );
-  let $1 = e$1.mode;
-  if ($1 instanceof Windup) {
-    let t2 = $1.t;
-    let $2 = t2 - dt2 <= 0;
-    if ($2) {
-      let $3 = size2(e$1.kind);
-      let h = $3[1];
-      let sy = e$1.y + h * 0.7;
-      let $4 = normalize(px - e$1.x, py - sy);
-      let nx = $4[0];
-      let ny = $4[1];
-      let $5 = e$1.kind;
-      if ($5 instanceof Hexer) {
-        let _block;
+  let $1 = size2(e$1.kind);
+  let h = $1[1];
+  let sy = e$1.y + h * 0.7;
+  let toward = sign(dx);
+  let ahead = e$1.x + toward * (w2 / 2 + 0.1);
+  let edge = !ground_at(level, ahead, e$1.y);
+  let below = py < e$1.y - 0.5;
+  let seek = e$1.kind instanceof Shooter && e$1.grounded && in_range && below && !edge && e$1.wall !== toward && (e$1.x - e$1.home_x) * toward < ledge_reach && !clear_shot(
+    level,
+    e$1.x,
+    sy,
+    px,
+    py
+  );
+  let $2 = e$1.mode;
+  if ($2 instanceof Windup) {
+    let t2 = $2.t;
+    let $3 = t2 - dt2 <= 0;
+    if ($3) {
+      let _block;
+      let $4 = e$1.kind instanceof Shooter && e$1.grounded && below && edge;
+      if ($4) {
+        _block = e$1.x + toward * 0.8;
+      } else {
+        _block = e$1.x;
+      }
+      let hand = _block;
+      let $5 = normalize(px - hand, py - sy);
+      let nx = $5[0];
+      let ny = $5[1];
+      let $6 = e$1.kind;
+      if ($6 instanceof Hexer) {
+        let _block$1;
         let _pipe = fan(
           e$1,
           sy,
@@ -13997,13 +14393,13 @@ function shooter(e, level, px, py, dt2) {
           0,
           prepend(0, List$Empty$const)
         );
-        _block = map3(
+        _block$1 = map3(
           _pipe,
           (s) => {
             return new Projectile(s.x, s.y, s.vx, s.vy, s.ttl, s.damage, true);
           }
         );
-        let hex = _block;
+        let hex = _block$1;
         return [
           new Enemy(
             e$1.id,
@@ -14028,15 +14424,17 @@ function shooter(e, level, px, py, dt2) {
             e$1.tier,
             e$1.ail,
             e$1.robbed,
-            e$1.ward
+            e$1.ward,
+            e$1.stroll,
+            e$1.seed
           ),
           hex
         ];
       } else {
-        let _block;
-        let $7 = e$1.tier >= 2;
-        if ($7) {
-          _block = [
+        let _block$1;
+        let $8 = e$1.tier >= 2;
+        if ($8) {
+          _block$1 = [
             prepend(
               -1,
               prepend(0, prepend(1, List$Empty$const))
@@ -14044,13 +14442,39 @@ function shooter(e, level, px, py, dt2) {
             fire_cooldown * 2
           ];
         } else {
-          _block = [prepend(0, List$Empty$const), fire_cooldown];
+          _block$1 = [prepend(0, List$Empty$const), fire_cooldown];
         }
-        let $6 = _block;
-        let angles = $6[0];
-        let cooldown = $6[1];
+        let $7 = _block$1;
+        let angles = $7[0];
+        let cooldown = $7[1];
         let shots = fan(
-          e$1,
+          new Enemy(
+            e$1.id,
+            e$1.kind,
+            hand,
+            e$1.y,
+            e$1.vx,
+            e$1.vy,
+            e$1.home_x,
+            e$1.home_y,
+            e$1.facing,
+            e$1.grounded,
+            e$1.wall,
+            e$1.hp,
+            e$1.max_hp,
+            e$1.respawn,
+            e$1.flash,
+            e$1.mode,
+            e$1.cooldown,
+            e$1.pattern,
+            e$1.awake,
+            e$1.tier,
+            e$1.ail,
+            e$1.robbed,
+            e$1.ward,
+            e$1.stroll,
+            e$1.seed
+          ),
           sy,
           nx,
           ny,
@@ -14083,7 +14507,9 @@ function shooter(e, level, px, py, dt2) {
             e$1.tier,
             e$1.ail,
             e$1.robbed,
-            e$1.ward
+            e$1.ward,
+            e$1.stroll,
+            e$1.seed
           ),
           shots
         ];
@@ -14113,13 +14539,15 @@ function shooter(e, level, px, py, dt2) {
           e$1.tier,
           e$1.ail,
           e$1.robbed,
-          e$1.ward
+          e$1.ward,
+          e$1.stroll,
+          e$1.seed
         ),
         List$Empty$const
       ];
     }
-  } else if ($1 instanceof Recover) {
-    let t2 = $1.t;
+  } else if ($2 instanceof Recover) {
+    let t2 = $2.t;
     return [
       countdown(
         new Enemy(
@@ -14145,7 +14573,9 @@ function shooter(e, level, px, py, dt2) {
           e$1.tier,
           e$1.ail,
           e$1.robbed,
-          e$1.ward
+          e$1.ward,
+          e$1.stroll,
+          e$1.seed
         ),
         t2,
         dt2,
@@ -14155,8 +14585,8 @@ function shooter(e, level, px, py, dt2) {
       ),
       List$Empty$const
     ];
-  } else if ($1 instanceof Stunned) {
-    let t2 = $1.t;
+  } else if ($2 instanceof Stunned) {
+    let t2 = $2.t;
     return [
       countdown(e$1, t2, dt2, (var0) => {
         return new Stunned(var0);
@@ -14164,8 +14594,8 @@ function shooter(e, level, px, py, dt2) {
       List$Empty$const
     ];
   } else {
-    let $2 = in_range && e$1.cooldown <= 0;
-    if ($2) {
+    let $3 = in_range && e$1.cooldown <= 0 && !seek;
+    if ($3) {
       return [
         new Enemy(
           e$1.id,
@@ -14185,8 +14615,8 @@ function shooter(e, level, px, py, dt2) {
           e$1.flash,
           new Windup(
             (() => {
-              let $3 = e$1.kind;
-              if ($3 instanceof Hexer) {
+              let $4 = e$1.kind;
+              if ($4 instanceof Hexer) {
                 return hex_windup;
               } else {
                 return fire_windup;
@@ -14199,7 +14629,40 @@ function shooter(e, level, px, py, dt2) {
           e$1.tier,
           e$1.ail,
           e$1.robbed,
-          e$1.ward
+          e$1.ward,
+          e$1.stroll,
+          e$1.seed
+        ),
+        List$Empty$const
+      ];
+    } else if (seek) {
+      return [
+        new Enemy(
+          e$1.id,
+          e$1.kind,
+          e$1.x,
+          e$1.y,
+          toward * ledge_walk,
+          e$1.vy,
+          e$1.home_x,
+          e$1.home_y,
+          toward,
+          e$1.grounded,
+          e$1.wall,
+          e$1.hp,
+          e$1.max_hp,
+          e$1.respawn,
+          e$1.flash,
+          Mode$Idle$const,
+          e$1.cooldown,
+          e$1.pattern,
+          e$1.awake,
+          e$1.tier,
+          e$1.ail,
+          e$1.robbed,
+          e$1.ward,
+          e$1.stroll,
+          e$1.seed
         ),
         List$Empty$const
       ];
@@ -14228,11 +14691,13 @@ function shooter(e, level, px, py, dt2) {
           e$1.tier,
           e$1.ail,
           e$1.robbed,
-          e$1.ward
+          e$1.ward,
+          e$1.stroll,
+          e$1.seed
         ),
         List$Empty$const
       ];
-    } else {
+    } else if (in_range) {
       return [
         new Enemy(
           e$1.id,
@@ -14257,7 +14722,44 @@ function shooter(e, level, px, py, dt2) {
           e$1.tier,
           e$1.ail,
           e$1.robbed,
-          e$1.ward
+          e$1.ward,
+          e$1.stroll,
+          e$1.seed
+        ),
+        List$Empty$const
+      ];
+    } else {
+      return [
+        wander(
+          new Enemy(
+            e$1.id,
+            e$1.kind,
+            e$1.x,
+            e$1.y,
+            e$1.vx,
+            e$1.vy,
+            e$1.home_x,
+            e$1.home_y,
+            e$1.facing,
+            e$1.grounded,
+            e$1.wall,
+            e$1.hp,
+            e$1.max_hp,
+            e$1.respawn,
+            e$1.flash,
+            Mode$Idle$const,
+            e$1.cooldown,
+            e$1.pattern,
+            e$1.awake,
+            e$1.tier,
+            e$1.ail,
+            e$1.robbed,
+            e$1.ward,
+            e$1.stroll,
+            e$1.seed
+          ),
+          level,
+          dt2
         ),
         List$Empty$const
       ];
@@ -14304,7 +14806,9 @@ function charger(e, level, px, py, dt2) {
         e.tier,
         e.ail,
         e.robbed,
-        e.ward
+        e.ward,
+        e.stroll,
+        e.seed
       );
     } else if (blocked) {
       return new Enemy(
@@ -14330,7 +14834,9 @@ function charger(e, level, px, py, dt2) {
         e.tier,
         e.ail,
         e.robbed,
-        e.ward
+        e.ward,
+        e.stroll,
+        e.seed
       );
     } else {
       return new Enemy(
@@ -14356,7 +14862,9 @@ function charger(e, level, px, py, dt2) {
         e.tier,
         e.ail,
         e.robbed,
-        e.ward
+        e.ward,
+        e.stroll,
+        e.seed
       );
     }
   } else if ($1 instanceof Windup) {
@@ -14386,7 +14894,9 @@ function charger(e, level, px, py, dt2) {
         e.tier,
         e.ail,
         e.robbed,
-        e.ward
+        e.ward,
+        e.stroll,
+        e.seed
       );
     } else {
       return new Enemy(
@@ -14412,7 +14922,9 @@ function charger(e, level, px, py, dt2) {
         e.tier,
         e.ail,
         e.robbed,
-        e.ward
+        e.ward,
+        e.stroll,
+        e.seed
       );
     }
   } else if ($1 instanceof Charging) {
@@ -14444,7 +14956,9 @@ function charger(e, level, px, py, dt2) {
           e.tier,
           e.ail,
           e.robbed,
-          e.ward
+          e.ward,
+          e.stroll,
+          e.seed
         );
       } else {
         return new Enemy(
@@ -14470,7 +14984,9 @@ function charger(e, level, px, py, dt2) {
           e.tier,
           e.ail,
           e.robbed,
-          e.ward
+          e.ward,
+          e.stroll,
+          e.seed
         );
       }
     } else {
@@ -14497,7 +15013,9 @@ function charger(e, level, px, py, dt2) {
         e.tier,
         e.ail,
         e.robbed,
-        e.ward
+        e.ward,
+        e.stroll,
+        e.seed
       );
     }
   } else if ($1 instanceof Recover) {
@@ -14526,7 +15044,9 @@ function charger(e, level, px, py, dt2) {
         e.tier,
         e.ail,
         e.robbed,
-        e.ward
+        e.ward,
+        e.stroll,
+        e.seed
       ),
       t2,
       dt2,
@@ -14560,7 +15080,9 @@ function charger(e, level, px, py, dt2) {
         e.tier,
         e.ail,
         e.robbed,
-        e.ward
+        e.ward,
+        e.stroll,
+        e.seed
       ),
       t2,
       dt2,
@@ -14592,7 +15114,9 @@ function charger(e, level, px, py, dt2) {
       e.tier,
       e.ail,
       e.robbed,
-      e.ward
+      e.ward,
+      e.stroll,
+      e.seed
     );
   }
 }
@@ -14656,46 +15180,12 @@ function bouncer(e, level, dt2) {
     e.tier,
     e.ail,
     e.robbed,
-    e.ward
+    e.ward,
+    e.stroll,
+    e.seed
   );
 }
 __name(bouncer, "bouncer");
-function far(dx, dy) {
-  let $ = square_root(dx * dx + dy * dy);
-  if ($ instanceof Ok) {
-    let d2 = $[0];
-    return d2;
-  } else {
-    return 0;
-  }
-}
-__name(far, "far");
-function clear_line(level, ax, ay, bx, by) {
-  let solids = filter(level, (r) => {
-    return !r.one_way;
-  });
-  let steps = truncate(far(bx - ax, by - ay) * 3) + 1;
-  return all(
-    (() => {
-      let _pipe = repeat(void 0, steps);
-      return index_map(_pipe, (_, i) => {
-        return i;
-      });
-    })(),
-    (i) => {
-      let k2 = divideFloat(identity(i), identity(steps));
-      let x = ax + (bx - ax) * k2;
-      let y2 = ay + (by - ay) * k2;
-      return !any(
-        solids,
-        (r) => {
-          return x > r.x && x < r.x + r.w && y2 > r.y && y2 < r.y + r.h;
-        }
-      );
-    }
-  );
-}
-__name(clear_line, "clear_line");
 function flyer(e, level, px, py, dt2, alert) {
   let $ = size2(e.kind);
   let w2 = $[0];
@@ -14752,7 +15242,9 @@ function flyer(e, level, px, py, dt2, alert) {
           e.tier,
           e.ail,
           e.robbed,
-          e.ward
+          e.ward,
+          e.stroll,
+          e.seed
         );
       } else {
         let $4 = normalize(tx, ty);
@@ -14782,7 +15274,9 @@ function flyer(e, level, px, py, dt2, alert) {
           e.tier,
           e.ail,
           e.robbed,
-          e.ward
+          e.ward,
+          e.stroll,
+          e.seed
         );
       }
     } else if (!hunter && alert && cooldown <= 0) {
@@ -14809,7 +15303,9 @@ function flyer(e, level, px, py, dt2, alert) {
         e.tier,
         e.ail,
         e.robbed,
-        e.ward
+        e.ward,
+        e.stroll,
+        e.seed
       );
     } else {
       _block = new Enemy(
@@ -14835,7 +15331,9 @@ function flyer(e, level, px, py, dt2, alert) {
         e.tier,
         e.ail,
         e.robbed,
-        e.ward
+        e.ward,
+        e.stroll,
+        e.seed
       );
     }
   } else if ($1 instanceof Windup) {
@@ -14868,7 +15366,9 @@ function flyer(e, level, px, py, dt2, alert) {
         e.tier,
         e.ail,
         e.robbed,
-        e.ward
+        e.ward,
+        e.stroll,
+        e.seed
       );
     } else {
       _block = new Enemy(
@@ -14894,7 +15394,9 @@ function flyer(e, level, px, py, dt2, alert) {
         e.tier,
         e.ail,
         e.robbed,
-        e.ward
+        e.ward,
+        e.stroll,
+        e.seed
       );
     }
   } else if ($1 instanceof Charging) {
@@ -14924,7 +15426,9 @@ function flyer(e, level, px, py, dt2, alert) {
         e.tier,
         e.ail,
         e.robbed,
-        e.ward
+        e.ward,
+        e.stroll,
+        e.seed
       );
     } else {
       _block = new Enemy(
@@ -14950,7 +15454,9 @@ function flyer(e, level, px, py, dt2, alert) {
         e.tier,
         e.ail,
         e.robbed,
-        e.ward
+        e.ward,
+        e.stroll,
+        e.seed
       );
     }
   } else if ($1 instanceof Recover) {
@@ -14980,7 +15486,9 @@ function flyer(e, level, px, py, dt2, alert) {
         e.tier,
         e.ail,
         e.robbed,
-        e.ward
+        e.ward,
+        e.stroll,
+        e.seed
       );
     } else {
       _block = new Enemy(
@@ -15006,7 +15514,9 @@ function flyer(e, level, px, py, dt2, alert) {
         e.tier,
         e.ail,
         e.robbed,
-        e.ward
+        e.ward,
+        e.stroll,
+        e.seed
       );
     }
   } else if ($1 instanceof Stunned) {
@@ -15035,7 +15545,9 @@ function flyer(e, level, px, py, dt2, alert) {
         e.tier,
         e.ail,
         e.robbed,
-        e.ward
+        e.ward,
+        e.stroll,
+        e.seed
       ),
       t2,
       dt2,
@@ -15067,7 +15579,9 @@ function flyer(e, level, px, py, dt2, alert) {
       e.tier,
       e.ail,
       e.robbed,
-      e.ward
+      e.ward,
+      e.stroll,
+      e.seed
     );
   }
   let e$1 = _block;
@@ -15103,7 +15617,9 @@ function flyer(e, level, px, py, dt2, alert) {
     e$1.tier,
     e$1.ail,
     e$1.robbed,
-    e$1.ward
+    e$1.ward,
+    e$1.stroll,
+    e$1.seed
   );
 }
 __name(flyer, "flyer");
@@ -15114,7 +15630,15 @@ function think(e, level, px, py, dt2, alert) {
     return [e, List$Empty$const];
   } else if ($ instanceof Charger) {
     if ($1) {
-      if (!e.awake) {
+      if (!e.awake && e.ail.stun <= 0) {
+        return [
+          (() => {
+            let _pipe = wander(e, level, dt2);
+            return fall(_pipe, level, dt2);
+          })(),
+          List$Empty$const
+        ];
+      } else if (!e.awake) {
         return [
           fall(
             new Enemy(
@@ -15140,7 +15664,9 @@ function think(e, level, px, py, dt2, alert) {
               e.tier,
               e.ail,
               e.robbed,
-              e.ward
+              e.ward,
+              e.stroll,
+              e.seed
             ),
             level,
             dt2
@@ -15173,7 +15699,9 @@ function think(e, level, px, py, dt2, alert) {
               e.tier,
               e.ail,
               e.robbed,
-              e.ward
+              e.ward,
+              e.stroll,
+              e.seed
             ),
             level,
             dt2
@@ -15194,7 +15722,15 @@ function think(e, level, px, py, dt2, alert) {
     }
   } else if ($ instanceof Shooter) {
     if ($1) {
-      if (!e.awake) {
+      if (!e.awake && e.ail.stun <= 0) {
+        return [
+          (() => {
+            let _pipe = wander(e, level, dt2);
+            return fall(_pipe, level, dt2);
+          })(),
+          List$Empty$const
+        ];
+      } else if (!e.awake) {
         return [
           fall(
             new Enemy(
@@ -15220,7 +15756,9 @@ function think(e, level, px, py, dt2, alert) {
               e.tier,
               e.ail,
               e.robbed,
-              e.ward
+              e.ward,
+              e.stroll,
+              e.seed
             ),
             level,
             dt2
@@ -15253,7 +15791,9 @@ function think(e, level, px, py, dt2, alert) {
               e.tier,
               e.ail,
               e.robbed,
-              e.ward
+              e.ward,
+              e.stroll,
+              e.seed
             ),
             level,
             dt2
@@ -15297,7 +15837,9 @@ function think(e, level, px, py, dt2, alert) {
               e.tier,
               e.ail,
               e.robbed,
-              e.ward
+              e.ward,
+              e.stroll,
+              e.seed
             ),
             level,
             dt2
@@ -15329,7 +15871,9 @@ function think(e, level, px, py, dt2, alert) {
             e.tier,
             e.ail,
             e.robbed,
-            e.ward
+            e.ward,
+            e.stroll,
+            e.seed
           ),
           List$Empty$const
         ];
@@ -15359,7 +15903,9 @@ function think(e, level, px, py, dt2, alert) {
               e.tier,
               e.ail,
               e.robbed,
-              e.ward
+              e.ward,
+              e.stroll,
+              e.seed
             ),
             level,
             dt2
@@ -15400,7 +15946,9 @@ function think(e, level, px, py, dt2, alert) {
               e.tier,
               e.ail,
               e.robbed,
-              e.ward
+              e.ward,
+              e.stroll,
+              e.seed
             ),
             level,
             dt2
@@ -15432,7 +15980,9 @@ function think(e, level, px, py, dt2, alert) {
             e.tier,
             e.ail,
             e.robbed,
-            e.ward
+            e.ward,
+            e.stroll,
+            e.seed
           ),
           List$Empty$const
         ];
@@ -15462,7 +16012,9 @@ function think(e, level, px, py, dt2, alert) {
               e.tier,
               e.ail,
               e.robbed,
-              e.ward
+              e.ward,
+              e.stroll,
+              e.seed
             ),
             level,
             dt2
@@ -15503,7 +16055,9 @@ function think(e, level, px, py, dt2, alert) {
               e.tier,
               e.ail,
               e.robbed,
-              e.ward
+              e.ward,
+              e.stroll,
+              e.seed
             ),
             level,
             dt2
@@ -15536,7 +16090,9 @@ function think(e, level, px, py, dt2, alert) {
               e.tier,
               e.ail,
               e.robbed,
-              e.ward
+              e.ward,
+              e.stroll,
+              e.seed
             ),
             level,
             dt2
@@ -15551,7 +16107,15 @@ function think(e, level, px, py, dt2, alert) {
     }
   } else if ($ instanceof Hexer) {
     if ($1) {
-      if (!e.awake) {
+      if (!e.awake && e.ail.stun <= 0) {
+        return [
+          (() => {
+            let _pipe = wander(e, level, dt2);
+            return fall(_pipe, level, dt2);
+          })(),
+          List$Empty$const
+        ];
+      } else if (!e.awake) {
         return [
           fall(
             new Enemy(
@@ -15577,7 +16141,9 @@ function think(e, level, px, py, dt2, alert) {
               e.tier,
               e.ail,
               e.robbed,
-              e.ward
+              e.ward,
+              e.stroll,
+              e.seed
             ),
             level,
             dt2
@@ -15610,7 +16176,9 @@ function think(e, level, px, py, dt2, alert) {
               e.tier,
               e.ail,
               e.robbed,
-              e.ward
+              e.ward,
+              e.stroll,
+              e.seed
             ),
             level,
             dt2
@@ -15653,7 +16221,9 @@ function think(e, level, px, py, dt2, alert) {
             e.tier,
             e.ail,
             e.robbed,
-            e.ward
+            e.ward,
+            e.stroll,
+            e.seed
           ),
           level,
           dt2
@@ -15686,7 +16256,9 @@ function think(e, level, px, py, dt2, alert) {
             e.tier,
             e.ail,
             e.robbed,
-            e.ward
+            e.ward,
+            e.stroll,
+            e.seed
           ),
           level,
           dt2
@@ -15728,7 +16300,9 @@ function take_hit(e, damage3, push_x, push_y) {
     e.tier,
     e.ail,
     e.robbed,
-    e.ward
+    e.ward,
+    e.stroll,
+    e.seed
   );
   let hit$1 = new Enemy(
     hit.id,
@@ -15753,7 +16327,9 @@ function take_hit(e, damage3, push_x, push_y) {
     hit.tier,
     hit.ail,
     hit.robbed,
-    hit.ward
+    hit.ward,
+    hit.stroll,
+    hit.seed
   );
   let $ = e.kind;
   if ($ instanceof Dummy) {
@@ -15782,7 +16358,9 @@ function take_hit(e, damage3, push_x, push_y) {
       hit$1.tier,
       hit$1.ail,
       hit$1.robbed,
-      hit$1.ward
+      hit$1.ward,
+      hit$1.stroll,
+      hit$1.seed
     );
   } else if ($ instanceof Boss) {
     return hit$1;
@@ -15810,7 +16388,9 @@ function take_hit(e, damage3, push_x, push_y) {
       hit$1.tier,
       hit$1.ail,
       hit$1.robbed,
-      hit$1.ward
+      hit$1.ward,
+      hit$1.stroll,
+      hit$1.seed
     );
   }
 }
@@ -15862,7 +16442,9 @@ function spread_wards(enemies) {
             e.tier,
             e.ail,
             e.robbed,
-            ward_time
+            ward_time,
+            e.stroll,
+            e.seed
           );
         } else {
           _block = e;
@@ -15893,7 +16475,9 @@ function spread_wards(enemies) {
             e$1.tier,
             e$1.ail,
             e$1.robbed,
-            e$1.ward
+            e$1.ward,
+            e$1.stroll,
+            e$1.seed
           );
         } else {
           return e$1;
@@ -15917,21 +16501,21 @@ function tick(e, dt2) {
       down(a.poison) / 0.5
     );
     let _block;
-    let $1 = e.kind;
-    if ($1 instanceof Boss) {
-      _block = globalThis.Math.trunc(e.max_hp / 200);
+    let $1 = e.hp > 0 && a.poison > 0;
+    if ($1) {
+      _block = bites * poison_bite(e);
     } else {
-      _block = globalThis.Math.trunc(e.max_hp * 2 / 100);
+      _block = 0;
     }
-    let share = _block;
+    let bite = _block;
     let _block$1;
-    let $2 = e.hp > 0 && a.poison > 0;
+    let $2 = down(a.poison) > 0;
     if ($2) {
-      _block$1 = bites * max(1, share);
+      _block$1 = a.stacks;
     } else {
       _block$1 = 0;
     }
-    let bite = _block$1;
+    let stacks = _block$1;
     return new Enemy(
       e.id,
       e.kind,
@@ -15958,10 +16542,13 @@ function tick(e, dt2) {
         down(a.root),
         down(a.weak),
         down(a.poison),
-        down(a.stun)
+        down(a.stun),
+        stacks
       ),
       e.robbed,
-      max3(0, e.ward - dt2)
+      max3(0, e.ward - dt2),
+      e.stroll,
+      e.seed
     );
   }
 }
@@ -16082,7 +16669,9 @@ function split2(enemies) {
             _record.tier,
             _record.ail,
             _record.robbed,
-            _record.ward
+            _record.ward,
+            _record.stroll,
+            _record.seed
           );
         }, "child");
         return [
@@ -16115,7 +16704,9 @@ function split2(enemies) {
                   1,
                   e.ail,
                   e.robbed,
-                  e.ward
+                  e.ward,
+                  e.stroll,
+                  e.seed
                 ),
                 out2
               )
@@ -16131,24 +16722,6 @@ function split2(enemies) {
   return reverse2(out);
 }
 __name(split2, "split");
-
-// build/dev/javascript/triangle_platformer/rng.mjs
-function next(seed) {
-  return seed * 48271 % 2147483647;
-}
-__name(next, "next");
-function unit(seed) {
-  let s = next(seed);
-  return [s, identity(s) / 2147483647];
-}
-__name(unit, "unit");
-function between(seed, lo2, hi2) {
-  let $ = unit(seed);
-  let s = $[0];
-  let u2 = $[1];
-  return [s, lo2 + u2 * (hi2 - lo2)];
-}
-__name(between, "between");
 
 // build/dev/javascript/triangle_platformer/rooms.mjs
 var Template = class extends CustomType {
@@ -17069,6 +17642,64 @@ function run_rooms() {
   ]);
 }
 __name(run_rooms, "run_rooms");
+function door_fits(level, x, y2) {
+  let on_ground = any(
+    level,
+    (r) => {
+      return loosely_equals(r.y + r.h, y2, 0.01) && r.x <= x - 0.6 && r.x + r.w >= x + 0.6;
+    }
+  );
+  let clear = !any(
+    level,
+    (r) => {
+      return !r.one_way && overlaps(
+        r,
+        new Rect(x - 0.6, y2, 1.2, 2, false)
+      );
+    }
+  );
+  return on_ground && clear && x - 0.6 >= tunnel_end + 1;
+}
+__name(door_fits, "door_fits");
+function doors_on_right(level, right, n) {
+  let spots = range(
+    0,
+    truncate(right - tunnel_end) * 2,
+    List$Empty$const,
+    (acc2, i) => {
+      let x = right - 1.5 - identity(i) / 2;
+      let $2 = length(acc2) < n;
+      let $1 = door_fits(level, x, 0);
+      if ($2) {
+        if (acc2 instanceof Empty) {
+          if ($1) {
+            return prepend([x, 0], List$Empty$const);
+          } else {
+            return acc2;
+          }
+        } else if ($1) {
+          let px = acc2.head[0];
+          if (px - x >= 3.5) {
+            return prepend([x, 0], acc2);
+          } else {
+            return acc2;
+          }
+        } else {
+          return acc2;
+        }
+      } else {
+        return acc2;
+      }
+    }
+  );
+  let $ = length(spots) === n;
+  if ($) {
+    return new Ok(spots);
+  } else {
+    return new Error2(void 0);
+  }
+}
+__name(doors_on_right, "doors_on_right");
 function mirror(t2) {
   let right = fold2(
     t2.level,
@@ -17113,9 +17744,23 @@ function mirror(t2) {
     map3(t2.spawns, (s) => {
       return [flip(s[0]), s[1], s[2]];
     }),
-    reverse2(map3(t2.doors, (d2) => {
-      return [flip(d2[0]), d2[1]];
-    })),
+    (() => {
+      let $1 = doors_on_right(
+        map3(t2.level, rect),
+        right,
+        length(t2.doors)
+      );
+      if ($1 instanceof Ok) {
+        let spots = $1[0];
+        return spots;
+      } else {
+        return reverse2(
+          map3(t2.doors, (d2) => {
+            return [flip(d2[0]), d2[1]];
+          })
+        );
+      }
+    })(),
     t2.npcs,
     [flip(ax) - 4, ay],
     t2.tier
@@ -17173,24 +17818,7 @@ function rest_room() {
 __name(rest_room, "rest_room");
 function spare_door(t2) {
   let fits = /* @__PURE__ */ __name((d2) => {
-    let x = d2[0];
-    let y2 = d2[1];
-    let on_ground = any(
-      t2.level,
-      (r) => {
-        return loosely_equals(r.y + r.h, y2, 0.01) && r.x <= x - 0.6 && r.x + r.w >= x + 0.6;
-      }
-    );
-    let clear = !any(
-      t2.level,
-      (r) => {
-        return !r.one_way && overlaps(
-          r,
-          new Rect(x - 0.6, y2, 1.2, 2, false)
-        );
-      }
-    );
-    return on_ground && clear;
+    return door_fits(t2.level, d2[0], d2[1]);
   }, "fits");
   let _block;
   let $ = t2.doors;
@@ -17465,6 +18093,12 @@ var Caltrops = class extends CustomType {
   }
 };
 var Effect$Caltrops$const = new Caltrops();
+var Acid = class extends CustomType {
+  static {
+    __name(this, "Acid");
+  }
+};
+var Effect$Acid$const = new Acid();
 var Bolt = class extends CustomType {
   static {
     __name(this, "Bolt");
@@ -17553,12 +18187,18 @@ var firebolt_fall = 20;
 var firebolt_drift = 2;
 var firebolt_height = 7;
 var firebolt_ahead = 2.4;
+var lob_ttl = 3;
+var acid_toss = [6, 10];
+var acid_toss_down = [2, -4];
+var acid_toss_up = [1.5, 16];
+var caltrops_toss = [4, -10];
 var caltrops_ttl = 3;
+var acid_splash = 6;
 var rush_time = 10;
 var jump_recharge = 0.6;
 var firebolt_wait = 0.5;
 var firebolt_blast = 6;
-var caltrops_bite = 0.5;
+var caltrops_bite = 1;
 var orbit_speed = 3.9;
 var arrow_far = 6;
 var shockwave_stun = 0.75;
@@ -17605,6 +18245,15 @@ function volley(effect, cx, cy, w2, h, speed3, ttl, damage3, shots, b, aim) {
   );
 }
 __name(volley, "volley");
+function sign2(x) {
+  let $ = x < 0;
+  if ($) {
+    return -1;
+  } else {
+    return 1;
+  }
+}
+__name(sign2, "sign");
 function spawn2(effect, px, py, base, b, aim, facing) {
   let dmg = /* @__PURE__ */ __name((f) => {
     return max(1, round(identity(base) * f * b.damage));
@@ -17701,19 +18350,58 @@ function spawn2(effect, px, py, base, b, aim, facing) {
       new Strike(
         effect,
         px - w2 / 2,
-        py,
+        py + 0.3,
         w2,
         0.4,
-        0,
-        0,
-        caltrops_ttl,
+        sign2(facing) * caltrops_toss[0],
+        caltrops_toss[1],
+        lob_ttl,
         false,
-        true,
-        dmg(0.8 * grown),
+        false,
+        dmg(0.6 * grown),
         List$Empty$const,
         0
       ),
       List$Empty$const
+    );
+  } else if (effect instanceof Acid) {
+    let d2 = 0.27 * (1 + (b.reach - 1) / 4);
+    let _block;
+    let $ = aim[1];
+    {
+      let y2 = $;
+      if (y2 > 0.7) {
+        _block = acid_toss_up;
+      } else {
+        let y$1 = $;
+        if (y$1 < -0.7) {
+          _block = acid_toss_down;
+        } else {
+          _block = acid_toss;
+        }
+      }
+    }
+    let toss = _block;
+    return map3(
+      upto(0, shots - 1),
+      (i) => {
+        let k2 = identity(i) - identity(shots - 1) / 2;
+        return new Strike(
+          effect,
+          px - d2 / 2,
+          py + 0.9 - d2 / 2,
+          d2,
+          d2,
+          sign2(facing) * (toss[0] + 1.5 * k2),
+          toss[1],
+          lob_ttl,
+          false,
+          false,
+          dmg(0.8),
+          List$Empty$const,
+          0
+        );
+      }
     );
   } else if (effect instanceof Bolt) {
     let d2 = 0.4 * b.reach;
@@ -17816,6 +18504,72 @@ function spawn2(effect, px, py, base, b, aim, facing) {
   }
 }
 __name(spawn2, "spawn");
+function lobbed(s) {
+  return (s.effect instanceof Acid || s.effect instanceof Caltrops) && !s.pierce;
+}
+__name(lobbed, "lobbed");
+function carry(s, vx, vy) {
+  let $ = lobbed(s);
+  if ($) {
+    return new Strike(
+      s.effect,
+      s.x,
+      s.y,
+      s.w,
+      s.h,
+      s.vx + vx,
+      s.vy + vy,
+      s.ttl,
+      s.follow,
+      s.pierce,
+      s.damage,
+      s.hit,
+      s.wait
+    );
+  } else {
+    return s;
+  }
+}
+__name(carry, "carry");
+function land(s, floor2) {
+  let $ = s.effect;
+  if ($ instanceof Acid) {
+    let size3 = s.w * acid_splash;
+    let grow = (size3 - s.w) / 2;
+    return new Strike(
+      s.effect,
+      s.x - grow,
+      s.y - grow,
+      size3,
+      size3,
+      0,
+      0,
+      0.15,
+      s.follow,
+      true,
+      s.damage,
+      List$Empty$const,
+      s.wait
+    );
+  } else {
+    return new Strike(
+      s.effect,
+      s.x,
+      floor2,
+      s.w,
+      s.h,
+      0,
+      0,
+      caltrops_ttl,
+      s.follow,
+      true,
+      s.damage,
+      List$Empty$const,
+      s.wait
+    );
+  }
+}
+__name(land, "land");
 function name(effect) {
   if (effect instanceof JumpSlash) {
     return "slash";
@@ -17831,6 +18585,8 @@ function name(effect) {
     return "knife";
   } else if (effect instanceof Caltrops) {
     return "caltrops";
+  } else if (effect instanceof Acid) {
+    return "acid bottle";
   } else if (effect instanceof Bolt) {
     return "mana bolt";
   } else if (effect instanceof Arrow) {
@@ -17893,6 +18649,8 @@ function level_note(effect) {
     return "+1 per throw";
   } else if (effect instanceof Caltrops) {
     return "+30% damage";
+  } else if (effect instanceof Acid) {
+    return "+1 per throw";
   } else if (effect instanceof Bolt) {
     return "+1 per throw";
   } else if (effect instanceof Arrow) {
@@ -17986,7 +18744,7 @@ function advance(s, dt2) {
   } else {
     let ttl = s.ttl - dt2;
     let _block;
-    let $2 = s.effect instanceof Caltrops && truncate(
+    let $2 = s.effect instanceof Caltrops && s.pierce && truncate(
       divideFloat(s.ttl, caltrops_bite)
     ) !== truncate(divideFloat(ttl, caltrops_bite));
     if ($2) {
@@ -17995,6 +18753,14 @@ function advance(s, dt2) {
       _block = s.hit;
     }
     let hit = _block;
+    let _block$1;
+    let $3 = lobbed(s);
+    if ($3) {
+      _block$1 = s.vy - gravity * dt2;
+    } else {
+      _block$1 = s.vy;
+    }
+    let vy = _block$1;
     let s$1 = new Strike(
       s.effect,
       s.x + s.vx * dt2,
@@ -18002,7 +18768,7 @@ function advance(s, dt2) {
       s.w,
       s.h,
       s.vx,
-      s.vy,
+      vy,
       ttl,
       s.follow,
       s.pierce,
@@ -18010,8 +18776,8 @@ function advance(s, dt2) {
       hit,
       s.wait
     );
-    let $3 = s$1.ttl > 0;
-    if ($3) {
+    let $4 = s$1.ttl > 0;
+    if ($4) {
       return new Ok(s$1);
     } else {
       return new Error2(void 0);
@@ -18256,7 +19022,7 @@ function of(class$) {
       0.06,
       0.26,
       2.1,
-      0.45,
+      0.6,
       0.8,
       0.7,
       Option$None$const
@@ -18342,7 +19108,7 @@ function of(class$) {
   } else if (class$ === "Alchemist") {
     return new Weapon(
       "flask",
-      "thrown; bursts where it lands",
+      "lobbed acid; your momentum aims it",
       0,
       0,
       0.6,
@@ -18350,7 +19116,7 @@ function of(class$) {
       0,
       1,
       1,
-      new Some(Effect$Firebolt$const)
+      new Some(Effect$Acid$const)
     );
   } else {
     return sword;
@@ -19122,6 +19888,11 @@ function spec(name3) {
       new Skill(new OnHit(10), Effect$Heal$const, 0),
       new GrantRule(Rule$Phoenix$const)
     );
+  } else if (name3 === "Alchemist") {
+    return new Spec(
+      new Skill(new Every(2), Effect$Acid$const, 2),
+      new GrantMove(Move$Dash$const)
+    );
   } else {
     return new Spec(
       new Skill(new Every(3), Effect$Shockwave$const, 3),
@@ -19138,8 +19909,6 @@ function parked(name3) {
   } else if (name3 === "Witch") {
     return true;
   } else if (name3 === "Duelist") {
-    return true;
-  } else if (name3 === "Alchemist") {
     return true;
   } else {
     return false;
@@ -19160,15 +19929,15 @@ function signature_node(t2, keystone) {
         "let_assert",
         FILEPATH,
         "tree",
-        326,
+        332,
         "signature_node",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $,
-          start: 11254,
-          end: 11310,
-          pattern_start: 11265,
-          pattern_end: 11280
+          start: 11697,
+          end: 11753,
+          pattern_start: 11708,
+          pattern_end: 11723
         }
       );
     } else {
@@ -19179,15 +19948,15 @@ function signature_node(t2, keystone) {
       "let_assert",
       FILEPATH,
       "tree",
-      326,
+      332,
       "signature_node",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 11254,
-        end: 11310,
-        pattern_start: 11265,
-        pattern_end: 11280
+        start: 11697,
+        end: 11753,
+        pattern_start: 11708,
+        pattern_end: 11723
       }
     );
   }
@@ -19387,6 +20156,8 @@ function lesser(s) {
     return [new DamagePct(5), new CooldownPct(5)];
   } else if ($ instanceof Caltrops) {
     return [new DamagePct(5), new CooldownPct(5)];
+  } else if ($ instanceof Acid) {
+    return [new DamagePct(5), new CooldownPct(5)];
   } else if ($ instanceof Bolt) {
     return [new DamagePct(5), new CooldownPct(5)];
   } else if ($ instanceof Arrow) {
@@ -19414,6 +20185,8 @@ function upgrades(s) {
     return [Bonus$ExtraKnife$const, Bonus$KnifePierce$const];
   } else if ($ instanceof Caltrops) {
     return [new ReachPct(15), new DamagePct(10)];
+  } else if ($ instanceof Acid) {
+    return [Bonus$ExtraKnife$const, new ReachPct(15)];
   } else if ($ instanceof Bolt) {
     return [Bonus$ExtraKnife$const, Bonus$KnifePierce$const];
   } else if ($ instanceof Arrow) {
@@ -19495,15 +20268,15 @@ function nth(items, i) {
       "let_assert",
       FILEPATH,
       "tree",
-      436,
+      444,
       "nth",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 14304,
-        end: 14356,
-        pattern_start: 14315,
-        pattern_end: 14320
+        start: 14860,
+        end: 14912,
+        pattern_start: 14871,
+        pattern_end: 14876
       }
     );
   }
@@ -19617,15 +20390,15 @@ function find2(acc2, id2) {
       "let_assert",
       FILEPATH,
       "tree",
-      556,
+      564,
       "find",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 17736,
-        end: 17797,
-        pattern_start: 17747,
-        pattern_end: 17752
+        start: 18292,
+        end: 18353,
+        pattern_start: 18303,
+        pattern_end: 18308
       }
     );
   }
@@ -19827,15 +20600,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        644,
+        652,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 21108,
-          end: 21154,
-          pattern_start: 21119,
-          pattern_end: 21127
+          start: 21664,
+          end: 21710,
+          pattern_start: 21675,
+          pattern_end: 21683
         }
       );
     }
@@ -19860,15 +20633,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        645,
+        653,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 21159,
-          end: 21333,
-          pattern_start: 21170,
-          pattern_end: 21177
+          start: 21715,
+          end: 21889,
+          pattern_start: 21726,
+          pattern_end: 21733
         }
       );
     } else {
@@ -19937,15 +20710,15 @@ function build() {
               "let_assert",
               FILEPATH,
               "tree",
-              689,
+              697,
               "build",
               "Pattern match failed, no pattern matched the value.",
               {
                 value: chain2,
-                start: 22948,
-                end: 22977,
-                pattern_start: 22959,
-                pattern_end: 22969
+                start: 23504,
+                end: 23533,
+                pattern_start: 23515,
+                pattern_end: 23525
               }
             );
           } else {
@@ -19962,15 +20735,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          692,
+          700,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: chain,
-            start: 23053,
-            end: 23082,
-            pattern_start: 23064,
-            pattern_end: 23074
+            start: 23609,
+            end: 23638,
+            pattern_start: 23620,
+            pattern_end: 23630
           }
         );
       } else {
@@ -20098,15 +20871,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          750,
+          758,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $4,
-            start: 25297,
-            end: 25517,
-            pattern_start: 25308,
-            pattern_end: 25328
+            start: 25853,
+            end: 26073,
+            pattern_start: 25864,
+            pattern_end: 25884
           }
         );
       }
@@ -21063,15 +21836,15 @@ function player(world2) {
       "let_assert",
       FILEPATH2,
       "game",
-      707,
+      710,
       "player",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 2e4,
-        end: 20034,
-        pattern_start: 20011,
-        pattern_end: 20018
+        start: 20080,
+        end: 20114,
+        pattern_start: 20091,
+        pattern_end: 20098
       }
     );
   } else {
@@ -21239,7 +22012,9 @@ function load(world2, t2, depth) {
           boss_tier,
           e.ail,
           e.robbed,
-          e.ward
+          e.ward,
+          e.stroll,
+          e.seed
         );
       } else {
         let e$1 = promote(
@@ -21270,7 +22045,9 @@ function load(world2, t2, depth) {
           e$1.tier,
           e$1.ail,
           e$1.robbed,
-          e$1.ward
+          e$1.ward,
+          e$1.stroll,
+          e$1.seed
         );
       }
     }
@@ -22307,15 +23084,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      3496,
+      3511,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 108409,
-        end: 108459,
-        pattern_start: 108420,
-        pattern_end: 108427
+        start: 109269,
+        end: 109319,
+        pattern_start: 109280,
+        pattern_end: 109287
       }
     );
   } else {
@@ -23242,6 +24019,48 @@ function check_clear(world2) {
   }
 }
 __name(check_clear, "check_clear");
+function spare_the_born(strikes, before, after) {
+  let old = map3(before, (e) => {
+    return e.id;
+  });
+  let $ = filter(after, (e) => {
+    return !contains(old, e.id);
+  });
+  if ($ instanceof Empty) {
+    return strikes;
+  } else {
+    let born = $;
+    let ids = map3(born, (e) => {
+      return e.id;
+    });
+    return map3(
+      strikes,
+      (s) => {
+        let $1 = s.effect instanceof Caltrops;
+        if ($1) {
+          return new Strike(
+            s.effect,
+            s.x,
+            s.y,
+            s.w,
+            s.h,
+            s.vx,
+            s.vy,
+            s.ttl,
+            s.follow,
+            s.pierce,
+            s.damage,
+            append(ids, s.hit),
+            s.wait
+          );
+        } else {
+          return s;
+        }
+      }
+    );
+  }
+}
+__name(spare_the_born, "spare_the_born");
 function gain_xp(loop$p, loop$xp, loop$events) {
   while (true) {
     let p2 = loop$p;
@@ -23609,7 +24428,9 @@ function steal(world2) {
               e.tier,
               e.ail,
               true,
-              e.ward
+              e.ward,
+              e.stroll,
+              e.seed
             )
           ];
         } else {
@@ -24486,15 +25307,15 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        1429,
+        1433,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $12,
-          start: 41457,
-          end: 41513,
-          pattern_start: 41468,
-          pattern_end: 41473
+          start: 41598,
+          end: 41654,
+          pattern_start: 41609,
+          pattern_end: 41614
         }
       );
     }
@@ -25097,6 +25918,24 @@ function take_damage(world2) {
   );
 }
 __name(take_damage, "take_damage");
+function floor_under(s, level) {
+  let mid = s.x + s.w / 2;
+  let _pipe = level;
+  let _pipe$1 = filter(
+    _pipe,
+    (r) => {
+      return r.y + r.h <= s.y + s.h + 0.01 && r.x <= mid && r.x + r.w >= mid;
+    }
+  );
+  return fold2(
+    _pipe$1,
+    s.y - 100,
+    (top, r) => {
+      return max3(top, r.y + r.h);
+    }
+  );
+}
+__name(floor_under, "floor_under");
 function venom(p2) {
   let $ = has2(p2, Rule$Venom$const);
   if ($) {
@@ -25115,6 +25954,8 @@ function strike_status(p2, s) {
     return new Some([Status$Poison$const, 3]);
   } else if ($ instanceof Caltrops) {
     return new Some([Status$Root$const, caltrops_root]);
+  } else if ($ instanceof Acid) {
+    return new Some([Status$Poison$const, 3]);
   } else if ($ instanceof Bolt) {
     return or2(inflicts(p2.weapon), venom(p2));
   } else if ($ instanceof Arrow) {
@@ -25187,7 +26028,9 @@ function rebounding(p2, damage3) {
 }
 __name(rebounding, "rebounding");
 function element(effect) {
-  if (effect instanceof Bolt) {
+  if (effect instanceof Acid) {
+    return Element$Magic$const;
+  } else if (effect instanceof Bolt) {
     return Element$Magic$const;
   } else if (effect instanceof Orb) {
     return Element$Magic$const;
@@ -25256,11 +26099,19 @@ function strikes_act(world2, dt2) {
         }
       );
       let bursts = flying_firebolt(s) && (!(touching instanceof Empty) || at_wall);
+      let flying = lobbed(s);
+      let lands = flying && (s.effect instanceof Acid && !(touching instanceof Empty) || any(
+        w2.level,
+        (r) => {
+          return overlaps(box3, r) && (!r.one_way || s.vy < 0 && box3.y >= r.y + r.h - 0.35);
+        }
+      ));
       let _block$1;
-      let $1 = s.pierce;
-      if (bursts) {
+      let $1 = bursts || flying;
+      let $2 = s.pierce;
+      if ($1) {
         _block$1 = List$Empty$const;
-      } else if ($1) {
+      } else if ($2) {
         _block$1 = touching;
       } else {
         _block$1 = take(touching, 1);
@@ -25274,17 +26125,17 @@ function strikes_act(world2, dt2) {
         far2(s) || ricocheting(p2),
         (e) => {
           let _block$22;
-          let $3 = s.effect;
-          if ($3 instanceof Shockwave) {
+          let $4 = s.effect;
+          if ($4 instanceof Shockwave) {
             _block$22 = [7, 4];
           } else {
             _block$22 = [4, 3];
           }
-          let $22 = _block$22;
-          let kx = $22[0];
-          let ky = $22[1];
-          let $4 = e.x >= p2.x;
-          if ($4) {
+          let $32 = _block$22;
+          let kx = $32[0];
+          let ky = $32[1];
+          let $5 = e.x >= p2.x;
+          if ($5) {
             return [kx, ky];
           } else {
             return [0 - kx, ky];
@@ -25310,8 +26161,8 @@ function strikes_act(world2, dt2) {
         s.pierce,
         s.damage,
         (() => {
-          let $22 = s.effect;
-          if ($22 instanceof Orb) {
+          let $32 = s.effect;
+          if ($32 instanceof Orb) {
             return ids(over);
           } else {
             return append(ids(targets), s.hit);
@@ -25330,19 +26181,23 @@ function strikes_act(world2, dt2) {
         s$1.effect
       );
       let _block$2;
-      let $2 = s$1.pierce;
-      if (bursts) {
-        _block$2 = new Ok(burst(s$1));
-      } else if (walled) {
-        _block$2 = new Error2(void 0);
-      } else if (!$2) {
-        if (targets instanceof Empty) {
-          _block$2 = advance(s$1, dt2);
-        } else {
+      let $3 = s$1.pierce;
+      {
+        if (lands) {
+          _block$2 = new Ok(land(s$1, floor_under(s$1, w$2.level)));
+        } else if (bursts) {
+          _block$2 = new Ok(burst(s$1));
+        } else if (walled) {
           _block$2 = new Error2(void 0);
+        } else if (!$3) {
+          if (targets instanceof Empty) {
+            _block$2 = advance(s$1, dt2);
+          } else {
+            _block$2 = new Error2(void 0);
+          }
+        } else {
+          _block$2 = advance(s$1, dt2);
         }
-      } else {
-        _block$2 = advance(s$1, dt2);
       }
       let next$1 = _block$2;
       if (next$1 instanceof Ok) {
@@ -25994,7 +26849,7 @@ function loose(world2, dir, effect) {
   let shots = flat_map(
     ways,
     (way) => {
-      return spawn2(
+      let _pipe = spawn2(
         effect,
         p2.x,
         p2.y,
@@ -26029,6 +26884,12 @@ function loose(world2, dir, effect) {
         })(),
         way[0],
         way[1]
+      );
+      return map3(
+        _pipe,
+        (_capture) => {
+          return carry(_capture, p2.vx, p2.vy);
+        }
       );
     }
   );
@@ -26214,7 +27075,9 @@ function off_the_roof(world2) {
               e.tier,
               e.ail,
               e.robbed,
-              e.ward
+              e.ward,
+              e.stroll,
+              e.seed
             );
           } else {
             return e;
@@ -26306,7 +27169,9 @@ function enemies_act(world2, dt2) {
           e.tier,
           e.ail,
           e.robbed,
-          e.ward
+          e.ward,
+          e.stroll,
+          e.seed
         );
       } else {
         _block2 = e;
@@ -26349,7 +27214,9 @@ function enemies_act(world2, dt2) {
           next$1.tier,
           next$1.ail,
           next$1.robbed,
-          next$1.ward
+          next$1.ward,
+          next$1.stroll,
+          next$1.seed
         );
       } else {
         _block$1 = next$1;
@@ -26387,7 +27254,9 @@ function enemies_act(world2, dt2) {
             next$2.tier,
             next$2.ail,
             next$2.robbed,
-            next$2.ward
+            next$2.ward,
+            next$2.stroll,
+            next$2.seed
           );
         } else {
           _block$2 = next$2;
@@ -26683,95 +27552,6 @@ function orbit(world2) {
   }
 }
 __name(orbit, "orbit");
-function on_the_floor(s, level) {
-  let $ = s.effect instanceof Caltrops;
-  if ($) {
-    let mid = s.x + s.w / 2;
-    let _block;
-    let _pipe = level;
-    let _pipe$1 = filter(
-      _pipe,
-      (r) => {
-        return r.y + r.h <= s.y + 0.01 && r.x <= mid && r.x + r.w >= mid;
-      }
-    );
-    _block = fold2(
-      _pipe$1,
-      s.y - 100,
-      (top, r) => {
-        return max3(top, r.y + r.h);
-      }
-    );
-    let floor2 = _block;
-    return new Strike(
-      s.effect,
-      s.x,
-      floor2,
-      s.w,
-      s.h,
-      s.vx,
-      s.vy,
-      s.ttl,
-      s.follow,
-      s.pierce,
-      s.damage,
-      s.hit,
-      s.wait
-    );
-  } else {
-    return s;
-  }
-}
-__name(on_the_floor, "on_the_floor");
-function scatter(s, world2) {
-  let p2 = player(world2);
-  let _block;
-  let _pipe = world2.enemies;
-  let _pipe$1 = filter(
-    _pipe,
-    (e) => {
-      return alive(e) && !(e.kind instanceof Dummy) && absolute_value2(
-        e.x - p2.x
-      ) < 6;
-    }
-  );
-  _block = sort(
-    _pipe$1,
-    (a, b) => {
-      return compare2(
-        absolute_value2(a.x - p2.x),
-        absolute_value2(b.x - p2.x)
-      );
-    }
-  );
-  let near = _block;
-  let $ = s.effect instanceof Caltrops;
-  if ($) {
-    if (near instanceof Empty) {
-      return s;
-    } else {
-      let e = near.head;
-      return new Strike(
-        s.effect,
-        e.x - s.w / 2,
-        s.y,
-        s.w,
-        s.h,
-        s.vx,
-        s.vy,
-        s.ttl,
-        s.follow,
-        s.pierce,
-        s.damage,
-        s.hit,
-        s.wait
-      );
-    }
-  } else {
-    return s;
-  }
-}
-__name(scatter, "scatter");
 function under_the_ceiling(s, level, feet) {
   let $ = s.effect instanceof Firebolt;
   if ($) {
@@ -27094,7 +27874,16 @@ function fire_skills(world2, before, dt2) {
               skill_level(p$1, w$1.effect)
             );
           })(),
-          aim,
+          (() => {
+            let $83 = w$1.effect;
+            if ($83 instanceof Caltrops) {
+              return [p$1.facing, 0];
+            } else if ($83 instanceof Acid) {
+              return [p$1.facing, 0];
+            } else {
+              return aim;
+            }
+          })(),
           p$1.facing
         );
         let _pipe$1 = map3(
@@ -27103,16 +27892,10 @@ function fire_skills(world2, before, dt2) {
             return under_the_ceiling(_capture, world2.level, p$1.y);
           }
         );
-        let _pipe$2 = map3(
+        _block$42 = map3(
           _pipe$1,
           (_capture) => {
-            return scatter(_capture, world2);
-          }
-        );
-        _block$42 = map3(
-          _pipe$2,
-          (_capture) => {
-            return on_the_floor(_capture, world2.level);
+            return carry(_capture, p$1.vx, p$1.vy);
           }
         );
         let strikes = _block$42;
@@ -28416,15 +29199,16 @@ function step_many(world2, inputs, dt2) {
     return loot(w2, dt2);
   });
   let _pipe$11 = ((w2) => {
+    let _block$1;
+    let _pipe$112 = split2(w2.enemies);
+    _block$1 = spread_wards(_pipe$112);
+    let enemies = _block$1;
     return new World(
       w2.players,
       w2.level,
-      (() => {
-        let _pipe$112 = split2(w2.enemies);
-        return spread_wards(_pipe$112);
-      })(),
+      enemies,
       w2.projectiles,
-      w2.strikes,
+      spare_the_born(w2.strikes, w2.enemies, enemies),
       w2.events,
       w2.depth,
       w2.cleared,
@@ -29891,15 +30675,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3384,
+        3399,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 104747,
-          end: 104798,
-          pattern_start: 104758,
-          pattern_end: 104766
+          start: 105607,
+          end: 105658,
+          pattern_start: 105618,
+          pattern_end: 105626
         }
       );
     }
@@ -29911,15 +30695,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3386,
+        3401,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 104881,
-          end: 104942,
-          pattern_start: 104892,
-          pattern_end: 104909
+          start: 105741,
+          end: 105802,
+          pattern_start: 105752,
+          pattern_end: 105769
         }
       );
     } else {
@@ -29929,15 +30713,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          3386,
+          3401,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 104881,
-            end: 104942,
-            pattern_start: 104892,
-            pattern_end: 104909
+            start: 105741,
+            end: 105802,
+            pattern_start: 105752,
+            pattern_end: 105769
           }
         );
       } else {
@@ -31844,10 +32628,10 @@ function syncRoom() {
       pedestal.position.set(n.x, n.y + PEDESTAL_H / 2, -1.2);
       roomGroup.add(niche, pedestal);
       if (parked(name3)) {
-        const sign2 = nameLabel("Coming soon", true);
-        sign2.material.color.set(15320942);
-        sign2.position.set(n.x, n.y + PEDESTAL_H + 0.32, -0.5);
-        roomGroup.add(sign2);
+        const sign3 = nameLabel("Coming soon", true);
+        sign3.material.color.set(15320942);
+        sign3.position.set(n.x, n.y + PEDESTAL_H + 0.32, -0.5);
+        roomGroup.add(sign3);
       }
       return { hero, niche, pedestal, n, statue, name: name3, tint: tint(cell), y: hero.position.y };
     });
@@ -32226,7 +33010,43 @@ var ART = {
   }),
   // the Trickster's razor cards (TRIP-55): a playing card standing upright, one per suit, fanned
   // along the slash. Pips only, no letters: a letter is mush at this size
-  ...Object.fromEntries(["spade", "heart", "club", "diamond"].map((suit) => [`card_${suit}`, drawn((g) => paintCard(g, suit))]))
+  ...Object.fromEntries(["spade", "heart", "club", "diamond"].map((suit) => [`card_${suit}`, drawn((g) => paintCard(g, suit))])),
+  // the Alchemist's acid bottle (TRIP-58): a round green flask with a cork, tumbling as it flies
+  bottle: drawn((g) => {
+    shape(g, [[38, 8], [58, 8], [58, 22], [38, 22]], "#b98d62");
+    shape(g, [[40, 22], [56, 22], [56, 40], [40, 40]], "#d9f2e4");
+    blob(g, 48, 62, 28, "#7ed957");
+    g.stroke();
+    blob(g, 38, 54, 7, "#e6ffd9");
+  }),
+  // where it breaks: a green splat
+  splash: drawn((g) => {
+    shape(g, star(9, 48, 48, 44, 24, 0.2), "#7ed957");
+    g.lineWidth = 0;
+    g.beginPath();
+    star(9, 48, 48, 26, 14).forEach(([x, y2], i) => i ? g.lineTo(x, y2) : g.moveTo(x, y2));
+    g.closePath();
+    g.fillStyle = "#d7ffb8";
+    g.fill();
+  }),
+  // poison with more than one dose in it: the drop, with the number of doses on it
+  ...Object.fromEntries([2, 3, 4, 5].map((n) => [`Poison${n}`, drawn((g) => {
+    g.beginPath();
+    g.moveTo(48, 6);
+    g.quadraticCurveTo(92, 62, 48, 90);
+    g.quadraticCurveTo(4, 62, 48, 6);
+    g.closePath();
+    g.fillStyle = "#4fb83a";
+    g.fill();
+    g.stroke();
+    g.font = "bold 46px sans-serif";
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.lineWidth = 5;
+    g.strokeText(String(n), 48, 60);
+    g.fillStyle = "#ffffff";
+    g.fillText(String(n), 48, 60);
+  })]))
 };
 function stickers(texture, band) {
   const meshes = [];
@@ -32271,6 +33091,7 @@ function strikeArt(s) {
   if (name3 === "Orb") return ["orb", 1.4, 1.4];
   if (name3 === "Knife") return ["knife", 1.7, 3];
   if (name3 === "Caltrops") return ["caltrops", 1, 1.6];
+  if (name3 === "Acid") return s.pierce ? ["splash", 1, 1] : ["bottle", 2.6, 2.6];
   if (name3 === "Arrow") return ["arrow", 1.5, 4];
   return [name3 === "Shockwave" ? "wave" : "sweep", 1, 1];
 }
@@ -32380,7 +33201,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "e4b36902f2dc" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "e51b4a151d06" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -32489,7 +33310,7 @@ var SHAPE = {
   block: "M6 1 L11 3 V6.5 C11 9 8.5 10.8 6 11.5 C3.5 10.8 1 9 1 6.5 V3 Z"
 };
 var PIP_COLOR = { jump: "#1f9fb5", dash: "#3aa5ee", block: "#e0a21b" };
-var SKILL_COLOR = { Rush: "#4f9e3f", Firebolt: "#ff7a3d", Bolt: "#2aa9ee", Orb: "#8b8ff5", Knife: "#5fbf4a", Caltrops: "#9aa4ad", Arrow: "#5fbf4a", Heal: "#ef6b9a" };
+var SKILL_COLOR = { Rush: "#4f9e3f", Firebolt: "#ff7a3d", Bolt: "#2aa9ee", Orb: "#8b8ff5", Knife: "#5fbf4a", Caltrops: "#9aa4ad", Acid: "#7ed957", Arrow: "#5fbf4a", Heal: "#ef6b9a" };
 var MAX_PIPS = 3;
 var MAX_PIES = 4;
 var miniKey = "";
@@ -32644,7 +33465,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "e4b36902f2dc" : "dev";
+var BUILD = true ? "e51b4a151d06" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
@@ -32922,7 +33743,10 @@ function frame(now) {
         marks.push({ art: "Stun", x: ex + Math.cos(a) * 0.5, y: head + 0.05 + Math.sin(a) * 0.13, w: 0.3, h: 0.3 });
       }
     }
-    ails.forEach((name3, i) => marks.push({ art: name3, x: ex + (i - (ails.length - 1) / 2) * 0.42, y: ey + h + 0.62, w: 0.36, h: 0.36 }));
+    ails.forEach((name3, i) => {
+      const doses = name3 === "Poison" && e.ail.stacks > 1, k2 = doses ? 0.6 : 0.36;
+      marks.push({ art: doses ? `Poison${Math.min(e.ail.stacks, 5)}` : name3, x: ex + (i - (ails.length - 1) / 2) * 0.42, y: ey + h + 0.62 + (k2 - 0.36) / 2, w: k2, h: k2 });
+    });
     if (!e.awake) body2.material.color.multiplyScalar(0.45);
     const frac = e.hp / e.max_hp;
     bar.scale.x = Math.max(frac, 1e-3);
@@ -32940,6 +33764,11 @@ function frame(now) {
     if (art === "orb") {
       const depth = Math.max(-1, Math.min(1, (y2 - (py + 0.75)) / 0.63)), k2 = kw * (1 - 0.15 * depth);
       flying.orb.push({ x, y: y2, w: r.w * k2, h: r.h * k2, z: (depth > 0 ? 0.5 : 1) - depth * 8e-3 });
+      continue;
+    }
+    if ((art === "bottle" || art === "caltrops") && !s.pierce) {
+      const k2 = art === "bottle" ? r.w * kw : 0.9;
+      flying[art].push({ x, y: y2, w: k2, h: art === "bottle" ? k2 : k2 * 0.6, turn: calm ? 0 : -Math.sign(s.vx) * now / 70 });
       continue;
     }
     if (art === "wave") {
