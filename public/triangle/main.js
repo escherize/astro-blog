@@ -18971,10 +18971,9 @@ __name(keystone_rule, "keystone_rule");
 function kit_rules(name3) {
   let _block;
   if (name3 === "Thief") {
-    _block = prepend(
-      Rule$Steal$const,
-      prepend(Rule$LandingCancel$const, List$Empty$const)
-    );
+    _block = prepend(Rule$Steal$const, List$Empty$const);
+  } else if (name3 === "Warrior") {
+    _block = prepend(Rule$LandingCancel$const, List$Empty$const);
   } else {
     _block = List$Empty$const;
   }
@@ -19161,15 +19160,15 @@ function signature_node(t2, keystone) {
         "let_assert",
         FILEPATH,
         "tree",
-        325,
+        326,
         "signature_node",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $,
-          start: 11182,
-          end: 11238,
-          pattern_start: 11193,
-          pattern_end: 11208
+          start: 11254,
+          end: 11310,
+          pattern_start: 11265,
+          pattern_end: 11280
         }
       );
     } else {
@@ -19180,15 +19179,15 @@ function signature_node(t2, keystone) {
       "let_assert",
       FILEPATH,
       "tree",
-      325,
+      326,
       "signature_node",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 11182,
-        end: 11238,
-        pattern_start: 11193,
-        pattern_end: 11208
+        start: 11254,
+        end: 11310,
+        pattern_start: 11265,
+        pattern_end: 11280
       }
     );
   }
@@ -19496,15 +19495,15 @@ function nth(items, i) {
       "let_assert",
       FILEPATH,
       "tree",
-      435,
+      436,
       "nth",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 14232,
-        end: 14284,
-        pattern_start: 14243,
-        pattern_end: 14248
+        start: 14304,
+        end: 14356,
+        pattern_start: 14315,
+        pattern_end: 14320
       }
     );
   }
@@ -19618,15 +19617,15 @@ function find2(acc2, id2) {
       "let_assert",
       FILEPATH,
       "tree",
-      555,
+      556,
       "find",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 17664,
-        end: 17725,
-        pattern_start: 17675,
-        pattern_end: 17680
+        start: 17736,
+        end: 17797,
+        pattern_start: 17747,
+        pattern_end: 17752
       }
     );
   }
@@ -19828,15 +19827,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        643,
+        644,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 21036,
-          end: 21082,
-          pattern_start: 21047,
-          pattern_end: 21055
+          start: 21108,
+          end: 21154,
+          pattern_start: 21119,
+          pattern_end: 21127
         }
       );
     }
@@ -19861,15 +19860,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        644,
+        645,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 21087,
-          end: 21261,
-          pattern_start: 21098,
-          pattern_end: 21105
+          start: 21159,
+          end: 21333,
+          pattern_start: 21170,
+          pattern_end: 21177
         }
       );
     } else {
@@ -19938,15 +19937,15 @@ function build() {
               "let_assert",
               FILEPATH,
               "tree",
-              688,
+              689,
               "build",
               "Pattern match failed, no pattern matched the value.",
               {
                 value: chain2,
-                start: 22876,
-                end: 22905,
-                pattern_start: 22887,
-                pattern_end: 22897
+                start: 22948,
+                end: 22977,
+                pattern_start: 22959,
+                pattern_end: 22969
               }
             );
           } else {
@@ -19963,15 +19962,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          691,
+          692,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: chain,
-            start: 22981,
-            end: 23010,
-            pattern_start: 22992,
-            pattern_end: 23002
+            start: 23053,
+            end: 23082,
+            pattern_start: 23064,
+            pattern_end: 23074
           }
         );
       } else {
@@ -20099,15 +20098,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          749,
+          750,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $4,
-            start: 25225,
-            end: 25445,
-            pattern_start: 25236,
-            pattern_end: 25256
+            start: 25297,
+            end: 25517,
+            pattern_start: 25308,
+            pattern_end: 25328
           }
         );
       }
@@ -32381,7 +32380,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "5470c24f3b44" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "e4b36902f2dc" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -32645,7 +32644,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "5470c24f3b44" : "dev";
+var BUILD = true ? "e4b36902f2dc" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
