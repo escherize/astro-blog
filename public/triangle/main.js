@@ -40271,6 +40271,29 @@ var ART = {
       g.restore();
     }
   }),
+  // Smite (TRIP-33): a ring of light lying on the ground, with beams fanning up out of it. Not dust:
+  // it must not read as the Knight's shockwave. Drawn square and stretched wide like the wave
+  smite: drawn((g) => {
+    g.save();
+    g.globalAlpha = 0.85;
+    g.lineWidth = 2.5;
+    g.strokeStyle = "#e0a93a";
+    for (const i of [-2, -1, 0, 1, 2]) {
+      const bx = 48 + i * 15, tx = 48 + i * 21, ty = 4 + Math.abs(i) * 12;
+      shape(g, [[bx - 7, 74], [tx, ty], [bx + 7, 74]], i % 2 ? "#fff8d6" : "#ffe88f");
+    }
+    g.restore();
+    const ring = /* @__PURE__ */ __name((w2, c) => {
+      g.lineWidth = w2;
+      g.strokeStyle = c;
+      g.beginPath();
+      g.ellipse(48, 76, 40, 11, 0, 0, Math.PI * 2);
+      g.stroke();
+    }, "ring");
+    ring(13, "#3b2b25");
+    ring(8, "#f2c14e");
+    ring(3, "#fffbe6");
+  }),
   // the Trickster's razor cards (TRIP-55): a playing card standing upright, one per suit, fanned
   // along the slash. Pips only, no letters: a letter is mush at this size
   ...Object.fromEntries(["spade", "heart", "club", "diamond"].map((suit) => [`card_${suit}`, drawn((g) => paintCard(g, suit))])),
@@ -40386,6 +40409,10 @@ function strikeArt(s) {
   return [name3 === "Shockwave" ? "wave" : "sweep", 1, 1];
 }
 __name(strikeArt, "strikeArt");
+var smiting = /* @__PURE__ */ __name((p2) => p2.mods.rules.toArray().some((r) => r.constructor.name === "Smite") && !p2.loadout.toArray().some((s) => s.effect.constructor.name === "Shockwave"), "smiting");
+var halos = /* @__PURE__ */ new Map();
+var HALO_LIVE = 0.15;
+var HALO_FADE = 0.3;
 var keys = /* @__PURE__ */ new Set();
 var prevJump = false;
 var prevDash = false;
@@ -41340,6 +41367,7 @@ function frame(now) {
   const back = DT * (1 - part);
   const flying = Object.fromEntries(Object.keys(ART).map((k2) => [k2, []]));
   for (const s of world.projectiles.toArray()) (s.hex ? flying.hex : flying.stone).push({ x: s.x - s.vx * back, y: s.y - s.vy * back, w: shot_size * (s.hex ? 1.9 : 1.5), h: shot_size * (s.hex ? 1.9 : 1.5), turn: now / 90 });
+  const smites = smiting(p2);
   for (const s of world.strikes.toArray()) {
     if (s.wait > 0) continue;
     const r = strike_box(s, px, py), [art, kw, kh] = strikeArt(s);
@@ -41361,12 +41389,29 @@ function frame(now) {
       flying.puddle.push({ x, y: r.y + 0.12, w: r.w * kw * dry * (1 + wob), h: 0.5 * (0.6 + 0.4 * dry) * (1 - wob), z: 0.6 });
       continue;
     }
+    if (art === "wave" && smites) {
+      halos.set(`${s.x.toFixed(2)},${s.y.toFixed(2)}`, { x, ground: r.y, w: r.w, age: HALO_LIVE - s.ttl, seen: now });
+      continue;
+    }
     if (art === "wave") {
       const k2 = calm ? 1 : 0.4 + 0.6 * Math.min(1, Math.max(0, 1 - s.ttl / 0.15));
       flying.wave.push({ x, y: r.y + 0.7, w: r.w * k2, h: 1.4 });
       continue;
     }
     flying[art].push(moving ? { x, y: y2, w: long * kw, h: short * kh, turn: Math.atan2(s.vy, s.vx) } : { x, y: y2, w: r.w * kw, h: r.h * kh, flip: art === "sweep" && (Math.abs(x - px) > 0.05 ? x < px : p2.facing < 0) });
+  }
+  for (const [key2, h] of halos) {
+    const age = h.age + (now - h.seen) / 1e3;
+    if (age > HALO_LIVE + HALO_FADE) {
+      halos.delete(key2);
+      continue;
+    }
+    const grow = calm ? 1 : 0.4 + 0.6 * Math.min(1, age / HALO_LIVE), fade = 1 - Math.max(0, age - HALO_LIVE) / HALO_FADE, w2 = h.w * grow;
+    flying.smite.push({ x: h.x, y: h.ground + 0.85, w: w2, h: 1.9, alpha: fade, z: 0.6 });
+    for (let i = 0; i < 5; i++) {
+      const k2 = 0.3 + 0.12 * (i % 2);
+      flying.glint.push({ x: h.x + (i - 2) * w2 * 0.17, y: h.ground + 0.5 + i % 2 * 0.45 + (calm ? 0 : age * 2.2), w: k2, h: k2, turn: calm ? 0 : age * 3 + i, alpha: fade, z: 1.5 });
+    }
   }
   for (const m of marks) flying[m.art].push(m);
   for (const c of cards) flying[c.art].push(c);
