@@ -22254,15 +22254,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      3385,
+      3387,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 104764,
-        end: 104814,
-        pattern_start: 104775,
-        pattern_end: 104782
+        start: 104880,
+        end: 104930,
+        pattern_start: 104891,
+        pattern_end: 104898
       }
     );
   } else {
@@ -22901,8 +22901,11 @@ function check_clear(world2) {
     return world2;
   } else {
     let fasting = has2(player(world2), Rule$Fasting$const);
+    let hurt$1 = any(world2.players, (p3) => {
+      return p3.hp < max_hp3(p3);
+    });
     let _block;
-    let $1 = has2(player(world2), Rule$Bloodlust$const) || fasting;
+    let $1 = has2(player(world2), Rule$Bloodlust$const) || fasting || !hurt$1;
     if ($1) {
       _block = prepend(
         new Point(Axis$Fighter$const),
@@ -29587,15 +29590,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3273,
+        3275,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 101102,
-          end: 101153,
-          pattern_start: 101113,
-          pattern_end: 101121
+          start: 101218,
+          end: 101269,
+          pattern_start: 101229,
+          pattern_end: 101237
         }
       );
     }
@@ -29607,15 +29610,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3275,
+        3277,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 101236,
-          end: 101297,
-          pattern_start: 101247,
-          pattern_end: 101264
+          start: 101352,
+          end: 101413,
+          pattern_start: 101363,
+          pattern_end: 101380
         }
       );
     } else {
@@ -29625,15 +29628,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          3275,
+          3277,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 101236,
-            end: 101297,
-            pattern_start: 101247,
-            pattern_end: 101264
+            start: 101352,
+            end: 101413,
+            pattern_start: 101363,
+            pattern_end: 101380
           }
         );
       } else {
@@ -32171,7 +32174,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "3c285e2c4561" : "dev";
+var BUILD = true ? "a2bf62eeb51e" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
