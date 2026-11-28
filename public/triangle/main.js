@@ -18647,12 +18647,12 @@ var Tree = class extends CustomType {
   static {
     __name(this, "Tree");
   }
-  constructor(cells2, nodes2, neighbours, rings, edges) {
+  constructor(cells2, nodes2, neighbours, rings2, edges) {
     super();
     this.cells = cells2;
     this.nodes = nodes2;
     this.neighbours = neighbours;
-    this.rings = rings;
+    this.rings = rings2;
     this.edges = edges;
   }
 };
@@ -19429,7 +19429,7 @@ function build() {
     [acc2, List$Empty$const],
     (state, c) => {
       let acc$12 = state[0];
-      let rings2 = state[1];
+      let rings3 = state[1];
       let n = ring_size(degree(c));
       let sp = spec(c.name);
       let $1 = lesser(sp.skill);
@@ -19554,12 +19554,12 @@ function build() {
         );
       }
       let acc$4 = _block;
-      return [acc$4, prepend([c.id, ids$1], rings2)];
+      return [acc$4, prepend([c.id, ids$1], rings3)];
     }
   );
   let acc$1 = $[0];
-  let rings = $[1];
-  let rings$1 = from_list(rings);
+  let rings2 = $[1];
+  let rings$1 = from_list(rings2);
   let nearest = /* @__PURE__ */ __name((acc3, cell, tx, ty) => {
     let $1 = get(rings$1, cell.id);
     let ring;
@@ -30968,6 +30968,42 @@ function drawMini(p2, x, top) {
   mini.style.top = `${sy}px`;
 }
 __name(drawMini, "drawMini");
+var RING_R = 2.1;
+var RING_GAP = 0.26;
+var RING_W = 0.07;
+var RING_SEG = 128;
+var MAX_RINGS = MAX_PIES;
+var rings = [];
+function ringMesh(r, opacity) {
+  const g = new ed(r - RING_W / 2, r + RING_W / 2, RING_SEG, 1, Math.PI / 2, -2 * Math.PI);
+  const m = new Bs(g, new es({ transparent: true, opacity, depthWrite: false, side: p }));
+  m.visible = false;
+  scene.add(m);
+  return m;
+}
+__name(ringMesh, "ringMesh");
+function drawRings(p2, x, y2, shown, dt2) {
+  const timed = shown ? p2.loadout.toArray().filter((s) => s.trigger.constructor.name === "Every").slice(0, MAX_RINGS) : [];
+  const conduit = p2.mods.rules.toArray().some((r) => r.constructor.name === "Conduit");
+  for (let i = 0; i < Math.max(rings.length, timed.length); i++) {
+    if (!rings[i]) rings[i] = { track: ringMesh(RING_R + i * RING_GAP, 0.1), fill: ringMesh(RING_R + i * RING_GAP, 0.3), last: 0, pulse: 0 };
+    const ring = rings[i], s = timed[i];
+    ring.track.visible = ring.fill.visible = !!s;
+    if (!s) continue;
+    const f = conduit ? Math.min(p2.conduit, 3) / 3 : Math.min(1, Math.max(0, 1 - s.timer / skill_period(p2, s)));
+    if (f < ring.last - 0.5) ring.pulse = 0.18;
+    ring.last = f;
+    ring.pulse = Math.max(0, ring.pulse - dt2);
+    const color = SKILL_COLOR[s.effect.constructor.name] ?? "#ffc23d";
+    for (const m of [ring.track, ring.fill]) {
+      m.position.set(x, y2, 0.3);
+      m.material.color.set(color);
+    }
+    ring.fill.geometry.setDrawRange(0, 6 * Math.round((ring.pulse > 0 ? 1 : f) * RING_SEG));
+    ring.fill.material.opacity = ring.pulse > 0 ? 0.3 + 0.4 * (ring.pulse / 0.18) : 0.3;
+  }
+}
+__name(drawRings, "drawRings");
 var ATTACK_MODES = [
   { id: "hold", name: "hold: keep the button down to keep swinging" },
   { id: "auto", name: "auto: swings by itself when something is in reach" }
@@ -31284,6 +31320,7 @@ function frame(now) {
     me2.position.set(px + pose.dx - Math.sin(pose.tilt) * lift, py + pose.dy + Math.cos(pose.tilt) * lift, 0.6);
     me2.material.color.set(hurtFlash > 0 ? 16739179 : p2.hexed > 0 ? 13808895 : 16777215);
   }
+  drawRings(p2, px, py + ME_H / 2, !!myClass && p2.hp > 0, frameDt);
   drawMini(p2, px, py + (SPRITES[myClass] ? ME_H : myClass ? stickerSize(heroTexture(myClass).image, ME_H)[1] : height));
   const boxes = slashes(p2).toArray();
   [slash, slashBack].forEach((m, i) => {
