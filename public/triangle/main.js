@@ -29370,8 +29370,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
   __name(derive, "derive");
   function defaultFocus() {
     const { p: p2 } = derive();
-    const owned = p2.allocated.toArray();
-    return owned.length ? owned[0] : 12;
+    return p2.class[0] ?? 12;
   }
   __name(defaultFocus, "defaultFocus");
   function moveFocus(dx, dy) {
@@ -29411,15 +29410,16 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     focusId = order[(i + step2 + order.length) % order.length];
   }
   __name(jumpClass, "jumpClass");
-  let focusFor;
+  let focusFor, ownedBefore = 0;
   function toggle() {
     open = !open;
     if (open) {
-      const cls = derive().p.class[0];
-      if (cls !== focusFor) {
+      const { p: p2 } = derive(), cls = p2.class[0], owned = p2.allocated.toArray().length;
+      if (cls !== focusFor || owned < ownedBefore) {
         focusFor = cls;
         focusId = null;
       }
+      ownedBefore = owned;
       if (focusId == null || !byId.has(focusId)) focusId = defaultFocus();
       cam2 = null;
     }
