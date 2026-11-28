@@ -19052,7 +19052,7 @@ function grant_name(g) {
     } else if ($ instanceof Bow) {
       return "Bow: attack fires arrows; they crit past 6 tiles";
     } else if ($ instanceof Orbit) {
-      return "Orbit: each orb stops one enemy shot, then is gone for 6 seconds";
+      return "Orbit: each orb stops one enemy shot, then is gone until you clear the room";
     } else if ($ instanceof AllRounder) {
       return "All-rounder: raising your lowest stat raises it twice";
     } else if ($ instanceof Aegis) {
@@ -20545,7 +20545,7 @@ var Player = class extends CustomType {
   static {
     __name(this, "Player");
   }
-  constructor(x, y2, vx, vy, grounded, on_platform, wall, facing, coyote, jump_buffer, air_jumps, dash_time, dashes, can_cut, up_held, jumped, dashed, struck, plunged, grudge, conduit, quick, rebound, air_hits, weapon, loadout, trained, class$, allocated, mods, shield, block_charge, crash_wait, swings, risen, attack, stats, lvl, xp2, points, hp2, invuln, hurt2, hexed) {
+  constructor(x, y2, vx, vy, grounded, on_platform, wall, facing, coyote, jump_buffer, air_jumps, dash_time, dashes, can_cut, up_held, jumped, dashed, struck, plunged, grudge, conduit, quick, rebound, air_hits, weapon, loadout, trained, class$, allocated, mods, shield, block_charge, crash_wait, swings, risen, attack, stats, lvl, xp2, points, hp2, invuln, hurt2, hexed, orbs_away) {
     super();
     this.x = x;
     this.y = y2;
@@ -20591,6 +20591,7 @@ var Player = class extends CustomType {
     this.invuln = invuln;
     this.hurt = hurt2;
     this.hexed = hexed;
+    this.orbs_away = orbs_away;
   }
 };
 var Mods = class extends CustomType {
@@ -20749,7 +20750,7 @@ var pogo_speed = 15;
 var half_width = 0.375;
 var hard_windup = 0.9;
 var linger = 4;
-var orb_regrow = 6;
+var orb_rooms = 1;
 var dash_duration = 0.14;
 var dash_speed = 20;
 var air_jump_speed = 17;
@@ -20781,15 +20782,15 @@ function player(world2) {
       "let_assert",
       FILEPATH2,
       "game",
-      582,
+      586,
       "player",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 15935,
-        end: 15969,
-        pattern_start: 15946,
-        pattern_end: 15953
+        start: 16091,
+        end: 16125,
+        pattern_start: 16102,
+        pattern_end: 16109
       }
     );
   } else {
@@ -20987,7 +20988,8 @@ function load(world2, t2, depth) {
           p2.hp,
           p2.invuln,
           p2.hurt,
-          p2.hexed
+          p2.hexed,
+          p2.orbs_away
         );
       }
     ),
@@ -21120,7 +21122,8 @@ function new_world(seed) {
     max_hp2(new Stats(0, 0, 0)),
     0,
     0,
-    0
+    0,
+    List$Empty$const
   );
   let world2 = new World(
     prepend(player$1, List$Empty$const),
@@ -21615,7 +21618,8 @@ function choose_class(world2, keystone) {
           max_hp2(s),
           p2.invuln,
           p2.hurt,
-          p2.hexed
+          p2.hexed,
+          p2.orbs_away
         ),
         others(world2)
       ),
@@ -21844,7 +21848,8 @@ function apply_reward(loop$p, loop$r) {
         p2.hp,
         p2.invuln,
         p2.hurt,
-        p2.hexed
+        p2.hexed,
+        p2.orbs_away
       );
       return new Player(
         q2.x,
@@ -21890,7 +21895,8 @@ function apply_reward(loop$p, loop$r) {
         p2.hp + max_hp3(q2) - max_hp3(p2),
         q2.invuln,
         q2.hurt,
-        q2.hexed
+        q2.hexed,
+        q2.orbs_away
       );
     } else if (r instanceof Heal2) {
       return new Player(
@@ -21937,7 +21943,8 @@ function apply_reward(loop$p, loop$r) {
         p2.hp + mend(p2, max_hp3(p2)),
         p2.invuln,
         p2.hurt,
-        p2.hexed
+        p2.hexed,
+        p2.orbs_away
       );
     } else if (r instanceof Run) {
       return p2;
@@ -21959,15 +21966,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      3157,
+      3183,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 97038,
-        end: 97090,
-        pattern_start: 97049,
-        pattern_end: 97056
+        start: 97906,
+        end: 97958,
+        pattern_start: 97917,
+        pattern_end: 97924
       }
     );
   } else {
@@ -22599,7 +22606,8 @@ function check_clear(world2) {
           p2.hp + fed,
           p2.invuln,
           p2.hurt,
-          p2.hexed
+          p2.hexed,
+          p2.orbs_away
         ),
         prepend(new Healed(p2.x, p2.y + height, fed), List$Empty$const)
       ];
@@ -22609,8 +22617,72 @@ function check_clear(world2) {
     let $9 = _block$4;
     let player$1 = $9[0];
     let events = $9[1];
+    let _block$5;
+    let $11 = world2.depth > 0;
+    if ($11) {
+      _block$5 = new Player(
+        player$1.x,
+        player$1.y,
+        player$1.vx,
+        player$1.vy,
+        player$1.grounded,
+        player$1.on_platform,
+        player$1.wall,
+        player$1.facing,
+        player$1.coyote,
+        player$1.jump_buffer,
+        player$1.air_jumps,
+        player$1.dash_time,
+        player$1.dashes,
+        player$1.can_cut,
+        player$1.up_held,
+        player$1.jumped,
+        player$1.dashed,
+        player$1.struck,
+        player$1.plunged,
+        player$1.grudge,
+        player$1.conduit,
+        player$1.quick,
+        player$1.rebound,
+        player$1.air_hits,
+        player$1.weapon,
+        player$1.loadout,
+        player$1.trained,
+        player$1.class,
+        player$1.allocated,
+        player$1.mods,
+        player$1.shield,
+        player$1.block_charge,
+        player$1.crash_wait,
+        player$1.swings,
+        player$1.risen,
+        player$1.attack,
+        player$1.stats,
+        player$1.lvl,
+        player$1.xp,
+        player$1.points,
+        player$1.hp,
+        player$1.invuln,
+        player$1.hurt,
+        player$1.hexed,
+        filter_map(
+          player$1.orbs_away,
+          (n2) => {
+            let $12 = n2 > 1;
+            if ($12) {
+              return new Ok(n2 - 1);
+            } else {
+              return new Error2(void 0);
+            }
+          }
+        )
+      );
+    } else {
+      _block$5 = player$1;
+    }
+    let player$2 = _block$5;
     return new World(
-      prepend(player$1, others(world2)),
+      prepend(player$2, others(world2)),
       world2.level,
       world2.enemies,
       world2.projectiles,
@@ -22711,7 +22783,8 @@ function gain_xp(loop$p, loop$xp, loop$events) {
         p2.hp + healed,
         p2.invuln,
         p2.hurt,
-        p2.hexed
+        p2.hexed,
+        p2.orbs_away
       );
       let _block$1;
       let $2 = healed > 0;
@@ -22776,7 +22849,8 @@ function gain_xp(loop$p, loop$xp, loop$events) {
           p2.hp,
           p2.invuln,
           p2.hurt,
-          p2.hexed
+          p2.hexed,
+          p2.orbs_away
         ),
         reverse2(events)
       ];
@@ -22922,7 +22996,8 @@ function loot(world2, dt2) {
     p2.hp + healed,
     p2.invuln,
     p2.hurt,
-    p2.hexed
+    p2.hexed,
+    p2.orbs_away
   );
   let _block;
   let $1 = healed > 0;
@@ -23153,7 +23228,8 @@ function blocked_by_shield(world2, k2) {
           p2.hp,
           invuln_time,
           p2.hurt,
-          p2.hexed
+          p2.hexed,
+          p2.orbs_away
         ),
         others(world2)
       ),
@@ -23266,7 +23342,8 @@ function hurt(world2, damage3, from_x) {
                 back,
                 phoenix_grace,
                 p2.hurt,
-                p2.hexed
+                p2.hexed,
+                p2.orbs_away
               ),
               others(world2)
             ),
@@ -23353,7 +23430,8 @@ function hurt(world2, damage3, from_x) {
                 0,
                 p2.invuln,
                 p2.hurt,
-                p2.hexed
+                p2.hexed,
+                p2.orbs_away
               ),
               others(world2)
             ),
@@ -23461,7 +23539,8 @@ function hurt(world2, damage3, from_x) {
           p2.hp - damage$2,
           invuln_time + p2.mods.iframes,
           p2.hurt,
-          p2.hexed
+          p2.hexed,
+          p2.orbs_away
         );
         let _block$2;
         if (firm) {
@@ -23511,7 +23590,8 @@ function hurt(world2, damage3, from_x) {
             p$1.hp,
             p$1.invuln,
             hurt_time,
-            p$1.hexed
+            p$1.hexed,
+            p$1.orbs_away
           );
         }
         let p$2 = _block$2;
@@ -23563,7 +23643,8 @@ function hurt(world2, damage3, from_x) {
               p$2.hp,
               p$2.invuln,
               p$2.hurt,
-              p$2.hexed
+              p$2.hexed,
+              p$2.orbs_away
             ),
             prepend(new Said("Vengeance"), List$Empty$const)
           ];
@@ -23842,15 +23923,15 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        1253,
+        1257,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $12,
-          start: 35579,
-          end: 35635,
-          pattern_start: 35590,
-          pattern_end: 35595
+          start: 35735,
+          end: 35791,
+          pattern_start: 35746,
+          pattern_end: 35751
         }
       );
     }
@@ -23929,7 +24010,8 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
       p2.hp,
       p2.invuln,
       p2.hurt,
-      p2.hexed
+      p2.hexed,
+      p2.orbs_away
     );
   } else {
     _block = p2;
@@ -23985,7 +24067,8 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
       p$1.hp,
       p$1.invuln,
       p$1.hurt,
-      p$1.hexed
+      p$1.hexed,
+      p$1.orbs_away
     );
   } else {
     _block$1 = p$1;
@@ -24042,7 +24125,8 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
           p$2.hp,
           p$2.invuln,
           p$2.hurt,
-          p$2.hexed
+          p$2.hexed,
+          p$2.orbs_away
         ),
         prepend(new Said("Block ready"), List$Empty$const)
       ];
@@ -24092,7 +24176,8 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
           p$2.hp,
           p$2.invuln,
           p$2.hurt,
-          p$2.hexed
+          p$2.hexed,
+          p$2.orbs_away
         ),
         List$Empty$const
       ];
@@ -24143,7 +24228,8 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         p$2.hp,
         p$2.invuln,
         p$2.hurt,
-        p$2.hexed
+        p$2.hexed,
+        p$2.orbs_away
       ),
       List$Empty$const
     ];
@@ -24209,7 +24295,8 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
     p$3.hp + fed,
     p$3.invuln,
     p$3.hurt,
-    p$3.hexed
+    p$3.hexed,
+    p$3.orbs_away
   );
   let _block$4;
   let $7 = fed > 0;
@@ -24399,7 +24486,8 @@ function take_damage(world2) {
                   _record.hp,
                   _record.invuln,
                   _record.hurt,
-                  hex_time
+                  hex_time,
+                  _record.orbs_away
                 );
               })(),
               others(w2)
@@ -24870,7 +24958,8 @@ function strike(world2, a, box3) {
         p2.hp,
         p2.invuln,
         p2.hurt,
-        p2.hexed
+        p2.hexed,
+        p2.orbs_away
       );
     } else {
       _block$1 = new Player(
@@ -24917,7 +25006,8 @@ function strike(world2, a, box3) {
         p2.hp,
         p2.invuln,
         p2.hurt,
-        p2.hexed
+        p2.hexed,
+        p2.orbs_away
       );
     }
     let p$1 = _block$1;
@@ -24970,7 +25060,8 @@ function strike(world2, a, box3) {
           p$1.hp,
           p$1.invuln,
           p$1.hurt,
-          p$1.hexed
+          p$1.hexed,
+          p$1.orbs_away
         );
       } else {
         _block$2 = p$1;
@@ -25020,7 +25111,8 @@ function strike(world2, a, box3) {
         p$1.hp,
         p$1.invuln,
         p$1.hurt,
-        p$1.hexed
+        p$1.hexed,
+        p$1.orbs_away
       );
     } else {
       _block$2 = p$1;
@@ -25104,7 +25196,8 @@ function strike(world2, a, box3) {
       p$2.hp,
       p$2.invuln,
       p$2.hurt,
-      p$2.hexed
+      p$2.hexed,
+      p$2.orbs_away
     );
     let k2 = p$3.weapon.push;
     let _block$7;
@@ -25446,7 +25539,8 @@ function combat(world2) {
             p2.hp,
             p2.invuln,
             p2.hurt,
-            p2.hexed
+            p2.hexed,
+            p2.orbs_away
           ),
           others(world2)
         ),
@@ -25768,7 +25862,7 @@ function orbit(world2) {
     }
   );
   if ($1) {
-    _block = spawn2(
+    let all2 = spawn2(
       Effect$Orb$const,
       p2.x,
       p2.y,
@@ -25788,6 +25882,7 @@ function orbit(world2) {
       [1, 0],
       p2.facing
     );
+    _block = take(all2, length(all2) - length(p2.orbs_away));
   } else {
     _block = List$Empty$const;
   }
@@ -25799,73 +25894,99 @@ function orbit(world2) {
     }
   );
   let _block$1;
-  let $3 = has2(p2, Rule$Orbit$const);
-  if ($3) {
-    let $4 = fold2(
+  if (current) {
+    _block$1 = orbs;
+  } else {
+    _block$1 = want;
+  }
+  let orbs$1 = _block$1;
+  let $2 = has2(p2, Rule$Orbit$const);
+  if ($2) {
+    let $3 = fold2(
       world2.projectiles,
-      [orbs, List$Empty$const],
+      [orbs$1, List$Empty$const, 0],
       (acc2, shot2) => {
-        let orbs$13 = acc2[0];
+        let orbs$22 = acc2[0];
         let kept2 = acc2[1];
+        let spent2 = acc2[2];
         let meets = /* @__PURE__ */ __name((o) => {
-          return o.wait <= 0 && overlaps(
+          return overlaps(
             strike_box(o, p2.x, p2.y),
             shot_box(shot2)
           );
         }, "meets");
-        let $5 = split_while(orbs$13, (o) => {
+        let $4 = split_while(orbs$22, (o) => {
           return !meets(o);
         });
-        let $6 = $5[1];
-        if ($6 instanceof Empty) {
-          return [orbs$13, prepend(shot2, kept2)];
+        let $5 = $4[1];
+        if ($5 instanceof Empty) {
+          return [orbs$22, prepend(shot2, kept2), spent2];
         } else {
-          let before = $5[0];
-          let o = $6.head;
-          let after = $6.tail;
-          return [
-            append(
-              before,
-              prepend(
-                new Strike(
-                  o.effect,
-                  o.x,
-                  o.y,
-                  o.w,
-                  o.h,
-                  o.vx,
-                  o.vy,
-                  o.ttl,
-                  o.follow,
-                  o.pierce,
-                  o.damage,
-                  o.hit,
-                  orb_regrow
-                ),
-                after
-              )
-            ),
-            kept2
-          ];
+          let before = $4[0];
+          let after = $5.tail;
+          return [append(before, after), kept2, spent2 + 1];
         }
       }
     );
-    let orbs$12 = $4[0];
-    let kept = $4[1];
-    _block$1 = [orbs$12, reverse2(kept)];
-  } else {
-    _block$1 = [orbs, world2.projectiles];
-  }
-  let $2 = _block$1;
-  let orbs$1 = $2[0];
-  let projectiles = $2[1];
-  if (current) {
+    let orbs$2 = $3[0];
+    let kept = $3[1];
+    let spent = $3[2];
+    let away = append(repeat(orb_rooms, spent), p2.orbs_away);
     return new World(
-      world2.players,
+      prepend(
+        new Player(
+          p2.x,
+          p2.y,
+          p2.vx,
+          p2.vy,
+          p2.grounded,
+          p2.on_platform,
+          p2.wall,
+          p2.facing,
+          p2.coyote,
+          p2.jump_buffer,
+          p2.air_jumps,
+          p2.dash_time,
+          p2.dashes,
+          p2.can_cut,
+          p2.up_held,
+          p2.jumped,
+          p2.dashed,
+          p2.struck,
+          p2.plunged,
+          p2.grudge,
+          p2.conduit,
+          p2.quick,
+          p2.rebound,
+          p2.air_hits,
+          p2.weapon,
+          p2.loadout,
+          p2.trained,
+          p2.class,
+          p2.allocated,
+          p2.mods,
+          p2.shield,
+          p2.block_charge,
+          p2.crash_wait,
+          p2.swings,
+          p2.risen,
+          p2.attack,
+          p2.stats,
+          p2.lvl,
+          p2.xp,
+          p2.points,
+          p2.hp,
+          p2.invuln,
+          p2.hurt,
+          p2.hexed,
+          away
+        ),
+        others(world2)
+      ),
       world2.level,
       world2.enemies,
-      projectiles,
-      append(rest, orbs$1),
+      reverse2(kept),
+      append(rest, orbs$2),
       world2.events,
       world2.depth,
       world2.cleared,
@@ -25891,8 +26012,8 @@ function orbit(world2) {
       world2.players,
       world2.level,
       world2.enemies,
-      projectiles,
-      append(rest, want),
+      world2.projectiles,
+      append(rest, orbs$1),
       world2.events,
       world2.depth,
       world2.cleared,
@@ -26170,7 +26291,8 @@ function fire_skills(world2, before, dt2) {
         p2.hp,
         p2.invuln,
         p2.hurt,
-        p2.hexed
+        p2.hexed,
+        p2.orbs_away
       ),
       prepend(new Said("Block ready"), List$Empty$const)
     ];
@@ -26501,7 +26623,8 @@ function fire_skills(world2, before, dt2) {
         p$1.hp + healed - paid,
         p$1.invuln,
         p$1.hurt,
-        p$1.hexed
+        p$1.hexed,
+        p$1.orbs_away
       ),
       others(world2)
     ),
@@ -26593,7 +26716,8 @@ function move(p2, level, dt2) {
     p2.hp,
     p2.invuln,
     p2.hurt,
-    p2.hexed
+    p2.hexed,
+    p2.orbs_away
   );
 }
 __name(move, "move");
@@ -26668,7 +26792,8 @@ function dash(p2, input) {
           p2.hp,
           p2.invuln,
           p2.hurt,
-          p2.hexed
+          p2.hexed,
+          p2.orbs_away
         );
       } else {
         return p2;
@@ -26728,7 +26853,8 @@ function jump(p2, input) {
         p2.hp,
         p2.invuln,
         p2.hurt,
-        p2.hexed
+        p2.hexed,
+        p2.orbs_away
       );
     } else if (on_ground) {
       return new Player(
@@ -26775,7 +26901,8 @@ function jump(p2, input) {
         p2.hp,
         p2.invuln,
         p2.hurt,
-        p2.hexed
+        p2.hexed,
+        p2.orbs_away
       );
     } else if (on_wall) {
       return new Player(
@@ -26822,7 +26949,8 @@ function jump(p2, input) {
         p2.hp,
         p2.invuln,
         p2.hurt,
-        p2.hexed
+        p2.hexed,
+        p2.orbs_away
       );
     } else {
       let $ = input.jump_pressed && p2.air_jumps > 0;
@@ -26871,7 +26999,8 @@ function jump(p2, input) {
           p2.hp,
           p2.invuln,
           p2.hurt,
-          p2.hexed
+          p2.hexed,
+          p2.orbs_away
         );
       } else {
         return p2;
@@ -26924,7 +27053,8 @@ function jump(p2, input) {
         p2.hp,
         p2.invuln,
         p2.hurt,
-        p2.hexed
+        p2.hexed,
+        p2.orbs_away
       );
     } else {
       return p2;
@@ -27014,7 +27144,8 @@ function vertical(p2, input, dt2) {
         p2.hp,
         p2.invuln,
         p2.hurt,
-        p2.hexed
+        p2.hexed,
+        p2.orbs_away
       );
     }
   );
@@ -27097,7 +27228,8 @@ function horizontal(p2, input, dt2) {
         p2.hp,
         p2.invuln,
         p2.hurt,
-        p2.hexed
+        p2.hexed,
+        p2.orbs_away
       );
     }
   );
@@ -27163,7 +27295,8 @@ function start_attack(p2, input) {
       p2.hp,
       p2.invuln,
       p2.hurt,
-      p2.hexed
+      p2.hexed,
+      p2.orbs_away
     );
   } else {
     return p2;
@@ -27283,7 +27416,8 @@ function tick2(p2, input, dt2) {
     p2.hp,
     p2.invuln - dt2,
     p2.hurt - dt2,
-    max3(0, p2.hexed - dt2)
+    max3(0, p2.hexed - dt2),
+    p2.orbs_away
   );
 }
 __name(tick2, "tick");
@@ -27350,7 +27484,8 @@ function move_player(p2, input, level, dt2) {
     p$1.hp,
     p$1.invuln,
     p$1.hurt,
-    p$1.hexed
+    p$1.hexed,
+    p$1.orbs_away
   );
 }
 __name(move_player, "move_player");
@@ -27588,7 +27723,8 @@ function apply_node(p2, kind) {
       p2.hp,
       p2.invuln,
       p2.hurt,
-      p2.hexed
+      p2.hexed,
+      p2.orbs_away
     );
   }, "with$");
   if (kind instanceof Keystone) {
@@ -27666,7 +27802,8 @@ function apply_node(p2, kind) {
         p2.hp + max_hp3(q2) - max_hp3(p2),
         q2.invuln,
         q2.hurt,
-        q2.hexed
+        q2.hexed,
+        q2.orbs_away
       );
     } else if ($ instanceof DamagePct) {
       let n = $[0];
@@ -27927,7 +28064,8 @@ function apply_node(p2, kind) {
         p$1.hp,
         p$1.invuln,
         p$1.hurt,
-        p$1.hexed
+        p$1.hexed,
+        p$1.orbs_away
       );
     } else if ($ instanceof ExtraKnife) {
       return with$(
@@ -28095,7 +28233,8 @@ function apply_node(p2, kind) {
         p2.hp,
         p2.invuln,
         p2.hurt,
-        p2.hexed
+        p2.hexed,
+        p2.orbs_away
       );
     } else if ($ instanceof GrantMove) {
       let $1 = $[0];
@@ -28239,7 +28378,8 @@ function apply_node(p2, kind) {
           p$1.hp,
           p$1.invuln,
           p$1.hurt,
-          p$1.hexed
+          p$1.hexed,
+          p$1.orbs_away
         );
       } else if (rule instanceof Aerialist) {
         return new Player(
@@ -28305,7 +28445,8 @@ function apply_node(p2, kind) {
           p$1.hp,
           p$1.invuln,
           p$1.hurt,
-          p$1.hexed
+          p$1.hexed,
+          p$1.orbs_away
         );
       } else if (rule instanceof GlassCannon) {
         return new Player(
@@ -28352,7 +28493,8 @@ function apply_node(p2, kind) {
           min(p$1.hp, max_hp3(p$1)),
           p$1.invuln,
           p$1.hurt,
-          p$1.hexed
+          p$1.hexed,
+          p$1.orbs_away
         );
       } else if (rule instanceof Focus) {
         return new Player(
@@ -28399,7 +28541,8 @@ function apply_node(p2, kind) {
           p$1.hp,
           p$1.invuln,
           p$1.hurt,
-          p$1.hexed
+          p$1.hexed,
+          p$1.orbs_away
         );
       } else if (rule instanceof Bounty) {
         return new Player(
@@ -28465,7 +28608,8 @@ function apply_node(p2, kind) {
           p$1.hp,
           p$1.invuln,
           p$1.hurt,
-          p$1.hexed
+          p$1.hexed,
+          p$1.orbs_away
         );
       } else if (rule instanceof Phoenix) {
         return new Player(
@@ -28512,7 +28656,8 @@ function apply_node(p2, kind) {
           min(p$1.hp, max_hp3(p$1)),
           p$1.invuln,
           p$1.hurt,
-          p$1.hexed
+          p$1.hexed,
+          p$1.orbs_away
         );
       } else {
         return p$1;
@@ -28618,7 +28763,8 @@ function level_up(world2, id2, otherwise) {
               p2.hp,
               p2.invuln,
               p2.hurt,
-              p2.hexed
+              p2.hexed,
+              p2.orbs_away
             ),
             others(world2)
           ),
@@ -28716,7 +28862,8 @@ function allocate(world2, id2) {
           p2.hp,
           p2.invuln,
           p2.hurt,
-          p2.hexed
+          p2.hexed,
+          p2.orbs_away
         );
         let p$2 = apply_node(p$1, node.kind);
         let own = unwrap(p$2.class, -1);
@@ -28889,15 +29036,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3074,
+        3100,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 94509,
-          end: 94560,
-          pattern_start: 94520,
-          pattern_end: 94528
+          start: 95377,
+          end: 95428,
+          pattern_start: 95388,
+          pattern_end: 95396
         }
       );
     }
@@ -28909,15 +29056,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3076,
+        3102,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 94643,
-          end: 94704,
-          pattern_start: 94654,
-          pattern_end: 94671
+          start: 95511,
+          end: 95572,
+          pattern_start: 95522,
+          pattern_end: 95539
         }
       );
     } else {
@@ -28927,15 +29074,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          3076,
+          3102,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 94643,
-            end: 94704,
-            pattern_start: 94654,
-            pattern_end: 94671
+            start: 95511,
+            end: 95572,
+            pattern_start: 95522,
+            pattern_end: 95539
           }
         );
       } else {
@@ -31473,7 +31620,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "7294aa89a65c" : "dev";
+var BUILD = true ? "4290f9323de9" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
