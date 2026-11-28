@@ -18200,6 +18200,7 @@ var jump_recharge = 0.6;
 var firebolt_wait = 0.5;
 var firebolt_blast = 6;
 var arrow_gravity = 16;
+var arrow_up_gravity = 40;
 var caltrops_bite = 1;
 var orbit_speed = 3.9;
 var arrow_far = 6;
@@ -18770,7 +18771,14 @@ function advance(s, dt2) {
     if ($3) {
       _block$1 = s.vy - gravity * dt2;
     } else if ($4 instanceof Arrow) {
-      _block$1 = s.vy - arrow_gravity * dt2;
+      _block$1 = s.vy - (() => {
+        let $52 = s.vx === 0;
+        if ($52) {
+          return arrow_up_gravity;
+        } else {
+          return arrow_gravity;
+        }
+      })() * dt2;
     } else {
       _block$1 = s.vy;
     }
@@ -33565,7 +33573,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "3e6b370e40bb" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "035a47c88b36" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -33829,7 +33837,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "3e6b370e40bb" : "dev";
+var BUILD = true ? "035a47c88b36" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
