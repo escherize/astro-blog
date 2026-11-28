@@ -21688,7 +21688,7 @@ var Strike = class extends CustomType {
   static {
     __name(this, "Strike");
   }
-  constructor(effect, x, y2, w2, h, vx, vy, ttl, follow, pierce, damage3, hit, wait, bounces) {
+  constructor(effect, x, y2, w2, h, vx, vy, ttl, follow, pierce, damage3, hit, wait, bounces, owner) {
     super();
     this.effect = effect;
     this.x = x;
@@ -21704,6 +21704,7 @@ var Strike = class extends CustomType {
     this.hit = hit;
     this.wait = wait;
     this.bounces = bounces;
+    this.owner = owner;
   }
 };
 var Boost = class extends CustomType {
@@ -21826,6 +21827,7 @@ function volley(effect, cx, cy, w2, h, speed3, ttl, damage3, shots, b, aim) {
         damage3,
         List$Empty$const,
         0,
+        0,
         0
       );
     }
@@ -21873,6 +21875,7 @@ function spawn2(effect, px, py, base, b, aim, facing) {
         dmg(1 * grown),
         List$Empty$const,
         0,
+        0,
         0
       ),
       List$Empty$const
@@ -21892,6 +21895,7 @@ function spawn2(effect, px, py, base, b, aim, facing) {
         true,
         dmg(0.8 * grown),
         List$Empty$const,
+        0,
         0,
         0
       ),
@@ -21919,6 +21923,7 @@ function spawn2(effect, px, py, base, b, aim, facing) {
         true,
         dmg(0.75 * grown),
         List$Empty$const,
+        0,
         0,
         0
       ),
@@ -21954,6 +21959,7 @@ function spawn2(effect, px, py, base, b, aim, facing) {
         false,
         dmg(0.6 * grown),
         List$Empty$const,
+        0,
         0,
         0
       ),
@@ -21994,6 +22000,7 @@ function spawn2(effect, px, py, base, b, aim, facing) {
           false,
           dmg(0.9),
           List$Empty$const,
+          0,
           0,
           0
         );
@@ -22073,6 +22080,7 @@ function spawn2(effect, px, py, base, b, aim, facing) {
           dmg(0.4),
           List$Empty$const,
           0,
+          0,
           0
         );
       }
@@ -22106,6 +22114,7 @@ function spawn2(effect, px, py, base, b, aim, facing) {
           dmg(2.5),
           List$Empty$const,
           burst_gap * identity(i),
+          0,
           0
         );
       }
@@ -22134,7 +22143,8 @@ function carry(s, vx, vy) {
       s.damage,
       s.hit,
       s.wait,
-      s.bounces
+      s.bounces,
+      s.owner
     );
   } else {
     return s;
@@ -22160,7 +22170,8 @@ function land(s, floor2) {
       s.damage,
       List$Empty$const,
       s.wait,
-      s.bounces
+      s.bounces,
+      s.owner
     );
   } else {
     return new Strike(
@@ -22177,7 +22188,8 @@ function land(s, floor2) {
       s.damage,
       List$Empty$const,
       s.wait,
-      s.bounces
+      s.bounces,
+      s.owner
     );
   }
 }
@@ -22197,9 +22209,10 @@ function bounce(s, struck, dt2) {
     s.damage,
     s.hit,
     s.wait,
-    s.bounces
+    s.bounces,
+    s.owner
   );
-  let up = max3(absolute_value2(s.vy) * bounce_keep, bounce_lift);
+  let up2 = max3(absolute_value2(s.vy) * bounce_keep, bounce_lift);
   let _block;
   if (struck instanceof Floor) {
     _block = new Strike(
@@ -22209,14 +22222,15 @@ function bounce(s, struck, dt2) {
       back.w,
       back.h,
       s.vx * 0.8,
-      up,
+      up2,
       back.ttl,
       back.follow,
       back.pierce,
       back.damage,
       back.hit,
       back.wait,
-      back.bounces
+      back.bounces,
+      back.owner
     );
   } else if (struck instanceof Wall) {
     _block = new Strike(
@@ -22233,7 +22247,8 @@ function bounce(s, struck, dt2) {
       back.damage,
       back.hit,
       back.wait,
-      back.bounces
+      back.bounces,
+      back.owner
     );
   } else if (struck instanceof Ceiling) {
     _block = new Strike(
@@ -22250,7 +22265,8 @@ function bounce(s, struck, dt2) {
       back.damage,
       back.hit,
       back.wait,
-      back.bounces
+      back.bounces,
+      back.owner
     );
   } else {
     _block = new Strike(
@@ -22260,14 +22276,15 @@ function bounce(s, struck, dt2) {
       s.w,
       s.h,
       s.vx * 0.8,
-      up,
+      up2,
       s.ttl,
       s.follow,
       s.pierce,
       s.damage,
       s.hit,
       s.wait,
-      s.bounces
+      s.bounces,
+      s.owner
     );
   }
   let s$1 = _block;
@@ -22285,7 +22302,8 @@ function bounce(s, struck, dt2) {
     s$1.damage,
     s$1.hit,
     s$1.wait,
-    s$1.bounces - 1
+    s$1.bounces - 1,
+    s$1.owner
   );
 }
 __name(bounce, "bounce");
@@ -22306,7 +22324,8 @@ function puddle(s, floor2, level) {
     0,
     List$Empty$const,
     s.wait,
-    0
+    0,
+    s.owner
   );
 }
 __name(puddle, "puddle");
@@ -22441,7 +22460,8 @@ function burst(s) {
     s.damage,
     List$Empty$const,
     s.wait,
-    s.bounces
+    s.bounces,
+    s.owner
   );
 }
 __name(burst, "burst");
@@ -22478,7 +22498,8 @@ function advance(s, dt2) {
         s.damage,
         s.hit,
         max3(0, s.wait - dt2),
-        s.bounces
+        s.bounces,
+        s.owner
       )
     );
   } else if ($) {
@@ -22497,7 +22518,8 @@ function advance(s, dt2) {
         s.damage,
         s.hit,
         s.wait - dt2,
-        s.bounces
+        s.bounces,
+        s.owner
       )
     );
   } else {
@@ -22552,7 +22574,8 @@ function advance(s, dt2) {
       s.damage,
       hit,
       s.wait,
-      s.bounces
+      s.bounces,
+      s.owner
     );
     let $6 = s$1.ttl > 0;
     if ($6) {
@@ -22968,14 +22991,14 @@ var Cell = class extends CustomType {
   static {
     __name(this, "Cell");
   }
-  constructor(id2, name3, f, r, m, up, x, y2, starter) {
+  constructor(id2, name3, f, r, m, up2, x, y2, starter) {
     super();
     this.id = id2;
     this.name = name3;
     this.f = f;
     this.r = r;
     this.m = m;
-    this.up = up;
+    this.up = up2;
     this.x = x;
     this.y = y2;
     this.starter = starter;
@@ -23636,10 +23659,10 @@ function cells() {
       let f = c[1];
       let r = c[2];
       let m = c[3];
-      let up = c[4];
+      let up2 = c[4];
       let starter = c[5];
       let _block;
-      if (up) {
+      if (up2) {
         _block = 1 / 3;
       } else {
         _block = 2 / 3;
@@ -23652,7 +23675,7 @@ function cells() {
       );
       let x = $[0];
       let y2 = $[1];
-      return new Cell(id2, name3, f, r, m, up, x, y2, starter);
+      return new Cell(id2, name3, f, r, m, up2, x, y2, starter);
     }
   );
 }
@@ -24987,30 +25010,30 @@ function twin(t2, id2) {
   return from_result(_pipe);
 }
 __name(twin, "twin");
-function locked(t2, owned, id2) {
+function locked(t2, owned2, id2) {
   let $ = twin(t2, id2);
   if ($ instanceof Some) {
     let other = $[0];
-    return contains(owned, other);
+    return contains(owned2, other);
   } else {
     return false;
   }
 }
 __name(locked, "locked");
-function can_allocate(t2, owned, id2) {
+function can_allocate(t2, owned2, id2) {
   let $ = get(t2.nodes, id2);
   if ($ instanceof Ok) {
     if ($[0].kind instanceof Keystone) {
       return false;
     } else {
-      return !contains(owned, id2) && !locked(t2, owned, id2) && any(
+      return !contains(owned2, id2) && !locked(t2, owned2, id2) && any(
         (() => {
           let _pipe = get(t2.neighbours, id2);
           let _pipe$1 = from_result(_pipe);
           return unwrap(_pipe$1, List$Empty$const);
         })(),
         (_capture) => {
-          return contains(owned, _capture);
+          return contains(owned2, _capture);
         }
       );
     }
@@ -25019,9 +25042,9 @@ function can_allocate(t2, owned, id2) {
   }
 }
 __name(can_allocate, "can_allocate");
-function saturated(t2, owned, own) {
+function saturated(t2, owned2, own) {
   let filled = /* @__PURE__ */ __name((id2) => {
-    return contains(owned, id2) || locked(t2, owned, id2);
+    return contains(owned2, id2) || locked(t2, owned2, id2);
   }, "filled");
   let _pipe = to_list(t2.rings);
   return filter_map(
@@ -25163,12 +25186,12 @@ function bfs(loop$t, loop$target, loop$frontier, loop$seen, loop$depth) {
   }
 }
 __name(bfs, "bfs");
-function distance(t2, owned, id2) {
-  let $ = contains(owned, id2);
+function distance(t2, owned2, id2) {
+  let $ = contains(owned2, id2);
   if ($) {
     return 0;
   } else {
-    return bfs(t2, id2, owned, owned, 1);
+    return bfs(t2, id2, owned2, owned2, 1);
   }
 }
 __name(distance, "distance");
@@ -25367,7 +25390,7 @@ function details(t2, n) {
   }
 }
 __name(details, "details");
-function ring_progress(t2, owned, keystone) {
+function ring_progress(t2, owned2, keystone) {
   let _block;
   let _pipe = get(t2.rings, keystone);
   let _pipe$1 = from_result(_pipe);
@@ -25375,7 +25398,7 @@ function ring_progress(t2, owned, keystone) {
   let ring = _block;
   return [
     count(ring, (_capture) => {
-      return contains(owned, _capture);
+      return contains(owned2, _capture);
     }),
     length(ring)
   ];
@@ -26069,31 +26092,6 @@ function xp_needed(lvl) {
   return xp_per_level * lvl;
 }
 __name(xp_needed, "xp_needed");
-function player(world2) {
-  let $ = world2.players;
-  let p2;
-  if ($ instanceof Empty) {
-    throw makeError(
-      "let_assert",
-      FILEPATH2,
-      "game",
-      833,
-      "player",
-      "Pattern match failed, no pattern matched the value.",
-      {
-        value: $,
-        start: 24705,
-        end: 24739,
-        pattern_start: 24716,
-        pattern_end: 24723
-      }
-    );
-  } else {
-    p2 = $.head;
-  }
-  return p2;
-}
-__name(player, "player");
 function cursed(p2, kind) {
   return any(p2.curses, (c) => {
     return isEqual(c.kind, kind);
@@ -26113,8 +26111,20 @@ function tier_bump(world2) {
     }
   }, "one");
   return one(world2.difficulty instanceof Hard) + one(world2.danger) + one(
-    has2(player(world2), Rule$Bounty$const)
-  ) + one(cursed(player(world2), CurseKind$Cursed$const));
+    any(
+      world2.players,
+      (_capture) => {
+        return has2(_capture, Rule$Bounty$const);
+      }
+    )
+  ) + one(
+    any(
+      world2.players,
+      (_capture) => {
+        return cursed(_capture, CurseKind$Cursed$const);
+      }
+    )
+  );
 }
 __name(tier_bump, "tier_bump");
 function pace2(depth) {
@@ -26710,6 +26720,31 @@ function pct(n) {
   return 1 + identity(n) / 100;
 }
 __name(pct, "pct");
+function player(world2) {
+  let $ = world2.players;
+  let p2;
+  if ($ instanceof Empty) {
+    throw makeError(
+      "let_assert",
+      FILEPATH2,
+      "game",
+      841,
+      "player",
+      "Pattern match failed, no pattern matched the value.",
+      {
+        value: $,
+        start: 25038,
+        end: 25072,
+        pattern_start: 25049,
+        pattern_end: 25056
+      }
+    );
+  } else {
+    p2 = $.head;
+  }
+  return p2;
+}
+__name(player, "player");
 function drop_loot(world2, killed) {
   let p2 = player(world2);
   let hearts = !has2(p2, Rule$Bloodlust$const) && !has2(
@@ -27975,15 +28010,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      4287,
+      4360,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 137159,
-        end: 137209,
-        pattern_start: 137170,
-        pattern_end: 137177
+        start: 140012,
+        end: 140062,
+        pattern_start: 140023,
+        pattern_end: 140030
       }
     );
   } else {
@@ -28793,21 +28828,15 @@ function check_clear(world2) {
   if ($) {
     return world2;
   } else {
-    let fasting = has2(player(world2), Rule$Fasting$const);
-    let hurt$1 = any(world2.players, (p3) => {
-      return p3.hp < max_hp3(p3);
-    });
-    let _block;
-    let $1 = has2(player(world2), Rule$Bloodlust$const) || fasting || !hurt$1;
-    if ($1) {
-      _block = prepend(
-        new Point(Axis$Fighter$const),
-        prepend(
-          new Point(Axis$Rogue$const),
-          prepend(new Point(Axis$Mage$const), List$Empty$const)
-        )
+    let healable = /* @__PURE__ */ __name((p2) => {
+      return p2.hp < max_hp3(p2) && !has2(p2, Rule$Bloodlust$const) && !has2(
+        p2,
+        Rule$Fasting$const
       );
-    } else {
+    }, "healable");
+    let _block;
+    let $1 = any(world2.players, healable);
+    if ($1) {
       _block = prepend(
         new Point(Axis$Fighter$const),
         prepend(
@@ -28816,6 +28845,14 @@ function check_clear(world2) {
             new Point(Axis$Mage$const),
             prepend(Reward$Heal$const, List$Empty$const)
           )
+        )
+      );
+    } else {
+      _block = prepend(
+        new Point(Axis$Fighter$const),
+        prepend(
+          new Point(Axis$Rogue$const),
+          prepend(new Point(Axis$Mage$const), List$Empty$const)
         )
       );
     }
@@ -28937,158 +28974,167 @@ function check_clear(world2) {
     let doors = $6[0];
     let finale = $6[1];
     let hard_open = world2.hard_open || !(finale instanceof Empty) && !(world2.difficulty instanceof Easy);
-    let p2 = player(world2);
-    let _block$3;
-    let $9 = fasting && world2.depth > 0;
-    if ($9) {
-      _block$3 = mend2(p2, globalThis.Math.trunc(max_hp3(p2) * 15 / 100));
-    } else {
-      _block$3 = 0;
-    }
-    let fed = _block$3;
-    let _block$4;
-    let $11 = fed > 0;
-    if ($11) {
-      _block$4 = [
-        new Player(
-          p2.x,
-          p2.y,
-          p2.vx,
-          p2.vy,
-          p2.grounded,
-          p2.on_platform,
-          p2.wall,
-          p2.facing,
-          p2.coyote,
-          p2.jump_buffer,
-          p2.air_jumps,
-          p2.dash_time,
-          p2.dashes,
-          p2.can_cut,
-          p2.up_held,
-          p2.down_held,
-          p2.jumped,
-          p2.dashed,
-          p2.struck,
-          p2.plunged,
-          p2.slam,
-          p2.grudge,
-          p2.conduit,
-          p2.quick,
-          p2.rebound,
-          p2.air_hits,
-          p2.weapon,
-          p2.loadout,
-          p2.trained,
-          p2.class,
-          p2.allocated,
-          p2.mods,
-          p2.tree_stats,
-          p2.shield,
-          p2.block_charge,
-          p2.crash_wait,
-          p2.swings,
-          p2.risen,
-          p2.attack,
-          p2.stats,
-          p2.lvl,
-          p2.xp,
-          p2.points,
-          p2.hp + fed,
-          p2.invuln,
-          p2.hurt,
-          p2.hexed,
-          p2.rush,
-          p2.through,
-          p2.lunge,
-          p2.shadow,
-          p2.ambush,
-          p2.orbs_away,
-          p2.curses
-        ),
-        prepend(new Healed(p2.x, p2.y + height, fed), List$Empty$const)
-      ];
-    } else {
-      _block$4 = [p2, List$Empty$const];
-    }
-    let $10 = _block$4;
-    let player$1 = $10[0];
-    let events = $10[1];
-    let _block$5;
-    let $12 = world2.depth > 0;
-    if ($12) {
-      _block$5 = new Player(
-        player$1.x,
-        player$1.y,
-        player$1.vx,
-        player$1.vy,
-        player$1.grounded,
-        player$1.on_platform,
-        player$1.wall,
-        player$1.facing,
-        player$1.coyote,
-        player$1.jump_buffer,
-        player$1.air_jumps,
-        player$1.dash_time,
-        player$1.dashes,
-        player$1.can_cut,
-        player$1.up_held,
-        player$1.down_held,
-        player$1.jumped,
-        player$1.dashed,
-        player$1.struck,
-        player$1.plunged,
-        player$1.slam,
-        player$1.grudge,
-        player$1.conduit,
-        player$1.quick,
-        player$1.rebound,
-        player$1.air_hits,
-        player$1.weapon,
-        player$1.loadout,
-        player$1.trained,
-        player$1.class,
-        player$1.allocated,
-        player$1.mods,
-        player$1.tree_stats,
-        player$1.shield,
-        player$1.block_charge,
-        player$1.crash_wait,
-        player$1.swings,
-        player$1.risen,
-        player$1.attack,
-        player$1.stats,
-        player$1.lvl,
-        player$1.xp,
-        player$1.points,
-        player$1.hp,
-        player$1.invuln,
-        player$1.hurt,
-        player$1.hexed,
-        player$1.rush,
-        player$1.through,
-        player$1.lunge,
-        player$1.shadow,
-        player$1.ambush,
-        filter_map(
-          player$1.orbs_away,
-          (n2) => {
-            let $13 = n2 > 1;
-            if ($13) {
-              return new Ok(n2 - 1);
-            } else {
-              return new Error2(void 0);
-            }
-          }
-        ),
-        player$1.curses
-      );
-    } else {
-      _block$5 = player$1;
-    }
-    let player$2 = _block$5;
+    let $9 = map_fold(
+      world2.players,
+      List$Empty$const,
+      (events2, p2) => {
+        let _block$3;
+        let $10 = has2(p2, Rule$Fasting$const) && world2.depth > 0 && p2.hp > 0;
+        if ($10) {
+          _block$3 = mend2(p2, globalThis.Math.trunc(max_hp3(p2) * 15 / 100));
+        } else {
+          _block$3 = 0;
+        }
+        let fed = _block$3;
+        let _block$4;
+        let $12 = fed > 0;
+        if ($12) {
+          _block$4 = [
+            new Player(
+              p2.x,
+              p2.y,
+              p2.vx,
+              p2.vy,
+              p2.grounded,
+              p2.on_platform,
+              p2.wall,
+              p2.facing,
+              p2.coyote,
+              p2.jump_buffer,
+              p2.air_jumps,
+              p2.dash_time,
+              p2.dashes,
+              p2.can_cut,
+              p2.up_held,
+              p2.down_held,
+              p2.jumped,
+              p2.dashed,
+              p2.struck,
+              p2.plunged,
+              p2.slam,
+              p2.grudge,
+              p2.conduit,
+              p2.quick,
+              p2.rebound,
+              p2.air_hits,
+              p2.weapon,
+              p2.loadout,
+              p2.trained,
+              p2.class,
+              p2.allocated,
+              p2.mods,
+              p2.tree_stats,
+              p2.shield,
+              p2.block_charge,
+              p2.crash_wait,
+              p2.swings,
+              p2.risen,
+              p2.attack,
+              p2.stats,
+              p2.lvl,
+              p2.xp,
+              p2.points,
+              p2.hp + fed,
+              p2.invuln,
+              p2.hurt,
+              p2.hexed,
+              p2.rush,
+              p2.through,
+              p2.lunge,
+              p2.shadow,
+              p2.ambush,
+              p2.orbs_away,
+              p2.curses
+            ),
+            prepend(new Healed(p2.x, p2.y + height, fed), events2)
+          ];
+        } else {
+          _block$4 = [p2, events2];
+        }
+        let $11 = _block$4;
+        let p$1 = $11[0];
+        let events$12 = $11[1];
+        let _block$5;
+        let $13 = world2.depth > 0;
+        if ($13) {
+          _block$5 = new Player(
+            p$1.x,
+            p$1.y,
+            p$1.vx,
+            p$1.vy,
+            p$1.grounded,
+            p$1.on_platform,
+            p$1.wall,
+            p$1.facing,
+            p$1.coyote,
+            p$1.jump_buffer,
+            p$1.air_jumps,
+            p$1.dash_time,
+            p$1.dashes,
+            p$1.can_cut,
+            p$1.up_held,
+            p$1.down_held,
+            p$1.jumped,
+            p$1.dashed,
+            p$1.struck,
+            p$1.plunged,
+            p$1.slam,
+            p$1.grudge,
+            p$1.conduit,
+            p$1.quick,
+            p$1.rebound,
+            p$1.air_hits,
+            p$1.weapon,
+            p$1.loadout,
+            p$1.trained,
+            p$1.class,
+            p$1.allocated,
+            p$1.mods,
+            p$1.tree_stats,
+            p$1.shield,
+            p$1.block_charge,
+            p$1.crash_wait,
+            p$1.swings,
+            p$1.risen,
+            p$1.attack,
+            p$1.stats,
+            p$1.lvl,
+            p$1.xp,
+            p$1.points,
+            p$1.hp,
+            p$1.invuln,
+            p$1.hurt,
+            p$1.hexed,
+            p$1.rush,
+            p$1.through,
+            p$1.lunge,
+            p$1.shadow,
+            p$1.ambush,
+            filter_map(
+              p$1.orbs_away,
+              (n2) => {
+                let $14 = n2 > 1;
+                if ($14) {
+                  return new Ok(n2 - 1);
+                } else {
+                  return new Error2(void 0);
+                }
+              }
+            ),
+            p$1.curses
+          );
+        } else {
+          _block$5 = p$1;
+        }
+        let p$2 = _block$5;
+        return [events$12, p$2];
+      }
+    );
+    let events = $9[0];
+    let players = $9[1];
+    let events$1 = reverse2(events);
     return new World(
-      prepend(player$2, others(world2)),
+      players,
       world2.level,
       world2.enemies,
       world2.projectiles,
@@ -29096,7 +29142,7 @@ function check_clear(world2) {
       flatten(
         prepend(
           world2.events,
-          prepend(events, prepend(finale, List$Empty$const))
+          prepend(events$1, prepend(finale, List$Empty$const))
         )
       ),
       world2.depth,
@@ -29208,7 +29254,8 @@ function spare_the_born(strikes, before, after) {
             s.damage,
             append(ids, s.hit),
             s.wait,
-            s.bounces
+            s.bounces,
+            s.owner
           );
         } else {
           return s;
@@ -29400,28 +29447,68 @@ function gain_xp(loop$p, loop$xp, loop$events) {
 }
 __name(gain_xp, "gain_xp");
 function loot(world2, dt2) {
-  let p2 = player(world2);
-  let cx = p2.x;
-  let cy = p2.y + height / 2;
+  let _block;
+  let _pipe = index_map(world2.players, (p2, i) => {
+    return [p2, i];
+  });
+  _block = filter(_pipe, (pi3) => {
+    return pi3[0].hp > 0;
+  });
+  let standing = _block;
   let $ = fold2(
     world2.drops,
     [List$Empty$const, List$Empty$const],
     (acc2, d2) => {
-      let dx = cx - d2.x;
-      let dy = cy - (d2.y + drop_size / 2);
-      let _block2;
-      let $12 = square_root(dx * dx + dy * dy);
-      if ($12 instanceof Ok) {
-        let r = $12[0];
-        _block2 = r;
+      let to2 = /* @__PURE__ */ __name((p2) => {
+        let dx2 = p2.x - d2.x;
+        let dy2 = p2.y + height / 2 - (d2.y + drop_size / 2);
+        let _block$13;
+        let $13 = square_root(dx2 * dx2 + dy2 * dy2);
+        if ($13 instanceof Ok) {
+          let r = $13[0];
+          _block$13 = r;
+        } else {
+          _block$13 = 0;
+        }
+        let far4 = _block$13;
+        return [dx2, dy2, far4];
+      }, "to");
+      let near = fold2(
+        standing,
+        new Error2(void 0),
+        (best, pi3) => {
+          let $13 = to2(pi3[0]);
+          let dx2 = $13[0];
+          let dy2 = $13[1];
+          let far4 = $13[2];
+          if (best instanceof Ok) {
+            let b = best[0][3];
+            if (b <= far4) {
+              return best;
+            } else {
+              return new Ok([pi3[1], dx2, dy2, far4]);
+            }
+          } else {
+            return new Ok([pi3[1], dx2, dy2, far4]);
+          }
+        }
+      );
+      let _block$12;
+      if (near instanceof Ok) {
+        let n = near[0];
+        _block$12 = n;
       } else {
-        _block2 = 0;
+        _block$12 = [-1, 0, 0, magnet];
       }
-      let far3 = _block2;
-      let $22 = far3 < 0.5;
+      let $12 = _block$12;
+      let who = $12[0];
+      let dx = $12[1];
+      let dy = $12[2];
+      let far3 = $12[3];
+      let $2 = far3 < 0.5;
       let $3 = far3 < magnet;
-      if ($22) {
-        return [acc2[0], prepend(d2.loot, acc2[1])];
+      if ($2) {
+        return [acc2[0], prepend([who, d2.loot], acc2[1])];
       } else if ($3) {
         let $4 = normalize(dx, dy);
         let nx = $4[0];
@@ -29456,14 +29543,14 @@ function loot(world2, dt2) {
           world2.level,
           dt2
         );
-        let _block$1;
+        let _block$2;
         let $4 = m.grounded;
         if ($4) {
-          _block$1 = approach(m.vx, 0, 20 * dt2);
+          _block$2 = approach(m.vx, 0, 20 * dt2);
         } else {
-          _block$1 = m.vx;
+          _block$2 = m.vx;
         }
-        let vx = _block$1;
+        let vx = _block$2;
         return [
           prepend(new Drop(m.x, m.y, vx, m.vy, d2.loot), acc2[0]),
           acc2[1]
@@ -29473,103 +29560,134 @@ function loot(world2, dt2) {
   );
   let drops = $[0];
   let got = $[1];
-  let xp2 = sum(
-    map3(
-      got,
-      (l) => {
-        if (l instanceof Shard) {
-          let xp3 = l.xp;
-          return xp3;
-        } else {
-          return 0;
+  let _block$1;
+  let _pipe$1 = index_map(world2.players, (p2, i) => {
+    return [p2, i];
+  });
+  _block$1 = map_fold(
+    _pipe$1,
+    world2.events,
+    (events2, pi3) => {
+      let p2 = pi3[0];
+      let i = pi3[1];
+      let got$1 = filter_map(
+        got,
+        (g) => {
+          let $2 = g[0] === i;
+          if ($2) {
+            return new Ok(g[1]);
+          } else {
+            return new Error2(void 0);
+          }
         }
+      );
+      if (got$1 instanceof Empty) {
+        return [events2, p2];
+      } else {
+        let xp2 = sum(
+          map3(
+            got$1,
+            (l) => {
+              if (l instanceof Shard) {
+                let xp3 = l.xp;
+                return xp3;
+              } else {
+                return 0;
+              }
+            }
+          )
+        );
+        let heal = count(got$1, (l) => {
+          return l instanceof Heart;
+        }) * max(
+          3,
+          globalThis.Math.trunc(max_hp3(p2) * heart_pct / 100)
+        );
+        let healed = mend2(p2, heal);
+        let p$1 = new Player(
+          p2.x,
+          p2.y,
+          p2.vx,
+          p2.vy,
+          p2.grounded,
+          p2.on_platform,
+          p2.wall,
+          p2.facing,
+          p2.coyote,
+          p2.jump_buffer,
+          p2.air_jumps,
+          p2.dash_time,
+          p2.dashes,
+          p2.can_cut,
+          p2.up_held,
+          p2.down_held,
+          p2.jumped,
+          p2.dashed,
+          p2.struck,
+          p2.plunged,
+          p2.slam,
+          p2.grudge,
+          p2.conduit,
+          p2.quick,
+          p2.rebound,
+          p2.air_hits,
+          p2.weapon,
+          p2.loadout,
+          p2.trained,
+          p2.class,
+          p2.allocated,
+          p2.mods,
+          p2.tree_stats,
+          p2.shield,
+          p2.block_charge,
+          p2.crash_wait,
+          p2.swings,
+          p2.risen,
+          p2.attack,
+          p2.stats,
+          p2.lvl,
+          p2.xp,
+          p2.points,
+          p2.hp + healed,
+          p2.invuln,
+          p2.hurt,
+          p2.hexed,
+          p2.rush,
+          p2.through,
+          p2.lunge,
+          p2.shadow,
+          p2.ambush,
+          p2.orbs_away,
+          p2.curses
+        );
+        let _block$2;
+        let $2 = healed > 0;
+        if ($2) {
+          _block$2 = prepend(
+            new Healed(p$1.x, p$1.y + height, healed),
+            List$Empty$const
+          );
+        } else {
+          _block$2 = List$Empty$const;
+        }
+        let healing = _block$2;
+        let $3 = gain_xp(p$1, xp2, healing);
+        let p$2 = $3[0];
+        let level_ups = $3[1];
+        return [append(events2, level_ups), p$2];
       }
-    )
+    }
   );
-  let heal = count(got, (l) => {
-    return l instanceof Heart;
-  }) * max(
-    3,
-    globalThis.Math.trunc(max_hp3(p2) * heart_pct / 100)
-  );
-  let healed = mend2(p2, heal);
-  let p$1 = new Player(
-    p2.x,
-    p2.y,
-    p2.vx,
-    p2.vy,
-    p2.grounded,
-    p2.on_platform,
-    p2.wall,
-    p2.facing,
-    p2.coyote,
-    p2.jump_buffer,
-    p2.air_jumps,
-    p2.dash_time,
-    p2.dashes,
-    p2.can_cut,
-    p2.up_held,
-    p2.down_held,
-    p2.jumped,
-    p2.dashed,
-    p2.struck,
-    p2.plunged,
-    p2.slam,
-    p2.grudge,
-    p2.conduit,
-    p2.quick,
-    p2.rebound,
-    p2.air_hits,
-    p2.weapon,
-    p2.loadout,
-    p2.trained,
-    p2.class,
-    p2.allocated,
-    p2.mods,
-    p2.tree_stats,
-    p2.shield,
-    p2.block_charge,
-    p2.crash_wait,
-    p2.swings,
-    p2.risen,
-    p2.attack,
-    p2.stats,
-    p2.lvl,
-    p2.xp,
-    p2.points,
-    p2.hp + healed,
-    p2.invuln,
-    p2.hurt,
-    p2.hexed,
-    p2.rush,
-    p2.through,
-    p2.lunge,
-    p2.shadow,
-    p2.ambush,
-    p2.orbs_away,
-    p2.curses
-  );
-  let _block;
-  let $1 = healed > 0;
-  if ($1) {
-    _block = prepend(
-      new Healed(p$1.x, p$1.y + height, healed),
-      List$Empty$const
-    );
-  } else {
-    _block = List$Empty$const;
-  }
-  let events = _block;
-  let $2 = gain_xp(p$1, xp2, events);
-  let p$2 = $2[0];
-  let level_ups = $2[1];
+  let $1 = _block$1;
+  let events = $1[0];
+  let players = $1[1];
   return new World(
-    prepend(p$2, others(world2)),
+    players,
     world2.level,
     world2.enemies,
     world2.projectiles,
     world2.strikes,
-    append(world2.events, level_ups),
+    events,
     world2.depth,
     world2.cleared,
     world2.doors,
@@ -30647,15 +30765,15 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        1668,
+        1690,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $22,
-          start: 50308,
-          end: 50364,
-          pattern_start: 50319,
-          pattern_end: 50324
+          start: 51038,
+          end: 51094,
+          pattern_start: 51049,
+          pattern_end: 51054
         }
       );
     }
@@ -31393,7 +31511,8 @@ function come_down(p2, s, box3, over, level, dt2) {
         _record.damage,
         over,
         _record.wait,
-        _record.bounces
+        _record.bounces,
+        _record.owner
       );
       let flies = _block;
       return prepend(splash, prepend(flies, List$Empty$const));
@@ -31588,10 +31707,15 @@ function catalyse(world2, targets) {
   );
 }
 __name(catalyse, "catalyse");
-function strikes_act(world2, dt2) {
+function strikes_act(world2, me3, dt2) {
   let p2 = player(world2);
-  return fold2(
-    world2.strikes,
+  let $ = partition(world2.strikes, (s) => {
+    return s.owner === me3;
+  });
+  let mine = $[0];
+  let theirs = $[1];
+  let w2 = fold2(
+    mine,
     new World(
       world2.players,
       world2.level,
@@ -31619,15 +31743,15 @@ function strikes_act(world2, dt2) {
       world2.drops,
       world2.rerolls
     ),
-    (w2, s) => {
+    (w3, s) => {
       let box3 = strike_box(s, p2.x, p2.y);
       let _block;
-      let $ = s.wait > 0;
-      if ($) {
+      let $1 = s.wait > 0;
+      if ($1) {
         _block = List$Empty$const;
       } else {
         _block = filter(
-          w2.enemies,
+          w3.enemies,
           (e) => {
             return alive(e) && overlaps(box3, body(e));
           }
@@ -31641,7 +31765,7 @@ function strikes_act(world2, dt2) {
         }
       );
       let at_wall = any(
-        w2.level,
+        w3.level,
         (r) => {
           return !r.one_way && overlaps(box3, r);
         }
@@ -31649,38 +31773,38 @@ function strikes_act(world2, dt2) {
       let bursts = flying_firebolt(s) && (!(touching instanceof Empty) || at_wall);
       let flying = lobbed(s);
       let lands = flying && (s.effect instanceof Acid && !(touching instanceof Empty) || any(
-        w2.level,
+        w3.level,
         (r) => {
           return overlaps(box3, r) && (!r.one_way || s.vy < 0 && box3.y >= r.y + r.h - 0.35);
         }
       ));
       let _block$1;
-      let $1 = bursts || flying;
-      let $2 = s.pierce;
-      if ($1) {
+      let $2 = bursts || flying;
+      let $3 = s.pierce;
+      if ($2) {
         _block$1 = List$Empty$const;
-      } else if ($2) {
+      } else if ($3) {
         _block$1 = touching;
       } else {
         _block$1 = take(touching, 1);
       }
       let targets = _block$1;
       let _block$2;
-      let $3 = s.effect instanceof Acid && has2(
+      let $4 = s.effect instanceof Acid && has2(
         p2,
         Rule$Catalyst$const
       );
-      if ($3) {
-        _block$2 = catalyse(w2, targets);
+      if ($4) {
+        _block$2 = catalyse(w3, targets);
       } else {
-        _block$2 = w2;
+        _block$2 = w3;
       }
       let w$1 = _block$2;
       let w$2 = hit_enemies(
         w$1,
         (() => {
-          let $42 = s.effect;
-          if ($42 instanceof Puddle) {
+          let $52 = s.effect;
+          if ($52 instanceof Puddle) {
             return List$Empty$const;
           } else {
             return targets;
@@ -31691,17 +31815,17 @@ function strikes_act(world2, dt2) {
         far2(s) || ricocheting(p2),
         (e) => {
           let _block$32;
-          let $5 = s.effect;
-          if ($5 instanceof Shockwave) {
+          let $6 = s.effect;
+          if ($6 instanceof Shockwave) {
             _block$32 = [7, 4];
           } else {
             _block$32 = [4, 3];
           }
-          let $42 = _block$32;
-          let kx = $42[0];
-          let ky = $42[1];
-          let $6 = e.x >= p2.x;
-          if ($6) {
+          let $52 = _block$32;
+          let kx = $52[0];
+          let ky = $52[1];
+          let $7 = e.x >= p2.x;
+          if ($7) {
             return [kx, ky];
           } else {
             return [0 - kx, ky];
@@ -31727,15 +31851,16 @@ function strikes_act(world2, dt2) {
         s.pierce,
         s.damage,
         (() => {
-          let $42 = s.effect;
-          if ($42 instanceof Orb) {
+          let $52 = s.effect;
+          if ($52 instanceof Orb) {
             return ids(over);
           } else {
             return append(ids(targets), s.hit);
           }
         })(),
         s.wait,
-        s.bounces
+        s.bounces,
+        s.owner
       );
       let walled = at_wall && contains(
         prepend(
@@ -31748,7 +31873,7 @@ function strikes_act(world2, dt2) {
         s$1.effect
       );
       let _block$3;
-      let $4 = s$1.pierce;
+      let $5 = s$1.pierce;
       {
         if (lands) {
           _block$3 = come_down(p2, s$1, box3, ids(over), w$3.level, dt2);
@@ -31756,11 +31881,11 @@ function strikes_act(world2, dt2) {
           _block$3 = prepend(burst(s$1), List$Empty$const);
         } else if (walled) {
           _block$3 = List$Empty$const;
-        } else if (!$4) {
+        } else if (!$5) {
           if (targets instanceof Empty) {
-            let $5 = advance(s$1, dt2);
-            if ($5 instanceof Ok) {
-              let s$2 = $5[0];
+            let $6 = advance(s$1, dt2);
+            if ($6 instanceof Ok) {
+              let s$2 = $6[0];
               _block$3 = prepend(s$2, List$Empty$const);
             } else {
               _block$3 = List$Empty$const;
@@ -31769,9 +31894,9 @@ function strikes_act(world2, dt2) {
             _block$3 = List$Empty$const;
           }
         } else {
-          let $5 = advance(s$1, dt2);
-          if ($5 instanceof Ok) {
-            let s$2 = $5[0];
+          let $6 = advance(s$1, dt2);
+          if ($6 instanceof Ok) {
+            let s$2 = $6[0];
             _block$3 = prepend(s$2, List$Empty$const);
           } else {
             _block$3 = List$Empty$const;
@@ -31807,6 +31932,33 @@ function strikes_act(world2, dt2) {
         w$3.rerolls
       );
     }
+  );
+  return new World(
+    w2.players,
+    w2.level,
+    w2.enemies,
+    w2.projectiles,
+    append(w2.strikes, theirs),
+    w2.events,
+    w2.depth,
+    w2.cleared,
+    w2.doors,
+    w2.exits,
+    w2.seed,
+    w2.tree,
+    w2.unlocked,
+    w2.npcs,
+    w2.time,
+    w2.kills,
+    w2.room_time,
+    w2.safe_x,
+    w2.sealed,
+    w2.plan,
+    w2.difficulty,
+    w2.hard_open,
+    w2.danger,
+    w2.drops,
+    w2.rerolls
   );
 }
 __name(strikes_act, "strikes_act");
@@ -32436,6 +32588,26 @@ function active_hitbox(p2) {
   }
 }
 __name(active_hitbox, "active_hitbox");
+function owned(s, owner) {
+  return new Strike(
+    s.effect,
+    s.x,
+    s.y,
+    s.w,
+    s.h,
+    s.vx,
+    s.vy,
+    s.ttl,
+    s.follow,
+    s.pierce,
+    s.damage,
+    s.hit,
+    s.wait,
+    s.bounces,
+    owner
+  );
+}
+__name(owned, "owned");
 function arcane(p2) {
   let $ = has2(p2, Rule$Arcanist$const);
   if ($) {
@@ -32474,7 +32646,7 @@ function boost(p2) {
   );
 }
 __name(boost, "boost");
-function loose(world2, dir, effect) {
+function loose(world2, dir, effect, me3) {
   let p2 = player(world2);
   let _block;
   if (dir instanceof Forward) {
@@ -32541,7 +32713,7 @@ function loose(world2, dir, effect) {
           return carry(_capture, p2.vx, p2.vy);
         }
       );
-      return map3(
+      let _pipe$2 = map3(
         _pipe$1,
         (s) => {
           let $1 = s.effect;
@@ -32560,13 +32732,17 @@ function loose(world2, dir, effect) {
               s.damage,
               s.hit,
               s.wait,
-              rule_level(p2, Rule$RicochetFlask$const)
+              rule_level(p2, Rule$RicochetFlask$const),
+              s.owner
             );
           } else {
             return s;
           }
         }
       );
+      return map3(_pipe$2, (_capture) => {
+        return owned(_capture, me3);
+      });
     }
   );
   return new World(
@@ -32598,7 +32774,7 @@ function loose(world2, dir, effect) {
   );
 }
 __name(loose, "loose");
-function combat(world2) {
+function combat(world2, me3) {
   let p2 = player(world2);
   let $ = p2.attack;
   if ($ instanceof Some) {
@@ -32695,7 +32871,7 @@ function combat(world2) {
       let effect = $2[0];
       let $3 = a.time === 0;
       if ($3) {
-        return loose(world2, a.dir, effect);
+        return loose(world2, a.dir, effect, me3);
       } else {
         return world2;
       }
@@ -32722,6 +32898,15 @@ function combat(world2) {
   }
 }
 __name(combat, "combat");
+function up(world2, phase) {
+  let $ = player(world2).hp > 0;
+  if ($) {
+    return phase();
+  } else {
+    return world2;
+  }
+}
+__name(up, "up");
 function off_the_roof(world2) {
   let roof = tunnel();
   let top = roof.y + roof.h;
@@ -33114,12 +33299,12 @@ function enemies_act(world2, dt2) {
   );
 }
 __name(enemies_act, "enemies_act");
-function orbit(world2) {
+function orbit(world2, me3) {
   let p2 = player(world2);
   let $ = partition(
     world2.strikes,
     (s) => {
-      return s.effect instanceof Orb;
+      return s.effect instanceof Orb && s.owner === me3;
     }
   );
   let orbs = $[0];
@@ -33152,7 +33337,10 @@ function orbit(world2) {
       [1, 0],
       p2.facing
     );
-    _block = take(all2, length(all2) - length(p2.orbs_away));
+    let _pipe = take(all2, length(all2) - length(p2.orbs_away));
+    _block = map3(_pipe, (_capture) => {
+      return owned(_capture, me3);
+    });
   } else {
     _block = List$Empty$const;
   }
@@ -33351,7 +33539,8 @@ function under_the_ceiling(s, level, feet) {
       s.damage,
       s.hit,
       s.wait,
-      s.bounces
+      s.bounces,
+      s.owner
     );
   } else {
     return s;
@@ -33429,7 +33618,7 @@ function aim_at_nearest(world2) {
   }
 }
 __name(aim_at_nearest, "aim_at_nearest");
-function fire_skills(world2, before, dt2) {
+function fire_skills(world2, before, me3, dt2) {
   let p2 = player(world2);
   let hard_landing = !before.grounded && p2.grounded && (() => {
     let $10 = p2.slam;
@@ -33515,19 +33704,19 @@ function fire_skills(world2, before, dt2) {
   let aim = aim_at_nearest(world2);
   let conduit = has2(p$1, Rule$Conduit$const);
   let through = !p$1.through && p$1.dash_time > 0 - dash_grace && (() => {
-    let me3 = box(p$1.x, p$1.y, width, height);
+    let me$1 = box(p$1.x, p$1.y, width, height);
     return any(
       world2.enemies,
       (e) => {
         return present(e) && contact_damage(e) > 0 && overlaps(
-          me3,
+          me$1,
           body(e)
         );
       }
     ) || any(
       world2.projectiles,
       (s) => {
-        return overlaps(me3, shot_box(s));
+        return overlaps(me$1, shot_box(s));
       }
     );
   })();
@@ -33736,7 +33925,8 @@ function fire_skills(world2, before, dt2) {
                   max(1, globalThis.Math.trunc(s.damage / 2)),
                   s.hit,
                   s.wait + 0.4,
-                  s.bounces
+                  s.bounces,
+                  s.owner
                 );
               }
             )
@@ -33936,10 +34126,13 @@ function fire_skills(world2, before, dt2) {
     world2.level,
     world2.enemies,
     world2.projectiles,
-    flatten(
-      prepend(
-        world2.strikes,
-        prepend(lance, prepend(new$1, List$Empty$const))
+    append(
+      world2.strikes,
+      map3(
+        append(lance, new$1),
+        (_capture) => {
+          return owned(_capture, me3);
+        }
       )
     ),
     flatten(
@@ -35188,9 +35381,20 @@ function step_many(world2, inputs, dt2) {
   let players = map3(
     zip(befores, inputs$1),
     (pair) => {
-      return move_player(pair[0], pair[1], world2.level, dt2);
+      let _block2;
+      let $2 = pair[0].hp <= 0;
+      if ($2) {
+        _block2 = idle;
+      } else {
+        _block2 = pair[1];
+      }
+      let input = _block2;
+      return move_player(pair[0], input, world2.level, dt2);
     }
   );
+  let turns = index_map(befores, (before, i) => {
+    return [before, i];
+  });
   let _block;
   let $ = world2.depth > 0 && !(world2.depth === final_depth && world2.cleared);
   if ($) {
@@ -35228,27 +35432,41 @@ function step_many(world2, inputs, dt2) {
   );
   let _pipe$1 = each(
     _pipe,
-    befores,
-    (w2, before) => {
-      return fire_skills(w2, before, dt2);
+    turns,
+    (w2, turn2) => {
+      return up(w2, () => {
+        return fire_skills(w2, turn2[0], turn2[1], dt2);
+      });
     }
   );
-  let _pipe$2 = orbit(_pipe$1);
+  let _pipe$2 = each(_pipe$1, turns, (w2, turn2) => {
+    return orbit(w2, turn2[1]);
+  });
   let _pipe$3 = enemies_act(_pipe$2, dt2);
   let _pipe$4 = off_the_roof(_pipe$3);
-  let _pipe$5 = each(_pipe$4, befores, (w2, _) => {
-    return combat(w2);
-  });
-  let _pipe$6 = strikes_act(_pipe$5, dt2);
+  let _pipe$5 = each(
+    _pipe$4,
+    turns,
+    (w2, turn2) => {
+      return up(w2, () => {
+        return combat(w2, turn2[1]);
+      });
+    }
+  );
+  let _pipe$6 = each(
+    _pipe$5,
+    turns,
+    (w2, turn2) => {
+      return strikes_act(w2, turn2[1], dt2);
+    }
+  );
   let _pipe$7 = each(_pipe$6, befores, (w2, _) => {
     return take_damage(w2);
   });
   let _pipe$8 = each(_pipe$7, befores, (w2, _) => {
     return steal(w2);
   });
-  let _pipe$9 = each(_pipe$8, befores, (w2, _) => {
-    return loot(w2, dt2);
-  });
+  let _pipe$9 = loot(_pipe$8, dt2);
   let _pipe$10 = ((w2) => {
     let from = /* @__PURE__ */ __name((x, y2) => {
       return nearest(w2, x, y2).x;
@@ -37166,15 +37384,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        4145,
+        4218,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 132430,
-          end: 132481,
-          pattern_start: 132441,
-          pattern_end: 132449
+          start: 135283,
+          end: 135334,
+          pattern_start: 135294,
+          pattern_end: 135302
         }
       );
     }
@@ -37186,15 +37404,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        4147,
+        4220,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 132564,
-          end: 132625,
-          pattern_start: 132575,
-          pattern_end: 132592
+          start: 135417,
+          end: 135478,
+          pattern_start: 135428,
+          pattern_end: 135445
         }
       );
     } else {
@@ -37204,15 +37422,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          4147,
+          4220,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 132564,
-            end: 132625,
-            pattern_start: 132575,
-            pattern_end: 132592
+            start: 135417,
+            end: 135478,
+            pattern_start: 135428,
+            pattern_end: 135445
           }
         );
       } else {
@@ -37707,13 +37925,13 @@ function createTreeScreen({ getWorld, setWorld, onUnlock, treeKeys = /* @__PURE_
     const w2 = getWorld(), p2 = w2.players.head;
     syncNodes(w2.tree);
     const picking = p2.class instanceof None;
-    const owned = new Set(p2.allocated.toArray());
+    const owned2 = new Set(p2.allocated.toArray());
     const unlocked = new Set(w2.unlocked.toArray());
     const levelOf = /* @__PURE__ */ __name((n) => node_level(w2, n.id), "levelOf");
     const locked2 = /* @__PURE__ */ __name((n) => !picking && locked(w2.tree, p2.allocated, n.id), "locked");
     const canLevel = /* @__PURE__ */ __name((n) => !picking && p2.points > 0 && can_level(w2, n.id), "canLevel");
     const available = /* @__PURE__ */ __name((n) => picking ? n.kind instanceof Keystone && unlocked.has(n.id) && w2.depth === 0 : p2.points > 0 && (can_take(w2, n.id) || can_level(w2, n.id)), "available");
-    return { w: w2, p: p2, picking, owned, unlocked, available, levelOf, canLevel, locked: locked2 };
+    return { w: w2, p: p2, picking, owned: owned2, unlocked, available, levelOf, canLevel, locked: locked2 };
   }
   __name(derive, "derive");
   function defaultFocus() {
@@ -37764,12 +37982,12 @@ function createTreeScreen({ getWorld, setWorld, onUnlock, treeKeys = /* @__PURE_
     open = !open;
     teaching = false;
     if (open) {
-      const { p: p2 } = derive(), cls = p2.class[0], owned = p2.allocated.toArray().length;
-      if (cls !== focusFor || owned < ownedBefore) {
+      const { p: p2 } = derive(), cls = p2.class[0], owned2 = p2.allocated.toArray().length;
+      if (cls !== focusFor || owned2 < ownedBefore) {
         focusFor = cls;
         focusId = null;
       }
-      ownedBefore = owned;
+      ownedBefore = owned2;
       if (focusId == null || !byId.has(focusId)) focusId = defaultFocus();
       cam2 = null;
     }
@@ -37778,9 +37996,9 @@ function createTreeScreen({ getWorld, setWorld, onUnlock, treeKeys = /* @__PURE_
   let teaching = false, graceUntil = 0;
   function teach(line) {
     if (!open) toggle();
-    const { w: w2, p: p2, owned } = derive();
+    const { w: w2, p: p2, owned: owned2 } = derive();
     const home3 = byId.get(p2.class[0] ?? focusId) ?? byId.get(focusId);
-    const fresh = nodes2.filter((n) => !(n.kind instanceof Keystone) && !owned.has(n.id) && can_take(w2, n.id));
+    const fresh = nodes2.filter((n) => !(n.kind instanceof Keystone) && !owned2.has(n.id) && can_take(w2, n.id));
     const pool2 = fresh.length ? fresh : nodes2.filter((n) => !(n.kind instanceof Keystone) && can_level(w2, n.id));
     const near = /* @__PURE__ */ __name((n) => Math.hypot(n.x - home3.x, n.y - home3.y), "near");
     const best = pool2.sort((a, b) => near(a) - near(b))[0];
@@ -40594,7 +40812,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "4406a2711a85" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "596b81896613" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -41029,7 +41247,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "4406a2711a85" : "dev";
+var BUILD = true ? "596b81896613" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
@@ -41370,7 +41588,8 @@ function frame(now) {
   const smites = smiting(p2);
   for (const s of world.strikes.toArray()) {
     if (s.wait > 0) continue;
-    const r = strike_box(s, px, py), [art, kw, kh] = strikeArt(s);
+    const o = s.owner === 0 ? null : world.players.toArray()[s.owner];
+    const r = o ? strike_box(s, o.x, o.y) : strike_box(s, px, py), [art, kw, kh] = strikeArt(s);
     const x = r.x + r.w / 2 - (s.follow ? 0 : s.vx * back), y2 = r.y + r.h / 2 - (s.follow ? 0 : s.vy * back);
     const moving = s.vx !== 0 || s.vy !== 0;
     const long = Math.max(r.w, r.h), short = Math.min(r.w, r.h);
