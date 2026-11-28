@@ -18476,6 +18476,12 @@ var Steal = class extends CustomType {
   }
 };
 var Rule$Steal$const = new Steal();
+var LandingCancel = class extends CustomType {
+  static {
+    __name(this, "LandingCancel");
+  }
+};
+var Rule$LandingCancel$const = new LandingCancel();
 var Vengeance = class extends CustomType {
   static {
     __name(this, "Vengeance");
@@ -18965,14 +18971,17 @@ __name(keystone_rule, "keystone_rule");
 function kit_rules(name3) {
   let _block;
   if (name3 === "Thief") {
-    _block = prepend(Rule$Steal$const, List$Empty$const);
+    _block = prepend(
+      Rule$Steal$const,
+      prepend(Rule$LandingCancel$const, List$Empty$const)
+    );
   } else {
     _block = List$Empty$const;
   }
   let extra = _block;
   return append(
-    values(prepend(keystone_rule(name3), List$Empty$const)),
-    extra
+    extra,
+    values(prepend(keystone_rule(name3), List$Empty$const))
   );
 }
 __name(kit_rules, "kit_rules");
@@ -19152,15 +19161,15 @@ function signature_node(t2, keystone) {
         "let_assert",
         FILEPATH,
         "tree",
-        321,
+        325,
         "signature_node",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $,
-          start: 10968,
-          end: 11024,
-          pattern_start: 10979,
-          pattern_end: 10994
+          start: 11182,
+          end: 11238,
+          pattern_start: 11193,
+          pattern_end: 11208
         }
       );
     } else {
@@ -19171,15 +19180,15 @@ function signature_node(t2, keystone) {
       "let_assert",
       FILEPATH,
       "tree",
-      321,
+      325,
       "signature_node",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 10968,
-        end: 11024,
-        pattern_start: 10979,
-        pattern_end: 10994
+        start: 11182,
+        end: 11238,
+        pattern_start: 11193,
+        pattern_end: 11208
       }
     );
   }
@@ -19223,6 +19232,8 @@ function grant_name(g) {
       return "Plunge: the first down attack of a jump dives, always crits and bounces off what it hits";
     } else if ($ instanceof Steal) {
       return "Steal: dash through an enemy to take a quarter of its XP (once each)";
+    } else if ($ instanceof LandingCancel) {
+      return "Landing cancel: landing ends a swing's recovery, so you can swing again at once";
     } else if ($ instanceof Vengeance) {
       return "Vengeance: being hit makes your next swing hit three times as hard";
     } else if ($ instanceof Lance) {
@@ -19485,15 +19496,15 @@ function nth(items, i) {
       "let_assert",
       FILEPATH,
       "tree",
-      431,
+      435,
       "nth",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 14018,
-        end: 14070,
-        pattern_start: 14029,
-        pattern_end: 14034
+        start: 14232,
+        end: 14284,
+        pattern_start: 14243,
+        pattern_end: 14248
       }
     );
   }
@@ -19607,15 +19618,15 @@ function find2(acc2, id2) {
       "let_assert",
       FILEPATH,
       "tree",
-      551,
+      555,
       "find",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 17450,
-        end: 17511,
-        pattern_start: 17461,
-        pattern_end: 17466
+        start: 17664,
+        end: 17725,
+        pattern_start: 17675,
+        pattern_end: 17680
       }
     );
   }
@@ -19817,15 +19828,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        639,
+        643,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 20822,
-          end: 20868,
-          pattern_start: 20833,
-          pattern_end: 20841
+          start: 21036,
+          end: 21082,
+          pattern_start: 21047,
+          pattern_end: 21055
         }
       );
     }
@@ -19850,15 +19861,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        640,
+        644,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 20873,
-          end: 21047,
-          pattern_start: 20884,
-          pattern_end: 20891
+          start: 21087,
+          end: 21261,
+          pattern_start: 21098,
+          pattern_end: 21105
         }
       );
     } else {
@@ -19927,15 +19938,15 @@ function build() {
               "let_assert",
               FILEPATH,
               "tree",
-              684,
+              688,
               "build",
               "Pattern match failed, no pattern matched the value.",
               {
                 value: chain2,
-                start: 22662,
-                end: 22691,
-                pattern_start: 22673,
-                pattern_end: 22683
+                start: 22876,
+                end: 22905,
+                pattern_start: 22887,
+                pattern_end: 22897
               }
             );
           } else {
@@ -19952,15 +19963,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          687,
+          691,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: chain,
-            start: 22767,
-            end: 22796,
-            pattern_start: 22778,
-            pattern_end: 22788
+            start: 22981,
+            end: 23010,
+            pattern_start: 22992,
+            pattern_end: 23002
           }
         );
       } else {
@@ -20088,15 +20099,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          745,
+          749,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $4,
-            start: 25011,
-            end: 25231,
-            pattern_start: 25022,
-            pattern_end: 25042
+            start: 25225,
+            end: 25445,
+            pattern_start: 25236,
+            pattern_end: 25256
           }
         );
       }
@@ -21053,15 +21064,15 @@ function player(world2) {
       "let_assert",
       FILEPATH2,
       "game",
-      695,
+      707,
       "player",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 19602,
-        end: 19636,
-        pattern_start: 19613,
-        pattern_end: 19620
+        start: 2e4,
+        end: 20034,
+        pattern_start: 20011,
+        pattern_end: 20018
       }
     );
   } else {
@@ -22297,15 +22308,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      3461,
+      3496,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 107289,
-        end: 107339,
-        pattern_start: 107300,
-        pattern_end: 107307
+        start: 108409,
+        end: 108459,
+        pattern_start: 108420,
+        pattern_end: 108427
       }
     );
   } else {
@@ -24476,15 +24487,15 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        1394,
+        1429,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $12,
-          start: 40337,
-          end: 40393,
-          pattern_start: 40348,
-          pattern_end: 40353
+          start: 41457,
+          end: 41513,
+          pattern_start: 41468,
+          pattern_end: 41473
         }
       );
     }
@@ -27335,6 +27346,104 @@ function fire_skills(world2, before, dt2) {
   );
 }
 __name(fire_skills, "fire_skills");
+function start_attack(p2, input) {
+  let pressed = input.attack_pressed && !has2(p2, Rule$Channeler$const);
+  let $ = p2.attack;
+  let $1 = p2.dash_time <= 0;
+  if (pressed && $ instanceof None && $1) {
+    let _block;
+    let $2 = input.move_y > 0.5;
+    let $3 = input.move_y < -0.5 && !p2.grounded;
+    if ($2) {
+      _block = Dir$Up$const;
+    } else if ($3) {
+      _block = Dir$Down$const;
+    } else {
+      _block = Dir$Forward$const;
+    }
+    let dir = _block;
+    return new Player(
+      p2.x,
+      p2.y,
+      p2.vx,
+      p2.vy,
+      p2.grounded,
+      p2.on_platform,
+      p2.wall,
+      p2.facing,
+      p2.coyote,
+      p2.jump_buffer,
+      p2.air_jumps,
+      p2.dash_time,
+      p2.dashes,
+      p2.can_cut,
+      p2.up_held,
+      p2.jumped,
+      p2.dashed,
+      p2.struck,
+      p2.plunged,
+      p2.grudge,
+      p2.conduit,
+      p2.quick,
+      p2.rebound,
+      p2.air_hits,
+      p2.weapon,
+      p2.loadout,
+      p2.trained,
+      p2.class,
+      p2.allocated,
+      p2.mods,
+      p2.shield,
+      p2.block_charge,
+      p2.crash_wait,
+      p2.swings + 1,
+      p2.risen,
+      new Some(new Attack(dir, 0, List$Empty$const)),
+      p2.stats,
+      p2.lvl,
+      p2.xp,
+      p2.points,
+      p2.hp,
+      p2.invuln,
+      p2.hurt,
+      p2.hexed,
+      p2.rush,
+      p2.orbs_away
+    );
+  } else {
+    return p2;
+  }
+}
+__name(start_attack, "start_attack");
+function recovering(p2) {
+  let $ = p2.attack;
+  if ($ instanceof Some) {
+    let a = $[0];
+    let _block;
+    let $1 = quickdrawn(p2);
+    if ($1) {
+      _block = 0;
+    } else {
+      _block = p2.weapon.startup;
+    }
+    let startup = _block;
+    return a.time * speed2(p2) >= startup + p2.weapon.active && !plunging(p2);
+  } else {
+    return false;
+  }
+}
+__name(recovering, "recovering");
+function fall_through(level, input) {
+  let $ = input.move_y < -0.5 && input.jump_held;
+  if ($) {
+    return filter(level, (r) => {
+      return !r.one_way;
+    });
+  } else {
+    return level;
+  }
+}
+__name(fall_through, "fall_through");
 function sides(level) {
   let walls2 = filter(level, (r) => {
     return !r.one_way && r.w <= 1;
@@ -27688,7 +27797,7 @@ function jump(p2, input) {
         p2.orbs_away
       );
     } else {
-      let $ = input.jump_pressed && p2.air_jumps > 0;
+      let $ = input.jump_pressed && p2.air_jumps > 0 && input.move_y >= -0.5;
       if ($) {
         return new Player(
           p2.x,
@@ -27743,7 +27852,7 @@ function jump(p2, input) {
       }
     }
   } else {
-    let $ = input.jump_pressed && p2.air_jumps > 0;
+    let $ = input.jump_pressed && p2.air_jumps > 0 && input.move_y >= -0.5;
     if ($) {
       return new Player(
         p2.x,
@@ -27974,75 +28083,6 @@ function horizontal(p2, input, dt2) {
   );
 }
 __name(horizontal, "horizontal");
-function start_attack(p2, input) {
-  let pressed = input.attack_pressed && !has2(p2, Rule$Channeler$const);
-  let $ = p2.attack;
-  let $1 = p2.dash_time <= 0;
-  if (pressed && $ instanceof None && $1) {
-    let _block;
-    let $2 = input.move_y > 0.5;
-    let $3 = input.move_y < -0.5 && !p2.grounded;
-    if ($2) {
-      _block = Dir$Up$const;
-    } else if ($3) {
-      _block = Dir$Down$const;
-    } else {
-      _block = Dir$Forward$const;
-    }
-    let dir = _block;
-    return new Player(
-      p2.x,
-      p2.y,
-      p2.vx,
-      p2.vy,
-      p2.grounded,
-      p2.on_platform,
-      p2.wall,
-      p2.facing,
-      p2.coyote,
-      p2.jump_buffer,
-      p2.air_jumps,
-      p2.dash_time,
-      p2.dashes,
-      p2.can_cut,
-      p2.up_held,
-      p2.jumped,
-      p2.dashed,
-      p2.struck,
-      p2.plunged,
-      p2.grudge,
-      p2.conduit,
-      p2.quick,
-      p2.rebound,
-      p2.air_hits,
-      p2.weapon,
-      p2.loadout,
-      p2.trained,
-      p2.class,
-      p2.allocated,
-      p2.mods,
-      p2.shield,
-      p2.block_charge,
-      p2.crash_wait,
-      p2.swings + 1,
-      p2.risen,
-      new Some(new Attack(dir, 0, List$Empty$const)),
-      p2.stats,
-      p2.lvl,
-      p2.xp,
-      p2.points,
-      p2.hp,
-      p2.invuln,
-      p2.hurt,
-      p2.hexed,
-      p2.rush,
-      p2.orbs_away
-    );
-  } else {
-    return p2;
-  }
-}
-__name(start_attack, "start_attack");
 function tick2(p2, input, dt2) {
   let dash_time = p2.dash_time - dt2;
   let ricochet = has2(p2, Rule$Ricochet$const) && p2.wall !== 0 && !p2.grounded;
@@ -28171,6 +28211,7 @@ function move_player(p2, input, level, dt2) {
     _block = input;
   }
   let input$1 = _block;
+  let before = p2;
   let _block$1;
   let _pipe = p2;
   let _pipe$1 = tick2(_pipe, input$1, dt2);
@@ -28179,55 +28220,115 @@ function move_player(p2, input, level, dt2) {
   let _pipe$4 = vertical(_pipe$3, input$1, dt2);
   let _pipe$5 = jump(_pipe$4, input$1);
   let _pipe$6 = dash(_pipe$5, input$1);
-  _block$1 = move(_pipe$6, level, dt2);
+  _block$1 = move(_pipe$6, fall_through(level, input$1), dt2);
   let p$1 = _block$1;
+  let _block$2;
+  let $1 = has2(p$1, Rule$LandingCancel$const) && !before.grounded && p$1.grounded && recovering(
+    p$1
+  );
+  if ($1) {
+    _block$2 = start_attack(
+      new Player(
+        p$1.x,
+        p$1.y,
+        p$1.vx,
+        p$1.vy,
+        p$1.grounded,
+        p$1.on_platform,
+        p$1.wall,
+        p$1.facing,
+        p$1.coyote,
+        p$1.jump_buffer,
+        p$1.air_jumps,
+        p$1.dash_time,
+        p$1.dashes,
+        p$1.can_cut,
+        p$1.up_held,
+        p$1.jumped,
+        p$1.dashed,
+        p$1.struck,
+        p$1.plunged,
+        p$1.grudge,
+        p$1.conduit,
+        false,
+        p$1.rebound,
+        p$1.air_hits,
+        p$1.weapon,
+        p$1.loadout,
+        p$1.trained,
+        p$1.class,
+        p$1.allocated,
+        p$1.mods,
+        p$1.shield,
+        p$1.block_charge,
+        p$1.crash_wait,
+        p$1.swings,
+        p$1.risen,
+        Option$None$const,
+        p$1.stats,
+        p$1.lvl,
+        p$1.xp,
+        p$1.points,
+        p$1.hp,
+        p$1.invuln,
+        p$1.hurt,
+        p$1.hexed,
+        p$1.rush,
+        p$1.orbs_away
+      ),
+      input$1
+    );
+  } else {
+    _block$2 = p$1;
+  }
+  let p$2 = _block$2;
   return new Player(
-    p$1.x,
-    p$1.y,
-    p$1.vx,
-    p$1.vy,
-    p$1.grounded,
-    p$1.on_platform,
-    p$1.wall,
-    p$1.facing,
-    p$1.coyote,
-    p$1.jump_buffer,
-    p$1.air_jumps,
-    p$1.dash_time,
-    p$1.dashes,
-    p$1.can_cut,
+    p$2.x,
+    p$2.y,
+    p$2.vx,
+    p$2.vy,
+    p$2.grounded,
+    p$2.on_platform,
+    p$2.wall,
+    p$2.facing,
+    p$2.coyote,
+    p$2.jump_buffer,
+    p$2.air_jumps,
+    p$2.dash_time,
+    p$2.dashes,
+    p$2.can_cut,
     input$1.move_y > 0.5,
-    p$1.jumped,
-    p$1.dashed,
-    p$1.struck,
-    p$1.plunged,
-    p$1.grudge,
-    p$1.conduit,
-    p$1.quick,
-    p$1.rebound,
-    p$1.air_hits,
-    p$1.weapon,
-    p$1.loadout,
-    p$1.trained,
-    p$1.class,
-    p$1.allocated,
-    p$1.mods,
-    p$1.shield,
-    p$1.block_charge,
-    p$1.crash_wait,
-    p$1.swings,
-    p$1.risen,
-    p$1.attack,
-    p$1.stats,
-    p$1.lvl,
-    p$1.xp,
-    p$1.points,
-    p$1.hp,
-    p$1.invuln,
-    p$1.hurt,
-    p$1.hexed,
-    p$1.rush,
-    p$1.orbs_away
+    p$2.jumped,
+    p$2.dashed,
+    p$2.struck,
+    p$2.plunged,
+    p$2.grudge,
+    p$2.conduit,
+    p$2.quick,
+    p$2.rebound,
+    p$2.air_hits,
+    p$2.weapon,
+    p$2.loadout,
+    p$2.trained,
+    p$2.class,
+    p$2.allocated,
+    p$2.mods,
+    p$2.shield,
+    p$2.block_charge,
+    p$2.crash_wait,
+    p$2.swings,
+    p$2.risen,
+    p$2.attack,
+    p$2.stats,
+    p$2.lvl,
+    p$2.xp,
+    p$2.points,
+    p$2.hp,
+    p$2.invuln,
+    p$2.hurt,
+    p$2.hexed,
+    p$2.rush,
+    p$2.orbs_away
   );
 }
 __name(move_player, "move_player");
@@ -29791,15 +29892,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3349,
+        3384,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 103627,
-          end: 103678,
-          pattern_start: 103638,
-          pattern_end: 103646
+          start: 104747,
+          end: 104798,
+          pattern_start: 104758,
+          pattern_end: 104766
         }
       );
     }
@@ -29811,15 +29912,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3351,
+        3386,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 103761,
-          end: 103822,
-          pattern_start: 103772,
-          pattern_end: 103789
+          start: 104881,
+          end: 104942,
+          pattern_start: 104892,
+          pattern_end: 104909
         }
       );
     } else {
@@ -29829,15 +29930,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          3351,
+          3386,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 103761,
-            end: 103822,
-            pattern_start: 103772,
-            pattern_end: 103789
+            start: 104881,
+            end: 104942,
+            pattern_start: 104892,
+            pattern_end: 104909
           }
         );
       } else {
@@ -32280,7 +32381,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "109165d5c81d" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "5470c24f3b44" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -32544,7 +32645,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "109165d5c81d" : "dev";
+var BUILD = true ? "5470c24f3b44" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
