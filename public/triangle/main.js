@@ -23081,6 +23081,15 @@ function map4(result, fun) {
   }
 }
 __name(map4, "map");
+function try$(result, fun) {
+  if (result instanceof Ok) {
+    let x = result[0];
+    return fun(x);
+  } else {
+    return result;
+  }
+}
+__name(try$, "try$");
 function unwrap2(result, default$) {
   if (result instanceof Ok) {
     let v2 = result[0];
@@ -24178,7 +24187,7 @@ function signature(name3) {
 __name(signature, "signature");
 function choice(name3) {
   if (name3 === "Alchemist") {
-    return new Some([Rule$RicochetFlask$const, Rule$AcidPools$const]);
+    return new Some([Rule$RicochetFlask$const, Rule$Catalyst$const]);
   } else {
     return Option$None$const;
   }
@@ -24203,10 +24212,10 @@ function signature_node(t2, keystone) {
         "Pattern match failed, no pattern matched the value.",
         {
           value: $,
-          start: 14095,
-          end: 14151,
-          pattern_start: 14106,
-          pattern_end: 14121
+          start: 14088,
+          end: 14144,
+          pattern_start: 14099,
+          pattern_end: 14114
         }
       );
     } else {
@@ -24222,10 +24231,10 @@ function signature_node(t2, keystone) {
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 14095,
-        end: 14151,
-        pattern_start: 14106,
-        pattern_end: 14121
+        start: 14088,
+        end: 14144,
+        pattern_start: 14099,
+        pattern_end: 14114
       }
     );
   }
@@ -24375,7 +24384,7 @@ function ring_bend(name3) {
   } else if (name3 === "Cavalier") {
     return new Some(Rule$Blitz$const);
   } else if (name3 === "Alchemist") {
-    return new Some(Rule$Catalyst$const);
+    return new Some(Rule$AcidPools$const);
   } else {
     return Option$None$const;
   }
@@ -24569,10 +24578,10 @@ function nth(items, i) {
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 17607,
-        end: 17659,
-        pattern_start: 17618,
-        pattern_end: 17623
+        start: 17560,
+        end: 17612,
+        pattern_start: 17571,
+        pattern_end: 17576
       }
     );
   }
@@ -24710,29 +24719,16 @@ function find2(acc2, id2) {
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 21450,
-        end: 21511,
-        pattern_start: 21461,
-        pattern_end: 21466
+        start: 21403,
+        end: 21464,
+        pattern_start: 21414,
+        pattern_end: 21419
       }
     );
   }
   return n;
 }
 __name(find2, "find");
-function upto2(from, to2) {
-  let $ = from > to2;
-  if ($) {
-    return List$Empty$const;
-  } else {
-    return prepend(from, upto2(from + 1, to2));
-  }
-}
-__name(upto2, "upto");
-function dist2(ax, ay, bx, by) {
-  return (ax - bx) * (ax - bx) + (ay - by) * (ay - by);
-}
-__name(dist2, "dist2");
 function unit2(x, y2) {
   let _block;
   let $ = square_root(x * x + y2 * y2);
@@ -24754,6 +24750,19 @@ function perp(x, y2) {
   return unit2(0 - y2, x);
 }
 __name(perp, "perp");
+function upto2(from, to2) {
+  let $ = from > to2;
+  if ($) {
+    return List$Empty$const;
+  } else {
+    return prepend(from, upto2(from + 1, to2));
+  }
+}
+__name(upto2, "upto");
+function dist2(ax, ay, bx, by) {
+  return (ax - bx) * (ax - bx) + (ay - by) * (ay - by);
+}
+__name(dist2, "dist2");
 function build_rolled(roll2) {
   let cs2 = cells();
   let degree = /* @__PURE__ */ __name((c) => {
@@ -24841,61 +24850,40 @@ function build_rolled(roll2) {
           let ey = r * squash * sin(a);
           let x = c.x + ex * cos(tilt) - ey * sin(tilt);
           let y2 = c.y + ex * sin(tilt) + ey * cos(tilt);
-          let pair = choice(c.name);
           let _block$1;
+          let $9 = Option$None$const;
           if (k2 === 0) {
             _block$1 = [
               acc$42,
               (() => {
-                let $92 = star(c.name);
-                if ($92 instanceof GrantSkill) {
-                  let g = $92;
-                  let s$4 = $92[0];
+                let $102 = star(c.name);
+                if ($102 instanceof GrantSkill) {
+                  let g = $102;
+                  let s$4 = $102[0];
                   return new Notable(c.name + ": " + describe(s$4), g);
                 } else {
-                  let g = $92;
+                  let g = $102;
                   return new Notable(grant_name(g), g);
                 }
               })()
             ];
           } else if (k2 === 1) {
-            if (pair instanceof Some) {
-              let a$1 = pair[0][0];
-              _block$1 = [
-                acc$42,
-                new Notable(grant_name(new GrantRule(a$1)), new GrantRule(a$1))
-              ];
-            } else {
-              _block$1 = [acc$42, new Small(up1)];
-            }
-          } else if (pair instanceof Some && k2 === n - 1) {
-            let b = pair[0][1];
-            _block$1 = [
-              acc$42,
-              new Notable(grant_name(new GrantRule(b)), new GrantRule(b))
-            ];
+            _block$1 = [acc$42, new Small(up1)];
           } else if (k2 === n - 1) {
             _block$1 = [acc$42, new Small(up2)];
           } else if (k2 === divideInt(n, 2)) {
             _block$1 = [acc$42, new Notable(grant_name(sp.second), sp.second)];
           } else {
-            let $92 = small(
+            let $102 = small(
               acc$42,
               unwrap(region(c), facing_axis(x, y2, c.x, c.y))
             );
-            let acc$52 = $92[0];
-            let plain = $92[1];
-            let _block$2;
-            if (pair instanceof Some) {
-              _block$2 = globalThis.Math.trunc(n / 3);
-            } else {
-              _block$2 = 2;
-            }
-            let bend_at = _block$2;
-            let $10 = k2 === bend_at;
-            let $11 = ring_bend(c.name);
-            if ($10 && $11 instanceof Some) {
-              let rule = $11[0];
+            let acc$52 = $102[0];
+            let plain = $102[1];
+            let $11 = k2 === 2;
+            let $12 = ring_bend(c.name);
+            if ($11 && $12 instanceof Some) {
+              let rule = $12[0];
               _block$1 = [
                 acc$52,
                 new Notable(
@@ -24910,9 +24898,9 @@ function build_rolled(roll2) {
           let $8 = _block$1;
           let acc$5 = $8[0];
           let kind = $8[1];
-          let $9 = add3(acc$5, kind, c.id, x, y2);
-          let acc$6 = $9[0];
-          let node = $9[1];
+          let $10 = add3(acc$5, kind, c.id, x, y2);
+          let acc$6 = $10[0];
+          let node = $10[1];
           return [link2(acc$6, c.id, node.id), prepend(node.id, ids2)];
         }
       );
@@ -24956,15 +24944,15 @@ function build_rolled(roll2) {
         "let_assert",
         FILEPATH,
         "tree",
-        757,
+        741,
         "build_rolled",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 25968,
-          end: 26014,
-          pattern_start: 25979,
-          pattern_end: 25987
+          start: 25258,
+          end: 25304,
+          pattern_start: 25269,
+          pattern_end: 25277
         }
       );
     }
@@ -24989,15 +24977,15 @@ function build_rolled(roll2) {
         "let_assert",
         FILEPATH,
         "tree",
-        758,
+        742,
         "build_rolled",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 26019,
-          end: 26193,
-          pattern_start: 26030,
-          pattern_end: 26037
+          start: 25309,
+          end: 25483,
+          pattern_start: 25320,
+          pattern_end: 25327
         }
       );
     } else {
@@ -25066,15 +25054,15 @@ function build_rolled(roll2) {
               "let_assert",
               FILEPATH,
               "tree",
-              802,
+              786,
               "build_rolled",
               "Pattern match failed, no pattern matched the value.",
               {
                 value: chain2,
-                start: 27808,
-                end: 27837,
-                pattern_start: 27819,
-                pattern_end: 27829
+                start: 27098,
+                end: 27127,
+                pattern_start: 27109,
+                pattern_end: 27119
               }
             );
           } else {
@@ -25091,15 +25079,15 @@ function build_rolled(roll2) {
           "let_assert",
           FILEPATH,
           "tree",
-          805,
+          789,
           "build_rolled",
           "Pattern match failed, no pattern matched the value.",
           {
             value: chain,
-            start: 27913,
-            end: 27942,
-            pattern_start: 27924,
-            pattern_end: 27934
+            start: 27203,
+            end: 27232,
+            pattern_start: 27214,
+            pattern_end: 27224
           }
         );
       } else {
@@ -25227,15 +25215,15 @@ function build_rolled(roll2) {
           "let_assert",
           FILEPATH,
           "tree",
-          863,
+          847,
           "build_rolled",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $4,
-            start: 30157,
-            end: 30377,
-            pattern_start: 30168,
-            pattern_end: 30188
+            start: 29447,
+            end: 29667,
+            pattern_start: 29458,
+            pattern_end: 29478
           }
         );
       }
@@ -25252,39 +25240,77 @@ function build_rolled(roll2) {
       let $7 = add3(acc$4, k1, c.id, start.x + rx * 3, start.y + ry * 3);
       let acc$5 = $7[0];
       let s1 = $7[1];
-      let $8 = add3(
-        acc$5,
-        new Small(strong1),
-        c.id,
-        start.x + rx * 6,
-        start.y + ry * 6
-      );
-      let acc$6 = $8[0];
-      let s2 = $8[1];
-      let $9 = add3(
-        acc$6,
-        new Small(strong2),
-        c.id,
-        start.x + rx * 9,
-        start.y + ry * 9
-      );
-      let acc$7 = $9[0];
-      let s3 = $9[1];
-      let g = spur_grant(c.name);
-      let $10 = add3(
-        acc$7,
-        new Notable(grant_name(g), g),
-        c.id,
-        start.x + rx * 12,
-        start.y + ry * 12
-      );
-      let acc$8 = $10[0];
-      let end = $10[1];
-      let _pipe$1 = acc$8;
-      let _pipe$2 = link2(_pipe$1, start.id, s1.id);
-      let _pipe$3 = link2(_pipe$2, s1.id, s2.id);
-      let _pipe$4 = link2(_pipe$3, s2.id, s3.id);
-      return link2(_pipe$4, s3.id, end.id);
+      let $8 = perp(rx, ry);
+      let px = $8[0];
+      let py = $8[1];
+      let at = /* @__PURE__ */ __name((along, side2) => {
+        return [
+          start.x + rx * along + px * side2,
+          start.y + ry * along + py * side2
+        ];
+      }, "at");
+      let _block$2;
+      let $10 = choice(c.name);
+      if ($10 instanceof Some) {
+        _block$2 = [at(6, -3.2), at(6, 3.2)];
+      } else {
+        _block$2 = [at(6, 0), at(9, 0)];
+      }
+      let $9 = _block$2;
+      let x2;
+      let y2;
+      let x3;
+      let y3;
+      x2 = $9[0][0];
+      y2 = $9[0][1];
+      x3 = $9[1][0];
+      y3 = $9[1][1];
+      let $11 = add3(acc$5, new Small(strong1), c.id, x2, y2);
+      let acc$6 = $11[0];
+      let s2 = $11[1];
+      let $12 = add3(acc$6, new Small(strong2), c.id, x3, y3);
+      let acc$7 = $12[0];
+      let s3 = $12[1];
+      let $13 = choice(c.name);
+      if ($13 instanceof Some) {
+        let a = $13[0][0];
+        let b = $13[0][1];
+        let branch = /* @__PURE__ */ __name((acc4, s4, side2, rule) => {
+          let $14 = at(11, side2);
+          let x = $14[0];
+          let y4 = $14[1];
+          let g = new GrantRule(rule);
+          let $15 = add3(acc4, new Notable(grant_name(g), g), c.id, x, y4);
+          let acc$82 = $15[0];
+          let tip = $15[1];
+          return link2(acc$82, s4.id, tip.id);
+        }, "branch");
+        let _block$3;
+        let _pipe$1 = acc$7;
+        let _pipe$2 = link2(_pipe$1, start.id, s1.id);
+        let _pipe$3 = link2(_pipe$2, s1.id, s2.id);
+        _block$3 = link2(_pipe$3, s1.id, s3.id);
+        let acc$8 = _block$3;
+        let _pipe$4 = acc$8;
+        let _pipe$5 = branch(_pipe$4, s3, 6.5, a);
+        return branch(_pipe$5, s2, -6.5, b);
+      } else {
+        let g = spur_grant(c.name);
+        let $14 = add3(
+          acc$7,
+          new Notable(grant_name(g), g),
+          c.id,
+          start.x + rx * 12,
+          start.y + ry * 12
+        );
+        let acc$8 = $14[0];
+        let end = $14[1];
+        let _pipe$1 = acc$8;
+        let _pipe$2 = link2(_pipe$1, start.id, s1.id);
+        let _pipe$3 = link2(_pipe$2, s1.id, s2.id);
+        let _pipe$4 = link2(_pipe$3, s2.id, s3.id);
+        return link2(_pipe$4, s3.id, end.id);
+      }
     }
   );
   let neighbours = fold2(
@@ -25308,28 +25334,35 @@ function build_rolled(roll2) {
       );
     }
   );
+  let holder = /* @__PURE__ */ __name((c, rule) => {
+    let _pipe = find(
+      acc$3.nodes,
+      (n) => {
+        return n.cell === c.id && isEqual(
+          n.kind,
+          new Notable(grant_name(new GrantRule(rule)), new GrantRule(rule))
+        );
+      }
+    );
+    return map4(_pipe, (n) => {
+      return n.id;
+    });
+  }, "holder");
   let exclusive = filter_map(
     cs2,
     (c) => {
       let $1 = choice(c.name);
-      let $2 = get(rings$1, c.id);
-      if ($1 instanceof Some && $2 instanceof Ok) {
-        let $3 = $2[0];
-        if ($3 instanceof Empty) {
-          return new Error2(void 0);
-        } else {
-          let $4 = $3.tail;
-          if ($4 instanceof Empty) {
-            return new Error2(void 0);
-          } else {
-            let a = $4.head;
-            let rest = $4.tail;
-            let _pipe = last(rest);
-            return map4(_pipe, (b) => {
-              return [a, b];
+      if ($1 instanceof Some) {
+        let a = $1[0][0];
+        let b = $1[0][1];
+        return try$(
+          holder(c, a),
+          (x) => {
+            return map4(holder(c, b), (y2) => {
+              return [x, y2];
             });
           }
-        }
+        );
       } else {
         return new Error2(void 0);
       }
@@ -38227,6 +38260,7 @@ var PANE_AREA = { x: 468, y: 16, w: 796, h: 650 };
 var ZOOM = 2.5;
 var WHOLE_CARD_H = 84;
 var WHOLE_AREA = { ...PANE_AREA, h: PANE_AREA.h - WHOLE_CARD_H - 20 };
+var OR_RED = "#d0553f";
 var RING_BEND = 1;
 var FAMILY = { offence: "#cf6a26", defence: "#c2477b", utility: "#66788a", upgrade: "#a67c0c" };
 var BONUS = [
@@ -38399,6 +38433,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock, treeKeys = /* @__PURE_
     neighbours.get(b).push(a);
   }
   const cells2 = w0.tree.cells.toArray();
+  const pairs = w0.tree.exclusive.toArray().map((e) => [e[0], e[1]]);
   const onRing = /* @__PURE__ */ __name((n) => n.cell >= 0 && neighbours.get(n.id).includes(n.cell), "onRing");
   const onPath = /* @__PURE__ */ __name((n) => n.cell < 0, "onPath");
   const bends = edges.map(([a, b]) => {
@@ -38778,6 +38813,27 @@ function createTreeScreen({ getWorld, setWorld, onUnlock, treeKeys = /* @__PURE_
       else ctx2.lineTo(bx, by);
       ctx2.stroke();
     });
+    for (const [a, b] of pairs) {
+      const [ax, ay] = project(byId.get(a).x, byId.get(a).y), [bx, by] = project(byId.get(b).x, byId.get(b).y);
+      const done = d2.owned.has(a) || d2.owned.has(b);
+      ctx2.save();
+      ctx2.globalAlpha = done ? 0.45 : 1;
+      ctx2.strokeStyle = OR_RED;
+      ctx2.lineWidth = wholeTree ? 1.5 : 3;
+      ctx2.setLineDash(wholeTree ? [3, 3] : [7, 6]);
+      ctx2.beginPath();
+      ctx2.moveTo(ax, ay);
+      ctx2.lineTo(bx, by);
+      ctx2.stroke();
+      ctx2.setLineDash([]);
+      const mx = (ax + bx) / 2, my = (ay + by) / 2, w2 = wholeTree ? 16 : 30, h = wholeTree ? 10 : 18;
+      ctx2.beginPath();
+      ctx2.roundRect(mx - w2 / 2, my - h / 2, w2, h, h / 2);
+      ctx2.fillStyle = OR_RED;
+      ctx2.fill();
+      say("OR", mx, my + h * 0.3, `800 ${wholeTree ? 8 : 13}px "Baloo 2"`, "#fff", "center");
+      ctx2.restore();
+    }
     for (const n of nodes2) {
       const [x, y2] = project(n.x, n.y);
       if (x < PANE_AREA.x - 30 || x > PANE_AREA.x + PANE_AREA.w + 30 || y2 < PANE_AREA.y - 30 || y2 > PANE_AREA.y + PANE_AREA.h + 30) continue;
@@ -41527,7 +41583,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "7a9a191843d1" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "bbc8dfa1101c" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -41962,7 +42018,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "7a9a191843d1" : "dev";
+var BUILD = true ? "bbc8dfa1101c" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
