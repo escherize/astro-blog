@@ -12322,6 +12322,19 @@ function min2(a, b) {
   }
 }
 __name(min2, "min");
+function clamp2(x, min_bound, max_bound) {
+  let $ = min_bound >= max_bound;
+  if ($) {
+    let _pipe = x;
+    let _pipe$1 = min2(_pipe, min_bound);
+    return max3(_pipe$1, max_bound);
+  } else {
+    let _pipe = x;
+    let _pipe$1 = min2(_pipe, max_bound);
+    return max3(_pipe$1, min_bound);
+  }
+}
+__name(clamp2, "clamp");
 function compare2(a, b) {
   let $ = a === b;
   if ($) {
@@ -22284,15 +22297,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      3434,
+      3461,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 106248,
-        end: 106298,
-        pattern_start: 106259,
-        pattern_end: 106266
+        start: 107289,
+        end: 107339,
+        pattern_start: 107300,
+        pattern_end: 107307
       }
     );
   } else {
@@ -24463,15 +24476,15 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        1367,
+        1394,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $12,
-          start: 39296,
-          end: 39352,
-          pattern_start: 39307,
-          pattern_end: 39312
+          start: 40337,
+          end: 40393,
+          pattern_start: 40348,
+          pattern_end: 40353
         }
       );
     }
@@ -27322,6 +27335,47 @@ function fire_skills(world2, before, dt2) {
   );
 }
 __name(fire_skills, "fire_skills");
+function sides(level) {
+  let walls2 = filter(level, (r) => {
+    return !r.one_way && r.w <= 1;
+  });
+  let left = fold2(
+    level,
+    1e9,
+    (m, r) => {
+      return min2(m, r.x);
+    }
+  );
+  let right = fold2(
+    level,
+    -1e9,
+    (m, r) => {
+      return max3(m, r.x + r.w);
+    }
+  );
+  let _block;
+  let $ = any(walls2, (r) => {
+    return r.x === left;
+  });
+  if ($) {
+    _block = left + 1;
+  } else {
+    _block = -1e9;
+  }
+  let lo2 = _block;
+  let _block$1;
+  let $1 = any(walls2, (r) => {
+    return r.x + r.w === right;
+  });
+  if ($1) {
+    _block$1 = right - 1;
+  } else {
+    _block$1 = 1e9;
+  }
+  let hi2 = _block$1;
+  return [lo2, hi2];
+}
+__name(sides, "sides");
 function move(p2, level, dt2) {
   let m = collide(
     new Motion(p2.x, p2.y, p2.vx, p2.vy, p2.grounded, p2.on_platform, p2.wall),
@@ -27330,10 +27384,28 @@ function move(p2, level, dt2) {
     level,
     dt2
   );
+  let $ = sides(level);
+  let lo2 = $[0];
+  let hi2 = $[1];
+  let _block;
+  let $1 = hi2 - lo2 > width;
+  if ($1) {
+    _block = clamp2(m.x, lo2 + width / 2, hi2 - width / 2);
+  } else {
+    _block = m.x;
+  }
+  let x = _block;
   return new Player(
-    m.x,
+    x,
     m.y,
-    m.vx,
+    (() => {
+      let $2 = x === m.x;
+      if ($2) {
+        return m.vx;
+      } else {
+        return 0;
+      }
+    })(),
     m.vy,
     m.grounded,
     m.on_platform,
@@ -29719,15 +29791,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3322,
+        3349,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 102586,
-          end: 102637,
-          pattern_start: 102597,
-          pattern_end: 102605
+          start: 103627,
+          end: 103678,
+          pattern_start: 103638,
+          pattern_end: 103646
         }
       );
     }
@@ -29739,15 +29811,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3324,
+        3351,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 102720,
-          end: 102781,
-          pattern_start: 102731,
-          pattern_end: 102748
+          start: 103761,
+          end: 103822,
+          pattern_start: 103772,
+          pattern_end: 103789
         }
       );
     } else {
@@ -29757,15 +29829,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          3324,
+          3351,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 102720,
-            end: 102781,
-            pattern_start: 102731,
-            pattern_end: 102748
+            start: 103761,
+            end: 103822,
+            pattern_start: 103772,
+            pattern_end: 103789
           }
         );
       } else {
@@ -32208,7 +32280,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "801fe1b0e8da" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "109165d5c81d" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -32472,7 +32544,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "801fe1b0e8da" : "dev";
+var BUILD = true ? "109165d5c81d" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
