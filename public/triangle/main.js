@@ -37776,7 +37776,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
   }
   __name(toggle, "toggle");
   let teaching = false, graceUntil = 0;
-  function teach() {
+  function teach(line) {
     if (!open) toggle();
     const { w: w2, p: p2, owned } = derive();
     const home3 = byId.get(p2.class[0] ?? focusId) ?? byId.get(focusId);
@@ -37786,7 +37786,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     const best = pool2.sort((a, b) => near(a) - near(b))[0];
     if (best) focusId = best.id;
     cam2 = null;
-    teaching = true;
+    teaching = line;
     graceUntil = performance.now() + 400;
   }
   __name(teach, "teach");
@@ -37968,7 +37968,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     shapePath(kindOf(f), fx, fy, fr2 + 4);
     ctx2.stroke();
     ctx2.restore();
-    if (teaching) say("Level up! Spend your point.", PANE_AREA.x + 22, PANE_AREA.y + 36, F2.label, STRONG);
+    if (teaching) say(teaching, PANE_AREA.x + 22, PANE_AREA.y + 36, F2.label, STRONG);
     button("Y", PANE_AREA.x + PANE_AREA.w - 148, PANE_AREA.y + 34);
     say(wholeTree ? "Zoom in" : "Whole tree", PANE_AREA.x + PANE_AREA.w - 116, PANE_AREA.y + 34, F2.hint, BODY);
     const lines = details(d2.w.tree, f).toArray();
@@ -39234,6 +39234,31 @@ function nameLabel(text, small2, fill = false) {
   return m;
 }
 __name(nameLabel, "nameLabel");
+function doorBadge(icon) {
+  const c = document.createElement("canvas"), g = c.getContext("2d"), s = 160;
+  c.width = c.height = s;
+  g.beginPath();
+  g.arc(s / 2, s / 2, s / 2 - 6, 0, Math.PI * 2);
+  g.fillStyle = "#fffaf0";
+  g.fill();
+  g.strokeStyle = "#3b2b25";
+  g.lineWidth = 10;
+  g.stroke();
+  g.strokeStyle = RISK_PILL;
+  g.lineWidth = 6;
+  g.stroke();
+  g.font = "96px system-ui, sans-serif";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.fillStyle = RISK_PILL;
+  g.fillText(icon, s / 2, s / 2 + 6);
+  const map5 = new Vh(c);
+  map5.colorSpace = Je;
+  const m = new Bs(new ha(1.1, 1.1), new es({ map: map5, transparent: true }));
+  m.userData = { ownsMap: true };
+  return m;
+}
+__name(doorBadge, "doorBadge");
 function noteCard(text) {
   const c = document.createElement("canvas"), g = c.getContext("2d");
   const font = '700 28px "Baloo 2", system-ui, sans-serif', widest = 380, line = 33, pad = 12;
@@ -39336,6 +39361,11 @@ function syncRoom() {
       m.position.set(d2.x, b.y + DOOR_H / 2, -0.5);
       const kind = door_kind(d2);
       if (kind) m.material.color.set(kind === "locked" ? 5592405 : kind === "risk" ? 12946687 : 16742246);
+      if (kind === "risk") {
+        const badge = doorBadge("\u2696\uFE0F");
+        badge.position.set(d2.x, b.y + DOOR_H * 0.6, -0.45);
+        doorGroup.add(badge);
+      }
       let top = b.y + DOOR_H + 0.12;
       const note = reward_note(d2.reward), stack = [];
       if (note) {
@@ -40225,16 +40255,19 @@ var treeScreen = createTreeScreen({ getWorld: /* @__PURE__ */ __name(() => world
   world = w2;
   if (act) replay.log.push([act[0], replay.steps, act[1]]);
 }, "setWorld"), onUnlock: saveUnlocks });
+var BLOOD_PRICE = reward_label(new Some(new Offer(new BloodPrice2())));
 var taughtTree = false;
 var prevPoints = 0;
+var pointsFrom = null;
 function teachTree() {
   const p2 = world.players.head;
   if (world.depth === 0) taughtTree = false;
-  else if (!taughtTree && prevPoints === 0 && p2.points > 0) {
+  else if (!taughtTree && prevPoints === 0 && p2.points > 0 && pointsFrom) {
     taughtTree = true;
-    treeScreen.teach();
+    treeScreen.teach(pointsFrom === "blood" ? `Blood Price: spend your ${p2.points} points.` : "Level up! Spend your point.");
   }
   prevPoints = p2.points;
+  pointsFrom = null;
 }
 __name(teachTree, "teachTree");
 var DASH_HINT_KEY = "trip.dashHint";
@@ -40763,7 +40796,11 @@ function frame(now) {
       if (ev instanceof RunComplete) play("win");
       if (ev instanceof Unlocked) play("pick");
       if (ev instanceof Blocked) floatText(ev.x, ev.y, "BLOCK", "lvl");
-      if (ev instanceof LevelUp) onLevelUp();
+      if (ev instanceof LevelUp) {
+        onLevelUp();
+        pointsFrom = "level";
+      }
+      if (ev instanceof Rewarded && ev.label === BLOOD_PRICE) pointsFrom ??= "blood";
       if (ev instanceof LevelUp) floatText(world.players.head.x, world.players.head.y + 2.5, `LEVEL ${ev.level}`, "lvl");
       if (ev instanceof Hurt) {
         floatText(ev.x, ev.y, `-${ev.damage}`, "hurt");
