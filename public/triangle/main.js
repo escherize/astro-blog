@@ -29110,9 +29110,15 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     focusId = order[(i + step2 + order.length) % order.length];
   }
   __name(jumpClass, "jumpClass");
+  let focusFor;
   function toggle() {
     open = !open;
     if (open) {
+      const cls = derive().p.class[0];
+      if (cls !== focusFor) {
+        focusFor = cls;
+        focusId = null;
+      }
       if (focusId == null || !byId.has(focusId)) focusId = defaultFocus();
       cam2 = null;
     }
@@ -30419,7 +30425,9 @@ function syncRoom() {
     const rs = world.level.toArray();
     if (pal.art) roomGroup.add(farBack = zoneBackdrop(pal, Math.max(...rs.map((r) => r.y + r.h))));
     else farBack = null;
-    for (const r of rs) roomGroup.add(block2(r, rs));
+    const floor2 = Math.min(...rs.map((r) => r.y)), DEEP = VIEW_H / 2;
+    const drawn2 = rs.map((r) => r.y === floor2 && !r.one_way ? { ...r, y: r.y - DEEP, h: r.h + DEEP } : r);
+    for (const r of drawn2) roomGroup.add(block2(r, drawn2));
     cam.focus = null;
     roomBox = { x0: Math.min(...rs.map((r) => r.x)), x1: Math.max(...rs.map((r) => r.x + r.w)), y0: Math.min(...rs.map((r) => r.y)), y1: Math.max(...rs.map((r) => r.y + r.h)) };
     enemyMood.clear();
@@ -31457,7 +31465,7 @@ function frame(now) {
     const long = Math.max(r.w, r.h), short = Math.min(r.w, r.h);
     if (art === "orb") {
       const depth = Math.max(-1, Math.min(1, (y2 - (py + 0.75)) / 0.63)), k2 = kw * (1 - 0.15 * depth);
-      flying.orb.push({ x, y: y2, w: r.w * k2, h: r.h * k2, z: depth > 0 ? 0.5 : 1 });
+      flying.orb.push({ x, y: y2, w: r.w * k2, h: r.h * k2, z: (depth > 0 ? 0.5 : 1) - depth * 8e-3 });
       continue;
     }
     if (art === "wave") {
