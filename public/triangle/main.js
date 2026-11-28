@@ -38225,6 +38225,8 @@ var padName = /* @__PURE__ */ __name((b, gp) => isPlayStation(gp) ? PS[b] ?? b :
 var padNow = null;
 var PANE_AREA = { x: 468, y: 16, w: 796, h: 650 };
 var ZOOM = 2.5;
+var WHOLE_CARD_H = 84;
+var WHOLE_AREA = { ...PANE_AREA, h: PANE_AREA.h - WHOLE_CARD_H - 20 };
 var RING_BEND = 1;
 var FAMILY = { offence: "#cf6a26", defence: "#c2477b", utility: "#66788a", upgrade: "#a67c0c" };
 var BONUS = [
@@ -38743,14 +38745,15 @@ function createTreeScreen({ getWorld, setWorld, onUnlock, treeKeys = /* @__PURE_
     if (mouseNode != null) take2();
   });
   const scaleOf = /* @__PURE__ */ __name(() => wholeTree ? 1 : 1.6, "scaleOf");
-  function baseScale() {
-    return Math.min(PANE_AREA.w / (bounds.x1 - bounds.x0), PANE_AREA.h / (bounds.y1 - bounds.y0));
+  function baseScale(a = PANE_AREA) {
+    return Math.min(a.w / (bounds.x1 - bounds.x0), a.h / (bounds.y1 - bounds.y0));
   }
   __name(baseScale, "baseScale");
   function project(x, y2) {
-    const zoom = wholeTree ? 0.92 : ZOOM, sc2 = baseScale() * zoom;
+    const a = wholeTree ? WHOLE_AREA : PANE_AREA;
+    const zoom = wholeTree ? 0.92 : ZOOM, sc2 = baseScale(a) * zoom;
     const c = wholeTree ? [(bounds.x0 + bounds.x1) / 2, (bounds.y0 + bounds.y1) / 2] : cam2;
-    return [PANE_AREA.x + PANE_AREA.w / 2 + (x - c[0]) * sc2, PANE_AREA.y + PANE_AREA.h / 2 - (y2 - c[1]) * sc2 - (wholeTree ? 0 : 40)];
+    return [a.x + a.w / 2 + (x - c[0]) * sc2, a.y + a.h / 2 - (y2 - c[1]) * sc2 - (wholeTree ? 0 : 40)];
   }
   __name(project, "project");
   const inPane = /* @__PURE__ */ __name((x, y2) => x > PANE_AREA.x && x < PANE_AREA.x + PANE_AREA.w && y2 > PANE_AREA.y && y2 < PANE_AREA.y + PANE_AREA.h, "inPane");
@@ -38875,7 +38878,8 @@ function createTreeScreen({ getWorld, setWorld, onUnlock, treeKeys = /* @__PURE_
       const dist = distance(d2.w.tree, d2.p.allocated, f.id);
       status = dist > 0 ? `${dist} points away` : "Unreachable";
     }
-    const cw = 560, ch2 = 64 + body2.length * 20, cx = PANE_AREA.x + 20, cy = PANE_AREA.y + PANE_AREA.h - ch2 - 20;
+    if (wholeTree) body2 = [];
+    const cw = 560, ch2 = wholeTree ? WHOLE_CARD_H : 64 + body2.length * 20, cx = PANE_AREA.x + 20, cy = PANE_AREA.y + PANE_AREA.h - ch2 - 20;
     card(cx, cy, cw, ch2);
     say(fit(title, '800 19px "Baloo 2"', cw - 180), cx + 18, cy + 32, '800 19px "Baloo 2"', STRONG);
     const kw = chip(KIND_NAME[kindOf(f)], cx + 18, cy + 60, colorOf(f));
