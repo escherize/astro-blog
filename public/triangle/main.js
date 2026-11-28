@@ -10108,6 +10108,16 @@ var jm = new Li();
 var Jm = new Ci();
 "undefined" != typeof __THREE_DEVTOOLS__ && __THREE_DEVTOOLS__.dispatchEvent(new CustomEvent("register", { detail: { revision: t } })), "undefined" != typeof window && (window.__THREE__ ? console.warn("WARNING: Multiple instances of Three.js being imported.") : window.__THREE__ = t);
 
+// build/dev/javascript/gleam_stdlib/gleam/bool.mjs
+function guard(requirement, consequence, alternative) {
+  if (requirement) {
+    return consequence;
+  } else {
+    return alternative();
+  }
+}
+__name(guard, "guard");
+
 // build/dev/javascript/prelude.mjs
 var CustomType = class {
   static {
@@ -19631,7 +19641,7 @@ function build() {
   let acc$1 = $[0];
   let rings2 = $[1];
   let rings$1 = from_list(rings2);
-  let nearest = /* @__PURE__ */ __name((acc3, cell, tx, ty) => {
+  let nearest2 = /* @__PURE__ */ __name((acc3, cell, tx, ty) => {
     let $1 = get(rings$1, cell.id);
     let ring;
     if ($1 instanceof Ok) {
@@ -19712,8 +19722,8 @@ function build() {
     (acc3, pair, i) => {
       let a = pair[0];
       let b = pair[1];
-      let from = nearest(acc3, a, b.x, b.y);
-      let to2 = nearest(acc3, b, a.x, a.y);
+      let from = nearest2(acc3, a, b.x, b.y);
+      let to2 = nearest2(acc3, b, a.x, a.y);
       let $1 = between(acc3.seed, 2, 5.99);
       let s = $1[0];
       let len = $1[1];
@@ -19839,7 +19849,7 @@ function build() {
       let lay = /* @__PURE__ */ __name((turn3) => {
         let rx2 = dx * cos(turn3) - dy * sin(turn3);
         let ry2 = dx * sin(turn3) + dy * cos(turn3);
-        return [nearest(acc$32, c, c.x + rx2 * 20, c.y + ry2 * 20), rx2, ry2];
+        return [nearest2(acc$32, c, c.x + rx2 * 20, c.y + ry2 * 20), rx2, ry2];
       }, "lay");
       let room2 = /* @__PURE__ */ __name((spur) => {
         let start2 = spur[0];
@@ -20613,9 +20623,9 @@ var World = class extends CustomType {
   static {
     __name(this, "World");
   }
-  constructor(player2, level, enemies, projectiles, strikes, events, depth, cleared, doors, exits, seed, tree, unlocked, npcs, time, kills, room_time, safe_x, sealed, plan, difficulty, hard_open, danger, drops) {
+  constructor(players, level, enemies, projectiles, strikes, events, depth, cleared, doors, exits, seed, tree, unlocked, npcs, time, kills, room_time, safe_x, sealed, plan, difficulty, hard_open, danger, drops) {
     super();
-    this.player = player2;
+    this.players = players;
     this.level = level;
     this.enemies = enemies;
     this.projectiles = projectiles;
@@ -20758,10 +20768,36 @@ var dash_recharge = 0.5;
 var buffer_time = 0.12;
 var coyote_time = 0.1;
 var dash_exit = 0.45;
+var idle = /* @__PURE__ */ new Input(0, 0, false, false, false, false);
 function xp_needed(lvl) {
   return 10 * lvl;
 }
 __name(xp_needed, "xp_needed");
+function player(world2) {
+  let $ = world2.players;
+  let p2;
+  if ($ instanceof Empty) {
+    throw makeError(
+      "let_assert",
+      FILEPATH2,
+      "game",
+      582,
+      "player",
+      "Pattern match failed, no pattern matched the value.",
+      {
+        value: $,
+        start: 15935,
+        end: 15969,
+        pattern_start: 15946,
+        pattern_end: 15953
+      }
+    );
+  } else {
+    p2 = $.head;
+  }
+  return p2;
+}
+__name(player, "player");
 function has2(p2, rule) {
   return contains(p2.mods.rules, rule);
 }
@@ -20775,7 +20811,7 @@ function tier_bump(world2) {
     }
   }, "one");
   return one(world2.difficulty instanceof Hard) + one(world2.danger) + one(
-    has2(world2.player, Rule$Bounty$const)
+    has2(player(world2), Rule$Bounty$const)
   );
 }
 __name(tier_bump, "tier_bump");
@@ -20903,53 +20939,57 @@ function load(world2, t2, depth) {
     }
   );
   let enemies = _block$2;
-  let p2 = world2.player;
   return new World(
-    new Player(
-      t2.entry[0],
-      t2.entry[1],
-      0,
-      0,
-      p2.grounded,
-      p2.on_platform,
-      p2.wall,
-      p2.facing,
-      p2.coyote,
-      p2.jump_buffer,
-      p2.air_jumps,
-      no_dash,
-      p2.dashes,
-      p2.can_cut,
-      p2.up_held,
-      p2.jumped,
-      p2.dashed,
-      p2.struck,
-      p2.plunged,
-      p2.grudge,
-      p2.conduit,
-      p2.quick,
-      p2.rebound,
-      p2.air_hits,
-      p2.weapon,
-      p2.loadout,
-      p2.trained,
-      p2.class,
-      p2.allocated,
-      p2.mods,
-      p2.shield,
-      p2.block_charge,
-      p2.crash_wait,
-      p2.swings,
-      p2.risen,
-      Option$None$const,
-      p2.stats,
-      p2.lvl,
-      p2.xp,
-      p2.points,
-      p2.hp,
-      p2.invuln,
-      p2.hurt,
-      p2.hexed
+    map3(
+      world2.players,
+      (p2) => {
+        return new Player(
+          t2.entry[0],
+          t2.entry[1],
+          0,
+          0,
+          p2.grounded,
+          p2.on_platform,
+          p2.wall,
+          p2.facing,
+          p2.coyote,
+          p2.jump_buffer,
+          p2.air_jumps,
+          no_dash,
+          p2.dashes,
+          p2.can_cut,
+          p2.up_held,
+          p2.jumped,
+          p2.dashed,
+          p2.struck,
+          p2.plunged,
+          p2.grudge,
+          p2.conduit,
+          p2.quick,
+          p2.rebound,
+          p2.air_hits,
+          p2.weapon,
+          p2.loadout,
+          p2.trained,
+          p2.class,
+          p2.allocated,
+          p2.mods,
+          p2.shield,
+          p2.block_charge,
+          p2.crash_wait,
+          p2.swings,
+          p2.risen,
+          Option$None$const,
+          p2.stats,
+          p2.lvl,
+          p2.xp,
+          p2.points,
+          p2.hp,
+          p2.invuln,
+          p2.hurt,
+          p2.hexed
+        );
+      }
     ),
     (() => {
       let $2 = depth === 0;
@@ -20997,7 +21037,7 @@ function hub_doors(world2) {
   }
   let hard = _block;
   return new World(
-    world2.player,
+    world2.players,
     world2.level,
     world2.enemies,
     world2.projectiles,
@@ -21036,7 +21076,7 @@ function hub_doors(world2) {
 }
 __name(hub_doors, "hub_doors");
 function new_world(seed) {
-  let player2 = new Player(
+  let player$1 = new Player(
     0,
     0,
     0,
@@ -21083,7 +21123,7 @@ function new_world(seed) {
     0
   );
   let world2 = new World(
-    player2,
+    prepend(player$1, List$Empty$const),
     List$Empty$const,
     List$Empty$const,
     List$Empty$const,
@@ -21113,7 +21153,7 @@ function new_world(seed) {
 __name(new_world, "new_world");
 function open_hard(world2) {
   let world$1 = new World(
-    world2.player,
+    world2.players,
     world2.level,
     world2.enemies,
     world2.projectiles,
@@ -21178,7 +21218,7 @@ function pct(n) {
 }
 __name(pct, "pct");
 function drop_loot(world2, killed) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let hearts = !has2(p2, Rule$Bloodlust$const) && !has2(
     p2,
     Rule$Fasting$const
@@ -21235,7 +21275,7 @@ function drop_loot(world2, killed) {
   let seed = $[0];
   let drops = $[1];
   return new World(
-    world2.player,
+    world2.players,
     world2.level,
     world2.enemies,
     world2.projectiles,
@@ -21281,7 +21321,7 @@ function tick_enemies(world2, dt2) {
   });
   let fallen = _block;
   let _pipe$1 = new World(
-    world2.player,
+    world2.players,
     world2.level,
     enemies,
     world2.projectiles,
@@ -21314,6 +21354,10 @@ function tick_enemies(world2, dt2) {
   return drop_loot(_pipe$1, fallen);
 }
 __name(tick_enemies, "tick_enemies");
+function others(world2) {
+  return drop(world2.players, 1);
+}
+__name(others, "others");
 function kit_mods(name3) {
   if (name3 === "Hunter") {
     return new Mods(
@@ -21487,7 +21531,7 @@ function kit_mods(name3) {
 }
 __name(kit_mods, "kit_mods");
 function choose_class(world2, keystone) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let cell = find(world2.tree.cells, (c) => {
     return c.id === keystone;
   });
@@ -21498,79 +21542,82 @@ function choose_class(world2, keystone) {
     let c = cell[0];
     let s = new Stats(c.f, c.r, c.m);
     return new World(
-      new Player(
-        p2.x,
-        p2.y,
-        p2.vx,
-        p2.vy,
-        p2.grounded,
-        p2.on_platform,
-        p2.wall,
-        p2.facing,
-        p2.coyote,
-        p2.jump_buffer,
-        0,
-        p2.dash_time,
-        0,
-        p2.can_cut,
-        p2.up_held,
-        p2.jumped,
-        p2.dashed,
-        p2.struck,
-        p2.plunged,
-        p2.grudge,
-        p2.conduit,
-        p2.quick,
-        p2.rebound,
-        p2.air_hits,
-        of(c.name),
-        prepend(signature(c.name), List$Empty$const),
-        List$Empty$const,
-        new Some(keystone),
-        prepend(
-          keystone,
+      prepend(
+        new Player(
+          p2.x,
+          p2.y,
+          p2.vx,
+          p2.vy,
+          p2.grounded,
+          p2.on_platform,
+          p2.wall,
+          p2.facing,
+          p2.coyote,
+          p2.jump_buffer,
+          0,
+          p2.dash_time,
+          0,
+          p2.can_cut,
+          p2.up_held,
+          p2.jumped,
+          p2.dashed,
+          p2.struck,
+          p2.plunged,
+          p2.grudge,
+          p2.conduit,
+          p2.quick,
+          p2.rebound,
+          p2.air_hits,
+          of(c.name),
+          prepend(signature(c.name), List$Empty$const),
+          List$Empty$const,
+          new Some(keystone),
           prepend(
-            signature_node(world2.tree, keystone),
-            List$Empty$const
-          )
+            keystone,
+            prepend(
+              signature_node(world2.tree, keystone),
+              List$Empty$const
+            )
+          ),
+          (() => {
+            let _record = kit_mods(c.name);
+            return new Mods(
+              _record.bonus_hp,
+              _record.damage_pct,
+              _record.attack_speed_pct,
+              _record.reach_pct,
+              _record.cooldown_pct,
+              _record.iframes,
+              _record.xp_pct,
+              _record.knockback_pct,
+              _record.crit_pct,
+              _record.shields,
+              _record.knives,
+              _record.pierce,
+              _record.shockwave_pct,
+              _record.slash_pct,
+              _record.air_jumps,
+              _record.dashes,
+              _record.wall_jump,
+              kit_rules(c.name)
+            );
+          })(),
+          0,
+          p2.block_charge,
+          0,
+          p2.swings,
+          p2.risen,
+          p2.attack,
+          s,
+          p2.lvl,
+          p2.xp,
+          p2.points,
+          max_hp2(s),
+          p2.invuln,
+          p2.hurt,
+          p2.hexed
         ),
-        (() => {
-          let _record = kit_mods(c.name);
-          return new Mods(
-            _record.bonus_hp,
-            _record.damage_pct,
-            _record.attack_speed_pct,
-            _record.reach_pct,
-            _record.cooldown_pct,
-            _record.iframes,
-            _record.xp_pct,
-            _record.knockback_pct,
-            _record.crit_pct,
-            _record.shields,
-            _record.knives,
-            _record.pierce,
-            _record.shockwave_pct,
-            _record.slash_pct,
-            _record.air_jumps,
-            _record.dashes,
-            _record.wall_jump,
-            kit_rules(c.name)
-          );
-        })(),
-        0,
-        p2.block_charge,
-        0,
-        p2.swings,
-        p2.risen,
-        p2.attack,
-        s,
-        p2.lvl,
-        p2.xp,
-        p2.points,
-        max_hp2(s),
-        p2.invuln,
-        p2.hurt,
-        p2.hexed
+        others(world2)
       ),
       world2.level,
       world2.enemies,
@@ -21606,7 +21653,7 @@ function npc_box(n) {
 }
 __name(npc_box, "npc_box");
 function near_npc(world2) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let me3 = box(p2.x, p2.y, width, height);
   return find(world2.npcs, (n) => {
     return overlaps(me3, npc_box(n));
@@ -21628,6 +21675,49 @@ function talk(world2, up_fresh) {
   }
 }
 __name(talk, "talk");
+function each(world2, xs2, phase) {
+  return fold2(
+    xs2,
+    world2,
+    (w2, x) => {
+      let w$1 = phase(w2, x);
+      let $ = w$1.players;
+      if ($ instanceof Empty) {
+        return w$1;
+      } else {
+        let p2 = $.head;
+        let rest = $.tail;
+        return new World(
+          append(rest, prepend(p2, List$Empty$const)),
+          w$1.level,
+          w$1.enemies,
+          w$1.projectiles,
+          w$1.strikes,
+          w$1.events,
+          w$1.depth,
+          w$1.cleared,
+          w$1.doors,
+          w$1.exits,
+          w$1.seed,
+          w$1.tree,
+          w$1.unlocked,
+          w$1.npcs,
+          w$1.time,
+          w$1.kills,
+          w$1.room_time,
+          w$1.safe_x,
+          w$1.sealed,
+          w$1.plan,
+          w$1.difficulty,
+          w$1.hard_open,
+          w$1.danger,
+          w$1.drops
+        );
+      }
+    }
+  );
+}
+__name(each, "each");
 function reward_label(r) {
   if (r instanceof Some) {
     let $ = r[0];
@@ -21869,15 +21959,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      3054,
+      3157,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 93501,
-        end: 93553,
-        pattern_start: 93512,
-        pattern_end: 93519
+        start: 97038,
+        end: 97090,
+        pattern_start: 97049,
+        pattern_end: 97056
       }
     );
   } else {
@@ -21985,7 +22075,7 @@ function home2(world2) {
   let _block;
   let _record = new_world(next2(world2.seed));
   _block = new World(
-    _record.player,
+    _record.players,
     _record.level,
     _record.enemies,
     _record.projectiles,
@@ -22019,13 +22109,47 @@ function home2(world2) {
     _block$1 = fresh;
   }
   let fresh$1 = _block$1;
-  let $1 = world2.player.class;
-  if ($1 instanceof Some) {
-    let k2 = $1[0];
-    return choose_class(fresh$1, k2);
-  } else {
-    return fresh$1;
-  }
+  let fresh$2 = new World(
+    map3(world2.players, (_) => {
+      return player(fresh$1);
+    }),
+    fresh$1.level,
+    fresh$1.enemies,
+    fresh$1.projectiles,
+    fresh$1.strikes,
+    fresh$1.events,
+    fresh$1.depth,
+    fresh$1.cleared,
+    fresh$1.doors,
+    fresh$1.exits,
+    fresh$1.seed,
+    fresh$1.tree,
+    fresh$1.unlocked,
+    fresh$1.npcs,
+    fresh$1.time,
+    fresh$1.kills,
+    fresh$1.room_time,
+    fresh$1.safe_x,
+    fresh$1.sealed,
+    fresh$1.plan,
+    fresh$1.difficulty,
+    fresh$1.hard_open,
+    fresh$1.danger,
+    fresh$1.drops
+  );
+  return each(
+    fresh$2,
+    world2.players,
+    (w2, old) => {
+      let $1 = old.class;
+      if ($1 instanceof Some) {
+        let k2 = $1[0];
+        return choose_class(w2, k2);
+      } else {
+        return w2;
+      }
+    }
+  );
 }
 __name(home2, "home");
 function door_box(d2) {
@@ -22033,7 +22157,7 @@ function door_box(d2) {
 }
 __name(door_box, "door_box");
 function use_door(world2, up_fresh) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let me3 = box(p2.x, p2.y, width, height);
   let ready = world2.depth > 0 || !(p2.class instanceof None);
   let _block;
@@ -22056,7 +22180,7 @@ function use_door(world2, up_fresh) {
     if (world2.depth === 15) {
       let _record = home2(world2);
       return new World(
-        _record.player,
+        _record.players,
         _record.level,
         _record.enemies,
         _record.projectiles,
@@ -22137,7 +22261,7 @@ function use_door(world2, up_fresh) {
       }
       let plan$1 = _block$4;
       let world$1 = new World(
-        world2.player,
+        world2.players,
         world2.level,
         world2.enemies,
         world2.projectiles,
@@ -22176,7 +22300,7 @@ function use_door(world2, up_fresh) {
       let t2 = _block$5;
       let world$2 = load(
         new World(
-          world$1.player,
+          world$1.players,
           world$1.level,
           world$1.enemies,
           world$1.projectiles,
@@ -22208,12 +22332,12 @@ function use_door(world2, up_fresh) {
       let $8 = d2.reward;
       if ($8 instanceof Some) {
         let r = $8[0];
-        let after = apply_reward(world$2.player, r);
+        let after = apply_reward(player(world$2), r);
         let total = /* @__PURE__ */ __name((p3) => {
           return p3.stats.fighter + p3.stats.rogue + p3.stats.mage;
         }, "total");
         let _block$7;
-        let $9 = total(after) - total(world$2.player);
+        let $9 = total(after) - total(player(world$2));
         if (r instanceof Point && $9 === 2) {
           _block$7 = replace(reward_label(new Some(r)), "+1", "+2");
         } else if (r instanceof Danger) {
@@ -22228,7 +22352,7 @@ function use_door(world2, up_fresh) {
         }
         let label2 = _block$7;
         _block$6 = new World(
-          after,
+          prepend(after, others(world$2)),
           world$2.level,
           world$2.enemies,
           world$2.projectiles,
@@ -22261,7 +22385,7 @@ function use_door(world2, up_fresh) {
       }
       let world$3 = _block$6;
       return new World(
-        world$3.player,
+        world$3.players,
         world$3.level,
         world$3.enemies,
         world$3.projectiles,
@@ -22316,9 +22440,9 @@ function check_clear(world2) {
   if ($) {
     return world2;
   } else {
-    let fasting = has2(world2.player, Rule$Fasting$const);
+    let fasting = has2(player(world2), Rule$Fasting$const);
     let _block;
-    let $1 = has2(world2.player, Rule$Bloodlust$const) || fasting;
+    let $1 = has2(player(world2), Rule$Bloodlust$const) || fasting;
     if ($1) {
       _block = prepend(
         new Point(Axis$Fighter$const),
@@ -22392,7 +22516,7 @@ function check_clear(world2) {
           );
         })(),
         prepend(
-          new RunComplete(world2.time, world2.kills, world2.player.lvl),
+          new RunComplete(world2.time, world2.kills, player(world2).lvl),
           List$Empty$const
         )
       ];
@@ -22418,7 +22542,7 @@ function check_clear(world2) {
     let doors = $6[0];
     let finale = $6[1];
     let hard_open = world2.hard_open || !(finale instanceof Empty) && !(world2.difficulty instanceof Easy);
-    let p2 = world2.player;
+    let p2 = player(world2);
     let _block$3;
     let $8 = fasting && world2.depth > 0;
     if ($8) {
@@ -22483,10 +22607,10 @@ function check_clear(world2) {
       _block$4 = [p2, List$Empty$const];
     }
     let $9 = _block$4;
-    let player2 = $9[0];
+    let player$1 = $9[0];
     let events = $9[1];
     return new World(
-      player2,
+      prepend(player$1, others(world2)),
       world2.level,
       world2.enemies,
       world2.projectiles,
@@ -22661,7 +22785,7 @@ function gain_xp(loop$p, loop$xp, loop$events) {
 }
 __name(gain_xp, "gain_xp");
 function loot(world2, dt2) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let cx = p2.x;
   let cy = p2.y + height / 2;
   let $ = fold2(
@@ -22815,7 +22939,7 @@ function loot(world2, dt2) {
   let p$2 = $2[0];
   let level_ups = $2[1];
   return new World(
-    p$2,
+    prepend(p$2, others(world2)),
     world2.level,
     world2.enemies,
     world2.projectiles,
@@ -22843,7 +22967,7 @@ function loot(world2, dt2) {
 }
 __name(loot, "loot");
 function steal(world2) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let $ = has2(p2, Rule$Steal$const) && p2.dash_time > 0;
   if ($) {
     let me3 = box(p2.x, p2.y, width, height);
@@ -22900,10 +23024,10 @@ function steal(world2) {
           List$Empty$const
         )
       );
-      let player2 = $3[0];
+      let player$1 = $3[0];
       let level_ups = $3[1];
       return new World(
-        player2,
+        prepend(player$1, others(world2)),
         world2.level,
         enemies,
         world2.projectiles,
@@ -22930,7 +23054,7 @@ function steal(world2) {
       );
     } else {
       return new World(
-        world2.player,
+        world2.players,
         world2.level,
         enemies,
         world2.projectiles,
@@ -22980,55 +23104,58 @@ function enemy_hit(difficulty, depth, damage3) {
 }
 __name(enemy_hit, "enemy_hit");
 function blocked_by_shield(world2, k2) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let $ = p2.shield > 0;
   if ($) {
     return new World(
-      new Player(
-        p2.x,
-        p2.y,
-        p2.vx,
-        p2.vy,
-        p2.grounded,
-        p2.on_platform,
-        p2.wall,
-        p2.facing,
-        p2.coyote,
-        p2.jump_buffer,
-        p2.air_jumps,
-        p2.dash_time,
-        p2.dashes,
-        p2.can_cut,
-        p2.up_held,
-        p2.jumped,
-        p2.dashed,
-        p2.struck,
-        p2.plunged,
-        p2.grudge,
-        p2.conduit,
-        p2.quick,
-        p2.rebound,
-        p2.air_hits,
-        p2.weapon,
-        p2.loadout,
-        p2.trained,
-        p2.class,
-        p2.allocated,
-        p2.mods,
-        p2.shield - 1,
-        p2.block_charge,
-        crash_recharge,
-        p2.swings,
-        p2.risen,
-        p2.attack,
-        p2.stats,
-        p2.lvl,
-        p2.xp,
-        p2.points,
-        p2.hp,
-        invuln_time,
-        p2.hurt,
-        p2.hexed
+      prepend(
+        new Player(
+          p2.x,
+          p2.y,
+          p2.vx,
+          p2.vy,
+          p2.grounded,
+          p2.on_platform,
+          p2.wall,
+          p2.facing,
+          p2.coyote,
+          p2.jump_buffer,
+          p2.air_jumps,
+          p2.dash_time,
+          p2.dashes,
+          p2.can_cut,
+          p2.up_held,
+          p2.jumped,
+          p2.dashed,
+          p2.struck,
+          p2.plunged,
+          p2.grudge,
+          p2.conduit,
+          p2.quick,
+          p2.rebound,
+          p2.air_hits,
+          p2.weapon,
+          p2.loadout,
+          p2.trained,
+          p2.class,
+          p2.allocated,
+          p2.mods,
+          p2.shield - 1,
+          p2.block_charge,
+          crash_recharge,
+          p2.swings,
+          p2.risen,
+          p2.attack,
+          p2.stats,
+          p2.lvl,
+          p2.xp,
+          p2.points,
+          p2.hp,
+          invuln_time,
+          p2.hurt,
+          p2.hexed
+        ),
+        others(world2)
       ),
       world2.level,
       world2.enemies,
@@ -23063,7 +23190,7 @@ function blocked_by_shield(world2, k2) {
 }
 __name(blocked_by_shield, "blocked_by_shield");
 function hurt(world2, damage3, from_x) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   return blocked_by_shield(
     world2,
     () => {
@@ -23085,57 +23212,63 @@ function hurt(world2, damage3, from_x) {
       }
       let away = _block$1;
       let ouch = new Hurt(p2.x, p2.y + height, damage$2);
+      let others_up = any(others(world2), (q2) => {
+        return q2.hp > 0;
+      });
       let $1 = p2.hp - damage$2 <= 0;
       let $2 = has2(p2, Rule$Phoenix$const) && !p2.risen;
       if ($1) {
         if ($2) {
           let back = max(1, globalThis.Math.trunc(max_hp3(p2) / 2));
           return new World(
-            new Player(
-              p2.x,
-              p2.y,
-              p2.vx,
-              p2.vy,
-              p2.grounded,
-              p2.on_platform,
-              p2.wall,
-              p2.facing,
-              p2.coyote,
-              p2.jump_buffer,
-              p2.air_jumps,
-              p2.dash_time,
-              p2.dashes,
-              p2.can_cut,
-              p2.up_held,
-              p2.jumped,
-              p2.dashed,
-              p2.struck,
-              p2.plunged,
-              p2.grudge,
-              p2.conduit,
-              p2.quick,
-              p2.rebound,
-              p2.air_hits,
-              p2.weapon,
-              p2.loadout,
-              p2.trained,
-              p2.class,
-              p2.allocated,
-              p2.mods,
-              p2.shield,
-              p2.block_charge,
-              p2.crash_wait,
-              p2.swings,
-              true,
-              p2.attack,
-              p2.stats,
-              p2.lvl,
-              p2.xp,
-              p2.points,
-              back,
-              phoenix_grace,
-              p2.hurt,
-              p2.hexed
+            prepend(
+              new Player(
+                p2.x,
+                p2.y,
+                p2.vx,
+                p2.vy,
+                p2.grounded,
+                p2.on_platform,
+                p2.wall,
+                p2.facing,
+                p2.coyote,
+                p2.jump_buffer,
+                p2.air_jumps,
+                p2.dash_time,
+                p2.dashes,
+                p2.can_cut,
+                p2.up_held,
+                p2.jumped,
+                p2.dashed,
+                p2.struck,
+                p2.plunged,
+                p2.grudge,
+                p2.conduit,
+                p2.quick,
+                p2.rebound,
+                p2.air_hits,
+                p2.weapon,
+                p2.loadout,
+                p2.trained,
+                p2.class,
+                p2.allocated,
+                p2.mods,
+                p2.shield,
+                p2.block_charge,
+                p2.crash_wait,
+                p2.swings,
+                true,
+                p2.attack,
+                p2.stats,
+                p2.lvl,
+                p2.xp,
+                p2.points,
+                back,
+                phoenix_grace,
+                p2.hurt,
+                p2.hexed
+              ),
+              others(world2)
             ),
             world2.level,
             world2.enemies,
@@ -23173,10 +23306,85 @@ function hurt(world2, damage3, from_x) {
             world2.danger,
             world2.drops
           );
+        } else if (others_up) {
+          return new World(
+            prepend(
+              new Player(
+                p2.x,
+                p2.y,
+                p2.vx,
+                p2.vy,
+                p2.grounded,
+                p2.on_platform,
+                p2.wall,
+                p2.facing,
+                p2.coyote,
+                p2.jump_buffer,
+                p2.air_jumps,
+                p2.dash_time,
+                p2.dashes,
+                p2.can_cut,
+                p2.up_held,
+                p2.jumped,
+                p2.dashed,
+                p2.struck,
+                p2.plunged,
+                p2.grudge,
+                p2.conduit,
+                p2.quick,
+                p2.rebound,
+                p2.air_hits,
+                p2.weapon,
+                p2.loadout,
+                p2.trained,
+                p2.class,
+                p2.allocated,
+                p2.mods,
+                p2.shield,
+                p2.block_charge,
+                p2.crash_wait,
+                p2.swings,
+                p2.risen,
+                p2.attack,
+                p2.stats,
+                p2.lvl,
+                p2.xp,
+                p2.points,
+                0,
+                p2.invuln,
+                p2.hurt,
+                p2.hexed
+              ),
+              others(world2)
+            ),
+            world2.level,
+            world2.enemies,
+            world2.projectiles,
+            world2.strikes,
+            append(world2.events, prepend(ouch, List$Empty$const)),
+            world2.depth,
+            world2.cleared,
+            world2.doors,
+            world2.exits,
+            world2.seed,
+            world2.tree,
+            world2.unlocked,
+            world2.npcs,
+            world2.time,
+            world2.kills,
+            world2.room_time,
+            world2.safe_x,
+            world2.sealed,
+            world2.plan,
+            world2.difficulty,
+            world2.hard_open,
+            world2.danger,
+            world2.drops
+          );
         } else {
           let _record = home2(world2);
           return new World(
-            _record.player,
+            _record.players,
             _record.level,
             _record.enemies,
             _record.projectiles,
@@ -23366,7 +23574,7 @@ function hurt(world2, damage3, from_x) {
         let p$3 = $3[0];
         let said = $3[1];
         return new World(
-          p$3,
+          prepend(p$3, others(world2)),
           world2.level,
           world2.enemies,
           world2.projectiles,
@@ -23420,7 +23628,7 @@ function blocks(p2) {
 }
 __name(blocks, "blocks");
 function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let always_crit = sure_crit;
   let shove = pct(p2.mods.knockback_pct) * (() => {
     let $8 = has2(p2, Rule$Juggernaut$const);
@@ -23634,15 +23842,15 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        1191,
+        1253,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $12,
-          start: 33674,
-          end: 33730,
-          pattern_start: 33685,
-          pattern_end: 33690
+          start: 35579,
+          end: 35635,
+          pattern_start: 35590,
+          pattern_end: 35595
         }
       );
     }
@@ -24022,7 +24230,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
     }
   );
   let _pipe = new World(
-    p$4,
+    prepend(p$4, others(world2)),
     world2.level,
     enemies,
     world2.projectiles,
@@ -24056,170 +24264,179 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
 }
 __name(hit_enemies, "hit_enemies");
 function take_damage(world2) {
-  let p2 = world2.player;
-  let me3 = box(p2.x, p2.y, width, height);
-  let contact = find(
-    world2.enemies,
-    (e) => {
-      return alive(e) && contact_damage(e) > 0 && overlaps(
-        me3,
-        body(e)
-      );
-    }
-  );
-  let $ = partition(
-    world2.projectiles,
-    (s) => {
-      return overlaps(me3, shot_box(s));
-    }
-  );
-  let shot_hits = $[0];
-  let shots_left = $[1];
-  let safe = p2.invuln > 0 || p2.dash_time > 0 - dash_grace;
-  if (safe) {
-    return world2;
-  } else if (contact instanceof Ok) {
-    let e = contact[0];
-    let _block;
-    let $1 = has2(p2, Rule$Retribution$const);
-    if ($1) {
-      _block = hit_enemies(
-        world2,
-        prepend(e, List$Empty$const),
-        Element$Physical$const,
-        3 * damage2(p2),
-        false,
-        (_) => {
-          let $2 = e.x >= p2.x;
-          if ($2) {
-            return [6, 3];
-          } else {
-            return [-6, 3];
-          }
+  let p2 = player(world2);
+  return guard(
+    p2.hp <= 0,
+    world2,
+    () => {
+      let me3 = box(p2.x, p2.y, width, height);
+      let contact = find(
+        world2.enemies,
+        (e) => {
+          return alive(e) && contact_damage(e) > 0 && overlaps(
+            me3,
+            body(e)
+          );
         }
       );
-    } else {
-      _block = world2;
-    }
-    let world$1 = _block;
-    return hurt(world$1, contact_damage(e), e.x);
-  } else if (shot_hits instanceof Empty) {
-    return world2;
-  } else {
-    let s = shot_hits.head;
-    let w2 = hurt(
-      new World(
-        world2.player,
-        world2.level,
-        world2.enemies,
-        shots_left,
-        world2.strikes,
-        world2.events,
-        world2.depth,
-        world2.cleared,
-        world2.doors,
-        world2.exits,
-        world2.seed,
-        world2.tree,
-        world2.unlocked,
-        world2.npcs,
-        world2.time,
-        world2.kills,
-        world2.room_time,
-        world2.safe_x,
-        world2.sealed,
-        world2.plan,
-        world2.difficulty,
-        world2.hard_open,
-        world2.danger,
-        world2.drops
-      ),
-      s.damage,
-      s.x - s.vx
-    );
-    let $1 = s.hex && w2.player.shield === world2.player.shield;
-    if ($1) {
-      return new World(
-        (() => {
-          let _record = w2.player;
-          return new Player(
-            _record.x,
-            _record.y,
-            _record.vx,
-            _record.vy,
-            _record.grounded,
-            _record.on_platform,
-            _record.wall,
-            _record.facing,
-            _record.coyote,
-            _record.jump_buffer,
-            _record.air_jumps,
-            _record.dash_time,
-            _record.dashes,
-            _record.can_cut,
-            _record.up_held,
-            _record.jumped,
-            _record.dashed,
-            _record.struck,
-            _record.plunged,
-            _record.grudge,
-            _record.conduit,
-            _record.quick,
-            _record.rebound,
-            _record.air_hits,
-            _record.weapon,
-            _record.loadout,
-            _record.trained,
-            _record.class,
-            _record.allocated,
-            _record.mods,
-            _record.shield,
-            _record.block_charge,
-            _record.crash_wait,
-            _record.swings,
-            _record.risen,
-            _record.attack,
-            _record.stats,
-            _record.lvl,
-            _record.xp,
-            _record.points,
-            _record.hp,
-            _record.invuln,
-            _record.hurt,
-            hex_time
-          );
-        })(),
-        w2.level,
-        w2.enemies,
-        w2.projectiles,
-        w2.strikes,
-        append(
-          w2.events,
-          prepend(new Said("Hexed: slowed"), List$Empty$const)
-        ),
-        w2.depth,
-        w2.cleared,
-        w2.doors,
-        w2.exits,
-        w2.seed,
-        w2.tree,
-        w2.unlocked,
-        w2.npcs,
-        w2.time,
-        w2.kills,
-        w2.room_time,
-        w2.safe_x,
-        w2.sealed,
-        w2.plan,
-        w2.difficulty,
-        w2.hard_open,
-        w2.danger,
-        w2.drops
+      let $ = partition(
+        world2.projectiles,
+        (s) => {
+          return overlaps(me3, shot_box(s));
+        }
       );
-    } else {
-      return w2;
+      let shot_hits = $[0];
+      let shots_left = $[1];
+      let safe = p2.invuln > 0 || p2.dash_time > 0 - dash_grace;
+      if (safe) {
+        return world2;
+      } else if (contact instanceof Ok) {
+        let e = contact[0];
+        let _block;
+        let $1 = has2(p2, Rule$Retribution$const);
+        if ($1) {
+          _block = hit_enemies(
+            world2,
+            prepend(e, List$Empty$const),
+            Element$Physical$const,
+            3 * damage2(p2),
+            false,
+            (_) => {
+              let $2 = e.x >= p2.x;
+              if ($2) {
+                return [6, 3];
+              } else {
+                return [-6, 3];
+              }
+            }
+          );
+        } else {
+          _block = world2;
+        }
+        let world$1 = _block;
+        return hurt(world$1, contact_damage(e), e.x);
+      } else if (shot_hits instanceof Empty) {
+        return world2;
+      } else {
+        let s = shot_hits.head;
+        let w2 = hurt(
+          new World(
+            world2.players,
+            world2.level,
+            world2.enemies,
+            shots_left,
+            world2.strikes,
+            world2.events,
+            world2.depth,
+            world2.cleared,
+            world2.doors,
+            world2.exits,
+            world2.seed,
+            world2.tree,
+            world2.unlocked,
+            world2.npcs,
+            world2.time,
+            world2.kills,
+            world2.room_time,
+            world2.safe_x,
+            world2.sealed,
+            world2.plan,
+            world2.difficulty,
+            world2.hard_open,
+            world2.danger,
+            world2.drops
+          ),
+          s.damage,
+          s.x - s.vx
+        );
+        let $1 = s.hex && player(w2).shield === player(world2).shield;
+        if ($1) {
+          return new World(
+            prepend(
+              (() => {
+                let _record = player(w2);
+                return new Player(
+                  _record.x,
+                  _record.y,
+                  _record.vx,
+                  _record.vy,
+                  _record.grounded,
+                  _record.on_platform,
+                  _record.wall,
+                  _record.facing,
+                  _record.coyote,
+                  _record.jump_buffer,
+                  _record.air_jumps,
+                  _record.dash_time,
+                  _record.dashes,
+                  _record.can_cut,
+                  _record.up_held,
+                  _record.jumped,
+                  _record.dashed,
+                  _record.struck,
+                  _record.plunged,
+                  _record.grudge,
+                  _record.conduit,
+                  _record.quick,
+                  _record.rebound,
+                  _record.air_hits,
+                  _record.weapon,
+                  _record.loadout,
+                  _record.trained,
+                  _record.class,
+                  _record.allocated,
+                  _record.mods,
+                  _record.shield,
+                  _record.block_charge,
+                  _record.crash_wait,
+                  _record.swings,
+                  _record.risen,
+                  _record.attack,
+                  _record.stats,
+                  _record.lvl,
+                  _record.xp,
+                  _record.points,
+                  _record.hp,
+                  _record.invuln,
+                  _record.hurt,
+                  hex_time
+                );
+              })(),
+              others(w2)
+            ),
+            w2.level,
+            w2.enemies,
+            w2.projectiles,
+            w2.strikes,
+            append(
+              w2.events,
+              prepend(new Said("Hexed: slowed"), List$Empty$const)
+            ),
+            w2.depth,
+            w2.cleared,
+            w2.doors,
+            w2.exits,
+            w2.seed,
+            w2.tree,
+            w2.unlocked,
+            w2.npcs,
+            w2.time,
+            w2.kills,
+            w2.room_time,
+            w2.safe_x,
+            w2.sealed,
+            w2.plan,
+            w2.difficulty,
+            w2.hard_open,
+            w2.danger,
+            w2.drops
+          );
+        } else {
+          return w2;
+        }
+      }
     }
-  }
+  );
 }
 __name(take_damage, "take_damage");
 function venom(p2) {
@@ -24258,7 +24475,7 @@ function afflict2(world2, ids, with$) {
     let status = with$[0][0];
     let seconds = with$[0][1];
     return new World(
-      world2.player,
+      world2.players,
       world2.level,
       map3(
         world2.enemies,
@@ -24324,11 +24541,11 @@ function element(effect) {
 }
 __name(element, "element");
 function strikes_act(world2, dt2) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   return fold2(
     world2.strikes,
     new World(
-      world2.player,
+      world2.players,
       world2.level,
       world2.enemies,
       world2.projectiles,
@@ -24473,7 +24690,7 @@ function strikes_act(world2, dt2) {
       if (next$1 instanceof Ok) {
         let s$2 = next$1[0];
         return new World(
-          w$2.player,
+          w$2.players,
           w$2.level,
           w$2.enemies,
           w$2.projectiles,
@@ -24576,7 +24793,7 @@ function plunging(p2) {
 }
 __name(plunging, "plunging");
 function strike(world2, a, box3) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let room2 = max_targets(p2.stats) - length(a.hit);
   let dist = /* @__PURE__ */ __name((e) => {
     return absolute_value2(e.x - p2.x) + absolute_value2(e.y - p2.y);
@@ -24902,7 +25119,7 @@ function strike(world2, a, box3) {
     let push = _block$7;
     let _pipe$3 = hit_enemies(
       new World(
-        p$3,
+        prepend(p$3, others(world2)),
         world2.level,
         world2.enemies,
         world2.projectiles,
@@ -25085,7 +25302,7 @@ function boost(p2) {
 }
 __name(boost, "boost");
 function loose(world2, dir, effect) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let _block;
   if (dir instanceof Forward) {
     _block = [p2.facing, 0];
@@ -25148,7 +25365,7 @@ function loose(world2, dir, effect) {
     }
   );
   return new World(
-    world2.player,
+    world2.players,
     world2.level,
     world2.enemies,
     world2.projectiles,
@@ -25176,7 +25393,7 @@ function loose(world2, dir, effect) {
 }
 __name(loose, "loose");
 function combat(world2) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let $ = p2.attack;
   if ($ instanceof Some) {
     let a = $[0];
@@ -25184,51 +25401,54 @@ function combat(world2) {
     let $2 = shot(p2);
     if ($1) {
       return new World(
-        new Player(
-          p2.x,
-          p2.y,
-          p2.vx,
-          p2.vy,
-          p2.grounded,
-          p2.on_platform,
-          p2.wall,
-          p2.facing,
-          p2.coyote,
-          p2.jump_buffer,
-          p2.air_jumps,
-          p2.dash_time,
-          p2.dashes,
-          p2.can_cut,
-          p2.up_held,
-          p2.jumped,
-          p2.dashed,
-          p2.struck,
-          p2.plunged,
-          p2.grudge,
-          p2.conduit,
-          false,
-          p2.rebound,
-          p2.air_hits,
-          p2.weapon,
-          p2.loadout,
-          p2.trained,
-          p2.class,
-          p2.allocated,
-          p2.mods,
-          p2.shield,
-          p2.block_charge,
-          p2.crash_wait,
-          p2.swings,
-          p2.risen,
-          Option$None$const,
-          p2.stats,
-          p2.lvl,
-          p2.xp,
-          p2.points,
-          p2.hp,
-          p2.invuln,
-          p2.hurt,
-          p2.hexed
+        prepend(
+          new Player(
+            p2.x,
+            p2.y,
+            p2.vx,
+            p2.vy,
+            p2.grounded,
+            p2.on_platform,
+            p2.wall,
+            p2.facing,
+            p2.coyote,
+            p2.jump_buffer,
+            p2.air_jumps,
+            p2.dash_time,
+            p2.dashes,
+            p2.can_cut,
+            p2.up_held,
+            p2.jumped,
+            p2.dashed,
+            p2.struck,
+            p2.plunged,
+            p2.grudge,
+            p2.conduit,
+            false,
+            p2.rebound,
+            p2.air_hits,
+            p2.weapon,
+            p2.loadout,
+            p2.trained,
+            p2.class,
+            p2.allocated,
+            p2.mods,
+            p2.shield,
+            p2.block_charge,
+            p2.crash_wait,
+            p2.swings,
+            p2.risen,
+            Option$None$const,
+            p2.stats,
+            p2.lvl,
+            p2.xp,
+            p2.points,
+            p2.hp,
+            p2.invuln,
+            p2.hurt,
+            p2.hexed
+          ),
+          others(world2)
         ),
         world2.level,
         world2.enemies,
@@ -25276,9 +25496,33 @@ function combat(world2) {
   }
 }
 __name(combat, "combat");
+function nearest(world2, x, y2) {
+  let away = /* @__PURE__ */ __name((p2) => {
+    let dx = p2.x - x;
+    let dy = p2.y + height / 2 - y2;
+    return dx * dx + dy * dy;
+  }, "away");
+  return fold2(
+    world2.players,
+    player(world2),
+    (best, p2) => {
+      let $ = p2.hp > 0 && (best.hp <= 0 || away(p2) < away(best));
+      if ($) {
+        return p2;
+      } else {
+        return best;
+      }
+    }
+  );
+}
+__name(nearest, "nearest");
 function enemies_act(world2, dt2) {
-  let p2 = world2.player;
-  let left_entry = p2.x > world2.safe_x;
+  let left_entry = any(
+    world2.players,
+    (p2) => {
+      return p2.x > world2.safe_x;
+    }
+  );
   let alert = left_entry || world2.room_time > linger;
   let $ = map_fold(
     world2.enemies,
@@ -25316,6 +25560,7 @@ function enemies_act(world2, dt2) {
         _block2 = e;
       }
       let e$1 = _block2;
+      let p2 = nearest(world2, e$1.x, e$1.y);
       let $2 = think(
         e$1,
         world2.level,
@@ -25409,13 +25654,14 @@ function enemies_act(world2, dt2) {
   _block = filter_map(
     _pipe,
     (s) => {
+      let p2 = nearest(world2, s.x, s.y);
       let _pipe$1 = fly(s, world2.level, p2.x, p2.y + height / 2, dt2);
       return to_result(_pipe$1, void 0);
     }
   );
   let projectiles = _block;
   return new World(
-    world2.player,
+    world2.players,
     world2.level,
     enemies,
     projectiles,
@@ -25443,7 +25689,12 @@ function enemies_act(world2, dt2) {
 }
 __name(enemies_act, "enemies_act");
 function seal(world2) {
-  let out = world2.depth > 0 && !world2.sealed && world2.player.x > world2.safe_x + 0.5;
+  let out = world2.depth > 0 && !world2.sealed && all(
+    world2.players,
+    (p2) => {
+      return p2.x > world2.safe_x + 0.5;
+    }
+  );
   let empty2 = !any(
     world2.enemies,
     (e) => {
@@ -25453,7 +25704,7 @@ function seal(world2) {
   let $ = out && empty2;
   if ($) {
     return new World(
-      world2.player,
+      world2.players,
       prepend(gate(), world2.level),
       world2.enemies,
       world2.projectiles,
@@ -25500,7 +25751,7 @@ function skill_level(p2, effect) {
 }
 __name(skill_level, "skill_level");
 function orbit(world2) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let $ = partition(
     world2.strikes,
     (s) => {
@@ -25610,7 +25861,7 @@ function orbit(world2) {
   let projectiles = $2[1];
   if (current) {
     return new World(
-      world2.player,
+      world2.players,
       world2.level,
       world2.enemies,
       projectiles,
@@ -25637,7 +25888,7 @@ function orbit(world2) {
     );
   } else {
     return new World(
-      world2.player,
+      world2.players,
       world2.level,
       world2.enemies,
       projectiles,
@@ -25706,7 +25957,7 @@ function on_the_floor(s, level) {
 }
 __name(on_the_floor, "on_the_floor");
 function scatter(s, world2) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let _block;
   let _pipe = world2.enemies;
   let _pipe$1 = filter(
@@ -25834,7 +26085,7 @@ function skill_period(p2, s) {
 }
 __name(skill_period, "skill_period");
 function aim_at_nearest(world2) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let cy = p2.y + height / 2;
   let dist = /* @__PURE__ */ __name((e) => {
     let b = body(e);
@@ -25852,18 +26103,18 @@ function aim_at_nearest(world2) {
   _block = sort(_pipe$3, (a, b) => {
     return compare2(a[0], b[0]);
   });
-  let nearest = _block;
-  if (nearest instanceof Empty) {
+  let nearest$1 = _block;
+  if (nearest$1 instanceof Empty) {
     return [p2.facing, 0];
   } else {
-    let dx = nearest.head[1];
-    let dy = nearest.head[2];
+    let dx = nearest$1.head[1];
+    let dy = nearest$1.head[2];
     return normalize(dx, dy);
   }
 }
 __name(aim_at_nearest, "aim_at_nearest");
 function fire_skills(world2, before, dt2) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let hard_landing = !before.grounded && p2.grounded && (before.vy < -15 || has2(
     p2,
     Rule$Heavy$const
@@ -26205,51 +26456,54 @@ function fire_skills(world2, before, dt2) {
   }
   let conduit_count = _block$6;
   return new World(
-    new Player(
-      p$1.x,
-      p$1.y,
-      p$1.vx,
-      p$1.vy,
-      p$1.grounded,
-      p$1.on_platform,
-      p$1.wall,
-      p$1.facing,
-      p$1.coyote,
-      p$1.jump_buffer,
-      p$1.air_jumps,
-      p$1.dash_time,
-      p$1.dashes,
-      p$1.can_cut,
-      p$1.up_held,
-      p$1.jumped,
-      p$1.dashed,
-      false,
-      p$1.plunged,
-      p$1.grudge,
-      conduit_count,
-      p$1.quick,
-      p$1.rebound,
-      p$1.air_hits,
-      p$1.weapon,
-      loadout,
-      p$1.trained,
-      p$1.class,
-      p$1.allocated,
-      p$1.mods,
-      p$1.shield,
-      p$1.block_charge,
-      p$1.crash_wait,
-      p$1.swings,
-      p$1.risen,
-      p$1.attack,
-      p$1.stats,
-      p$1.lvl,
-      p$1.xp,
-      p$1.points,
-      p$1.hp + healed - paid,
-      p$1.invuln,
-      p$1.hurt,
-      p$1.hexed
+    prepend(
+      new Player(
+        p$1.x,
+        p$1.y,
+        p$1.vx,
+        p$1.vy,
+        p$1.grounded,
+        p$1.on_platform,
+        p$1.wall,
+        p$1.facing,
+        p$1.coyote,
+        p$1.jump_buffer,
+        p$1.air_jumps,
+        p$1.dash_time,
+        p$1.dashes,
+        p$1.can_cut,
+        p$1.up_held,
+        p$1.jumped,
+        p$1.dashed,
+        false,
+        p$1.plunged,
+        p$1.grudge,
+        conduit_count,
+        p$1.quick,
+        p$1.rebound,
+        p$1.air_hits,
+        p$1.weapon,
+        loadout,
+        p$1.trained,
+        p$1.class,
+        p$1.allocated,
+        p$1.mods,
+        p$1.shield,
+        p$1.block_charge,
+        p$1.crash_wait,
+        p$1.swings,
+        p$1.risen,
+        p$1.attack,
+        p$1.stats,
+        p$1.lvl,
+        p$1.xp,
+        p$1.points,
+        p$1.hp + healed - paid,
+        p$1.invuln,
+        p$1.hurt,
+        p$1.hexed
+      ),
+      others(world2)
     ),
     world2.level,
     world2.enemies,
@@ -27033,83 +27287,109 @@ function tick2(p2, input, dt2) {
   );
 }
 __name(tick2, "tick");
-function step(world2, input, dt2) {
-  let up_fresh = input.move_y > 0.5 && !world2.player.up_held;
-  let before = world2.player;
+function move_player(p2, input, level, dt2) {
   let _block;
-  let $ = world2.player.hurt > 0;
+  let $ = p2.hurt > 0;
   if ($) {
-    _block = new Input(0, 0, false, false, false, false);
+    _block = idle;
   } else {
     _block = input;
   }
   let input$1 = _block;
   let _block$1;
-  let _pipe = world2.player;
+  let _pipe = p2;
   let _pipe$1 = tick2(_pipe, input$1, dt2);
   let _pipe$2 = start_attack(_pipe$1, input$1);
   let _pipe$3 = horizontal(_pipe$2, input$1, dt2);
   let _pipe$4 = vertical(_pipe$3, input$1, dt2);
   let _pipe$5 = jump(_pipe$4, input$1);
   let _pipe$6 = dash(_pipe$5, input$1);
-  _block$1 = move(_pipe$6, world2.level, dt2);
-  let player2 = _block$1;
-  let player$1 = new Player(
-    player2.x,
-    player2.y,
-    player2.vx,
-    player2.vy,
-    player2.grounded,
-    player2.on_platform,
-    player2.wall,
-    player2.facing,
-    player2.coyote,
-    player2.jump_buffer,
-    player2.air_jumps,
-    player2.dash_time,
-    player2.dashes,
-    player2.can_cut,
+  _block$1 = move(_pipe$6, level, dt2);
+  let p$1 = _block$1;
+  return new Player(
+    p$1.x,
+    p$1.y,
+    p$1.vx,
+    p$1.vy,
+    p$1.grounded,
+    p$1.on_platform,
+    p$1.wall,
+    p$1.facing,
+    p$1.coyote,
+    p$1.jump_buffer,
+    p$1.air_jumps,
+    p$1.dash_time,
+    p$1.dashes,
+    p$1.can_cut,
     input$1.move_y > 0.5,
-    player2.jumped,
-    player2.dashed,
-    player2.struck,
-    player2.plunged,
-    player2.grudge,
-    player2.conduit,
-    player2.quick,
-    player2.rebound,
-    player2.air_hits,
-    player2.weapon,
-    player2.loadout,
-    player2.trained,
-    player2.class,
-    player2.allocated,
-    player2.mods,
-    player2.shield,
-    player2.block_charge,
-    player2.crash_wait,
-    player2.swings,
-    player2.risen,
-    player2.attack,
-    player2.stats,
-    player2.lvl,
-    player2.xp,
-    player2.points,
-    player2.hp,
-    player2.invuln,
-    player2.hurt,
-    player2.hexed
+    p$1.jumped,
+    p$1.dashed,
+    p$1.struck,
+    p$1.plunged,
+    p$1.grudge,
+    p$1.conduit,
+    p$1.quick,
+    p$1.rebound,
+    p$1.air_hits,
+    p$1.weapon,
+    p$1.loadout,
+    p$1.trained,
+    p$1.class,
+    p$1.allocated,
+    p$1.mods,
+    p$1.shield,
+    p$1.block_charge,
+    p$1.crash_wait,
+    p$1.swings,
+    p$1.risen,
+    p$1.attack,
+    p$1.stats,
+    p$1.lvl,
+    p$1.xp,
+    p$1.points,
+    p$1.hp,
+    p$1.invuln,
+    p$1.hurt,
+    p$1.hexed
   );
-  let _block$2;
-  let $1 = world2.depth > 0 && !(world2.depth === boss_depth && world2.cleared);
-  if ($1) {
-    _block$2 = world2.time + dt2;
+}
+__name(move_player, "move_player");
+function step_many(world2, inputs, dt2) {
+  let befores = world2.players;
+  let inputs$1 = index_map(
+    befores,
+    (_, i) => {
+      let $2 = drop(inputs, i);
+      if ($2 instanceof Empty) {
+        return idle;
+      } else {
+        let input = $2.head;
+        return input;
+      }
+    }
+  );
+  let up_fresh = map3(
+    zip(befores, inputs$1),
+    (pair) => {
+      return pair[1].move_y > 0.5 && !pair[0].up_held;
+    }
+  );
+  let players = map3(
+    zip(befores, inputs$1),
+    (pair) => {
+      return move_player(pair[0], pair[1], world2.level, dt2);
+    }
+  );
+  let _block;
+  let $ = world2.depth > 0 && !(world2.depth === boss_depth && world2.cleared);
+  if ($) {
+    _block = world2.time + dt2;
   } else {
-    _block$2 = world2.time;
+    _block = world2.time;
   }
-  let time = _block$2;
-  let _pipe$7 = new World(
-    player$1,
+  let time = _block;
+  let _pipe = new World(
+    players,
     world2.level,
     world2.enemies,
     world2.projectiles,
@@ -27134,22 +27414,36 @@ function step(world2, input, dt2) {
     world2.danger,
     world2.drops
   );
-  let _pipe$8 = fire_skills(_pipe$7, before, dt2);
-  let _pipe$9 = orbit(_pipe$8);
-  let _pipe$10 = seal(_pipe$9);
-  let _pipe$11 = enemies_act(_pipe$10, dt2);
-  let _pipe$12 = combat(_pipe$11);
-  let _pipe$13 = strikes_act(_pipe$12, dt2);
-  let _pipe$14 = take_damage(_pipe$13);
-  let _pipe$15 = steal(_pipe$14);
-  let _pipe$16 = loot(_pipe$15, dt2);
-  let _pipe$17 = ((w2) => {
+  let _pipe$1 = each(
+    _pipe,
+    befores,
+    (w2, before) => {
+      return fire_skills(w2, before, dt2);
+    }
+  );
+  let _pipe$2 = orbit(_pipe$1);
+  let _pipe$3 = seal(_pipe$2);
+  let _pipe$4 = enemies_act(_pipe$3, dt2);
+  let _pipe$5 = each(_pipe$4, befores, (w2, _) => {
+    return combat(w2);
+  });
+  let _pipe$6 = strikes_act(_pipe$5, dt2);
+  let _pipe$7 = each(_pipe$6, befores, (w2, _) => {
+    return take_damage(w2);
+  });
+  let _pipe$8 = each(_pipe$7, befores, (w2, _) => {
+    return steal(w2);
+  });
+  let _pipe$9 = each(_pipe$8, befores, (w2, _) => {
+    return loot(w2, dt2);
+  });
+  let _pipe$10 = ((w2) => {
     return new World(
-      w2.player,
+      w2.players,
       w2.level,
       (() => {
-        let _pipe$172 = split2(w2.enemies);
-        return spread_wards(_pipe$172);
+        let _pipe$102 = split2(w2.enemies);
+        return spread_wards(_pipe$102);
       })(),
       w2.projectiles,
       w2.strikes,
@@ -27173,11 +27467,15 @@ function step(world2, input, dt2) {
       w2.danger,
       w2.drops
     );
-  })(_pipe$16);
-  let _pipe$18 = check_clear(_pipe$17);
-  let _pipe$19 = use_door(_pipe$18, up_fresh);
-  let _pipe$20 = talk(_pipe$19, up_fresh);
-  return tick_enemies(_pipe$20, dt2);
+  })(_pipe$9);
+  let _pipe$11 = check_clear(_pipe$10);
+  let _pipe$12 = each(_pipe$11, up_fresh, use_door);
+  let _pipe$13 = each(_pipe$12, up_fresh, talk);
+  return tick_enemies(_pipe$13, dt2);
+}
+__name(step_many, "step_many");
+function step(world2, input, dt2) {
+  return step_many(world2, prepend(input, List$Empty$const), dt2);
 }
 __name(step, "step");
 function slashes(p2) {
@@ -28224,7 +28522,7 @@ function apply_node(p2, kind) {
 }
 __name(apply_node, "apply_node");
 function full_of_skills(world2, id2) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let $ = get(world2.tree.nodes, id2);
   if ($ instanceof Ok) {
     let $1 = $[0].kind;
@@ -28239,7 +28537,7 @@ function full_of_skills(world2, id2) {
 }
 __name(full_of_skills, "full_of_skills");
 function can_level(world2, id2) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let $ = get(world2.tree.nodes, id2);
   if ($ instanceof Ok) {
     let $1 = $[0].kind;
@@ -28265,7 +28563,7 @@ function can_level(world2, id2) {
 }
 __name(can_level, "can_level");
 function level_up(world2, id2, otherwise) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let $ = p2.points > 0 && can_level(world2, id2);
   let $1 = get(world2.tree.nodes, id2);
   if ($ && $1 instanceof Ok) {
@@ -28275,51 +28573,54 @@ function level_up(world2, id2, otherwise) {
       if ($3 instanceof GrantSkill) {
         let s = $3[0];
         return new World(
-          new Player(
-            p2.x,
-            p2.y,
-            p2.vx,
-            p2.vy,
-            p2.grounded,
-            p2.on_platform,
-            p2.wall,
-            p2.facing,
-            p2.coyote,
-            p2.jump_buffer,
-            p2.air_jumps,
-            p2.dash_time,
-            p2.dashes,
-            p2.can_cut,
-            p2.up_held,
-            p2.jumped,
-            p2.dashed,
-            p2.struck,
-            p2.plunged,
-            p2.grudge,
-            p2.conduit,
-            p2.quick,
-            p2.rebound,
-            p2.air_hits,
-            p2.weapon,
-            p2.loadout,
-            prepend(s.effect, p2.trained),
-            p2.class,
-            p2.allocated,
-            p2.mods,
-            p2.shield,
-            p2.block_charge,
-            p2.crash_wait,
-            p2.swings,
-            p2.risen,
-            p2.attack,
-            p2.stats,
-            p2.lvl,
-            p2.xp,
-            p2.points - 1,
-            p2.hp,
-            p2.invuln,
-            p2.hurt,
-            p2.hexed
+          prepend(
+            new Player(
+              p2.x,
+              p2.y,
+              p2.vx,
+              p2.vy,
+              p2.grounded,
+              p2.on_platform,
+              p2.wall,
+              p2.facing,
+              p2.coyote,
+              p2.jump_buffer,
+              p2.air_jumps,
+              p2.dash_time,
+              p2.dashes,
+              p2.can_cut,
+              p2.up_held,
+              p2.jumped,
+              p2.dashed,
+              p2.struck,
+              p2.plunged,
+              p2.grudge,
+              p2.conduit,
+              p2.quick,
+              p2.rebound,
+              p2.air_hits,
+              p2.weapon,
+              p2.loadout,
+              prepend(s.effect, p2.trained),
+              p2.class,
+              p2.allocated,
+              p2.mods,
+              p2.shield,
+              p2.block_charge,
+              p2.crash_wait,
+              p2.swings,
+              p2.risen,
+              p2.attack,
+              p2.stats,
+              p2.lvl,
+              p2.xp,
+              p2.points - 1,
+              p2.hp,
+              p2.invuln,
+              p2.hurt,
+              p2.hexed
+            ),
+            others(world2)
           ),
           world2.level,
           world2.enemies,
@@ -28357,7 +28658,7 @@ function level_up(world2, id2, otherwise) {
 }
 __name(level_up, "level_up");
 function allocate(world2, id2) {
-  let p2 = world2.player;
+  let p2 = player(world2);
   let ok = p2.points > 0 && !(p2.class instanceof None) && can_allocate(
     world2.tree,
     p2.allocated,
@@ -28443,7 +28744,7 @@ function allocate(world2, id2) {
           }
         );
         return new World(
-          p$2,
+          prepend(p$2, others(world2)),
           world2.level,
           world2.enemies,
           world2.projectiles,
@@ -28476,7 +28777,7 @@ function allocate(world2, id2) {
 }
 __name(allocate, "allocate");
 function can_take(world2, id2) {
-  return can_allocate(world2.tree, world2.player.allocated, id2) && !full_of_skills(
+  return can_allocate(world2.tree, player(world2).allocated, id2) && !full_of_skills(
     world2,
     id2
   );
@@ -28484,7 +28785,7 @@ function can_take(world2, id2) {
 __name(can_take, "can_take");
 function set_unlocked(world2, unlocked) {
   return new World(
-    world2.player,
+    world2.players,
     world2.level,
     world2.enemies,
     world2.projectiles,
@@ -28517,7 +28818,7 @@ function set_unlocked(world2, unlocked) {
 }
 __name(set_unlocked, "set_unlocked");
 function class_name(world2) {
-  let id2 = unwrap(world2.player.class, -1);
+  let id2 = unwrap(player(world2).class, -1);
   let $ = find(world2.tree.cells, (c) => {
     return c.id === id2;
   });
@@ -28588,15 +28889,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2971,
+        3074,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 90973,
-          end: 91024,
-          pattern_start: 90984,
-          pattern_end: 90992
+          start: 94509,
+          end: 94560,
+          pattern_start: 94520,
+          pattern_end: 94528
         }
       );
     }
@@ -28608,15 +28909,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        2973,
+        3076,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 91107,
-          end: 91168,
-          pattern_start: 91118,
-          pattern_end: 91135
+          start: 94643,
+          end: 94704,
+          pattern_start: 94654,
+          pattern_end: 94671
         }
       );
     } else {
@@ -28626,15 +28927,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          2973,
+          3076,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 91107,
-            end: 91168,
-            pattern_start: 91118,
-            pattern_end: 91135
+            start: 94643,
+            end: 94704,
+            pattern_start: 94654,
+            pattern_end: 94671
           }
         );
       } else {
@@ -28644,7 +28945,7 @@ function npc_lines(world2, n) {
     }
     let about = take(rest, length(rest) - 1);
     let _block;
-    let $4 = isEqual(world2.player.class, new Some(k2));
+    let $4 = isEqual(player(world2).class, new Some(k2));
     let $5 = contains(world2.unlocked, k2);
     if ($4) {
       _block = "This is you.";
@@ -29057,7 +29358,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
   }
   __name(mix, "mix");
   function derive() {
-    const w2 = getWorld(), p2 = w2.player;
+    const w2 = getWorld(), p2 = w2.players.head;
     const picking = p2.class instanceof None;
     const owned = new Set(p2.allocated.toArray());
     const unlocked = new Set(w2.unlocked.toArray());
@@ -29735,8 +30036,8 @@ window.game = { get world() {
   world = w2;
 }, sounds: played };
 var box2 = /* @__PURE__ */ __name((w2, h, color, opts = {}) => new Bs(new ks(w2, h, 1), new es({ color, ...opts })), "box");
-var player = box2(width, height, 16777215);
-scene.add(player);
+var player2 = box2(width, height, 16777215);
+scene.add(player2);
 var crescent = new Su();
 crescent.moveTo(-0.5, 0.5);
 crescent.quadraticCurveTo(1.5, 0, -0.5, -0.5);
@@ -29878,8 +30179,8 @@ var hash = /* @__PURE__ */ __name((x) => {
   return s - Math.floor(s);
 }, "hash");
 function openEdges(r, solids) {
-  const e = 0.02, others = solids.filter((o) => o !== r);
-  const inside2 = /* @__PURE__ */ __name((x, y2) => others.some((o) => x > o.x && x < o.x + o.w && y2 > o.y && y2 < o.y + o.h), "inside");
+  const e = 0.02, others2 = solids.filter((o) => o !== r);
+  const inside2 = /* @__PURE__ */ __name((x, y2) => others2.some((o) => x > o.x && x < o.x + o.w && y2 > o.y && y2 < o.y + o.h), "inside");
   const runs = /* @__PURE__ */ __name((a, b, cuts, at) => {
     const xs2 = [.../* @__PURE__ */ new Set([a, b, ...cuts.filter((c) => c > a && c < b)])].sort((p2, q2) => p2 - q2), out = [];
     for (let i = 0; i + 1 < xs2.length; i++) {
@@ -29889,7 +30190,7 @@ function openEdges(r, solids) {
     }
     return out;
   }, "runs");
-  const xc2 = others.flatMap((o) => [o.x, o.x + o.w]), yc2 = others.flatMap((o) => [o.y, o.y + o.h]);
+  const xc2 = others2.flatMap((o) => [o.x, o.x + o.w]), yc2 = others2.flatMap((o) => [o.y, o.y + o.h]);
   const top = r.y + r.h, right = r.x + r.w;
   return {
     top: runs(r.x, right, xc2, (x) => [x, top + e]),
@@ -30314,7 +30615,7 @@ __name(stickerPose, "stickerPose");
 var me2 = new Bs(new ha(1, 1), new es({ transparent: true, side: p }));
 me2.visible = false;
 scene.add(me2);
-window.game.view = { camera, me: me2, player };
+window.game.view = { camera, me: me2, player: player2 };
 function tint(cell) {
   const c = new Kr(0, 0, 0), n = cell.f + cell.r + cell.m;
   [cell.f, cell.r, cell.m].forEach((w2, i) => c.add(new Kr(AXIS[i]).multiplyScalar(w2 / n)));
@@ -30819,7 +31120,7 @@ var pendAttack = false;
 addEventListener("keydown", (e) => {
   usingPad = false;
   wake();
-  if (e.code === "KeyN" && !e.repeat) floatText(world.player.x, world.player.y + 3.4, toggleMute() ? "Sound off" : "Sound on", "npc");
+  if (e.code === "KeyN" && !e.repeat) floatText(world.players.head.x, world.players.head.y + 3.4, toggleMute() ? "Sound off" : "Sound on", "npc");
   if (treeScreen.key(e)) return;
   keys.add(e.code);
   if (!e.repeat) {
@@ -30985,7 +31286,7 @@ __name(drawBossBar, "drawBossBar");
 var summary = document.getElementById("summary");
 function showSummary(ev) {
   const m = Math.floor(ev.seconds / 60), s = Math.floor(ev.seconds % 60).toString().padStart(2, "0");
-  const skills = world.player.loadout.toArray().length;
+  const skills = world.players.head.loadout.toArray().length;
   summary.innerHTML = `<h2>Run complete</h2>
     <p>${class_name(world)} \xB7 level ${ev.level} \xB7 ${difficulty_name(world)} run</p>
     <p>Time ${m}:${s} \xB7 ${ev.kills} kills \xB7 ${skills} skill${skills === 1 ? "" : "s"}</p>
@@ -31098,7 +31399,7 @@ function nextAttackMode() {
     localStorage.setItem("trip.attack", attackMode);
   } catch {
   }
-  floatText(world.player.x, world.player.y + 3.4, `Attack ${ATTACK_MODES[attackMode].name}`, "npc");
+  floatText(world.players.head.x, world.players.head.y + 3.4, `Attack ${ATTACK_MODES[attackMode].name}`, "npc");
 }
 __name(nextAttackMode, "nextAttackMode");
 var RUNS_KEY = "trip.runs";
@@ -31123,7 +31424,7 @@ function track(before, after) {
   for (const ev of after.events.toArray()) {
     if (ev instanceof EnteredRoom && ev.depth === 1) run = { v: 1, at: (/* @__PURE__ */ new Date()).toISOString(), class: class_name(after), easy: difficulty_name(after) === "easy", difficulty: difficulty_name(after), hits: 0, damage: 0, rooms: [], replay: replay.id, from: replay.steps - 1 };
     if (!run) continue;
-    if (ev instanceof EnteredRoom && ev.depth > 0) run.rooms.push([ev.depth === boss_depth ? "boss" : layout_names.toArray()[after.plan.toArray()[ev.depth - 1]], Math.round(after.time), after.player.hp]);
+    if (ev instanceof EnteredRoom && ev.depth > 0) run.rooms.push([ev.depth === boss_depth ? "boss" : layout_names.toArray()[after.plan.toArray()[ev.depth - 1]], Math.round(after.time), after.players.head.hp]);
     if (ev instanceof Hurt) {
       run.hits++;
       run.damage += ev.damage;
@@ -31135,7 +31436,7 @@ function track(before, after) {
 __name(track, "track");
 function endRun(end, w2) {
   if (!run) return;
-  const p2 = w2.player, count2 = /* @__PURE__ */ __name((xs2) => xs2.reduce((m, x) => ({ ...m, [x]: (m[x] ?? 0) + 1 }), {}), "count");
+  const p2 = w2.players.head, count2 = /* @__PURE__ */ __name((xs2) => xs2.reduce((m, x) => ({ ...m, [x]: (m[x] ?? 0) + 1 }), {}), "count");
   saveRun({
     ...run,
     end,
@@ -31167,12 +31468,12 @@ function saveRunLog() {
   const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(file), download: `trip-runs-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.json` });
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1e3);
-  floatText(world.player.x, world.player.y + 3.4, `Run log saved (${runs.length} run${runs.length === 1 ? "" : "s"})`, "npc");
+  floatText(world.players.head.x, world.players.head.y + 3.4, `Run log saved (${runs.length} run${runs.length === 1 ? "" : "s"})`, "npc");
 }
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "fbf60809a97a" : "dev";
+var BUILD = true ? "7294aa89a65c" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
@@ -31233,12 +31534,12 @@ function toggleSharing() {
   } catch {
   }
   if (!sharing) setUploads([]);
-  floatText(world.player.x, world.player.y + 3.4, sharing ? "Sharing runs: on" : "Sharing runs: off", "npc");
+  floatText(world.players.head.x, world.players.head.y + 3.4, sharing ? "Sharing runs: on" : "Sharing runs: off", "npc");
 }
 __name(toggleSharing, "toggleSharing");
 setTimeout(sendUploads, 3e3);
 function inReach() {
-  const p2 = world.player, shoots = p2.weapon.shot instanceof Some;
+  const p2 = world.players.head, shoots = p2.weapon.shot instanceof Some;
   const far3 = shoots ? 9 : p2.weapon.long * reach2(p2) + 0.6;
   return world.enemies.toArray().some((e) => e.hp > 0 && (e.x - p2.x) * p2.facing > 0 && Math.abs(e.x - p2.x) < far3 && Math.abs(e.y - p2.y) < 1.5);
 }
@@ -31248,7 +31549,7 @@ var last3 = performance.now();
 var stepMs = 0;
 var frames = 0;
 function hear(a, b) {
-  const p2 = b.player, q2 = a.player;
+  const p2 = b.players.head, q2 = a.players.head;
   if (b.depth !== a.depth) return;
   if (p2.jumped) play("jump");
   if (p2.dashed) play("dash");
@@ -31275,7 +31576,7 @@ function hear(a, b) {
 __name(hear, "hear");
 var was = { level: null, x: 0, y: 0, enemies: /* @__PURE__ */ new Map() };
 function remember() {
-  const p2 = world.player;
+  const p2 = world.players.head;
   was = { level: world.level, x: p2.x, y: p2.y, enemies: new Map(world.enemies.toArray().map((e) => [e.id, e])) };
 }
 __name(remember, "remember");
@@ -31320,7 +31621,7 @@ function frame(now) {
       if (ev instanceof Unlocked) play("pick");
       if (ev instanceof Blocked) floatText(ev.x, ev.y, "BLOCK", "lvl");
       if (ev instanceof LevelUp) onLevelUp();
-      if (ev instanceof LevelUp) floatText(world.player.x, world.player.y + 2.5, `LEVEL ${ev.level}`, "lvl");
+      if (ev instanceof LevelUp) floatText(world.players.head.x, world.players.head.y + 2.5, `LEVEL ${ev.level}`, "lvl");
       if (ev instanceof Hurt) {
         floatText(ev.x, ev.y, `-${ev.damage}`, "hurt");
         onHurt();
@@ -31329,10 +31630,10 @@ function frame(now) {
         floatText(ev.x, ev.y, `+${ev.amount}`, "heal");
         healFlash = 0.3;
       }
-      if (ev instanceof Died) floatText(world.player.x, world.player.y + 2.5, "RUN OVER", "hurt");
+      if (ev instanceof Died) floatText(world.players.head.x, world.players.head.y + 2.5, "RUN OVER", "hurt");
       if (ev instanceof EnteredRoom) {
         summary.style.display = "none";
-        if (ev.depth > 0) floatText(world.player.x, world.player.y + 2.5, ev.depth === boss_depth ? "BOSS" : `DEPTH ${ev.depth}`, ev.depth === boss_depth ? "hurt" : "lvl");
+        if (ev.depth > 0) floatText(world.players.head.x, world.players.head.y + 2.5, ev.depth === boss_depth ? "BOSS" : `DEPTH ${ev.depth}`, ev.depth === boss_depth ? "hurt" : "lvl");
       }
       if (ev instanceof RunComplete) {
         showSummary(ev);
@@ -31343,20 +31644,20 @@ function frame(now) {
       }
       if (ev instanceof GateShut) floatText(world.safe_x - 1, 3.6, "the gate shuts", "npc");
       if (ev instanceof Unlocked) {
-        floatText(world.player.x, world.player.y + 3, `UNLOCKED ${ev.name}`, "lvl");
+        floatText(world.players.head.x, world.players.head.y + 3, `UNLOCKED ${ev.name}`, "lvl");
         saveUnlocks();
       }
-      if (ev instanceof Rewarded) floatText(world.player.x, world.player.y + 2.5, ev.label, "lvl");
-      if (ev instanceof Said) floatText(world.player.x, world.player.y + 2.5, ev.text, "lvl");
+      if (ev instanceof Rewarded) floatText(world.players.head.x, world.players.head.y + 2.5, ev.label, "lvl");
+      if (ev instanceof Said) floatText(world.players.head.x, world.players.head.y + 2.5, ev.text, "lvl");
     }
   }
   syncRoom();
-  const p2 = world.player;
+  const p2 = world.players.head;
   const part = acc / DT, same = was.level === world.level;
   const px = same ? between2(was.x, p2.x, part) : p2.x, py = same ? between2(was.y, p2.y, part) : p2.y;
-  player.position.set(px, py + height / 2, 0);
+  player2.position.set(px, py + height / 2, 0);
   hurtFlash -= frameDt;
-  player.material.color.set(hurtFlash > 0 ? 16717636 : p2.dash_time > 0 ? 16777215 : p2.dashes > 0 ? 5227511 : 2781071);
+  player2.material.color.set(hurtFlash > 0 ? 16717636 : p2.dash_time > 0 ? 16777215 : p2.dashes > 0 ? 5227511 : 2781071);
   drawHp(p2, frameDt);
   drawXp(p2);
   drawBossBar();
@@ -31369,10 +31670,10 @@ function frame(now) {
     } catch {
     }
   }
-  player.visible = shown && (!myClass || showBox);
-  player.material.transparent = true;
-  player.material.opacity = myClass ? 0.45 : 1;
-  player.position.z = myClass ? 0.9 : 0;
+  player2.visible = shown && (!myClass || showBox);
+  player2.material.transparent = true;
+  player2.material.opacity = myClass ? 0.45 : 1;
+  player2.position.z = myClass ? 0.9 : 0;
   me2.visible = shown && !!myClass;
   if (myClass) {
     loadSprites(myClass);
@@ -31509,7 +31810,7 @@ function frame(now) {
   }
   renderer.render(scene, camera);
   const unlockedNow = new Set(world.unlocked.toArray());
-  const mine = world.player.class instanceof Some ? world.player.class[0] : -1;
+  const mine = world.players.head.class instanceof Some ? world.players.head.class[0] : -1;
   npcMeshes.forEach((s, i) => {
     const [wide, tall] = stickerSize(s.hero.material.map.image, HERO_H), feet = s.n.y + (s.statue ? PEDESTAL_H : 0);
     s.hero.scale.set(wide, tall, 1);
