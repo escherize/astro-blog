@@ -116,6 +116,32 @@
       #summary p { margin: 10px 18px; }
       #summary .dim { color: var(--section); font-size: 0.85rem; }
 
+      /* options (options.js, TRIP-70): a sticker card over a dimmed game, the cursor an ink cell */
+      #options { position: fixed; inset: 0; display: none; z-index: 60; background: rgba(11, 11, 11, 0.55); font: var(--text); color: var(--body); }
+      #options > h2, #options > .body { width: min(44rem, calc(100vw - 32px)); margin: 0 auto; box-sizing: border-box; background: #fff; border: 3px solid var(--ink); }
+      #options > h2 { margin-top: max(16px, 6vh); padding: 10px 18px; border-radius: 14px 14px 0 0; border-bottom: 0;
+        font: 800 1.4rem/1.2 "Baloo 2", system-ui; color: #fff; background: var(--teal); }
+      #options > .body { border-top: 3px solid var(--ink); border-radius: 0 0 14px 14px; padding: 12px 18px 12px; max-height: calc(100vh - 12vh - 70px); overflow: auto; }
+      #options .grid { display: grid; grid-template-columns: minmax(5rem, 1.1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr); gap: 5px 8px; align-items: center; }
+      #options .head { font: 800 0.8rem/1 Nunito; color: var(--section); text-transform: uppercase; letter-spacing: 0.04em; padding: 0 8px; }
+      #options .name { font: 800 0.95rem/1.2 "Baloo 2", system-ui; color: var(--strong); }
+      #options .cell { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; min-height: 32px; padding: 3px 8px; box-sizing: border-box; min-width: 0;
+        border: 2px solid transparent; border-radius: 10px; background: #f4ece2; cursor: pointer; }
+      #options .cell.wide { grid-column: 2 / 5; justify-content: space-between; color: var(--strong); font-weight: 800; }
+      #options .cell.action { grid-column: 1 / 5; justify-content: center; font: 800 0.95rem/1.2 "Baloo 2", system-ui; color: var(--strong); }
+      #options .cell.on { border-color: var(--ink); background: #fff; box-shadow: 0 3px 0 var(--ink); }
+      #options .cell.wait { border-color: var(--ink); background: var(--gold); color: var(--strong); font-weight: 800; animation: nudge 1.2s ease-in-out infinite; }
+      #options .rule { grid-column: 1 / 5; height: 0; border-top: 2px dashed #e3d6c7; margin: 4px 0; }
+      #options .cap { display: inline-block; min-width: 1.1rem; padding: 2px 7px; text-align: center; font: 800 0.8rem/1.2 Nunito;
+        color: var(--ink); background: #fff; border: 2px solid var(--ink); border-radius: 7px; }
+      #options .cap.face { min-width: 0; width: 1.25rem; height: 1.25rem; padding: 0; line-height: 1.25rem; border-radius: 50%; color: #fff; }
+      #options .face.a { background: var(--green); } #options .face.b { background: var(--red); }
+      #options .face.x { background: var(--blue); } #options .face.y { background: var(--gold); }
+      #options .none { color: var(--section); font-style: italic; }
+      #options .hot { font: 800 0.75rem/1 Nunito; color: #fff; background: var(--ink); border-radius: 999px; padding: 4px 8px; }
+      #options .note { margin: 10px 0 0; min-height: 1.3em; color: var(--strong); font-weight: 800; }
+      #options .keys { margin: 4px 0 0; color: var(--section); font-size: 0.8rem; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+      @media (prefers-reduced-motion: reduce) { #options .cell.wait { animation: none; } }
       #tree { position: fixed; inset: 0; width: 100vw; height: 100vh; display: none; z-index: 50; } /* above every world label */
       #vignette { position: fixed; inset: 0; pointer-events: none; opacity: 0;
                   background: radial-gradient(ellipse at center, transparent 55%, rgba(229,57,53,0.7) 100%); }

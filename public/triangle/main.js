@@ -11208,8 +11208,8 @@ function values_loop(loop$list, loop$acc) {
   }
 }
 __name(values_loop, "values_loop");
-function values(options) {
-  return values_loop(options, List$Empty$const);
+function values(options2) {
+  return values_loop(options2, List$Empty$const);
 }
 __name(values, "values");
 
@@ -37502,7 +37502,7 @@ function heroImage(name3) {
   return heroImages.get(key2);
 }
 __name(heroImage, "heroImage");
-function createTreeScreen({ getWorld, setWorld, onUnlock }) {
+function createTreeScreen({ getWorld, setWorld, onUnlock, treeKeys = /* @__PURE__ */ __name(() => ["KeyT", "Tab"], "treeKeys"), treeButtons = /* @__PURE__ */ __name(() => [8], "treeButtons") }) {
   const cv = document.createElement("canvas");
   cv.id = "tree";
   document.body.appendChild(cv);
@@ -37793,12 +37793,16 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
   function key2(e) {
     if (!open) return false;
     const c = e.code;
+    if (c === "Escape" || treeKeys().includes(c)) {
+      e.preventDefault();
+      toggle();
+      return true;
+    }
     const dirs = { ArrowLeft: [-1, 0], KeyA: [-1, 0], ArrowRight: [1, 0], KeyD: [1, 0], ArrowUp: [0, 1], KeyW: [0, 1], ArrowDown: [0, -1], KeyS: [0, -1] };
     if (dirs[c]) moveFocus(...dirs[c]);
     else if (c === "Enter" || c === "Space" || c === "KeyJ") {
       if (!e.repeat) take2();
-    } else if (c === "Escape" || c === "KeyT" || c === "Tab") toggle();
-    else if (c === "KeyQ") jumpClass(-1);
+    } else if (c === "KeyQ") jumpClass(-1);
     else if (c === "KeyE") jumpClass(1);
     else if (c === "KeyZ") tab = (tab + 2) % 3;
     else if (c === "KeyC") tab = (tab + 1) % 3;
@@ -37818,19 +37822,22 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     }, "edge");
     if (!gp) return open;
     padNow = gp;
-    if (edge(8)) toggle();
-    if (!open) {
+    const tb = treeButtons();
+    if (tb.map(edge).some(Boolean)) toggle();
+    else if (!open) {
       for (const i of [0, 1, 2, 3, 4, 5, 6, 7]) padPrev[i] = pressed(i);
       return false;
     }
-    if (edge(0)) take2();
-    if (edge(1)) toggle();
-    if (edge(2)) kitIndex++;
-    if (edge(3)) wholeTree = !wholeTree;
-    if (edge(4)) jumpClass(-1);
-    if (edge(5)) jumpClass(1);
-    if (edge(6)) tab = (tab + 2) % 3;
-    if (edge(7)) tab = (tab + 1) % 3;
+    if (!open) return false;
+    const use = /* @__PURE__ */ __name((i) => !tb.includes(i) && edge(i), "use");
+    if (use(0)) take2();
+    if (use(1)) toggle();
+    if (use(2)) kitIndex++;
+    if (use(3)) wholeTree = !wholeTree;
+    if (use(4)) jumpClass(-1);
+    if (use(5)) jumpClass(1);
+    if (use(6)) tab = (tab + 2) % 3;
+    if (use(7)) tab = (tab + 1) % 3;
     let dx = gp.axes[0] ?? 0, dy = -(gp.axes[1] ?? 0);
     if (pressed(14)) dx = -1;
     if (pressed(15)) dx = 1;
@@ -38279,6 +38286,7 @@ function wake() {
   if (ctx.state === "suspended") ctx.resume();
 }
 __name(wake, "wake");
+var isMuted = /* @__PURE__ */ __name(() => muted, "isMuted");
 function toggleMute() {
   muted = !muted;
   try {
@@ -38400,6 +38408,327 @@ function play(name3) {
   SOUNDS[name3]();
 }
 __name(play, "play");
+
+// options.js
+var ACTIONS = [
+  { id: "jump", name: "Jump" },
+  { id: "attack", name: "Attack" },
+  { id: "dash", name: "Dash" },
+  { id: "up", name: "Up / use door" },
+  { id: "tree", name: "Tree" }
+];
+var DEFAULTS = {
+  keys: { jump: ["Space", "KeyK"], attack: ["KeyJ", null], dash: ["ShiftLeft", "KeyL"], up: ["KeyW", "ArrowUp"], tree: ["KeyT", "Tab"] },
+  pad: { jump: [0], attack: [2], dash: [4, 5, 6, 7], up: [12], tree: [8] }
+};
+var FIXED_KEYS = {
+  Escape: "opens this screen",
+  KeyA: "moves left",
+  KeyD: "moves right",
+  KeyS: "moves down",
+  ArrowLeft: "moves left",
+  ArrowRight: "moves right",
+  ArrowDown: "moves down",
+  KeyN: "turns sound on and off",
+  KeyM: "changes attack style",
+  KeyB: "shows the body box",
+  KeyO: "turns run sharing on and off",
+  KeyP: "saves the run log"
+};
+var FIXED_PAD = { 9: "opens this screen and saves the run log", 13: "moves down", 14: "moves left", 15: "moves right", 16: "belongs to the system" };
+var PAD_NAMES = ["A", "B", "X", "Y", "LB", "RB", "LT", "RT", "Select", "Start", "L3", "R3", "D-pad \u2191", "D-pad \u2193", "D-pad \u2190", "D-pad \u2192", "Home"];
+var STORE = "trip.controls";
+var copy = /* @__PURE__ */ __name((b) => ({ keys: Object.fromEntries(Object.entries(b.keys).map(([k2, v2]) => [k2, [...v2]])), pad: Object.fromEntries(Object.entries(b.pad).map(([k2, v2]) => [k2, [...v2]])) }), "copy");
+function load2() {
+  const b = copy(DEFAULTS);
+  try {
+    const s = JSON.parse(localStorage.getItem(STORE) || "null");
+    for (const { id: id2 } of ACTIONS) {
+      const k2 = s?.keys?.[id2], p2 = s?.pad?.[id2];
+      if (Array.isArray(k2) && k2.length === 2 && k2.every((c) => c === null || typeof c === "string" && !FIXED_KEYS[c]) && k2.some(Boolean)) b.keys[id2] = k2;
+      if (Array.isArray(p2) && p2.length && p2.every((n) => Number.isInteger(n) && n >= 0 && n < 17 && !FIXED_PAD[n])) b.pad[id2] = p2;
+    }
+  } catch {
+  }
+  return b;
+}
+__name(load2, "load");
+var binds = load2();
+var save = /* @__PURE__ */ __name(() => {
+  try {
+    localStorage.setItem(STORE, JSON.stringify(binds));
+  } catch {
+  }
+}, "save");
+var boundKeys = /* @__PURE__ */ __name((id2) => binds.keys[id2].filter(Boolean), "boundKeys");
+var boundPad = /* @__PURE__ */ __name((id2) => binds.pad[id2], "boundPad");
+var keyName = /* @__PURE__ */ __name((c) => {
+  if (!c) return "";
+  if (c.startsWith("Key")) return c.slice(3);
+  if (c.startsWith("Digit")) return c.slice(5);
+  if (c.startsWith("Numpad")) return "Num " + c.slice(6);
+  const named = {
+    Space: "Space",
+    ShiftLeft: "Shift",
+    ShiftRight: "Right Shift",
+    ControlLeft: "Ctrl",
+    ControlRight: "Right Ctrl",
+    AltLeft: "Alt",
+    AltRight: "Right Alt",
+    MetaLeft: "Cmd",
+    MetaRight: "Right Cmd",
+    ArrowUp: "\u2191",
+    Enter: "Enter",
+    Backquote: "`",
+    Minus: "-",
+    Equal: "=",
+    BracketLeft: "[",
+    BracketRight: "]",
+    Backslash: "\\",
+    Semicolon: ";",
+    Quote: "'",
+    Comma: ",",
+    Period: ".",
+    Slash: "/",
+    CapsLock: "Caps Lock",
+    Backspace: "Backspace"
+  };
+  return named[c] ?? c;
+}, "keyName");
+var buttonName = /* @__PURE__ */ __name((n, gp) => padName(PAD_NAMES[n] ?? `Button ${n}`, gp), "buttonName");
+var keyHint = /* @__PURE__ */ __name((id2) => keyName(boundKeys(id2)[0]), "keyHint");
+var padHint = /* @__PURE__ */ __name((id2, gp, most = 2) => boundPad(id2).slice(0, most).map((n) => buttonName(n, gp)).join(" / "), "padHint");
+function bindKey(id2, s, code) {
+  if (FIXED_KEYS[code]) return [false, `${keyName(code)} ${FIXED_KEYS[code]}: pick another key`];
+  const old = binds.keys[id2][s];
+  if (old === code) return [true, ""];
+  let note = "";
+  for (const { id: other, name: name3 } of ACTIONS) {
+    const t2 = binds.keys[other].indexOf(code);
+    if (t2 < 0) continue;
+    if (other !== id2 && !old && !binds.keys[other][1 - t2]) return [false, `${keyName(code)} is the only key for ${name3}: pick another`];
+    binds.keys[other][t2] = other === id2 ? null : old;
+    if (other === id2) note = old ? `${name3} is on ${keyName(code)} alone now, not ${keyName(old)}` : "";
+    else note = old ? `${keyName(code)} was on ${name3}, so ${name3} has ${keyName(old)} now` : `${keyName(code)} moved here from ${name3}`;
+  }
+  binds.keys[id2][s] = code;
+  save();
+  return [true, note];
+}
+__name(bindKey, "bindKey");
+function bindPad(id2, n) {
+  if (FIXED_PAD[n]) return [false, `${buttonName(n, padNow2)} ${FIXED_PAD[n]}: pick another button`];
+  const old = binds.pad[id2];
+  if (old.length === 1 && old[0] === n) return [true, ""];
+  let note = "";
+  for (const { id: other, name: name3 } of ACTIONS) {
+    if (other === id2 || !binds.pad[other].includes(n)) continue;
+    binds.pad[other] = binds.pad[other].filter((b) => b !== n);
+    if (!binds.pad[other].length) binds.pad[other] = old;
+    note = `${buttonName(n, padNow2)} was on ${name3}, so ${name3} has ${padHint(other, padNow2, 4)} now`;
+  }
+  binds.pad[id2] = [n];
+  save();
+  return [true, note];
+}
+__name(bindPad, "bindPad");
+function clearKey(id2, s) {
+  const other = binds.keys[id2][1 - s];
+  if (!other) return `${ACTIONS.find((a) => a.id === id2).name} needs a key`;
+  binds.keys[id2][s] = null;
+  save();
+  return "";
+}
+__name(clearKey, "clearKey");
+function reset() {
+  binds = copy(DEFAULTS);
+  try {
+    localStorage.removeItem(STORE);
+  } catch {
+  }
+}
+__name(reset, "reset");
+var padNow2 = null;
+function createOptionsScreen({ toggles }) {
+  const el2 = document.createElement("div");
+  el2.id = "options";
+  el2.setAttribute("role", "dialog");
+  el2.setAttribute("aria-label", "Options");
+  document.body.appendChild(el2);
+  let open = false, row = 0, col = 0, waiting = null, note = "", padPrev = {}, held = null, lastMove = 0;
+  const rows = /* @__PURE__ */ __name(() => [
+    ...ACTIONS.map((a) => ({ kind: "bind", ...a })),
+    ...toggles.map((t2) => ({ kind: "toggle", ...t2 })),
+    { kind: "reset", name: "Reset controls to defaults" },
+    { kind: "close", name: "Back to the game" }
+  ], "rows");
+  function show() {
+    open = true;
+    row = 0;
+    col = 0;
+    waiting = null;
+    note = "";
+    render();
+  }
+  __name(show, "show");
+  function close() {
+    open = false;
+    waiting = null;
+    render();
+  }
+  __name(close, "close");
+  function move2(dr2, dc2) {
+    const rs = rows();
+    if (dr2) row = (row + dr2 + rs.length) % rs.length;
+    if (dc2 && rs[row].kind === "bind") col = (col + dc2 + 3) % 3;
+    else if (dc2 && rs[row].kind === "toggle") {
+      rs[row].flip();
+    }
+    render();
+  }
+  __name(move2, "move");
+  function activate(byPad) {
+    const r = rows()[row];
+    note = "";
+    if (r.kind === "bind") {
+      if (byPad && col < 2) col = 2;
+      waiting = { id: r.id, slot: col };
+    } else if (r.kind === "toggle") r.flip();
+    else if (r.kind === "reset") {
+      reset();
+      note = "Controls are back to the defaults";
+    } else close();
+    render();
+  }
+  __name(activate, "activate");
+  function key2(e) {
+    if (!open) return false;
+    e.preventDefault();
+    const c = e.code;
+    if (waiting) {
+      if (e.repeat) return true;
+      if (c === "Escape") {
+        waiting = null;
+        note = "";
+      } else if (waiting.slot === 2) note = "Press a button on the pad (Esc to cancel)";
+      else if (c === "Backspace" || c === "Delete") {
+        note = clearKey(waiting.id, waiting.slot);
+        waiting = null;
+      } else {
+        const [done, said] = bindKey(waiting.id, waiting.slot, c);
+        note = said;
+        if (done) waiting = null;
+      }
+      render();
+      return true;
+    }
+    const dirs = { ArrowUp: [-1, 0], KeyW: [-1, 0], ArrowDown: [1, 0], KeyS: [1, 0], ArrowLeft: [0, -1], KeyA: [0, -1], ArrowRight: [0, 1], KeyD: [0, 1] };
+    if (dirs[c]) move2(...dirs[c]);
+    else if ((c === "Enter" || c === "Space" || c === "KeyJ") && !e.repeat) activate(false);
+    else if ((c === "Backspace" || c === "Delete") && rows()[row].kind === "bind" && col < 2) {
+      note = clearKey(rows()[row].id, col);
+      render();
+    } else if (c === "Escape" && !e.repeat) close();
+    return true;
+  }
+  __name(key2, "key");
+  function pad(gp, now) {
+    const pressed = /* @__PURE__ */ __name((i) => !!gp?.buttons[i]?.pressed, "pressed");
+    const edge = /* @__PURE__ */ __name((i) => {
+      const on = pressed(i), was2 = padPrev[i];
+      padPrev[i] = on;
+      return on && !was2;
+    }, "edge");
+    if (gp) padNow2 = gp;
+    if (!gp || !open) {
+      if (gp) gp.buttons.forEach((_, i) => padPrev[i] = pressed(i));
+      return open;
+    }
+    if (waiting) {
+      for (let i = 0; i < gp.buttons.length; i++) if (edge(i) && i !== 9) {
+        if (waiting.slot < 2) {
+          note = "Press a key on the keyboard (Start to cancel)";
+          break;
+        }
+        const [done, said] = bindPad(waiting.id, i);
+        note = said;
+        if (done) waiting = null;
+        break;
+      }
+      render();
+      return true;
+    }
+    const a = edge(0), b = edge(1);
+    for (let i = 2; i < gp.buttons.length; i++) edge(i);
+    if (a) activate(true);
+    else if (b) close();
+    let dx = gp.axes[0] ?? 0, dy = gp.axes[1] ?? 0;
+    if (pressed(14)) dx = -1;
+    if (pressed(15)) dx = 1;
+    if (pressed(12)) dy = -1;
+    if (pressed(13)) dy = 1;
+    const dir = Math.abs(dy) > 0.5 ? [Math.sign(dy), 0] : Math.abs(dx) > 0.5 ? [0, Math.sign(dx)] : null;
+    if (dir) {
+      const k2 = dir.join();
+      if (held !== k2 || now - lastMove > 140) {
+        move2(...dir);
+        lastMove = now + (held === k2 ? 0 : 220);
+        held = k2;
+      }
+    } else held = null;
+    return true;
+  }
+  __name(pad, "pad");
+  function start() {
+    if (waiting) {
+      waiting = null;
+      note = "";
+      render();
+    } else close();
+  }
+  __name(start, "start");
+  el2.addEventListener("click", (e) => {
+    const cell = e.target.closest("[data-row]");
+    if (!cell || waiting) return;
+    row = Number(cell.dataset.row);
+    col = Number(cell.dataset.col ?? 0);
+    activate(false);
+  });
+  const cap = /* @__PURE__ */ __name((text, cls = "") => `<span class="cap ${cls}">${text}</span>`, "cap");
+  const padCap = /* @__PURE__ */ __name((n) => cap(buttonName(n, padNow2), ["a", "b", "x", "y"][n] ? `face ${["a", "b", "x", "y"][n]}` : ""), "padCap");
+  function render() {
+    el2.style.display = open ? "block" : "none";
+    if (!open) return;
+    const rs = rows();
+    const on = /* @__PURE__ */ __name((r, c) => r === row && (rs[r].kind !== "bind" || c === col) ? " on" : "", "on");
+    const wait = /* @__PURE__ */ __name((r, c) => waiting && r === row && waiting.slot === c ? " wait" : "", "wait");
+    let html = '<h2>Options</h2><div class="body"><div class="grid">';
+    html += '<span class="head"></span><span class="head">Key</span><span class="head">Spare key</span><span class="head">Pad</span>';
+    rs.forEach((r, i) => {
+      if (r.kind === "bind") {
+        html += `<span class="name">${r.name}</span>`;
+        for (let c = 0; c < 2; c++) {
+          const k2 = binds.keys[r.id][c];
+          html += `<span class="cell${on(i, c)}${wait(i, c)}" data-row="${i}" data-col="${c}">${wait(i, c) ? "Press a key" : k2 ? cap(keyName(k2)) : '<span class="none">none</span>'}</span>`;
+        }
+        html += `<span class="cell${on(i, 2)}${wait(i, 2)}" data-row="${i}" data-col="2">${wait(i, 2) ? "Press a button" : binds.pad[r.id].map(padCap).join("")}</span>`;
+      } else if (r.kind === "toggle") {
+        if (rs[i - 1].kind === "bind") html += '<span class="rule"></span>';
+        html += `<span class="name">${r.name}</span><span class="cell wide${on(i)}" data-row="${i}">${r.value()}<span class="hot">${r.key}</span></span>`;
+      } else {
+        if (rs[i - 1].kind !== r.kind && r.kind === "reset") html += '<span class="rule"></span>';
+        html += `<span class="cell action${on(i)}" data-row="${i}">${r.name}</span>`;
+      }
+    });
+    html += "</div>";
+    html += `<p class="note" aria-live="polite">${note || "&nbsp;"}</p>`;
+    html += `<p class="keys">${padNow2 ? `${cap(buttonName(0, padNow2), "face a")} change ${cap(buttonName(1, padNow2), "face b")} back \xB7 ` : ""}Arrows move \xB7 Enter change \xB7 Backspace clears a key \xB7 Esc back</p></div>`;
+    el2.innerHTML = html;
+  }
+  __name(render, "render");
+  return { isOpen: /* @__PURE__ */ __name(() => open, "isOpen"), open: show, close, key: key2, pad, start, refresh: /* @__PURE__ */ __name(() => open && render(), "refresh") };
+}
+__name(createOptionsScreen, "createOptionsScreen");
 
 // main.js
 var DT = 1 / 60;
@@ -40058,13 +40387,12 @@ function strikeArt(s) {
 }
 __name(strikeArt, "strikeArt");
 var keys = /* @__PURE__ */ new Set();
-var JUMP_KEYS = ["Space", "KeyK"];
-var DASH_KEYS = ["ShiftLeft", "KeyL"];
-var ATTACK_KEYS = ["KeyJ"];
 var prevJump = false;
 var prevDash = false;
 var prevAttack = false;
 var prevStart = false;
+var startAt = 0;
+var startUsed = false;
 var usingPad = false;
 var lastPad = null;
 var pendJump = false;
@@ -40074,41 +40402,53 @@ addEventListener("keydown", (e) => {
   usingPad = false;
   wake();
   if (e.code === "KeyN" && !e.repeat) floatText(world.players.head.x, world.players.head.y + 3.4, toggleMute() ? "Sound off" : "Sound on", "npc");
+  if (options.key(e)) return;
   if (treeScreen.key(e)) return;
   keys.add(e.code);
+  if (ACTION_IDS.some((id2) => boundKeys(id2).includes(e.code))) e.preventDefault();
   if (!e.repeat) {
-    pendJump ||= JUMP_KEYS.includes(e.code);
-    pendDash ||= DASH_KEYS.includes(e.code);
-    pendAttack ||= ATTACK_KEYS.includes(e.code);
-    if (e.code === "KeyT" || e.code === "Tab") {
-      e.preventDefault();
-      treeScreen.toggle();
-    }
+    pendJump ||= boundKeys("jump").includes(e.code);
+    pendDash ||= boundKeys("dash").includes(e.code);
+    pendAttack ||= boundKeys("attack").includes(e.code);
+    if (boundKeys("tree").includes(e.code)) treeScreen.toggle();
+    if (e.code === "Escape") options.open();
     if (e.code === "KeyM") nextAttackMode();
     if (e.code === "KeyB") showBox = !showBox;
     if (e.code === "KeyP") saveRunLog();
     if (e.code === "KeyO") toggleSharing();
   }
-  if (e.code.startsWith("Arrow") || e.code === "Space") e.preventDefault();
+  if (e.code.startsWith("Arrow")) e.preventDefault();
 });
+var ACTION_IDS = ["jump", "attack", "dash", "up", "tree"];
 addEventListener("keyup", (e) => keys.delete(e.code));
 var key = /* @__PURE__ */ __name((...codes) => codes.some((c) => keys.has(c)), "key");
 var dead = /* @__PURE__ */ __name((v2) => Math.abs(v2) < 0.25 ? 0 : v2, "dead");
+var START_HOLD = 500;
 function readInput() {
   const pad = [...navigator.getGamepads()].find(Boolean);
   if (pad) lastPad = pad;
-  const btn = /* @__PURE__ */ __name((...i) => !!pad && i.some((n) => pad.buttons[n]?.pressed), "btn");
+  const btn = /* @__PURE__ */ __name((...i) => !!pad && i.flat().some((n) => pad.buttons[n]?.pressed), "btn");
   if (pad && (pad.buttons.some((b) => b.pressed) || dead(pad.axes[0] ?? 0) || dead(pad.axes[1] ?? 0))) {
     usingPad = true;
     wake();
   }
   const mx = key("ArrowRight", "KeyD") - key("ArrowLeft", "KeyA") || btn(15) - btn(14) || dead(pad?.axes[0] ?? 0);
-  const my = key("ArrowUp", "KeyW") - key("ArrowDown", "KeyS") || btn(12) - btn(13) || -dead(pad?.axes[1] ?? 0);
-  const jump2 = key(...JUMP_KEYS) || btn(0);
-  const dash2 = key(...DASH_KEYS) || btn(4, 5, 6, 7);
-  const attack = key(...ATTACK_KEYS) || btn(2);
-  if (btn(9) && !prevStart) saveRunLog();
-  prevStart = btn(9);
+  const my = key(...boundKeys("up")) - key("ArrowDown", "KeyS") || btn(boundPad("up")) - btn(13) || -dead(pad?.axes[1] ?? 0);
+  const jump2 = key(...boundKeys("jump")) || btn(boundPad("jump"));
+  const dash2 = key(...boundKeys("dash")) || btn(boundPad("dash"));
+  const attack = key(...boundKeys("attack")) || btn(boundPad("attack"));
+  const start = btn(9), now = performance.now();
+  if (start && !prevStart) {
+    startAt = now;
+    startUsed = options.isOpen();
+    if (startUsed) options.start();
+  }
+  if (start && !startUsed && now - startAt > START_HOLD && !treeScreen.isOpen()) {
+    startUsed = true;
+    options.open();
+  }
+  if (!start && prevStart && !startUsed) saveRunLog();
+  prevStart = start;
   pendJump ||= jump2 && !prevJump;
   pendDash ||= dash2 && !prevDash;
   pendAttack ||= attack && !prevAttack;
@@ -40251,10 +40591,25 @@ function saveReplay() {
   }
 }
 __name(saveReplay, "saveReplay");
-var treeScreen = createTreeScreen({ getWorld: /* @__PURE__ */ __name(() => world, "getWorld"), setWorld: /* @__PURE__ */ __name((w2, act) => {
-  world = w2;
-  if (act) replay.log.push([act[0], replay.steps, act[1]]);
-}, "setWorld"), onUnlock: saveUnlocks });
+var treeScreen = createTreeScreen({
+  getWorld: /* @__PURE__ */ __name(() => world, "getWorld"),
+  setWorld: /* @__PURE__ */ __name((w2, act) => {
+    world = w2;
+    if (act) replay.log.push([act[0], replay.steps, act[1]]);
+  }, "setWorld"),
+  onUnlock: saveUnlocks,
+  treeKeys: /* @__PURE__ */ __name(() => boundKeys("tree"), "treeKeys"),
+  treeButtons: /* @__PURE__ */ __name(() => boundPad("tree"), "treeButtons")
+});
+var onOff = /* @__PURE__ */ __name((v2) => v2 ? "On" : "Off", "onOff");
+var options = createOptionsScreen({ toggles: [
+  { name: "Sound", key: "N", value: /* @__PURE__ */ __name(() => onOff(!isMuted()), "value"), flip: /* @__PURE__ */ __name(() => toggleMute(), "flip") },
+  { name: "Attack style", key: "M", value: /* @__PURE__ */ __name(() => ATTACK_MODES[attackMode].id === "hold" ? "Hold the button to keep swinging" : "Automatic: swings when something is in reach", "value"), flip: /* @__PURE__ */ __name(() => nextAttackMode(), "flip") },
+  { name: "Share finished runs", key: "O", value: /* @__PURE__ */ __name(() => onOff(sharing) + (canShare ? "" : " (this copy never sends)"), "value"), flip: /* @__PURE__ */ __name(() => toggleSharing(), "flip") },
+  { name: "Body box", key: "B", value: /* @__PURE__ */ __name(() => onOff(showBox), "value"), flip: /* @__PURE__ */ __name(() => {
+    showBox = !showBox;
+  }, "flip") }
+] });
 var BLOOD_PRICE = reward_label(new Some(new Offer(new BloodPrice2())));
 var taughtTree = false;
 var prevPoints = 0;
@@ -40292,7 +40647,7 @@ function dashHint(p2, px, py, dt2) {
   const on = dashHintLeft > 0 && !treeScreen.isOpen();
   dashHintEl.style.display = on ? "block" : "none";
   if (!on) return;
-  dashHintEl.textContent = `Press ${usingPad ? padName("RB", lastPad) : "Shift"} to dash`;
+  dashHintEl.textContent = `Press ${usingPad ? padHint("dash", lastPad, 1) : keyHint("dash")} to dash`;
   const [sx, sy] = toScreen(px, py + height + 1.4);
   dashHintEl.style.left = `${sx}px`;
   dashHintEl.style.top = `${sy}px`;
@@ -40300,14 +40655,17 @@ function dashHint(p2, px, py, dt2) {
 __name(dashHint, "dashHint");
 var hud = document.getElementById("hud");
 var HINT = {
-  keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Up at doors & statues \xB7 T tree \xB7 M attack style \xB7 N sound \xB7 B body box \xB7 P (pad Start) save run log",
+  keys: /* @__PURE__ */ __name(() => {
+    const k2 = keyHint, upW = boundKeys("up").includes("KeyW");
+    return `Move ${upW ? "WASD" : `A D S, ${k2("up")} up`} \xB7 Jump ${k2("jump")} \xB7 Dash ${k2("dash")} \xB7 Attack ${k2("attack")} (+up / +down in air) \xB7 Up at doors & statues \xB7 ${k2("tree")} tree \xB7 Esc options \xB7 M attack style \xB7 N sound \xB7 B body box \xB7 P save run log`;
+  }, "keys"),
   pad: /* @__PURE__ */ __name(() => {
-    const n = /* @__PURE__ */ __name((b) => padName(b, lastPad), "n");
-    return `Move stick \xB7 Jump ${n("A")} \xB7 Attack ${n("X")} (+up / +down in air) \xB7 Dash ${n("LB")} / ${n("RB")} \xB7 Up at doors & statues \xB7 ${n("Select")} tree \xB7 ${n("Start")} save run log`;
+    const n = /* @__PURE__ */ __name((id2) => padHint(id2, lastPad), "n");
+    return `Move stick \xB7 Jump ${n("jump")} \xB7 Attack ${n("attack")} (+up / +down in air) \xB7 Dash ${n("dash")} \xB7 Up at doors & statues \xB7 ${n("tree")} tree \xB7 ${padName("Start", lastPad)} save run log (hold: options)`;
   }, "pad")
 };
-var treeKey = /* @__PURE__ */ __name(() => usingPad ? padName("Select", lastPad) : "T", "treeKey");
-hud.textContent = HINT.keys;
+var treeKey = /* @__PURE__ */ __name(() => usingPad ? padHint("tree", lastPad, 1) : keyHint("tree"), "treeKey");
+hud.textContent = HINT.keys();
 var whoEl = document.getElementById("who");
 var whereEl = document.getElementById("where");
 var pointsEl = document.getElementById("points");
@@ -40759,7 +41117,8 @@ function frame(now) {
   const { mx, my, jump: jump2, attack } = readInput();
   const mode = ATTACK_MODES[attackMode].id;
   if (mode === "hold" && attack || mode === "auto" && inReach()) pendAttack = true;
-  if (treeScreen.pad([...navigator.getGamepads()].find(Boolean), now)) {
+  const gp = [...navigator.getGamepads()].find(Boolean);
+  if (options.pad(gp, now) || treeScreen.pad(gp, now)) {
     acc = 0;
     pendJump = pendDash = pendAttack = false;
   }
@@ -41075,7 +41434,7 @@ function frame(now) {
     speech.style.top = `${sy}px`;
   }
   if (++frames % 15 === 0) {
-    hud.innerText = [usingPad ? HINT.pad() : HINT.keys, shareNote()].filter(Boolean).join("\n");
+    hud.innerText = [usingPad ? HINT.pad() : HINT.keys(), shareNote()].filter(Boolean).join("\n");
     whoEl.textContent = class_name(world) === "No class" ? "No class yet" : class_name(world);
     const boss2 = is_boss(world.depth), cleared = world.cleared && world.depth > 0;
     whereEl.textContent = room_label(world);
