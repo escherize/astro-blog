@@ -32148,7 +32148,7 @@ __name(play, "play");
 // main.js
 var DT = 1 / 60;
 var VIEW_H = 16;
-if (!document.createElement("canvas").getContext("webgl2")) throw new Error("This browser has WebGL 2 turned off or does not support it.");
+if (!document.createElement("canvas").getContext("webgl2")) throw new Error('This browser has WebGL 2 turned off. Usually graphics acceleration is off: in Chrome or Edge, Settings > System > "Use graphics acceleration when available", then restart the browser. In Firefox, check about:support (WebGL 2). chrome://gpu shows what is blocked.');
 var renderer = new ec({ antialias: true });
 renderer.setPixelRatio(devicePixelRatio);
 document.body.appendChild(renderer.domElement);
