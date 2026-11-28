@@ -23758,10 +23758,10 @@ function nth_room(i) {
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 116602,
-        end: 116652,
-        pattern_start: 116613,
-        pattern_end: 116620
+        start: 116598,
+        end: 116648,
+        pattern_start: 116609,
+        pattern_end: 116616
       }
     );
   } else {
@@ -31777,7 +31777,7 @@ function npc_lines(world2, n) {
         prepend(
           "Keys: move WASD \xB7 jump Space \xB7 dash Shift \xB7 attack J \xB7 tree T",
           prepend(
-            "Pad: move stick \xB7 jump X / Y \xB7 dash LB / RB \xB7 attack A \xB7 tree Select",
+            "Pad: move stick \xB7 jump A \xB7 attack X \xB7 dash LB / RB \xB7 tree Select",
             prepend(
               "Walk up to a statue and press up to become that class.",
               prepend(
@@ -31814,10 +31814,10 @@ function npc_lines(world2, n) {
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 112510,
-          end: 112561,
-          pattern_start: 112521,
-          pattern_end: 112529
+          start: 112506,
+          end: 112557,
+          pattern_start: 112517,
+          pattern_end: 112525
         }
       );
     }
@@ -31834,10 +31834,10 @@ function npc_lines(world2, n) {
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 112644,
-          end: 112705,
-          pattern_start: 112655,
-          pattern_end: 112672
+          start: 112640,
+          end: 112701,
+          pattern_start: 112651,
+          pattern_end: 112668
         }
       );
     } else {
@@ -31852,10 +31852,10 @@ function npc_lines(world2, n) {
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 112644,
-            end: 112705,
-            pattern_start: 112655,
-            pattern_end: 112672
+            start: 112640,
+            end: 112701,
+            pattern_start: 112651,
+            pattern_end: 112668
           }
         );
       } else {
@@ -31949,6 +31949,10 @@ var F2 = {
   tab: '800 14px "Baloo 2"'
 };
 var BTN = { A: GREEN, B: RED, X: BLUE, Y: GOLD };
+var PS = { A: "\u2715", B: "\u25CB", X: "\u25A1", Y: "\u25B3", LB: "L1", RB: "R1", LT: "L2", RT: "R2", Select: "Share", Start: "Options" };
+var isPlayStation = /* @__PURE__ */ __name((gp) => /054c|playstation|dualsense|dualshock/i.test(gp?.id ?? ""), "isPlayStation");
+var padName = /* @__PURE__ */ __name((b, gp) => isPlayStation(gp) ? PS[b] ?? b : b, "padName");
+var padNow = null;
 var PANE_AREA = { x: 468, y: 16, w: 796, h: 650 };
 var ZOOM = 2.5;
 var RING_BEND = 1;
@@ -32213,6 +32217,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
   }
   __name(chip, "chip");
   function button(b, x, y2) {
+    const label2 = padName(b, padNow);
     if (BTN[b]) {
       ctx2.fillStyle = BTN[b];
       ctx2.beginPath();
@@ -32221,10 +32226,10 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
       ctx2.strokeStyle = INK;
       ctx2.lineWidth = 2;
       ctx2.stroke();
-      say(b, x + 11, y2, F2.button, "#fff", "center");
+      say(label2, x + 11, y2, F2.button, "#fff", "center");
       return 26;
     }
-    const w2 = width2(b, F2.button) + 16;
+    const w2 = width2(label2, F2.button) + 16;
     ctx2.fillStyle = "#fff";
     ctx2.strokeStyle = INK;
     ctx2.lineWidth = 2;
@@ -32232,7 +32237,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     ctx2.roundRect(x, y2 - 16, w2, 22, 7);
     ctx2.fill();
     ctx2.stroke();
-    say(b, x + w2 / 2, y2, F2.button, INK, "center");
+    say(label2, x + w2 / 2, y2, F2.button, INK, "center");
     return w2 + 4;
   }
   __name(button, "button");
@@ -32328,6 +32333,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
   }
   __name(moveFocus, "moveFocus");
   function take2() {
+    if (performance.now() < graceUntil) return;
     const { w: w2, picking } = derive();
     const n = byId.get(focusId);
     const after = picking ? choose_class(w2, n.id) : allocate(w2, n.id);
@@ -32346,6 +32352,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
   let focusFor, ownedBefore = 0;
   function toggle() {
     open = !open;
+    teaching = false;
     if (open) {
       const { p: p2 } = derive(), cls = p2.class[0], owned = p2.allocated.toArray().length;
       if (cls !== focusFor || owned < ownedBefore) {
@@ -32358,6 +32365,21 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     }
   }
   __name(toggle, "toggle");
+  let teaching = false, graceUntil = 0;
+  function teach() {
+    if (!open) toggle();
+    const { w: w2, p: p2, owned } = derive();
+    const home3 = byId.get(p2.class[0] ?? focusId) ?? byId.get(focusId);
+    const fresh = nodes2.filter((n) => !(n.kind instanceof Keystone) && !owned.has(n.id) && can_take(w2, n.id));
+    const pool2 = fresh.length ? fresh : nodes2.filter((n) => !(n.kind instanceof Keystone) && can_level(w2, n.id));
+    const near = /* @__PURE__ */ __name((n) => Math.hypot(n.x - home3.x, n.y - home3.y), "near");
+    const best = pool2.sort((a, b) => near(a) - near(b))[0];
+    if (best) focusId = best.id;
+    cam2 = null;
+    teaching = true;
+    graceUntil = performance.now() + 400;
+  }
+  __name(teach, "teach");
   function key2(e) {
     if (!open) return false;
     const c = e.code;
@@ -32385,6 +32407,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
       return on && !was2;
     }, "edge");
     if (!gp) return open;
+    padNow = gp;
     if (edge(8)) toggle();
     if (!open) {
       for (const i of [0, 1, 2, 3, 4, 5, 6, 7]) padPrev[i] = pressed(i);
@@ -32512,6 +32535,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     shapePath(kindOf(f), fx, fy, fr2 + 4);
     ctx2.stroke();
     ctx2.restore();
+    if (teaching) say("Level up! Spend your point.", PANE_AREA.x + 22, PANE_AREA.y + 36, F2.label, STRONG);
     button("Y", PANE_AREA.x + PANE_AREA.w - 148, PANE_AREA.y + 34);
     say(wholeTree ? "Zoom in" : "Whole tree", PANE_AREA.x + PANE_AREA.w - 116, PANE_AREA.y + 34, F2.hint, BODY);
     const lines = details(d2.w.tree, f).toArray();
@@ -32791,7 +32815,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     cv.style.cursor = mouseNode != null && d2.available(byId.get(mouseNode)) ? "pointer" : "default";
   }
   __name(draw, "draw");
-  return { isOpen: /* @__PURE__ */ __name(() => open, "isOpen"), toggle, key: key2, pad, draw };
+  return { isOpen: /* @__PURE__ */ __name(() => open, "isOpen"), toggle, teach, key: key2, pad, draw };
 }
 __name(createTreeScreen, "createTreeScreen");
 
@@ -34288,6 +34312,7 @@ var prevDash = false;
 var prevAttack = false;
 var prevStart = false;
 var usingPad = false;
+var lastPad = null;
 var pendJump = false;
 var pendDash = false;
 var pendAttack = false;
@@ -34317,6 +34342,7 @@ var key = /* @__PURE__ */ __name((...codes) => codes.some((c) => keys.has(c)), "
 var dead = /* @__PURE__ */ __name((v2) => Math.abs(v2) < 0.25 ? 0 : v2, "dead");
 function readInput() {
   const pad = [...navigator.getGamepads()].find(Boolean);
+  if (pad) lastPad = pad;
   const btn = /* @__PURE__ */ __name((...i) => !!pad && i.some((n) => pad.buttons[n]?.pressed), "btn");
   if (pad && (pad.buttons.some((b) => b.pressed) || dead(pad.axes[0] ?? 0) || dead(pad.axes[1] ?? 0))) {
     usingPad = true;
@@ -34324,9 +34350,9 @@ function readInput() {
   }
   const mx = key("ArrowRight", "KeyD") - key("ArrowLeft", "KeyA") || btn(15) - btn(14) || dead(pad?.axes[0] ?? 0);
   const my = key("ArrowUp", "KeyW") - key("ArrowDown", "KeyS") || btn(12) - btn(13) || -dead(pad?.axes[1] ?? 0);
-  const jump2 = key(...JUMP_KEYS) || btn(2, 3);
+  const jump2 = key(...JUMP_KEYS) || btn(0);
   const dash2 = key(...DASH_KEYS) || btn(4, 5, 6, 7);
-  const attack = key(...ATTACK_KEYS) || btn(0);
+  const attack = key(...ATTACK_KEYS) || btn(2);
   if (btn(9) && !prevStart) saveRunLog();
   prevStart = btn(9);
   pendJump ||= jump2 && !prevJump;
@@ -34447,7 +34473,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "2b82ec160781" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "9b37428fc567" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -34475,12 +34501,55 @@ var treeScreen = createTreeScreen({ getWorld: /* @__PURE__ */ __name(() => world
   world = w2;
   if (act) replay.log.push([act[0], replay.steps, act[1]]);
 }, "setWorld"), onUnlock: saveUnlocks });
+var taughtTree = false;
+var prevPoints = 0;
+function teachTree() {
+  const p2 = world.players.head;
+  if (world.depth === 0) taughtTree = false;
+  else if (!taughtTree && prevPoints === 0 && p2.points > 0) {
+    taughtTree = true;
+    treeScreen.teach();
+  }
+  prevPoints = p2.points;
+}
+__name(teachTree, "teachTree");
+var DASH_HINT_KEY = "trip.dashHint";
+var dashHintEl = document.getElementById("dashhint");
+var dashHintSeen = false;
+var dashHintLeft = 0;
+try {
+  dashHintSeen = localStorage.getItem(DASH_HINT_KEY) === "1";
+} catch {
+}
+function dashHint(p2, px, py, dt2) {
+  if (!dashHintSeen && p2.class instanceof Some && p2.mods.dashes > 0) {
+    dashHintSeen = true;
+    dashHintLeft = 6;
+    try {
+      localStorage.setItem(DASH_HINT_KEY, "1");
+    } catch {
+    }
+  }
+  if (p2.dash_time > 0) dashHintLeft = 0;
+  if (!treeScreen.isOpen()) dashHintLeft -= dt2;
+  const on = dashHintLeft > 0 && !treeScreen.isOpen();
+  dashHintEl.style.display = on ? "block" : "none";
+  if (!on) return;
+  dashHintEl.textContent = `Press ${usingPad ? padName("RB", lastPad) : "Shift"} to dash`;
+  const [sx, sy] = toScreen(px, py + height + 1.4);
+  dashHintEl.style.left = `${sx}px`;
+  dashHintEl.style.top = `${sy}px`;
+}
+__name(dashHint, "dashHint");
 var hud = document.getElementById("hud");
 var HINT = {
   keys: "Move WASD \xB7 Jump Space \xB7 Dash Shift \xB7 Attack J (+up / +down in air) \xB7 Up at doors & statues \xB7 T tree \xB7 M attack style \xB7 N sound \xB7 B body box \xB7 P (pad Start) save run log",
-  pad: "Move stick \xB7 Jump X / Y \xB7 Dash LB / RB \xB7 Attack A (+up / +down in air) \xB7 Up at doors & statues \xB7 Select tree"
+  pad: /* @__PURE__ */ __name(() => {
+    const n = /* @__PURE__ */ __name((b) => padName(b, lastPad), "n");
+    return `Move stick \xB7 Jump ${n("A")} \xB7 Attack ${n("X")} (+up / +down in air) \xB7 Dash ${n("LB")} / ${n("RB")} \xB7 Up at doors & statues \xB7 ${n("Select")} tree \xB7 ${n("Start")} save run log`;
+  }, "pad")
 };
-var treeKey = /* @__PURE__ */ __name(() => usingPad ? "Select" : "T", "treeKey");
+var treeKey = /* @__PURE__ */ __name(() => usingPad ? padName("Select", lastPad) : "T", "treeKey");
 hud.textContent = HINT.keys;
 var whoEl = document.getElementById("who");
 var whereEl = document.getElementById("where");
@@ -34815,7 +34884,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "2b82ec160781" : "dev";
+var BUILD = true ? "9b37428fc567" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
@@ -34994,6 +35063,7 @@ function frame(now) {
       if (ev instanceof Said) floatText(world.players.head.x, world.players.head.y + 2.5, ev.text, "lvl");
     }
   }
+  teachTree();
   syncRoom();
   const p2 = world.players.head;
   const part = acc / DT, same = was.level === world.level;
@@ -35002,6 +35072,7 @@ function frame(now) {
   hurtFlash -= frameDt;
   player2.material.color.set(hurtFlash > 0 ? 16717636 : p2.dash_time > 0 ? 16777215 : p2.dashes > 0 ? 5227511 : 2781071);
   drawHp(p2, frameDt);
+  dashHint(p2, px, py, frameDt);
   drawXp(p2);
   drawBossBar();
   const shown = p2.invuln <= 0 || Math.floor(now / 60) % 2 === 0;
@@ -35209,7 +35280,7 @@ function frame(now) {
     speech.style.top = `${sy}px`;
   }
   if (++frames % 15 === 0) {
-    hud.innerText = [usingPad ? HINT.pad : HINT.keys, shareNote()].filter(Boolean).join("\n");
+    hud.innerText = [usingPad ? HINT.pad() : HINT.keys, shareNote()].filter(Boolean).join("\n");
     whoEl.textContent = class_name(world) === "No class" ? "No class yet" : class_name(world);
     const boss2 = is_boss(world.depth), cleared = world.cleared && world.depth > 0;
     whereEl.textContent = room_label(world);

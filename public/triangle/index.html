@@ -91,6 +91,7 @@
       .heal { color: #7ee08a; }
       .poison { color: #9be564; font-size: 18px; -webkit-text-stroke: 5px var(--ink); }
       .lvl { color: #8fd7f2; font-size: 24px; }
+      #dashhint { display: none; animation: none; z-index: 5; }
       @keyframes rise { to { transform: translate(-50%, -260%); opacity: 0; } }
 
       /* world labels: doors and statues as small white pills */
@@ -132,6 +133,7 @@
     <div id="boss" class="sticker"><b>The Warden</b><div class="bar"><div id="boss-fill"></div></div></div>
     <div id="summary" class="sticker"></div>
     <div id="hud" class="sticker"></div>
+    <div id="dashhint" class="float lvl"></div>
     <div id="mini"></div>
     <div id="fatal" class="sticker" role="alert"></div>
     <script>
