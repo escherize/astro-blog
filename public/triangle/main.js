@@ -10428,9 +10428,9 @@ function isEqual(x, y2) {
       } catch {
       }
     }
-    let [keys3, get2] = getters(a);
-    const ka2 = keys3(a);
-    const kb = keys3(b);
+    let [keys2, get2] = getters(a);
+    const ka2 = keys2(a);
+    const kb = keys2(b);
     if (ka2.length !== kb.length) return false;
     for (let k2 of ka2) {
       values3.push(get2(a, k2), get2(b, k2));
@@ -10594,9 +10594,9 @@ function hashObject(o) {
       h = h + hashMerge(getHash(v2), getHash(k2)) | 0;
     });
   } else {
-    const keys3 = Object.keys(o);
-    for (let i = 0; i < keys3.length; i++) {
-      const k2 = keys3[i];
+    const keys2 = Object.keys(o);
+    for (let i = 0; i < keys2.length; i++) {
+      const k2 = keys2[i];
       const v2 = o[k2];
       h = h + hashMerge(getHash(v2), hashString(k2)) | 0;
     }
@@ -10631,8 +10631,8 @@ var Dict = class {
   static {
     __name(this, "Dict");
   }
-  constructor(size4, root) {
-    this.size = size4;
+  constructor(size3, root) {
+    this.size = size3;
     this.root = root;
   }
 };
@@ -12336,8 +12336,8 @@ function absolute_value2(x) {
 }
 __name(absolute_value2, "absolute_value");
 function loosely_equals(a, b, tolerance) {
-  let difference2 = absolute_value2(a - b);
-  return difference2 <= tolerance;
+  let difference = absolute_value2(a - b);
+  return difference <= tolerance;
 }
 __name(loosely_equals, "loosely_equals");
 function negate(x) {
@@ -12386,106 +12386,6 @@ function sum2(numbers) {
   return sum_loop2(numbers, 0);
 }
 __name(sum2, "sum");
-
-// build/dev/javascript/gleam_stdlib/gleam/result.mjs
-function unwrap2(result, default$) {
-  if (result instanceof Ok) {
-    let v2 = result[0];
-    return v2;
-  } else {
-    return default$;
-  }
-}
-__name(unwrap2, "unwrap");
-function lazy_or(first2, second) {
-  if (first2 instanceof Ok) {
-    return first2;
-  } else {
-    return second();
-  }
-}
-__name(lazy_or, "lazy_or");
-
-// build/dev/javascript/gleam_yielder/gleam/yielder.mjs
-var Stop2 = class extends CustomType {
-  static {
-    __name(this, "Stop");
-  }
-};
-var Action$Stop$const = new Stop2();
-var Done = class extends CustomType {
-  static {
-    __name(this, "Done");
-  }
-};
-var Step$Done$const = new Done();
-var NoMore = class extends CustomType {
-  static {
-    __name(this, "NoMore");
-  }
-};
-var SizedChunk$NoMore$const = new NoMore();
-
-// build/dev/javascript/gleam_community_maths/maths.mjs
-function sin(float) {
-  return Math.sin(float);
-}
-__name(sin, "sin");
-function pi2() {
-  return Math.PI;
-}
-__name(pi2, "pi");
-function atan2(floaty, floatx) {
-  return Math.atan2(floaty, floatx);
-}
-__name(atan2, "atan2");
-function cos(float) {
-  return Math.cos(float);
-}
-__name(cos, "cos");
-
-// build/dev/javascript/gleam_community_maths/gleam_community/maths.mjs
-var lanczos_p = /* @__PURE__ */ prepend(
-  0.9999999999998099,
-  prepend(
-    676.5203681218851,
-    prepend(
-      -1259.1392167224028,
-      prepend(
-        771.3234287776531,
-        prepend(
-          -176.6150291621406,
-          prepend(
-            12.507343278686905,
-            prepend(
-              -0.13857109526572012,
-              prepend(
-                9984369578019572e-21,
-                prepend(15056327351493116e-23, List$Empty$const)
-              )
-            )
-          )
-        )
-      )
-    )
-  )
-);
-function sin2(x) {
-  return sin(x);
-}
-__name(sin2, "sin");
-function cos2(x) {
-  return cos(x);
-}
-__name(cos2, "cos");
-function atan22(y2, x) {
-  return atan2(y2, x);
-}
-__name(atan22, "atan2");
-function pi3() {
-  return pi2();
-}
-__name(pi3, "pi");
 
 // build/dev/javascript/triangle_platformer/physics.mjs
 var Rect = class extends CustomType {
@@ -12647,6 +12547,158 @@ function normalize(x, y2) {
   return [divideFloat(x, len), divideFloat(y2, len)];
 }
 __name(normalize, "normalize");
+
+// build/dev/javascript/triangle_platformer/trig.mjs
+var pio2_3 = 20222662487111665e-37;
+var pio2_2 = 6077100506303966e-26;
+var pio2_1 = 1.5707963267341256;
+var two_over_pi = 0.6366197723675814;
+var pi2 = 3.141592653589793;
+function reduce(x) {
+  let n = truncate(floor(x * two_over_pi + 0.5));
+  let nf = identity(n);
+  let r = x - nf * pio2_1 - nf * pio2_2 - nf * pio2_3;
+  return [r, (n % 4 + 4) % 4];
+}
+__name(reduce, "reduce");
+function ksin(x) {
+  let z2 = x * x;
+  let v2 = z2 * x;
+  let r = 0.00833333333332249 + z2 * (-1984126982985795e-19 + z2 * (27557313707070068e-22 + z2 * (-25050760253406863e-24 + z2 * 158969099521155e-24)));
+  return x + v2 * (-0.16666666666666632 + z2 * r);
+}
+__name(ksin, "ksin");
+function kcos(x) {
+  let z2 = x * x;
+  let r = z2 * (0.0416666666666666 + z2 * (-0.001388888888887411 + z2 * (2480158728947673e-20 + z2 * (-27557314351390663e-23 + z2 * (2087572321298175e-24 + z2 * -11359647557788195e-27)))));
+  let hz = 0.5 * z2;
+  let w2 = 1 - hz;
+  return w2 + (1 - w2 - hz + z2 * r);
+}
+__name(kcos, "kcos");
+function sin(x) {
+  let $ = reduce(x);
+  let r = $[0];
+  let q2 = $[1];
+  if (q2 === 0) {
+    return ksin(r);
+  } else if (q2 === 1) {
+    return kcos(r);
+  } else if (q2 === 2) {
+    return 0 - ksin(r);
+  } else {
+    return 0 - kcos(r);
+  }
+}
+__name(sin, "sin");
+function cos(x) {
+  let $ = reduce(x);
+  let r = $[0];
+  let q2 = $[1];
+  if (q2 === 0) {
+    return kcos(r);
+  } else if (q2 === 1) {
+    return 0 - ksin(r);
+  } else if (q2 === 2) {
+    return 0 - kcos(r);
+  } else {
+    return ksin(r);
+  }
+}
+__name(cos, "cos");
+function atan_pos(x) {
+  let $ = x > 7378697629483821e4;
+  if ($) {
+    return 1.5707963267948966;
+  } else {
+    let _block;
+    let $2 = x < 0.4375;
+    if ($2) {
+      _block = [x, 0, 0];
+    } else {
+      let $32 = x < 0.6875;
+      if ($32) {
+        _block = [
+          divideFloat(2 * x - 1, 2 + x),
+          0.4636476090008061,
+          22698777452961687e-33
+        ];
+      } else {
+        let $4 = x < 1.1875;
+        if ($4) {
+          _block = [
+            divideFloat(x - 1, x + 1),
+            0.7853981633974483,
+            3061616997868383e-32
+          ];
+        } else {
+          let $5 = x < 2.4375;
+          if ($5) {
+            _block = [
+              divideFloat(x - 1.5, 1 + 1.5 * x),
+              0.982793723247329,
+              13903311031230998e-33
+            ];
+          } else {
+            _block = [
+              divideFloat(-1, x),
+              1.5707963267948966,
+              6123233995736766e-32
+            ];
+          }
+        }
+      }
+    }
+    let $1 = _block;
+    let t2 = $1[0];
+    let hi2 = $1[1];
+    let lo2 = $1[2];
+    let z2 = t2 * t2;
+    let w2 = z2 * z2;
+    let s1 = z2 * (0.3333333333333293 + w2 * (0.14285714272503466 + w2 * (0.09090887133436507 + w2 * (0.06661073137387531 + w2 * (0.049768779946159324 + w2 * 0.016285820115365782)))));
+    let s2 = w2 * (-0.19999999999876483 + w2 * (-0.11111110405462356 + w2 * (-0.0769187620504483 + w2 * (-0.058335701337905735 + w2 * -0.036531572744216916))));
+    let $3 = hi2 === 0;
+    if ($3) {
+      return t2 - t2 * (s1 + s2);
+    } else {
+      return hi2 - (t2 * (s1 + s2) - lo2 - t2);
+    }
+  }
+}
+__name(atan_pos, "atan_pos");
+function atan(x) {
+  let $ = x < 0;
+  if ($) {
+    return 0 - atan_pos(0 - x);
+  } else {
+    return atan_pos(x);
+  }
+}
+__name(atan, "atan");
+function atan2(y2, x) {
+  let $ = x > 0;
+  let $1 = x < 0;
+  let $2 = y2 < 0;
+  if ($) {
+    return atan(divideFloat(y2, x));
+  } else if ($2) {
+    if ($1) {
+      return atan(divideFloat(y2, x)) - pi2;
+    } else {
+      return 0 - pi2 / 2;
+    }
+  } else if ($1) {
+    return atan(divideFloat(y2, x)) + pi2;
+  } else {
+    let $3 = y2 > 0;
+    if ($3) {
+      return pi2 / 2;
+    } else {
+      return 0;
+    }
+  }
+}
+__name(atan2, "atan2");
 
 // build/dev/javascript/triangle_platformer/enemy.mjs
 var Dummy = class extends CustomType {
@@ -13153,7 +13205,7 @@ function respawn_delay(kind) {
   }
 }
 __name(respawn_delay, "respawn_delay");
-function size3(kind) {
+function size2(kind) {
   if (kind instanceof Dummy) {
     return [0.9, 1.6];
   } else if (kind instanceof Charger) {
@@ -13172,9 +13224,9 @@ function size3(kind) {
     return [2.4, 2.4];
   }
 }
-__name(size3, "size");
+__name(size2, "size");
 function body(e) {
-  let $ = size3(e.kind);
+  let $ = size2(e.kind);
   let w2 = $[0];
   let h = $[1];
   return box(e.x, e.y, w2, h);
@@ -13279,7 +13331,7 @@ function telegraphing(e) {
 }
 __name(telegraphing, "telegraphing");
 function fall(e, level, dt2) {
-  let $ = size3(e.kind);
+  let $ = size2(e.kind);
   let w2 = $[0];
   let h = $[1];
   let vy = max3(e.vy - gravity * dt2, 0 - max_fall);
@@ -13321,8 +13373,8 @@ function fan(e, y2, nx, ny, speed3, ttl, spread, angles) {
   return map3(
     angles,
     (k2) => {
-      let c = cos2(k2 * spread);
-      let sn = sin2(k2 * spread);
+      let c = cos(k2 * spread);
+      let sn = sin(k2 * spread);
       return new Projectile(
         e.x,
         y2,
@@ -13336,7 +13388,7 @@ function fan(e, y2, nx, ny, speed3, ttl, spread, angles) {
   );
 }
 __name(fan, "fan");
-function sign2(x) {
+function sign(x) {
   let $ = x < 0;
   if ($) {
     return -1;
@@ -13344,13 +13396,13 @@ function sign2(x) {
     return 1;
   }
 }
-__name(sign2, "sign");
+__name(sign, "sign");
 function boss(e, level, px, py, dt2) {
-  let $ = size3(Kind$Boss$const);
+  let $ = size2(Kind$Boss$const);
   let w2 = $[0];
   let h = $[1];
   let dx = px - e.x;
-  let toward = sign2(dx);
+  let toward = sign(dx);
   let blocked = e.grounded && (e.wall === e.facing || !ground_at(
     level,
     e.x + e.facing * (w2 / 2 + 0.1),
@@ -13853,7 +13905,7 @@ function countdown(e, t2, dt2, mode) {
 }
 __name(countdown, "countdown");
 function shooter(e, level, px, py, dt2) {
-  let $ = size3(e.kind);
+  let $ = size2(e.kind);
   let w2 = $[0];
   let dx = px - e.x;
   let in_range = absolute_value2(dx) < shooter_range && absolute_value2(
@@ -13870,7 +13922,7 @@ function shooter(e, level, px, py, dt2) {
     e.home_y,
     (() => {
       if (in_range) {
-        return sign2(dx);
+        return sign(dx);
       } else {
         return e.facing;
       }
@@ -13890,7 +13942,7 @@ function shooter(e, level, px, py, dt2) {
     e.robbed,
     e.ward
   );
-  let away = negate(sign2(dx));
+  let away = negate(sign(dx));
   let shy = e$1.grounded && absolute_value2(dx) < shooter_shy && absolute_value2(
     py - e$1.y
   ) < 2.5 && (e$1.x - e$1.home_x) * away < shooter_leash && e$1.wall !== away && ground_at(
@@ -13903,7 +13955,7 @@ function shooter(e, level, px, py, dt2) {
     let t2 = $1.t;
     let $2 = t2 - dt2 <= 0;
     if ($2) {
-      let $3 = size3(e$1.kind);
+      let $3 = size2(e$1.kind);
       let h = $3[1];
       let sy = e$1.y + h * 0.7;
       let $4 = normalize(px - e$1.x, py - sy);
@@ -14191,7 +14243,7 @@ function shooter(e, level, px, py, dt2) {
 }
 __name(shooter, "shooter");
 function charger(e, level, px, py, dt2) {
-  let $ = size3(Kind$Charger$const);
+  let $ = size2(Kind$Charger$const);
   let w2 = $[0];
   let h = $[1];
   let dx = px - e.x;
@@ -14215,7 +14267,7 @@ function charger(e, level, px, py, dt2) {
         e.vy,
         e.home_x,
         e.home_y,
-        sign2(dx),
+        sign(dx),
         e.grounded,
         e.wall,
         e.hp,
@@ -14355,7 +14407,7 @@ function charger(e, level, px, py, dt2) {
           e.vy,
           e.home_x,
           e.home_y,
-          sign2(dx),
+          sign(dx),
           e.grounded,
           e.wall,
           e.hp,
@@ -14523,7 +14575,7 @@ function charger(e, level, px, py, dt2) {
 }
 __name(charger, "charger");
 function bouncer(e, level, dt2) {
-  let $ = size3(Kind$Bouncer$const);
+  let $ = size2(Kind$Bouncer$const);
   let w2 = $[0];
   let h = $[1];
   let _block;
@@ -14545,9 +14597,9 @@ function bouncer(e, level, dt2) {
   let _block$1;
   let $2 = m.vx === 0;
   if ($2) {
-    _block$1 = negate(sign2(vx));
+    _block$1 = negate(sign(vx));
   } else {
-    _block$1 = sign2(vx);
+    _block$1 = sign(vx);
   }
   let facing = _block$1;
   let _block$2;
@@ -14622,7 +14674,7 @@ function clear_line(level, ax, ay, bx, by) {
 }
 __name(clear_line, "clear_line");
 function flyer(e, level, px, py, dt2, alert) {
-  let $ = size3(e.kind);
+  let $ = size2(e.kind);
   let w2 = $[0];
   let h = $[1];
   let _block;
@@ -14693,7 +14745,7 @@ function flyer(e, level, px, py, dt2, alert) {
           ny * speed3,
           e.home_x,
           e.home_y,
-          sign2(tx),
+          sign(tx),
           e.grounded,
           e.wall,
           e.hp,
@@ -15689,7 +15741,7 @@ function take_hit(e, damage3, push_x, push_y) {
       hit$1.kind,
       hit$1.x,
       hit$1.y,
-      sign2(push_x) * bounce_x * 1.6,
+      sign(push_x) * bounce_x * 1.6,
       max3(push_y, 8),
       hit$1.home_x,
       hit$1.home_y,
@@ -15924,8 +15976,8 @@ function home(s, tx, ty, most) {
       _block = turn2;
     }
     let turn$1 = _block;
-    let c = cos2(turn$1);
-    let n = sin2(turn$1);
+    let c = cos(turn$1);
+    let n = sin(turn$1);
     return new Projectile(
       s.x,
       s.y,
@@ -15970,7 +16022,7 @@ function fly(s, level, tx, ty, dt2) {
   }
 }
 __name(fly, "fly");
-function split3(enemies) {
+function split2(enemies) {
   let next3 = fold2(enemies, 0, (m, e) => {
     return max(m, e.id);
   }) + 1;
@@ -16055,7 +16107,7 @@ function split3(enemies) {
   let out = $[1];
   return reverse2(out);
 }
-__name(split3, "split");
+__name(split2, "split");
 
 // build/dev/javascript/triangle_platformer/rng.mjs
 function next(seed) {
@@ -16649,7 +16701,7 @@ function hall() {
   );
 }
 __name(hall, "hall");
-function split4() {
+function split3() {
   return room(
     prepend(
       new Rect(34, 2.2, 1.5, 8, false),
@@ -16697,7 +16749,7 @@ function split4() {
     2
   );
 }
-__name(split4, "split");
+__name(split3, "split");
 function gallery() {
   return room(
     prepend(
@@ -16955,7 +17007,7 @@ function run_rooms() {
     stones(),
     shaft(),
     gallery(),
-    split4(),
+    split3(),
     hall(),
     drift(),
     canyon(),
@@ -17082,15 +17134,15 @@ function climbable(loop$level, loop$from, loop$seen) {
     } else {
       let a = from.head;
       let rest = from.tail;
-      let new$2 = filter(
+      let new$ = filter(
         level,
         (b) => {
           return !contains(seen2, b) && hop(a, b);
         }
       );
       loop$level = level;
-      loop$from = append(rest, new$2);
-      loop$seen = append(seen2, new$2);
+      loop$from = append(rest, new$);
+      loop$seen = append(seen2, new$);
     }
   }
 }
@@ -17132,9 +17184,9 @@ function furnish(t2, seed) {
       let where = $2[1];
       let $3 = unit(seed$3);
       let seed$4 = $3[0];
-      let size4 = $3[1];
+      let size3 = $3[1];
       let _block;
-      let $4 = size4 < 0.5;
+      let $4 = size3 < 0.5;
       if ($4) {
         _block = 3;
       } else {
@@ -17366,8 +17418,8 @@ function volley(effect, cx, cy, w2, h, speed3, ttl, damage3, shots, b, aim) {
     upto(0, shots - 1),
     (i) => {
       let spread = (identity(i) - identity(shots - 1) / 2) * 0.15;
-      let c = cos2(spread);
-      let s = sin2(spread);
+      let c = cos(spread);
+      let s = sin(spread);
       let vx = aim[0] * c - aim[1] * s;
       let vy = aim[0] * s + aim[1] * c;
       return new Strike(
@@ -17543,13 +17595,13 @@ function spawn2(effect, px, py, base, b, aim, facing) {
       upto(0, count2 - 1),
       (i) => {
         let a = divideFloat(
-          2 * pi3() * identity(i),
+          2 * pi2 * identity(i),
           identity(count2)
         );
         return new Strike(
           effect,
-          orbit_radius * cos2(a) - d2 / 2,
-          middle + orbit_radius * sin2(a) * orbit_squash - d2 / 2,
+          orbit_radius * cos(a) - d2 / 2,
+          middle + orbit_radius * sin(a) * orbit_squash - d2 / 2,
           d2,
           d2,
           0,
@@ -17687,14 +17739,14 @@ function flying_firebolt(s) {
 }
 __name(flying_firebolt, "flying_firebolt");
 function burst(s) {
-  let size4 = s.w * firebolt_blast;
-  let grow = (size4 - s.w) / 2;
+  let size3 = s.w * firebolt_blast;
+  let grow = (size3 - s.w) / 2;
   return new Strike(
     s.effect,
     s.x - grow,
     s.y - grow,
-    size4,
-    size4,
+    size3,
+    size3,
     0,
     0,
     0.15,
@@ -17722,8 +17774,8 @@ function advance(s, dt2) {
     let half = s.w / 2;
     let x = s.x + half;
     let y2 = divideFloat(s.y + half - middle, orbit_squash);
-    let c = cos2(orbit_speed * dt2);
-    let sn = sin2(orbit_speed * dt2);
+    let c = cos(orbit_speed * dt2);
+    let sn = sin(orbit_speed * dt2);
     return new Ok(
       new Strike(
         s.effect,
@@ -17894,6 +17946,25 @@ function speed(s) {
   return 1 + divideFloat(r, r + 15);
 }
 __name(speed, "speed");
+
+// build/dev/javascript/gleam_stdlib/gleam/result.mjs
+function unwrap2(result, default$) {
+  if (result instanceof Ok) {
+    let v2 = result[0];
+    return v2;
+  } else {
+    return default$;
+  }
+}
+__name(unwrap2, "unwrap");
+function lazy_or(first2, second) {
+  if (first2 instanceof Ok) {
+    return first2;
+  } else {
+    return second();
+  }
+}
+__name(lazy_or, "lazy_or");
 
 // build/dev/javascript/triangle_platformer/weapons.mjs
 var Weapon = class extends CustomType {
@@ -18914,10 +18985,10 @@ function signature_node(t2, keystone) {
         "Pattern match failed, no pattern matched the value.",
         {
           value: $,
-          start: 10779,
-          end: 10835,
-          pattern_start: 10790,
-          pattern_end: 10805
+          start: 10762,
+          end: 10818,
+          pattern_start: 10773,
+          pattern_end: 10788
         }
       );
     } else {
@@ -18933,10 +19004,10 @@ function signature_node(t2, keystone) {
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 10779,
-        end: 10835,
-        pattern_start: 10790,
-        pattern_end: 10805
+        start: 10762,
+        end: 10818,
+        pattern_start: 10773,
+        pattern_end: 10788
       }
     );
   }
@@ -19243,10 +19314,10 @@ function nth(items, i) {
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 13815,
-        end: 13867,
-        pattern_start: 13826,
-        pattern_end: 13831
+        start: 13798,
+        end: 13850,
+        pattern_start: 13809,
+        pattern_end: 13814
       }
     );
   }
@@ -19365,10 +19436,10 @@ function find2(acc2, id2) {
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 17247,
-        end: 17308,
-        pattern_start: 17258,
-        pattern_end: 17263
+        start: 17230,
+        end: 17291,
+        pattern_start: 17241,
+        pattern_end: 17246
       }
     );
   }
@@ -19445,7 +19516,7 @@ function build() {
       let s$2 = $4[0];
       let tilt = $4[1];
       let acc$22 = new Acc(s$2, acc$12.next_id, acc$12.nodes, acc$12.edges);
-      let to_centre = atan22(centre[1] - c.y, centre[0] - c.x);
+      let to_centre = atan2(centre[1] - c.y, centre[0] - c.x);
       let $5 = fold2(
         upto2(0, n - 1),
         [acc$22, List$Empty$const],
@@ -19453,7 +19524,7 @@ function build() {
           let acc$33 = st[0];
           let ids2 = st[1];
           let a = to_centre + divideFloat(
-            2 * pi3() * identity(k2),
+            2 * pi2 * identity(k2),
             identity(n)
           );
           let $6 = between(acc$33.seed, -1, 1);
@@ -19480,10 +19551,10 @@ function build() {
             _block2 = base;
           }
           let r = _block2;
-          let ex = r * cos2(a);
-          let ey = r * squash * sin2(a);
-          let x = c.x + ex * cos2(tilt) - ey * sin2(tilt);
-          let y2 = c.y + ex * sin2(tilt) + ey * cos2(tilt);
+          let ex = r * cos(a);
+          let ey = r * squash * sin(a);
+          let x = c.x + ex * cos(tilt) - ey * sin(tilt);
+          let y2 = c.y + ex * sin(tilt) + ey * cos(tilt);
           let _block$1;
           if (k2 === 0) {
             _block$1 = [
@@ -19575,10 +19646,10 @@ function build() {
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 20629,
-          end: 20675,
-          pattern_start: 20640,
-          pattern_end: 20648
+          start: 20602,
+          end: 20648,
+          pattern_start: 20613,
+          pattern_end: 20621
         }
       );
     }
@@ -19608,10 +19679,10 @@ function build() {
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 20680,
-          end: 20854,
-          pattern_start: 20691,
-          pattern_end: 20698
+          start: 20653,
+          end: 20827,
+          pattern_start: 20664,
+          pattern_end: 20671
         }
       );
     } else {
@@ -19685,10 +19756,10 @@ function build() {
               "Pattern match failed, no pattern matched the value.",
               {
                 value: chain2,
-                start: 22469,
-                end: 22498,
-                pattern_start: 22480,
-                pattern_end: 22490
+                start: 22442,
+                end: 22471,
+                pattern_start: 22453,
+                pattern_end: 22463
               }
             );
           } else {
@@ -19710,10 +19781,10 @@ function build() {
           "Pattern match failed, no pattern matched the value.",
           {
             value: chain,
-            start: 22574,
-            end: 22603,
-            pattern_start: 22585,
-            pattern_end: 22595
+            start: 22547,
+            end: 22576,
+            pattern_start: 22558,
+            pattern_end: 22568
           }
         );
       } else {
@@ -19766,8 +19837,8 @@ function build() {
       let turn2 = $3[1];
       let acc$32 = new Acc(s, acc3.next_id, acc3.nodes, acc3.edges);
       let lay = /* @__PURE__ */ __name((turn3) => {
-        let rx2 = dx * cos2(turn3) - dy * sin2(turn3);
-        let ry2 = dx * sin2(turn3) + dy * cos2(turn3);
+        let rx2 = dx * cos(turn3) - dy * sin(turn3);
+        let ry2 = dx * sin(turn3) + dy * cos(turn3);
         return [nearest(acc$32, c, c.x + rx2 * 20, c.y + ry2 * 20), rx2, ry2];
       }, "lay");
       let room2 = /* @__PURE__ */ __name((spur) => {
@@ -19846,10 +19917,10 @@ function build() {
           "Pattern match failed, no pattern matched the value.",
           {
             value: $4,
-            start: 24822,
-            end: 25042,
-            pattern_start: 24833,
-            pattern_end: 24853
+            start: 24791,
+            end: 25011,
+            pattern_start: 24802,
+            pattern_end: 24822
           }
         );
       }
@@ -21638,7 +21709,7 @@ function apply_reward(loop$p, loop$r) {
       } else {
         _block = once;
       }
-      let new$2 = _block;
+      let new$ = _block;
       let q2 = new Player(
         p2.x,
         p2.y,
@@ -21676,7 +21747,7 @@ function apply_reward(loop$p, loop$r) {
         p2.swings,
         p2.risen,
         p2.attack,
-        new$2,
+        new$,
         p2.lvl,
         p2.xp,
         p2.points,
@@ -25254,7 +25325,7 @@ function enemies_act(world2, dt2) {
         alert
       );
       let next$1 = $2[0];
-      let new$2 = $2[1];
+      let new$ = $2[1];
       let _block$1;
       let $3 = e$1.ail.root > 0;
       if ($3) {
@@ -25328,7 +25399,7 @@ function enemies_act(world2, dt2) {
         _block$2 = next$2;
       }
       let next$3 = _block$2;
-      return [append(new$2, shots2), next$3];
+      return [append(new$, shots2), next$3];
     }
   );
   let shots = $[0];
@@ -25373,13 +25444,13 @@ function enemies_act(world2, dt2) {
 __name(enemies_act, "enemies_act");
 function seal(world2) {
   let out = world2.depth > 0 && !world2.sealed && world2.player.x > world2.safe_x + 0.5;
-  let empty3 = !any(
+  let empty2 = !any(
     world2.enemies,
     (e) => {
       return alive(e) && overlaps(body(e), tunnel_inside());
     }
   );
-  let $ = out && empty3;
+  let $ = out && empty2;
   if ($) {
     return new World(
       world2.player,
@@ -25613,11 +25684,11 @@ function on_the_floor(s, level) {
         return max3(top, r.y + r.h);
       }
     );
-    let floor3 = _block;
+    let floor2 = _block;
     return new Strike(
       s.effect,
       s.x,
-      floor3,
+      floor2,
       s.w,
       s.h,
       s.vx,
@@ -26070,12 +26141,12 @@ function fire_skills(world2, before, dt2) {
       }
     }
   );
-  let new$2;
+  let new$;
   let heals;
   let casts;
   let loadout;
   loadout = $3[1];
-  new$2 = $3[0][0];
+  new$ = $3[0][0];
   heals = $3[0][1];
   casts = $3[0][2];
   let _block$2;
@@ -26102,7 +26173,7 @@ function fire_skills(world2, before, dt2) {
   let $6 = has2(p$1, Rule$Smite$const) && amount > healed;
   if ($6) {
     _block$4 = append(
-      new$2,
+      new$,
       spawn2(
         Effect$Shockwave$const,
         p$1.x,
@@ -26114,7 +26185,7 @@ function fire_skills(world2, before, dt2) {
       )
     );
   } else {
-    _block$4 = new$2;
+    _block$4 = new$;
   }
   let new$1 = _block$4;
   let _block$5;
@@ -26962,7 +27033,7 @@ function tick2(p2, input, dt2) {
   );
 }
 __name(tick2, "tick");
-function step2(world2, input, dt2) {
+function step(world2, input, dt2) {
   let up_fresh = input.move_y > 0.5 && !world2.player.up_held;
   let before = world2.player;
   let _block;
@@ -27077,7 +27148,7 @@ function step2(world2, input, dt2) {
       w2.player,
       w2.level,
       (() => {
-        let _pipe$172 = split3(w2.enemies);
+        let _pipe$172 = split2(w2.enemies);
         return spread_wards(_pipe$172);
       })(),
       w2.projectiles,
@@ -27108,7 +27179,7 @@ function step2(world2, input, dt2) {
   let _pipe$20 = talk(_pipe$19, up_fresh);
   return tick_enemies(_pipe$20, dt2);
 }
-__name(step2, "step");
+__name(step, "step");
 function slashes(p2) {
   let $ = active_hitbox(p2);
   let $1 = p2.attack;
@@ -28823,13 +28894,13 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
       return [A2.x + (cx - A2.x) * 2 / 3, A2.y + (cy - A2.y) * 2 / 3, B2.x + (cx - B2.x) * 2 / 3, B2.y + (cy - B2.y) * 2 / 3];
     }
     if (!onPath(A2) && !onPath(B2)) return null;
-    const tan2 = /* @__PURE__ */ __name((P2, Q) => {
+    const tan = /* @__PURE__ */ __name((P2, Q) => {
       const ns2 = neighbours.get(P2.id);
       if (!onPath(P2) || ns2.length !== 2) return [Q.x - P2.x, Q.y - P2.y];
       const O2 = byId.get(ns2[0] === Q.id ? ns2[1] : ns2[0]);
       return [(Q.x - O2.x) / 2, (Q.y - O2.y) / 2];
     }, "tan");
-    const ta2 = tan2(A2, B2), tb = tan2(B2, A2);
+    const ta2 = tan(A2, B2), tb = tan(B2, A2);
     return [A2.x + ta2[0] / 3, A2.y + ta2[1] / 3, B2.x + tb[0] / 3, B2.y + tb[1] / 3];
   });
   const xs2 = nodes2.map((n) => n.x), ys2 = nodes2.map((n) => n.y);
@@ -29009,9 +29080,9 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
       for (const id2 of ids) {
         const n = byId.get(id2), vx = n.x - from.x, vy = n.y - from.y, len = Math.hypot(vx, vy);
         if (!len) continue;
-        const cos3 = (vx * dx + vy * dy) / len;
-        if (cos3 < cone) continue;
-        const score = cos3 * 2 - len / 40;
+        const cos2 = (vx * dx + vy * dy) / len;
+        if (cos2 < cone) continue;
+        const score = cos2 * 2 - len / 40;
         if (score > bestScore) {
           bestScore = score;
           best = id2;
@@ -29023,20 +29094,20 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     if (next3 != null) focusId = next3;
   }
   __name(moveFocus, "moveFocus");
-  function take3() {
+  function take2() {
     const { w: w2, picking } = derive();
     const n = byId.get(focusId);
     const after = picking ? choose_class(w2, n.id) : allocate(w2, n.id);
     setWorld(after, [picking ? "c" : "n", n.id]);
     if (after.events.toArray().some((ev) => ev instanceof Unlocked)) onUnlock();
   }
-  __name(take3, "take");
-  function jumpClass(step3) {
+  __name(take2, "take");
+  function jumpClass(step2) {
     const order = cells2.map((c) => c.id);
     const cur = byId.get(focusId);
     const here = cur.kind instanceof Keystone ? cur.id : cur.cell >= 0 ? cur.cell : order[0];
     const i = order.indexOf(here);
-    focusId = order[(i + step3 + order.length) % order.length];
+    focusId = order[(i + step2 + order.length) % order.length];
   }
   __name(jumpClass, "jumpClass");
   function toggle() {
@@ -29053,7 +29124,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     const dirs = { ArrowLeft: [-1, 0], KeyA: [-1, 0], ArrowRight: [1, 0], KeyD: [1, 0], ArrowUp: [0, 1], KeyW: [0, 1], ArrowDown: [0, -1], KeyS: [0, -1] };
     if (dirs[c]) moveFocus(...dirs[c]);
     else if (c === "Enter" || c === "Space" || c === "KeyJ") {
-      if (!e.repeat) take3();
+      if (!e.repeat) take2();
     } else if (c === "Escape" || c === "KeyT" || c === "Tab") toggle();
     else if (c === "KeyQ") jumpClass(-1);
     else if (c === "KeyE") jumpClass(1);
@@ -29079,7 +29150,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
       for (const i of [0, 1, 2, 3, 4, 5, 6, 7]) padPrev[i] = pressed(i);
       return false;
     }
-    if (edge(0)) take3();
+    if (edge(0)) take2();
     if (edge(1)) toggle();
     if (edge(2)) kitIndex++;
     if (edge(3)) wholeTree = !wholeTree;
@@ -29120,7 +29191,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
     if (mouseNode != null) focusId = mouseNode;
   });
   cv.addEventListener("click", () => {
-    if (mouseNode != null) take3();
+    if (mouseNode != null) take2();
   });
   const scaleOf = /* @__PURE__ */ __name(() => wholeTree ? 1 : 1.6, "scaleOf");
   function baseScale() {
@@ -29850,10 +29921,10 @@ function slabTexture(set, [top, face, under]) {
   return tileTextures.get(key2);
 }
 __name(slabTexture, "slabTexture");
-function tiled(x, y2, w2, h, map5, sx, sy, color = 16777215) {
+function tiled(x, y2, w2, h, map4, sx, sy, color = 16777215) {
   const g = new ha(w2, h), uv = g.attributes.uv;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, (x + uv.getX(i) * w2) / sx, sy ? (y2 + uv.getY(i) * h) / sy : uv.getY(i));
-  const m = new Bs(g, new es({ map: map5, color }));
+  const m = new Bs(g, new es({ map: map4, color }));
   m.position.set(x + w2 / 2, y2 + h / 2, 0);
   return m;
 }
@@ -29872,9 +29943,9 @@ function block2(r, rs) {
   const M2 = 0.4, w2 = r.w + 2 * M2, h = r.h + 2 * M2;
   const px = Math.min(64, Math.floor(4096 / Math.max(w2, h)));
   const c = Object.assign(document.createElement("canvas"), { width: Math.ceil(w2 * px), height: Math.ceil(h * px) });
-  const map5 = new Vh(c);
-  map5.colorSpace = Je;
-  const m = new Bs(new ha(c.width / px, c.height / px), new es({ map: map5, transparent: true }));
+  const map4 = new Vh(c);
+  map4.colorSpace = Je;
+  const m = new Bs(new ha(c.width / px, c.height / px), new es({ map: map4, transparent: true }));
   m.position.set(r.x - M2 + c.width / px / 2, r.y + r.h + M2 - c.height / px / 2, 0);
   m.userData.ownsMap = true;
   const open = openEdges(r, rs.filter((o) => !o.one_way)), group2 = new jl().add(m);
@@ -29886,7 +29957,7 @@ function block2(r, rs) {
     const g = c.getContext("2d");
     g.setTransform(px, 0, 0, -px, -(r.x - M2) * px, (r.y + r.h + M2) * px);
     paintBlock(g, r, t2, open, px, worldPattern(g, fill, t2.fill, t2.fill, px, false), worldPattern(g, cap, t2.capSpan, t2.cap, px, true));
-    map5.needsUpdate = true;
+    map4.needsUpdate = true;
   });
   return group2;
 }
@@ -30262,7 +30333,7 @@ function alcove(x, y2) {
   return fill;
 }
 __name(alcove, "alcove");
-function empty2(group2) {
+function empty(group2) {
   group2.traverse((o) => {
     if (o.geometry) o.geometry.dispose();
     if (o.userData.ownsMap) o.material.map.dispose();
@@ -30270,7 +30341,7 @@ function empty2(group2) {
   });
   group2.clear();
 }
-__name(empty2, "empty");
+__name(empty, "empty");
 var DOOR_H = 2.3;
 var LABEL_Z = 0.2;
 function nameLabel(text, small2, danger = false) {
@@ -30292,10 +30363,10 @@ function nameLabel(text, small2, danger = false) {
   g.textAlign = "center";
   g.textBaseline = "middle";
   g.fillText(text, w2 / 2, h / 2 + 3);
-  const map5 = new Vh(c);
-  map5.colorSpace = Je;
+  const map4 = new Vh(c);
+  map4.colorSpace = Je;
   const tall = small2 ? 0.36 : 0.4;
-  const m = new Bs(new ha(tall * w2 / h, tall), new es({ map: map5, transparent: true }));
+  const m = new Bs(new ha(tall * w2 / h, tall), new es({ map: map4, transparent: true }));
   m.userData = { ownsMap: true, tall };
   return m;
 }
@@ -30328,10 +30399,10 @@ function noteCard(text) {
   g.textAlign = "center";
   g.textBaseline = "middle";
   lines.forEach((l, i) => g.fillText(l, w2 / 2, pad + line * (i + 0.5) + 2));
-  const map5 = new Vh(c);
-  map5.colorSpace = Je;
+  const map4 = new Vh(c);
+  map4.colorSpace = Je;
   const tall = h / 145;
-  const m = new Bs(new ha(tall * w2 / h, tall), new es({ map: map5, transparent: true }));
+  const m = new Bs(new ha(tall * w2 / h, tall), new es({ map: map4, transparent: true }));
   m.userData = { ownsMap: true, tall };
   return m;
 }
@@ -30344,7 +30415,7 @@ function syncRoom() {
     [builtDepth, builtLevel] = [world.depth, world.level];
     pal = world.depth === 0 ? HUB : zoneAt(world.depth);
     scene.background.set(pal.bg);
-    empty2(roomGroup);
+    empty(roomGroup);
     const rs = world.level.toArray();
     if (pal.art) roomGroup.add(farBack = zoneBackdrop(pal, Math.max(...rs.map((r) => r.y + r.h))));
     else farBack = null;
@@ -30354,7 +30425,7 @@ function syncRoom() {
     enemyMood.clear();
     enemyMeshes = new Map(
       world.enemies.toArray().map((e) => {
-        const [w2, h] = size3(e.kind);
+        const [w2, h] = size2(e.kind);
         const body2 = sticker(enemyArt(e));
         const alert = nameLabel("!", false);
         alert.material.color.set(16765501);
@@ -30378,10 +30449,10 @@ function syncRoom() {
       pedestal.position.set(n.x, n.y + PEDESTAL_H / 2, -1.2);
       roomGroup.add(niche, pedestal);
       if (parked(name3)) {
-        const sign3 = nameLabel("Coming soon", true);
-        sign3.material.color.set(15320942);
-        sign3.position.set(n.x, n.y + PEDESTAL_H + 0.32, -0.5);
-        roomGroup.add(sign3);
+        const sign2 = nameLabel("Coming soon", true);
+        sign2.material.color.set(15320942);
+        sign2.position.set(n.x, n.y + PEDESTAL_H + 0.32, -0.5);
+        roomGroup.add(sign2);
       }
       return { hero, niche, pedestal, n, statue, name: name3, tint: tint(cell), y: hero.position.y };
     });
@@ -30394,7 +30465,7 @@ function syncRoom() {
   }
   if (world.doors !== builtDoors) {
     builtDoors = world.doors;
-    empty2(doorGroup);
+    empty(doorGroup);
     doorStacks = [];
     for (const d2 of world.doors.toArray()) {
       const b = door_box(d2);
@@ -30725,7 +30796,7 @@ function strikeArt(s) {
   return [name3 === "Shockwave" ? "wave" : "sweep", 1, 1];
 }
 __name(strikeArt, "strikeArt");
-var keys2 = /* @__PURE__ */ new Set();
+var keys = /* @__PURE__ */ new Set();
 var JUMP_KEYS = ["Space", "KeyK"];
 var DASH_KEYS = ["ShiftLeft", "KeyL"];
 var ATTACK_KEYS = ["KeyJ"];
@@ -30742,7 +30813,7 @@ addEventListener("keydown", (e) => {
   wake();
   if (e.code === "KeyN" && !e.repeat) floatText(world.player.x, world.player.y + 3.4, toggleMute() ? "Sound off" : "Sound on", "npc");
   if (treeScreen.key(e)) return;
-  keys2.add(e.code);
+  keys.add(e.code);
   if (!e.repeat) {
     pendJump ||= JUMP_KEYS.includes(e.code);
     pendDash ||= DASH_KEYS.includes(e.code);
@@ -30758,8 +30829,8 @@ addEventListener("keydown", (e) => {
   }
   if (e.code.startsWith("Arrow") || e.code === "Space") e.preventDefault();
 });
-addEventListener("keyup", (e) => keys2.delete(e.code));
-var key = /* @__PURE__ */ __name((...codes) => codes.some((c) => keys2.has(c)), "key");
+addEventListener("keyup", (e) => keys.delete(e.code));
+var key = /* @__PURE__ */ __name((...codes) => codes.some((c) => keys.has(c)), "key");
 var dead = /* @__PURE__ */ __name((v2) => Math.abs(v2) < 0.25 ? 0 : v2, "dead");
 function readInput() {
   const pad = [...navigator.getGamepads()].find(Boolean);
@@ -31093,7 +31164,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "46aff23b3e8b" : "dev";
+var BUILD = true ? "fbf60809a97a" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
@@ -31218,7 +31289,7 @@ function frame(now) {
     const prior = world;
     const input = [Math.round(mx * 100) / 100, Math.round(my * 100) / 100, jump2, pendJump, pendDash, pendAttack];
     recordInput(input);
-    world = step2(world, new Input(...input), DT);
+    world = step(world, new Input(...input), DT);
     replay.steps++;
     hear(prior, world);
     track(prior, world);
