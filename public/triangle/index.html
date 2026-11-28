@@ -78,12 +78,18 @@
       /* popups over the world: Baloo with an ink outline so they read on light and dark */
       .float { position: fixed; transform: translate(-50%, -100%); font: 800 20px/1 "Baloo 2", system-ui; pointer-events: none;
                paint-order: stroke; -webkit-text-stroke: 4px var(--ink); animation: rise 0.8s ease-out forwards; }
-      .dmg { color: #ffd54f; }
-      .crit { color: #ff9800; font-size: 26px; }
-      .guard { color: #b0bec5; font-size: 15px; }
-      .open { color: #ff7043; font-size: 25px; }
+      /* damage numbers (main.js damageText): animated from script, so not the rise */
+      .num { animation: none; isolation: isolate; text-shadow: 0 3px 0 var(--ink); }
+      .dmg { color: #ffd54f; font-size: 26px; -webkit-text-stroke: 6px var(--ink); }
+      .crit { color: #ffb300; font-size: 36px; -webkit-text-stroke: 8px var(--ink); text-shadow: 0 4px 0 var(--ink); }
+      .crit .burst { position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; margin: -60px 0 0 -60px; z-index: -1;
+                     background: radial-gradient(circle, #fff8d6 0 30%, #ffc93c 70%); animation: burst 0.55s ease-out forwards; }
+      @keyframes burst { from { transform: scale(0.3) rotate(0deg); opacity: 1; } 40% { opacity: 0.9; } to { transform: scale(1.4) rotate(35deg); opacity: 0; } }
+      .guard { color: #b0bec5; font-size: 18px; -webkit-text-stroke: 5px var(--ink); }
+      .open { color: #ff7043; font-size: 31px; }
       .hurt { color: #ff6b6b; font-size: 22px; }
       .heal { color: #7ee08a; }
+      .poison { color: #9be564; font-size: 18px; -webkit-text-stroke: 5px var(--ink); }
       .lvl { color: #8fd7f2; font-size: 24px; }
       @keyframes rise { to { transform: translate(-50%, -260%); opacity: 0; } }
 
