@@ -17428,6 +17428,12 @@ var DashStrike = class extends CustomType {
   }
 };
 var Effect$DashStrike$const = new DashStrike();
+var Rush = class extends CustomType {
+  static {
+    __name(this, "Rush");
+  }
+};
+var Effect$Rush$const = new Rush();
 var Shockwave = class extends CustomType {
   static {
     __name(this, "Shockwave");
@@ -17535,6 +17541,7 @@ var firebolt_drift = 2;
 var firebolt_height = 7;
 var firebolt_ahead = 2.4;
 var caltrops_ttl = 3;
+var rush_time = 10;
 var jump_recharge = 0.6;
 var firebolt_wait = 0.5;
 var firebolt_blast = 6;
@@ -17544,6 +17551,10 @@ var arrow_far = 6;
 var shockwave_stun = 0.75;
 var caltrops_root = 1;
 var max_level = 5;
+function rush_rogue(level) {
+  return 5 + 2 * (level - 1);
+}
+__name(rush_rogue, "rush_rogue");
 function upto(from, to2) {
   let $ = from > to2;
   if ($) {
@@ -17635,6 +17646,8 @@ function spawn2(effect, px, py, base, b, aim, facing) {
       ),
       List$Empty$const
     );
+  } else if (effect instanceof Rush) {
+    return List$Empty$const;
   } else if (effect instanceof Shockwave) {
     let w2 = 4.2 * b.reach * b.shockwave;
     return prepend(
@@ -17795,6 +17808,10 @@ function name(effect) {
     return "slash";
   } else if (effect instanceof DashStrike) {
     return "dash strike";
+  } else if (effect instanceof Rush) {
+    return "+" + to_string(rush_rogue(1)) + " Rogue for " + to_string(
+      round(rush_time)
+    ) + "s";
   } else if (effect instanceof Shockwave) {
     return "shockwave";
   } else if (effect instanceof Knife) {
@@ -17855,6 +17872,8 @@ function level_note(effect) {
     return "+30% damage";
   } else if (effect instanceof DashStrike) {
     return "+30% damage";
+  } else if (effect instanceof Rush) {
+    return "+2 Rogue";
   } else if (effect instanceof Shockwave) {
     return "+30% damage";
   } else if (effect instanceof Knife) {
@@ -19039,12 +19058,12 @@ function spec(name3) {
     );
   } else if (name3 === "Trickster") {
     return new Spec(
-      new Skill(Trigger$OnDash$const, Effect$JumpSlash$const, 0),
+      new Skill(Trigger$OnDash$const, Effect$Rush$const, 0),
       new GrantRule(Rule$Venom$const)
     );
   } else if (name3 === "Hunter") {
     return new Spec(
-      new Skill(Trigger$OnDash$const, Effect$DashStrike$const, 0),
+      new Skill(Trigger$OnDash$const, Effect$Rush$const, 0),
       new GrantMove(Move$Dash$const)
     );
   } else if (name3 === "Wizard") {
@@ -19120,15 +19139,15 @@ function signature_node(t2, keystone) {
         "let_assert",
         FILEPATH,
         "tree",
-        317,
+        321,
         "signature_node",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $,
-          start: 10762,
-          end: 10818,
-          pattern_start: 10773,
-          pattern_end: 10788
+          start: 10968,
+          end: 11024,
+          pattern_start: 10979,
+          pattern_end: 10994
         }
       );
     } else {
@@ -19139,15 +19158,15 @@ function signature_node(t2, keystone) {
       "let_assert",
       FILEPATH,
       "tree",
-      317,
+      321,
       "signature_node",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 10762,
-        end: 10818,
-        pattern_start: 10773,
-        pattern_end: 10788
+        start: 10968,
+        end: 11024,
+        pattern_start: 10979,
+        pattern_end: 10994
       }
     );
   }
@@ -19337,6 +19356,8 @@ function lesser(s) {
     return [new SlashPct(10), new DamagePct(5)];
   } else if ($ instanceof DashStrike) {
     return [new DamagePct(5), new Iframes(0.1)];
+  } else if ($ instanceof Rush) {
+    return [new DamagePct(5), new Iframes(0.1)];
   } else if ($ instanceof Shockwave) {
     return [new ShockwavePct(10), new DamagePct(5)];
   } else if ($ instanceof Knife) {
@@ -19361,6 +19382,8 @@ function upgrades(s) {
   if ($ instanceof JumpSlash) {
     return [new SlashPct(30), new SlashPct(30)];
   } else if ($ instanceof DashStrike) {
+    return [Bonus$ExtraDash$const, new DamagePct(10)];
+  } else if ($ instanceof Rush) {
     return [Bonus$ExtraDash$const, new DamagePct(10)];
   } else if ($ instanceof Shockwave) {
     return [new ShockwavePct(30), new ShockwavePct(30)];
@@ -19449,15 +19472,15 @@ function nth(items, i) {
       "let_assert",
       FILEPATH,
       "tree",
-      427,
+      431,
       "nth",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 13798,
-        end: 13850,
-        pattern_start: 13809,
-        pattern_end: 13814
+        start: 14018,
+        end: 14070,
+        pattern_start: 14029,
+        pattern_end: 14034
       }
     );
   }
@@ -19571,15 +19594,15 @@ function find2(acc2, id2) {
       "let_assert",
       FILEPATH,
       "tree",
-      547,
+      551,
       "find",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 17230,
-        end: 17291,
-        pattern_start: 17241,
-        pattern_end: 17246
+        start: 17450,
+        end: 17511,
+        pattern_start: 17461,
+        pattern_end: 17466
       }
     );
   }
@@ -19781,15 +19804,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        635,
+        639,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 20602,
-          end: 20648,
-          pattern_start: 20613,
-          pattern_end: 20621
+          start: 20822,
+          end: 20868,
+          pattern_start: 20833,
+          pattern_end: 20841
         }
       );
     }
@@ -19814,15 +19837,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        636,
+        640,
         "build",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 20653,
-          end: 20827,
-          pattern_start: 20664,
-          pattern_end: 20671
+          start: 20873,
+          end: 21047,
+          pattern_start: 20884,
+          pattern_end: 20891
         }
       );
     } else {
@@ -19891,15 +19914,15 @@ function build() {
               "let_assert",
               FILEPATH,
               "tree",
-              680,
+              684,
               "build",
               "Pattern match failed, no pattern matched the value.",
               {
                 value: chain2,
-                start: 22442,
-                end: 22471,
-                pattern_start: 22453,
-                pattern_end: 22463
+                start: 22662,
+                end: 22691,
+                pattern_start: 22673,
+                pattern_end: 22683
               }
             );
           } else {
@@ -19916,15 +19939,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          683,
+          687,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: chain,
-            start: 22547,
-            end: 22576,
-            pattern_start: 22558,
-            pattern_end: 22568
+            start: 22767,
+            end: 22796,
+            pattern_start: 22778,
+            pattern_end: 22788
           }
         );
       } else {
@@ -20052,15 +20075,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          741,
+          745,
           "build",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $4,
-            start: 24791,
-            end: 25011,
-            pattern_start: 24802,
-            pattern_end: 24822
+            start: 25011,
+            end: 25231,
+            pattern_start: 25022,
+            pattern_end: 25042
           }
         );
       }
@@ -20675,7 +20698,7 @@ var Player = class extends CustomType {
   static {
     __name(this, "Player");
   }
-  constructor(x, y2, vx, vy, grounded, on_platform, wall, facing, coyote, jump_buffer, air_jumps, dash_time, dashes, can_cut, up_held, jumped, dashed, struck, plunged, grudge, conduit, quick, rebound, air_hits, weapon, loadout, trained, class$, allocated, mods, shield, block_charge, crash_wait, swings, risen, attack, stats, lvl, xp2, points, hp2, invuln, hurt2, hexed, orbs_away) {
+  constructor(x, y2, vx, vy, grounded, on_platform, wall, facing, coyote, jump_buffer, air_jumps, dash_time, dashes, can_cut, up_held, jumped, dashed, struck, plunged, grudge, conduit, quick, rebound, air_hits, weapon, loadout, trained, class$, allocated, mods, shield, block_charge, crash_wait, swings, risen, attack, stats, lvl, xp2, points, hp2, invuln, hurt2, hexed, rush, orbs_away) {
     super();
     this.x = x;
     this.y = y2;
@@ -20721,6 +20744,7 @@ var Player = class extends CustomType {
     this.invuln = invuln;
     this.hurt = hurt2;
     this.hexed = hexed;
+    this.rush = rush;
     this.orbs_away = orbs_away;
   }
 };
@@ -21016,15 +21040,15 @@ function player(world2) {
       "let_assert",
       FILEPATH2,
       "game",
-      692,
+      695,
       "player",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 19494,
-        end: 19528,
-        pattern_start: 19505,
-        pattern_end: 19512
+        start: 19602,
+        end: 19636,
+        pattern_start: 19613,
+        pattern_end: 19620
       }
     );
   } else {
@@ -21278,6 +21302,7 @@ function load(world2, t2, depth) {
           p2.invuln,
           p2.hurt,
           p2.hexed,
+          p2.rush,
           p2.orbs_away
         );
       }
@@ -21408,6 +21433,7 @@ function new_world(seed) {
     0,
     0,
     max_hp2(new Stats(0, 0, 0)),
+    0,
     0,
     0,
     0,
@@ -21907,6 +21933,7 @@ function choose_class(world2, keystone) {
           p2.invuln,
           p2.hurt,
           p2.hexed,
+          0,
           p2.orbs_away
         ),
         others(world2)
@@ -22137,6 +22164,7 @@ function apply_reward(loop$p, loop$r) {
         p2.invuln,
         p2.hurt,
         p2.hexed,
+        p2.rush,
         p2.orbs_away
       );
       return new Player(
@@ -22184,6 +22212,7 @@ function apply_reward(loop$p, loop$r) {
         q2.invuln,
         q2.hurt,
         q2.hexed,
+        q2.rush,
         q2.orbs_away
       );
     } else if (r instanceof Heal2) {
@@ -22232,6 +22261,7 @@ function apply_reward(loop$p, loop$r) {
         p2.invuln,
         p2.hurt,
         p2.hexed,
+        p2.rush,
         p2.orbs_away
       );
     } else if (r instanceof Run) {
@@ -22254,15 +22284,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      3387,
+      3434,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 104880,
-        end: 104930,
-        pattern_start: 104891,
-        pattern_end: 104898
+        start: 106248,
+        end: 106298,
+        pattern_start: 106259,
+        pattern_end: 106266
       }
     );
   } else {
@@ -22760,6 +22790,7 @@ function use_door(world2, up_fresh) {
               p$1.invuln,
               p$1.hurt,
               p$1.hexed,
+              p$1.rush,
               p$1.orbs_away
             ),
             others(world$2)
@@ -23078,6 +23109,7 @@ function check_clear(world2) {
           p2.invuln,
           p2.hurt,
           p2.hexed,
+          p2.rush,
           p2.orbs_away
         ),
         prepend(new Healed(p2.x, p2.y + height, fed), List$Empty$const)
@@ -23136,6 +23168,7 @@ function check_clear(world2) {
         player$1.invuln,
         player$1.hurt,
         player$1.hexed,
+        player$1.rush,
         filter_map(
           player$1.orbs_away,
           (n2) => {
@@ -23255,6 +23288,7 @@ function gain_xp(loop$p, loop$xp, loop$events) {
         p2.invuln,
         p2.hurt,
         p2.hexed,
+        p2.rush,
         p2.orbs_away
       );
       let _block$1;
@@ -23321,6 +23355,7 @@ function gain_xp(loop$p, loop$xp, loop$events) {
           p2.invuln,
           p2.hurt,
           p2.hexed,
+          p2.rush,
           p2.orbs_away
         ),
         reverse2(events)
@@ -23468,6 +23503,7 @@ function loot(world2, dt2) {
     p2.invuln,
     p2.hurt,
     p2.hexed,
+    p2.rush,
     p2.orbs_away
   );
   let _block;
@@ -23700,6 +23736,7 @@ function blocked_by_shield(world2, k2) {
           invuln_time,
           p2.hurt,
           p2.hexed,
+          p2.rush,
           p2.orbs_away
         ),
         others(world2)
@@ -23814,6 +23851,7 @@ function hurt(world2, damage3, from_x) {
                 phoenix_grace,
                 p2.hurt,
                 p2.hexed,
+                p2.rush,
                 p2.orbs_away
               ),
               others(world2)
@@ -23902,6 +23940,7 @@ function hurt(world2, damage3, from_x) {
                 p2.invuln,
                 p2.hurt,
                 p2.hexed,
+                p2.rush,
                 p2.orbs_away
               ),
               others(world2)
@@ -24011,6 +24050,7 @@ function hurt(world2, damage3, from_x) {
           invuln_time + p2.mods.iframes,
           p2.hurt,
           p2.hexed,
+          p2.rush,
           p2.orbs_away
         );
         let _block$2;
@@ -24062,6 +24102,7 @@ function hurt(world2, damage3, from_x) {
             p$1.invuln,
             hurt_time,
             p$1.hexed,
+            p$1.rush,
             p$1.orbs_away
           );
         }
@@ -24115,6 +24156,7 @@ function hurt(world2, damage3, from_x) {
               p$2.invuln,
               p$2.hurt,
               p$2.hexed,
+              p$2.rush,
               p$2.orbs_away
             ),
             prepend(new Said("Vengeance"), List$Empty$const)
@@ -24164,9 +24206,36 @@ function hurt(world2, damage3, from_x) {
   );
 }
 __name(hurt, "hurt");
+function skill_level(p2, effect) {
+  return 1 + count(p2.trained, (e) => {
+    return isEqual(e, effect);
+  }) + (() => {
+    let $ = has2(p2, Rule$Focus$const);
+    if ($) {
+      return 2;
+    } else {
+      return 0;
+    }
+  })();
+}
+__name(skill_level, "skill_level");
+function rush_rogue2(p2) {
+  let $ = p2.rush > 0;
+  if ($) {
+    return rush_rogue(skill_level(p2, Effect$Rush$const));
+  } else {
+    return 0;
+  }
+}
+__name(rush_rogue2, "rush_rogue");
+function fighting_stats(p2) {
+  let _record = p2.stats;
+  return new Stats(_record.fighter, p2.stats.rogue + rush_rogue2(p2), _record.mage);
+}
+__name(fighting_stats, "fighting_stats");
 function damage2(p2) {
   return round(
-    identity(damage(p2.stats)) * pct(p2.mods.damage_pct)
+    identity(damage(fighting_stats(p2))) * pct(p2.mods.damage_pct)
   );
 }
 __name(damage2, "damage");
@@ -24394,15 +24463,15 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        1363,
+        1367,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $12,
-          start: 39138,
-          end: 39194,
-          pattern_start: 39149,
-          pattern_end: 39154
+          start: 39296,
+          end: 39352,
+          pattern_start: 39307,
+          pattern_end: 39312
         }
       );
     }
@@ -24482,6 +24551,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
       p2.invuln,
       p2.hurt,
       p2.hexed,
+      p2.rush,
       p2.orbs_away
     );
   } else {
@@ -24539,6 +24609,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
       p$1.invuln,
       p$1.hurt,
       p$1.hexed,
+      p$1.rush,
       p$1.orbs_away
     );
   } else {
@@ -24597,6 +24668,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
           p$2.invuln,
           p$2.hurt,
           p$2.hexed,
+          p$2.rush,
           p$2.orbs_away
         ),
         prepend(new Said("Block ready"), List$Empty$const)
@@ -24648,6 +24720,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
           p$2.invuln,
           p$2.hurt,
           p$2.hexed,
+          p$2.rush,
           p$2.orbs_away
         ),
         List$Empty$const
@@ -24700,6 +24773,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         p$2.invuln,
         p$2.hurt,
         p$2.hexed,
+        p$2.rush,
         p$2.orbs_away
       ),
       List$Empty$const
@@ -24767,6 +24841,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
     p$3.invuln,
     p$3.hurt,
     p$3.hexed,
+    p$3.rush,
     p$3.orbs_away
   );
   let _block$4;
@@ -24958,6 +25033,7 @@ function take_damage(world2) {
                   _record.invuln,
                   _record.hurt,
                   hex_time,
+                  _record.rush,
                   _record.orbs_away
                 );
               })(),
@@ -25430,6 +25506,7 @@ function strike(world2, a, box3) {
         p2.invuln,
         p2.hurt,
         p2.hexed,
+        p2.rush,
         p2.orbs_away
       );
     } else {
@@ -25478,6 +25555,7 @@ function strike(world2, a, box3) {
         p2.invuln,
         p2.hurt,
         p2.hexed,
+        p2.rush,
         p2.orbs_away
       );
     }
@@ -25532,6 +25610,7 @@ function strike(world2, a, box3) {
           p$1.invuln,
           p$1.hurt,
           p$1.hexed,
+          p$1.rush,
           p$1.orbs_away
         );
       } else {
@@ -25583,6 +25662,7 @@ function strike(world2, a, box3) {
         p$1.invuln,
         p$1.hurt,
         p$1.hexed,
+        p$1.rush,
         p$1.orbs_away
       );
     } else {
@@ -25668,6 +25748,7 @@ function strike(world2, a, box3) {
       p$2.invuln,
       p$2.hurt,
       p$2.hexed,
+      p$2.rush,
       p$2.orbs_away
     );
     let k2 = p$3.weapon.push;
@@ -25791,7 +25872,7 @@ function hitbox(p2, dir) {
 }
 __name(hitbox, "hitbox");
 function speed2(p2) {
-  return speed(p2.stats) * pct(p2.mods.attack_speed_pct) * (() => {
+  return speed(fighting_stats(p2)) * pct(p2.mods.attack_speed_pct) * (() => {
     let $ = has2(p2, Rule$Juggernaut$const);
     if ($) {
       return 0.75;
@@ -25895,7 +25976,7 @@ function loose(world2, dir, effect) {
         p2.x,
         p2.y,
         round(
-          identity(damage(p2.stats)) * p2.weapon.power * (() => {
+          identity(damage(fighting_stats(p2))) * p2.weapon.power * (() => {
             let $1 = has2(p2, Rule$Arcanist$const);
             if ($1) {
               return 0.5;
@@ -26011,6 +26092,7 @@ function combat(world2) {
             p2.invuln,
             p2.hurt,
             p2.hexed,
+            p2.rush,
             p2.orbs_away
           ),
           others(world2)
@@ -26384,19 +26466,6 @@ function seal(world2) {
   }
 }
 __name(seal, "seal");
-function skill_level(p2, effect) {
-  return 1 + count(p2.trained, (e) => {
-    return isEqual(e, effect);
-  }) + (() => {
-    let $ = has2(p2, Rule$Focus$const);
-    if ($) {
-      return 2;
-    } else {
-      return 0;
-    }
-  })();
-}
-__name(skill_level, "skill_level");
 function orbit(world2) {
   let p2 = player(world2);
   let $ = partition(
@@ -26419,7 +26488,7 @@ function orbit(world2) {
       Effect$Orb$const,
       p2.x,
       p2.y,
-      damage(p2.stats),
+      damage(fighting_stats(p2)),
       (() => {
         let _record = boost(p2);
         return new Boost(
@@ -26532,6 +26601,7 @@ function orbit(world2) {
           p2.invuln,
           p2.hurt,
           p2.hexed,
+          p2.rush,
           away
         ),
         others(world2)
@@ -26845,6 +26915,7 @@ function fire_skills(world2, before, dt2) {
         p2.invuln,
         p2.hurt,
         p2.hexed,
+        p2.rush,
         p2.orbs_away
       ),
       prepend(new Said("Block ready"), List$Empty$const)
@@ -26864,7 +26935,7 @@ function fire_skills(world2, before, dt2) {
       Effect$DashStrike$const,
       p$1.x,
       p$1.y,
-      globalThis.Math.trunc(damage(p$1.stats) * 5 / 4),
+      globalThis.Math.trunc(damage(fighting_stats(p$1)) * 5 / 4),
       boost(p$1),
       aim,
       p$1.facing
@@ -26875,7 +26946,7 @@ function fire_skills(world2, before, dt2) {
   let lance = _block$1;
   let $3 = map_fold(
     p$1.loadout,
-    [List$Empty$const, 0, 0],
+    [List$Empty$const, 0, 0, false],
     (acc2, w2) => {
       let _block$22;
       let $52 = w2.trigger;
@@ -26921,8 +26992,8 @@ function fire_skills(world2, before, dt2) {
             _block$42 = true;
           }
           let go2 = _block$42;
-          let $9 = t2 <= 0 && go2;
-          if ($9) {
+          let $92 = t2 <= 0 && go2;
+          if ($92) {
             _block$22 = [
               true,
               new Skill(w2.trigger, w2.effect, max3(t2, 0 - dt2) + period2)
@@ -26955,8 +27026,8 @@ function fire_skills(world2, before, dt2) {
           _block$42 = true;
         }
         let go2 = _block$42;
-        let $9 = t2 <= 0 && go2;
-        if ($9) {
+        let $92 = t2 <= 0 && go2;
+        if ($92) {
           _block$22 = [
             true,
             new Skill(w2.trigger, w2.effect, max3(t2, 0 - dt2) + period2)
@@ -26974,9 +27045,11 @@ function fire_skills(world2, before, dt2) {
       let $62 = w$1.trigger;
       let $72 = w$1.effect;
       if ($62 instanceof OnDash && $72 instanceof Knife) {
-        _block$32 = globalThis.Math.trunc(damage(p$1.stats) * 2 / 5);
+        _block$32 = globalThis.Math.trunc(
+          damage(fighting_stats(p$1)) * 2 / 5
+        );
       } else {
-        _block$32 = damage(p$1.stats);
+        _block$32 = damage(fighting_stats(p$1));
       }
       let base = _block$32;
       if (fires) {
@@ -27051,15 +27124,20 @@ function fire_skills(world2, before, dt2) {
         }
         let strikes$1 = _block$52;
         let _block$62;
-        let $9 = w$1.effect;
-        if ($9 instanceof Heal) {
+        let $92 = w$1.effect;
+        if ($92 instanceof Heal) {
           _block$62 = 2 + skill_level(p$1, w$1.effect);
         } else {
           _block$62 = 0;
         }
         let heal = _block$62;
         return [
-          [append(strikes$1, acc2[0]), acc2[1] + heal, acc2[2] + 1],
+          [
+            append(strikes$1, acc2[0]),
+            acc2[1] + heal,
+            acc2[2] + 1,
+            acc2[3] || w$1.effect instanceof Rush
+          ],
           w$1
         ];
       } else {
@@ -27070,11 +27148,13 @@ function fire_skills(world2, before, dt2) {
   let new$;
   let heals;
   let casts;
+  let rushed;
   let loadout;
   loadout = $3[1];
   new$ = $3[0][0];
   heals = $3[0][1];
   casts = $3[0][2];
+  rushed = $3[0][3];
   let _block$2;
   let $4 = has2(p$1, Rule$Bloodlust$const) || heals === 0;
   if ($4) {
@@ -27104,7 +27184,7 @@ function fire_skills(world2, before, dt2) {
         Effect$Shockwave$const,
         p$1.x,
         p$1.y,
-        damage(p$1.stats),
+        damage(fighting_stats(p$1)),
         boost(p$1),
         aim,
         p$1.facing
@@ -27123,13 +27203,37 @@ function fire_skills(world2, before, dt2) {
   }
   let paid = _block$5;
   let _block$6;
-  let $8 = conduit && p$1.struck && p$1.conduit >= 3;
-  if ($8) {
-    _block$6 = 0;
+  let $9 = p$1.rush > 0;
+  if (rushed) {
+    if ($9) {
+      _block$6 = [rush_time, said];
+    } else {
+      _block$6 = [
+        rush_time,
+        prepend(
+          new Said(
+            "+" + to_string(
+              rush_rogue(skill_level(p$1, Effect$Rush$const))
+            ) + " Rogue"
+          ),
+          said
+        )
+      ];
+    }
   } else {
-    _block$6 = p$1.conduit;
+    _block$6 = [p$1.rush, said];
   }
-  let conduit_count = _block$6;
+  let $8 = _block$6;
+  let rush = $8[0];
+  let said$1 = $8[1];
+  let _block$7;
+  let $10 = conduit && p$1.struck && p$1.conduit >= 3;
+  if ($10) {
+    _block$7 = 0;
+  } else {
+    _block$7 = p$1.conduit;
+  }
+  let conduit_count = _block$7;
   return new World(
     prepend(
       new Player(
@@ -27177,6 +27281,7 @@ function fire_skills(world2, before, dt2) {
         p$1.invuln,
         p$1.hurt,
         p$1.hexed,
+        rush,
         p$1.orbs_away
       ),
       others(world2)
@@ -27193,7 +27298,7 @@ function fire_skills(world2, before, dt2) {
     flatten(
       prepend(
         world2.events,
-        prepend(said, prepend(events, List$Empty$const))
+        prepend(said$1, prepend(events, List$Empty$const))
       )
     ),
     world2.depth,
@@ -27270,6 +27375,7 @@ function move(p2, level, dt2) {
     p2.invuln,
     p2.hurt,
     p2.hexed,
+    p2.rush,
     p2.orbs_away
   );
 }
@@ -27346,6 +27452,7 @@ function dash(p2, input) {
           p2.invuln,
           p2.hurt,
           p2.hexed,
+          p2.rush,
           p2.orbs_away
         );
       } else {
@@ -27407,6 +27514,7 @@ function jump(p2, input) {
         p2.invuln,
         p2.hurt,
         p2.hexed,
+        p2.rush,
         p2.orbs_away
       );
     } else if (on_ground) {
@@ -27455,6 +27563,7 @@ function jump(p2, input) {
         p2.invuln,
         p2.hurt,
         p2.hexed,
+        p2.rush,
         p2.orbs_away
       );
     } else if (on_wall) {
@@ -27503,6 +27612,7 @@ function jump(p2, input) {
         p2.invuln,
         p2.hurt,
         p2.hexed,
+        p2.rush,
         p2.orbs_away
       );
     } else {
@@ -27553,6 +27663,7 @@ function jump(p2, input) {
           p2.invuln,
           p2.hurt,
           p2.hexed,
+          p2.rush,
           p2.orbs_away
         );
       } else {
@@ -27607,6 +27718,7 @@ function jump(p2, input) {
         p2.invuln,
         p2.hurt,
         p2.hexed,
+        p2.rush,
         p2.orbs_away
       );
     } else {
@@ -27698,6 +27810,7 @@ function vertical(p2, input, dt2) {
         p2.invuln,
         p2.hurt,
         p2.hexed,
+        p2.rush,
         p2.orbs_away
       );
     }
@@ -27782,6 +27895,7 @@ function horizontal(p2, input, dt2) {
         p2.invuln,
         p2.hurt,
         p2.hexed,
+        p2.rush,
         p2.orbs_away
       );
     }
@@ -27849,6 +27963,7 @@ function start_attack(p2, input) {
       p2.invuln,
       p2.hurt,
       p2.hexed,
+      p2.rush,
       p2.orbs_away
     );
   } else {
@@ -27970,6 +28085,7 @@ function tick2(p2, input, dt2) {
     p2.invuln - dt2,
     p2.hurt - dt2,
     max3(0, p2.hexed - dt2),
+    max3(0, p2.rush - dt2),
     p2.orbs_away
   );
 }
@@ -28038,6 +28154,7 @@ function move_player(p2, input, level, dt2) {
     p$1.invuln,
     p$1.hurt,
     p$1.hexed,
+    p$1.rush,
     p$1.orbs_away
   );
 }
@@ -28278,6 +28395,7 @@ function apply_node(p2, kind) {
       p2.invuln,
       p2.hurt,
       p2.hexed,
+      p2.rush,
       p2.orbs_away
     );
   }, "with$");
@@ -28357,6 +28475,7 @@ function apply_node(p2, kind) {
         q2.invuln,
         q2.hurt,
         q2.hexed,
+        q2.rush,
         q2.orbs_away
       );
     } else if ($ instanceof DamagePct) {
@@ -28619,6 +28738,7 @@ function apply_node(p2, kind) {
         p$1.invuln,
         p$1.hurt,
         p$1.hexed,
+        p$1.rush,
         p$1.orbs_away
       );
     } else if ($ instanceof ExtraKnife) {
@@ -28788,6 +28908,7 @@ function apply_node(p2, kind) {
         p2.invuln,
         p2.hurt,
         p2.hexed,
+        p2.rush,
         p2.orbs_away
       );
     } else if ($ instanceof GrantMove) {
@@ -28933,6 +29054,7 @@ function apply_node(p2, kind) {
           p$1.invuln,
           p$1.hurt,
           p$1.hexed,
+          p$1.rush,
           p$1.orbs_away
         );
       } else if (rule instanceof Aerialist) {
@@ -29000,6 +29122,7 @@ function apply_node(p2, kind) {
           p$1.invuln,
           p$1.hurt,
           p$1.hexed,
+          p$1.rush,
           p$1.orbs_away
         );
       } else if (rule instanceof GlassCannon) {
@@ -29048,6 +29171,7 @@ function apply_node(p2, kind) {
           p$1.invuln,
           p$1.hurt,
           p$1.hexed,
+          p$1.rush,
           p$1.orbs_away
         );
       } else if (rule instanceof Focus) {
@@ -29096,6 +29220,7 @@ function apply_node(p2, kind) {
           p$1.invuln,
           p$1.hurt,
           p$1.hexed,
+          p$1.rush,
           p$1.orbs_away
         );
       } else if (rule instanceof Bounty) {
@@ -29163,6 +29288,7 @@ function apply_node(p2, kind) {
           p$1.invuln,
           p$1.hurt,
           p$1.hexed,
+          p$1.rush,
           p$1.orbs_away
         );
       } else if (rule instanceof Phoenix) {
@@ -29211,6 +29337,7 @@ function apply_node(p2, kind) {
           p$1.invuln,
           p$1.hurt,
           p$1.hexed,
+          p$1.rush,
           p$1.orbs_away
         );
       } else {
@@ -29318,6 +29445,7 @@ function level_up(world2, id2, otherwise) {
               p2.invuln,
               p2.hurt,
               p2.hexed,
+              p2.rush,
               p2.orbs_away
             ),
             others(world2)
@@ -29417,6 +29545,7 @@ function allocate(world2, id2) {
           p2.invuln,
           p2.hurt,
           p2.hexed,
+          p2.rush,
           p2.orbs_away
         );
         let p$2 = apply_node(p$1, node.kind);
@@ -29590,15 +29719,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3275,
+        3322,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 101218,
-          end: 101269,
-          pattern_start: 101229,
-          pattern_end: 101237
+          start: 102586,
+          end: 102637,
+          pattern_start: 102597,
+          pattern_end: 102605
         }
       );
     }
@@ -29610,15 +29739,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3277,
+        3324,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 101352,
-          end: 101413,
-          pattern_start: 101363,
-          pattern_end: 101380
+          start: 102720,
+          end: 102781,
+          pattern_start: 102731,
+          pattern_end: 102748
         }
       );
     } else {
@@ -29628,15 +29757,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          3277,
+          3324,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 101352,
-            end: 101413,
-            pattern_start: 101363,
-            pattern_end: 101380
+            start: 102720,
+            end: 102781,
+            pattern_start: 102731,
+            pattern_end: 102748
           }
         );
       } else {
@@ -31994,7 +32123,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "9eb8ef08311c" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "801fe1b0e8da" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -32103,7 +32232,7 @@ var SHAPE = {
   block: "M6 1 L11 3 V6.5 C11 9 8.5 10.8 6 11.5 C3.5 10.8 1 9 1 6.5 V3 Z"
 };
 var PIP_COLOR = { jump: "#1f9fb5", dash: "#3aa5ee", block: "#e0a21b" };
-var SKILL_COLOR = { Firebolt: "#ff7a3d", Bolt: "#2aa9ee", Orb: "#8b8ff5", Knife: "#5fbf4a", Caltrops: "#9aa4ad", Arrow: "#5fbf4a", Heal: "#ef6b9a" };
+var SKILL_COLOR = { Rush: "#4f9e3f", Firebolt: "#ff7a3d", Bolt: "#2aa9ee", Orb: "#8b8ff5", Knife: "#5fbf4a", Caltrops: "#9aa4ad", Arrow: "#5fbf4a", Heal: "#ef6b9a" };
 var MAX_PIPS = 3;
 var MAX_PIES = 4;
 var miniKey = "";
@@ -32112,6 +32241,7 @@ function drawMini(p2, x, top) {
     const period2 = skill_period(p2, s), left = Math.max(0, s.timer);
     return { name: s.effect.constructor.name, left, filled: Math.min(1, 1 - left / period2) };
   }).sort((a, b) => a.left - b.left);
+  if (p2.rush > 0) timed.unshift({ name: "Rush", left: p2.rush, filled: Math.min(1, p2.rush / rush_time) });
   const pies = timed.slice(0, MAX_PIES);
   const rows = [["jump", p2.air_jumps, p2.mods.air_jumps], ["dash", p2.dashes, p2.mods.dashes], ["block", p2.shield, Math.max(p2.shield, blocks(p2))]].filter((r) => r[2] > 0);
   const key2 = rows.map((r) => r[1] + "/" + r[2]).join("|") + "|" + pies.map((s) => s.name).join(",") + "|" + timed.length;
@@ -32257,7 +32387,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "9eb8ef08311c" : "dev";
+var BUILD = true ? "801fe1b0e8da" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
