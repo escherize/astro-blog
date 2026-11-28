@@ -13006,6 +13006,12 @@ var Hexer = class extends CustomType {
   }
 };
 var Kind$Hexer$const = new Hexer();
+var Mender = class extends CustomType {
+  static {
+    __name(this, "Mender");
+  }
+};
+var Kind$Mender$const = new Mender();
 var Boss = class extends CustomType {
   static {
     __name(this, "Boss");
@@ -13111,7 +13117,7 @@ var Enemy = class extends CustomType {
   static {
     __name(this, "Enemy");
   }
-  constructor(id2, kind, x, y2, vx, vy, home_x, home_y, facing, grounded, wall, hp2, max_hp4, respawn, flash, mode, cooldown, pattern, awake, tier, ail, robbed, ward, stroll, seed, dead2, grace) {
+  constructor(id2, kind, x, y2, vx, vy, home_x, home_y, facing, grounded, wall, hp2, max_hp4, respawn, flash, mode, cooldown, pattern, awake, tier, ail, robbed, ward, stroll, seed, tether, mend3, dead2, grace) {
     super();
     this.id = id2;
     this.kind = kind;
@@ -13138,6 +13144,8 @@ var Enemy = class extends CustomType {
     this.ward = ward;
     this.stroll = stroll;
     this.seed = seed;
+    this.tether = tether;
+    this.mend = mend3;
     this.dead = dead2;
     this.grace = grace;
   }
@@ -13197,6 +13205,9 @@ var ledge_reach = 8;
 var shooter_leash = 4;
 var shooter_shy = 3.5;
 var shooter_range = 12;
+var mender_flee = 3.5;
+var mender_leash = 6;
+var mender_shy = 5;
 var charge_speed = 13;
 var recover_time = 0.8;
 var recharge_windup = 0.3;
@@ -13213,7 +13224,11 @@ var flyer_drift = 2.5;
 var flyer_stalk = 5;
 var flyer_perch = 3.2;
 var flyer_sight = 9;
+var mend_reach = 9;
+var mend_pct = 4;
+var mend_tick = 0.5;
 var stun_time = 0.25;
+var mend_break = 1.2;
 var ward_time = 4;
 var ward_reach = 6;
 var hex_turn = 1.4;
@@ -13247,6 +13262,8 @@ function max_hp(kind) {
     return 25;
   } else if (kind instanceof Hexer) {
     return 22;
+  } else if (kind instanceof Mender) {
+    return 16;
   } else {
     return 1e3;
   }
@@ -13286,6 +13303,8 @@ function spawn(id2, kind, x, y2) {
     0,
     0 - pause,
     seed$1,
+    0,
+    0,
     0,
     0
   );
@@ -13385,6 +13404,8 @@ function afflict(e, status, seconds) {
     e.ward,
     e.stroll,
     e.seed,
+    e.tether,
+    e.mend,
     e.dead,
     e.grace
   );
@@ -13460,6 +13481,8 @@ function promote(e, tier) {
     e.ward,
     e.stroll,
     e.seed,
+    e.tether,
+    e.mend,
     e.dead,
     e.grace
   );
@@ -13506,6 +13529,8 @@ function xp_value(kind) {
     return 15;
   } else if (kind instanceof Hexer) {
     return 20;
+  } else if (kind instanceof Mender) {
+    return 20;
   } else {
     return 150;
   }
@@ -13537,6 +13562,8 @@ function size2(kind) {
   } else if (kind instanceof Bouncer) {
     return [1, 1];
   } else if (kind instanceof Hexer) {
+    return [0.8, 1.4];
+  } else if (kind instanceof Mender) {
     return [0.8, 1.4];
   } else {
     return [2.4, 2.4];
@@ -13694,6 +13721,8 @@ function fall(e, level, dt2) {
     e.ward,
     e.stroll,
     e.seed,
+    e.tether,
+    e.mend,
     e.dead,
     e.grace
   );
@@ -13770,6 +13799,8 @@ function boss(e, level, px, py, dt2) {
           e.ward,
           e.stroll,
           e.seed,
+          e.tether,
+          e.mend,
           e.dead,
           e.grace
         ),
@@ -13803,6 +13834,8 @@ function boss(e, level, px, py, dt2) {
           e.ward,
           e.stroll,
           e.seed,
+          e.tether,
+          e.mend,
           e.dead,
           e.grace
         ),
@@ -13842,6 +13875,8 @@ function boss(e, level, px, py, dt2) {
             e.ward,
             e.stroll,
             e.seed,
+            e.tether,
+            e.mend,
             e.dead,
             e.grace
           ),
@@ -13898,6 +13933,8 @@ function boss(e, level, px, py, dt2) {
             e.ward,
             e.stroll,
             e.seed,
+            e.tether,
+            e.mend,
             e.dead,
             e.grace
           ),
@@ -13932,6 +13969,8 @@ function boss(e, level, px, py, dt2) {
             e.ward,
             e.stroll,
             e.seed,
+            e.tether,
+            e.mend,
             e.dead,
             e.grace
           ),
@@ -13966,6 +14005,8 @@ function boss(e, level, px, py, dt2) {
           e.ward,
           e.stroll,
           e.seed,
+          e.tether,
+          e.mend,
           e.dead,
           e.grace
         ),
@@ -14003,6 +14044,8 @@ function boss(e, level, px, py, dt2) {
           e.ward,
           e.stroll,
           e.seed,
+          e.tether,
+          e.mend,
           e.dead,
           e.grace
         ),
@@ -14036,6 +14079,8 @@ function boss(e, level, px, py, dt2) {
           e.ward,
           e.stroll,
           e.seed,
+          e.tether,
+          e.mend,
           e.dead,
           e.grace
         ),
@@ -14073,6 +14118,8 @@ function boss(e, level, px, py, dt2) {
           e.ward,
           e.stroll,
           e.seed,
+          e.tether,
+          e.mend,
           e.dead,
           e.grace
         ),
@@ -14106,6 +14153,8 @@ function boss(e, level, px, py, dt2) {
           e.ward,
           e.stroll,
           e.seed,
+          e.tether,
+          e.mend,
           e.dead,
           e.grace
         ),
@@ -14140,6 +14189,8 @@ function boss(e, level, px, py, dt2) {
         e.ward,
         e.stroll,
         e.seed,
+        e.tether,
+        e.mend,
         e.dead,
         e.grace
       ),
@@ -14187,6 +14238,8 @@ function boss(e, level, px, py, dt2) {
           e.ward,
           e.stroll,
           e.seed,
+          e.tether,
+          e.mend,
           e.dead,
           e.grace
         ),
@@ -14220,6 +14273,8 @@ function boss(e, level, px, py, dt2) {
           e.ward,
           e.stroll,
           e.seed,
+          e.tether,
+          e.mend,
           e.dead,
           e.grace
         ),
@@ -14269,6 +14324,8 @@ function wander(e, level, dt2) {
       e2.ward,
       0 - t2,
       seed,
+      e2.tether,
+      e2.mend,
       e2.dead,
       e2.grace
     );
@@ -14306,6 +14363,8 @@ function wander(e, level, dt2) {
           e.ward,
           stroll,
           e.seed,
+          e.tether,
+          e.mend,
           e.dead,
           e.grace
         );
@@ -14345,6 +14404,8 @@ function wander(e, level, dt2) {
         e.ward,
         min2(stroll, 0),
         e.seed,
+        e.tether,
+        e.mend,
         e.dead,
         e.grace
       );
@@ -14392,6 +14453,8 @@ function wander(e, level, dt2) {
           e.ward,
           t2,
           seed$1,
+          e.tether,
+          e.mend,
           e.dead,
           e.grace
         );
@@ -14423,6 +14486,8 @@ function wander(e, level, dt2) {
             e.ward,
             e.stroll,
             seed$1,
+            e.tether,
+            e.mend,
             e.dead,
             e.grace
           ),
@@ -14462,6 +14527,8 @@ function countdown(e, t2, dt2, mode) {
       e.ward,
       e.stroll,
       e.seed,
+      e.tether,
+      e.mend,
       e.dead,
       e.grace
     );
@@ -14492,6 +14559,8 @@ function countdown(e, t2, dt2, mode) {
       e.ward,
       e.stroll,
       e.seed,
+      e.tether,
+      e.mend,
       e.dead,
       e.grace
     );
@@ -14592,6 +14661,8 @@ function shooter(e, level, px, py, dt2) {
     e.ward,
     e.stroll,
     e.seed,
+    e.tether,
+    e.mend,
     e.dead,
     e.grace
   );
@@ -14680,6 +14751,8 @@ function shooter(e, level, px, py, dt2) {
             e$1.ward,
             e$1.stroll,
             e$1.seed,
+            e$1.tether,
+            e$1.mend,
             e$1.dead,
             e$1.grace
           ),
@@ -14729,6 +14802,8 @@ function shooter(e, level, px, py, dt2) {
             e$1.ward,
             e$1.stroll,
             e$1.seed,
+            e$1.tether,
+            e$1.mend,
             e$1.dead,
             e$1.grace
           ),
@@ -14767,6 +14842,8 @@ function shooter(e, level, px, py, dt2) {
             e$1.ward,
             e$1.stroll,
             e$1.seed,
+            e$1.tether,
+            e$1.mend,
             e$1.dead,
             e$1.grace
           ),
@@ -14801,6 +14878,8 @@ function shooter(e, level, px, py, dt2) {
           e$1.ward,
           e$1.stroll,
           e$1.seed,
+          e$1.tether,
+          e$1.mend,
           e$1.dead,
           e$1.grace
         ),
@@ -14837,6 +14916,8 @@ function shooter(e, level, px, py, dt2) {
           e$1.ward,
           e$1.stroll,
           e$1.seed,
+          e$1.tether,
+          e$1.mend,
           e$1.dead,
           e$1.grace
         ),
@@ -14895,6 +14976,8 @@ function shooter(e, level, px, py, dt2) {
           e$1.ward,
           e$1.stroll,
           e$1.seed,
+          e$1.tether,
+          e$1.mend,
           e$1.dead,
           e$1.grace
         ),
@@ -14928,6 +15011,8 @@ function shooter(e, level, px, py, dt2) {
           e$1.ward,
           e$1.stroll,
           e$1.seed,
+          e$1.tether,
+          e$1.mend,
           e$1.dead,
           e$1.grace
         ),
@@ -14961,6 +15046,8 @@ function shooter(e, level, px, py, dt2) {
           e$1.ward,
           e$1.stroll,
           e$1.seed,
+          e$1.tether,
+          e$1.mend,
           e$1.dead,
           e$1.grace
         ),
@@ -14994,6 +15081,8 @@ function shooter(e, level, px, py, dt2) {
           e$1.ward,
           e$1.stroll,
           e$1.seed,
+          e$1.tether,
+          e$1.mend,
           e$1.dead,
           e$1.grace
         ),
@@ -15028,6 +15117,8 @@ function shooter(e, level, px, py, dt2) {
             e$1.ward,
             e$1.stroll,
             e$1.seed,
+            e$1.tether,
+            e$1.mend,
             e$1.dead,
             e$1.grace
           ),
@@ -15040,6 +15131,197 @@ function shooter(e, level, px, py, dt2) {
   }
 }
 __name(shooter, "shooter");
+function mender(e, level, px, py, dt2) {
+  let $ = size2(Kind$Mender$const);
+  let w2 = $[0];
+  let dx = px - e.x;
+  let e$1 = new Enemy(
+    e.id,
+    e.kind,
+    e.x,
+    e.y,
+    approach(e.vx, 0, 20 * dt2),
+    e.vy,
+    e.home_x,
+    e.home_y,
+    e.facing,
+    e.grounded,
+    e.wall,
+    e.hp,
+    e.max_hp,
+    e.respawn,
+    e.flash,
+    e.mode,
+    e.cooldown - dt2,
+    e.pattern,
+    e.awake,
+    e.tier,
+    e.ail,
+    e.robbed,
+    e.ward,
+    e.stroll,
+    e.seed,
+    e.tether,
+    e.mend,
+    e.dead,
+    e.grace
+  );
+  let away = negate(sign(dx));
+  let close = absolute_value2(dx) < mender_shy && absolute_value2(
+    py - e$1.y
+  ) < 3;
+  let can_run = e$1.grounded && (e$1.x - e$1.home_x) * away < mender_leash && e$1.wall !== away && ground_at(
+    level,
+    e$1.x + away * (w2 / 2 + 0.1),
+    e$1.y
+  );
+  let $1 = e$1.mode;
+  if ($1 instanceof Stunned) {
+    let t2 = $1.t;
+    let _record = countdown(e$1, t2, dt2, (var0) => {
+      return new Stunned(var0);
+    });
+    return new Enemy(
+      _record.id,
+      _record.kind,
+      _record.x,
+      _record.y,
+      _record.vx,
+      _record.vy,
+      _record.home_x,
+      _record.home_y,
+      _record.facing,
+      _record.grounded,
+      _record.wall,
+      _record.hp,
+      _record.max_hp,
+      _record.respawn,
+      _record.flash,
+      _record.mode,
+      _record.cooldown,
+      0,
+      _record.awake,
+      _record.tier,
+      _record.ail,
+      _record.robbed,
+      _record.ward,
+      _record.stroll,
+      _record.seed,
+      _record.tether,
+      _record.mend,
+      _record.dead,
+      _record.grace
+    );
+  } else {
+    if (close) {
+      if (can_run) {
+        return new Enemy(
+          e$1.id,
+          e$1.kind,
+          e$1.x,
+          e$1.y,
+          away * mender_flee,
+          e$1.vy,
+          e$1.home_x,
+          e$1.home_y,
+          away,
+          e$1.grounded,
+          e$1.wall,
+          e$1.hp,
+          e$1.max_hp,
+          e$1.respawn,
+          e$1.flash,
+          Mode$Idle$const,
+          e$1.cooldown,
+          0,
+          e$1.awake,
+          e$1.tier,
+          e$1.ail,
+          e$1.robbed,
+          e$1.ward,
+          e$1.stroll,
+          e$1.seed,
+          e$1.tether,
+          e$1.mend,
+          e$1.dead,
+          e$1.grace
+        );
+      } else {
+        return new Enemy(
+          e$1.id,
+          e$1.kind,
+          e$1.x,
+          e$1.y,
+          e$1.vx,
+          e$1.vy,
+          e$1.home_x,
+          e$1.home_y,
+          sign(dx),
+          e$1.grounded,
+          e$1.wall,
+          e$1.hp,
+          e$1.max_hp,
+          e$1.respawn,
+          e$1.flash,
+          Mode$Idle$const,
+          e$1.cooldown,
+          0,
+          e$1.awake,
+          e$1.tier,
+          e$1.ail,
+          e$1.robbed,
+          e$1.ward,
+          e$1.stroll,
+          e$1.seed,
+          e$1.tether,
+          e$1.mend,
+          e$1.dead,
+          e$1.grace
+        );
+      }
+    } else {
+      return new Enemy(
+        e$1.id,
+        e$1.kind,
+        e$1.x,
+        e$1.y,
+        e$1.vx,
+        e$1.vy,
+        e$1.home_x,
+        e$1.home_y,
+        (() => {
+          let $2 = e$1.tether;
+          if ($2 === 0) {
+            return sign(dx);
+          } else {
+            return e$1.facing;
+          }
+        })(),
+        e$1.grounded,
+        e$1.wall,
+        e$1.hp,
+        e$1.max_hp,
+        e$1.respawn,
+        e$1.flash,
+        Mode$Idle$const,
+        e$1.cooldown,
+        1,
+        e$1.awake,
+        e$1.tier,
+        e$1.ail,
+        e$1.robbed,
+        e$1.ward,
+        e$1.stroll,
+        e$1.seed,
+        e$1.tether,
+        e$1.mend,
+        e$1.dead,
+        e$1.grace
+      );
+    }
+  }
+}
+__name(mender, "mender");
 function on_one_way(level, e) {
   let top = /* @__PURE__ */ __name((r) => {
     return e.x >= r.x && e.x <= r.x + r.w && absolute_value2(
@@ -15093,6 +15375,8 @@ function charger(e, level, px, py, dt2) {
       e.ward,
       e.stroll,
       e.seed,
+      e.tether,
+      e.mend,
       e.dead,
       e.grace
     );
@@ -15137,6 +15421,8 @@ function charger(e, level, px, py, dt2) {
         e$1.ward,
         e$1.stroll,
         e$1.seed,
+        e$1.tether,
+        e$1.mend,
         e$1.dead,
         e$1.grace
       );
@@ -15167,6 +15453,8 @@ function charger(e, level, px, py, dt2) {
         e$1.ward,
         e$1.stroll,
         e$1.seed,
+        e$1.tether,
+        e$1.mend,
         e$1.dead,
         e$1.grace
       );
@@ -15197,6 +15485,8 @@ function charger(e, level, px, py, dt2) {
         e$1.ward,
         e$1.stroll,
         e$1.seed,
+        e$1.tether,
+        e$1.mend,
         e$1.dead,
         e$1.grace
       );
@@ -15231,6 +15521,8 @@ function charger(e, level, px, py, dt2) {
         e$1.ward,
         e$1.stroll,
         e$1.seed,
+        e$1.tether,
+        e$1.mend,
         e$1.dead,
         e$1.grace
       );
@@ -15261,6 +15553,8 @@ function charger(e, level, px, py, dt2) {
         e$1.ward,
         e$1.stroll,
         e$1.seed,
+        e$1.tether,
+        e$1.mend,
         e$1.dead,
         e$1.grace
       );
@@ -15297,6 +15591,8 @@ function charger(e, level, px, py, dt2) {
           e$1.ward,
           e$1.stroll,
           e$1.seed,
+          e$1.tether,
+          e$1.mend,
           e$1.dead,
           e$1.grace
         );
@@ -15327,6 +15623,8 @@ function charger(e, level, px, py, dt2) {
           e$1.ward,
           e$1.stroll,
           e$1.seed,
+          e$1.tether,
+          e$1.mend,
           e$1.dead,
           e$1.grace
         );
@@ -15358,6 +15656,8 @@ function charger(e, level, px, py, dt2) {
         e$1.ward,
         e$1.stroll,
         e$1.seed,
+        e$1.tether,
+        e$1.mend,
         e$1.dead,
         e$1.grace
       );
@@ -15391,6 +15691,8 @@ function charger(e, level, px, py, dt2) {
         e$1.ward,
         e$1.stroll,
         e$1.seed,
+        e$1.tether,
+        e$1.mend,
         e$1.dead,
         e$1.grace
       ),
@@ -15429,6 +15731,8 @@ function charger(e, level, px, py, dt2) {
         e$1.ward,
         e$1.stroll,
         e$1.seed,
+        e$1.tether,
+        e$1.mend,
         e$1.dead,
         e$1.grace
       ),
@@ -15465,6 +15769,8 @@ function charger(e, level, px, py, dt2) {
       e$1.ward,
       e$1.stroll,
       e$1.seed,
+      e$1.tether,
+      e$1.mend,
       e$1.dead,
       e$1.grace
     );
@@ -15533,6 +15839,8 @@ function bouncer(e, level, dt2) {
     e.ward,
     e.stroll,
     e.seed,
+    e.tether,
+    e.mend,
     e.dead,
     e.grace
   );
@@ -15597,6 +15905,8 @@ function flyer(e, level, px, py, dt2, alert) {
           e.ward,
           e.stroll,
           e.seed,
+          e.tether,
+          e.mend,
           e.dead,
           e.grace
         );
@@ -15631,6 +15941,8 @@ function flyer(e, level, px, py, dt2, alert) {
           e.ward,
           e.stroll,
           e.seed,
+          e.tether,
+          e.mend,
           e.dead,
           e.grace
         );
@@ -15662,6 +15974,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.ward,
         e.stroll,
         e.seed,
+        e.tether,
+        e.mend,
         e.dead,
         e.grace
       );
@@ -15692,6 +16006,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.ward,
         e.stroll,
         e.seed,
+        e.tether,
+        e.mend,
         e.dead,
         e.grace
       );
@@ -15729,6 +16045,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.ward,
         e.stroll,
         e.seed,
+        e.tether,
+        e.mend,
         e.dead,
         e.grace
       );
@@ -15759,6 +16077,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.ward,
         e.stroll,
         e.seed,
+        e.tether,
+        e.mend,
         e.dead,
         e.grace
       );
@@ -15793,6 +16113,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.ward,
         e.stroll,
         e.seed,
+        e.tether,
+        e.mend,
         e.dead,
         e.grace
       );
@@ -15823,6 +16145,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.ward,
         e.stroll,
         e.seed,
+        e.tether,
+        e.mend,
         e.dead,
         e.grace
       );
@@ -15857,6 +16181,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.ward,
         e.stroll,
         e.seed,
+        e.tether,
+        e.mend,
         e.dead,
         e.grace
       );
@@ -15887,6 +16213,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.ward,
         e.stroll,
         e.seed,
+        e.tether,
+        e.mend,
         e.dead,
         e.grace
       );
@@ -15920,6 +16248,8 @@ function flyer(e, level, px, py, dt2, alert) {
         e.ward,
         e.stroll,
         e.seed,
+        e.tether,
+        e.mend,
         e.dead,
         e.grace
       ),
@@ -15956,6 +16286,8 @@ function flyer(e, level, px, py, dt2, alert) {
       e.ward,
       e.stroll,
       e.seed,
+      e.tether,
+      e.mend,
       e.dead,
       e.grace
     );
@@ -15996,6 +16328,8 @@ function flyer(e, level, px, py, dt2, alert) {
     e$1.ward,
     e$1.stroll,
     e$1.seed,
+    e$1.tether,
+    e$1.mend,
     e$1.dead,
     e$1.grace
   );
@@ -16011,7 +16345,41 @@ function think(e, level, px, py, dt2, alert) {
       if (!e.awake && e.ail.stun <= 0) {
         return [
           (() => {
-            let _pipe = wander(e, level, dt2);
+            let _pipe = wander(
+              new Enemy(
+                e.id,
+                e.kind,
+                e.x,
+                e.y,
+                e.vx,
+                e.vy,
+                e.home_x,
+                e.home_y,
+                e.facing,
+                e.grounded,
+                e.wall,
+                e.hp,
+                e.max_hp,
+                e.respawn,
+                e.flash,
+                e.mode,
+                e.cooldown,
+                0,
+                e.awake,
+                e.tier,
+                e.ail,
+                e.robbed,
+                e.ward,
+                e.stroll,
+                e.seed,
+                e.tether,
+                e.mend,
+                e.dead,
+                e.grace
+              ),
+              level,
+              dt2
+            );
             return fall(_pipe, level, dt2);
           })(),
           List$Empty$const
@@ -16045,6 +16413,8 @@ function think(e, level, px, py, dt2, alert) {
               e.ward,
               e.stroll,
               e.seed,
+              e.tether,
+              e.mend,
               e.dead,
               e.grace
             ),
@@ -16082,6 +16452,8 @@ function think(e, level, px, py, dt2, alert) {
               e.ward,
               e.stroll,
               e.seed,
+              e.tether,
+              e.mend,
               e.dead,
               e.grace
             ),
@@ -16107,7 +16479,41 @@ function think(e, level, px, py, dt2, alert) {
       if (!e.awake && e.ail.stun <= 0) {
         return [
           (() => {
-            let _pipe = wander(e, level, dt2);
+            let _pipe = wander(
+              new Enemy(
+                e.id,
+                e.kind,
+                e.x,
+                e.y,
+                e.vx,
+                e.vy,
+                e.home_x,
+                e.home_y,
+                e.facing,
+                e.grounded,
+                e.wall,
+                e.hp,
+                e.max_hp,
+                e.respawn,
+                e.flash,
+                e.mode,
+                e.cooldown,
+                0,
+                e.awake,
+                e.tier,
+                e.ail,
+                e.robbed,
+                e.ward,
+                e.stroll,
+                e.seed,
+                e.tether,
+                e.mend,
+                e.dead,
+                e.grace
+              ),
+              level,
+              dt2
+            );
             return fall(_pipe, level, dt2);
           })(),
           List$Empty$const
@@ -16141,6 +16547,8 @@ function think(e, level, px, py, dt2, alert) {
               e.ward,
               e.stroll,
               e.seed,
+              e.tether,
+              e.mend,
               e.dead,
               e.grace
             ),
@@ -16178,6 +16586,8 @@ function think(e, level, px, py, dt2, alert) {
               e.ward,
               e.stroll,
               e.seed,
+              e.tether,
+              e.mend,
               e.dead,
               e.grace
             ),
@@ -16226,6 +16636,8 @@ function think(e, level, px, py, dt2, alert) {
               e.ward,
               e.stroll,
               e.seed,
+              e.tether,
+              e.mend,
               e.dead,
               e.grace
             ),
@@ -16262,6 +16674,8 @@ function think(e, level, px, py, dt2, alert) {
             e.ward,
             e.stroll,
             e.seed,
+            e.tether,
+            e.mend,
             e.dead,
             e.grace
           ),
@@ -16296,6 +16710,8 @@ function think(e, level, px, py, dt2, alert) {
               e.ward,
               e.stroll,
               e.seed,
+              e.tether,
+              e.mend,
               e.dead,
               e.grace
             ),
@@ -16341,6 +16757,8 @@ function think(e, level, px, py, dt2, alert) {
               e.ward,
               e.stroll,
               e.seed,
+              e.tether,
+              e.mend,
               e.dead,
               e.grace
             ),
@@ -16377,6 +16795,8 @@ function think(e, level, px, py, dt2, alert) {
             e.ward,
             e.stroll,
             e.seed,
+            e.tether,
+            e.mend,
             e.dead,
             e.grace
           ),
@@ -16411,6 +16831,8 @@ function think(e, level, px, py, dt2, alert) {
               e.ward,
               e.stroll,
               e.seed,
+              e.tether,
+              e.mend,
               e.dead,
               e.grace
             ),
@@ -16456,6 +16878,8 @@ function think(e, level, px, py, dt2, alert) {
               e.ward,
               e.stroll,
               e.seed,
+              e.tether,
+              e.mend,
               e.dead,
               e.grace
             ),
@@ -16493,6 +16917,8 @@ function think(e, level, px, py, dt2, alert) {
               e.ward,
               e.stroll,
               e.seed,
+              e.tether,
+              e.mend,
               e.dead,
               e.grace
             ),
@@ -16512,7 +16938,41 @@ function think(e, level, px, py, dt2, alert) {
       if (!e.awake && e.ail.stun <= 0) {
         return [
           (() => {
-            let _pipe = wander(e, level, dt2);
+            let _pipe = wander(
+              new Enemy(
+                e.id,
+                e.kind,
+                e.x,
+                e.y,
+                e.vx,
+                e.vy,
+                e.home_x,
+                e.home_y,
+                e.facing,
+                e.grounded,
+                e.wall,
+                e.hp,
+                e.max_hp,
+                e.respawn,
+                e.flash,
+                e.mode,
+                e.cooldown,
+                0,
+                e.awake,
+                e.tier,
+                e.ail,
+                e.robbed,
+                e.ward,
+                e.stroll,
+                e.seed,
+                e.tether,
+                e.mend,
+                e.dead,
+                e.grace
+              ),
+              level,
+              dt2
+            );
             return fall(_pipe, level, dt2);
           })(),
           List$Empty$const
@@ -16546,6 +17006,8 @@ function think(e, level, px, py, dt2, alert) {
               e.ward,
               e.stroll,
               e.seed,
+              e.tether,
+              e.mend,
               e.dead,
               e.grace
             ),
@@ -16583,6 +17045,8 @@ function think(e, level, px, py, dt2, alert) {
               e.ward,
               e.stroll,
               e.seed,
+              e.tether,
+              e.mend,
               e.dead,
               e.grace
             ),
@@ -16596,6 +17060,140 @@ function think(e, level, px, py, dt2, alert) {
         let e$1 = $2[0];
         let shots = $2[1];
         return [fall(e$1, level, dt2), shots];
+      }
+    } else {
+      return [e, List$Empty$const];
+    }
+  } else if ($ instanceof Mender) {
+    if ($1) {
+      if (!e.awake && e.ail.stun <= 0) {
+        return [
+          (() => {
+            let _pipe = wander(
+              new Enemy(
+                e.id,
+                e.kind,
+                e.x,
+                e.y,
+                e.vx,
+                e.vy,
+                e.home_x,
+                e.home_y,
+                e.facing,
+                e.grounded,
+                e.wall,
+                e.hp,
+                e.max_hp,
+                e.respawn,
+                e.flash,
+                e.mode,
+                e.cooldown,
+                0,
+                e.awake,
+                e.tier,
+                e.ail,
+                e.robbed,
+                e.ward,
+                e.stroll,
+                e.seed,
+                e.tether,
+                e.mend,
+                e.dead,
+                e.grace
+              ),
+              level,
+              dt2
+            );
+            return fall(_pipe, level, dt2);
+          })(),
+          List$Empty$const
+        ];
+      } else if (!e.awake) {
+        return [
+          fall(
+            new Enemy(
+              e.id,
+              e.kind,
+              e.x,
+              e.y,
+              0,
+              e.vy,
+              e.home_x,
+              e.home_y,
+              e.facing,
+              e.grounded,
+              e.wall,
+              e.hp,
+              e.max_hp,
+              e.respawn,
+              e.flash,
+              e.mode,
+              e.cooldown,
+              e.pattern,
+              e.awake,
+              e.tier,
+              e.ail,
+              e.robbed,
+              e.ward,
+              e.stroll,
+              e.seed,
+              e.tether,
+              e.mend,
+              e.dead,
+              e.grace
+            ),
+            level,
+            dt2
+          ),
+          List$Empty$const
+        ];
+      } else if (e.ail.stun > 0) {
+        return [
+          fall(
+            new Enemy(
+              e.id,
+              e.kind,
+              e.x,
+              e.y,
+              approach(e.vx, 0, 20 * dt2),
+              e.vy,
+              e.home_x,
+              e.home_y,
+              e.facing,
+              e.grounded,
+              e.wall,
+              e.hp,
+              e.max_hp,
+              e.respawn,
+              e.flash,
+              e.mode,
+              e.cooldown,
+              e.pattern,
+              e.awake,
+              e.tier,
+              e.ail,
+              e.robbed,
+              e.ward,
+              e.stroll,
+              e.seed,
+              e.tether,
+              e.mend,
+              e.dead,
+              e.grace
+            ),
+            level,
+            dt2
+          ),
+          List$Empty$const
+        ];
+      } else {
+        return [
+          (() => {
+            let _pipe = mender(e, level, px, py, dt2);
+            return fall(_pipe, level, dt2);
+          })(),
+          List$Empty$const
+        ];
       }
     } else {
       return [e, List$Empty$const];
@@ -16630,6 +17228,8 @@ function think(e, level, px, py, dt2, alert) {
             e.ward,
             e.stroll,
             e.seed,
+            e.tether,
+            e.mend,
             e.dead,
             e.grace
           ),
@@ -16667,6 +17267,8 @@ function think(e, level, px, py, dt2, alert) {
             e.ward,
             e.stroll,
             e.seed,
+            e.tether,
+            e.mend,
             e.dead,
             e.grace
           ),
@@ -16686,6 +17288,208 @@ function think(e, level, px, py, dt2, alert) {
   }
 }
 __name(think, "think");
+function on_field(e) {
+  return present(e);
+}
+__name(on_field, "on_field");
+function mendable(m, e, level) {
+  let $ = size2(m.kind);
+  let mh = $[1];
+  let $1 = size2(e.kind);
+  let eh2 = $1[1];
+  return e.id !== m.id && on_field(e) && e.hp < e.max_hp && !(e.kind instanceof Boss) && !(e.kind instanceof Dummy) && far(
+    e.x - m.x,
+    e.y + eh2 / 2 - m.y - mh / 2
+  ) <= mend_reach && clear_line(
+    level,
+    m.x,
+    m.y + mh * 0.7,
+    e.x,
+    e.y + eh2 / 2
+  );
+}
+__name(mendable, "mendable");
+function mend(enemies, level, dt2) {
+  let menders = filter(
+    enemies,
+    (m) => {
+      return m.kind instanceof Mender;
+    }
+  );
+  if (menders instanceof Empty) {
+    return enemies;
+  } else {
+    let choices = map3(
+      menders,
+      (m) => {
+        let ready = on_field(m) && m.awake && m.pattern === 1 && m.cooldown <= 0 && m.ail.stun <= 0;
+        let _block;
+        if (ready) {
+          let ok = filter(
+            enemies,
+            (e) => {
+              return mendable(m, e, level);
+            }
+          );
+          let $2 = find(ok, (e) => {
+            return e.id === m.tether;
+          });
+          if ($2 instanceof Ok) {
+            let e = $2[0];
+            _block = new Some(e);
+          } else {
+            _block = fold2(
+              ok,
+              Option$None$const,
+              (best, e) => {
+                if (best instanceof Some) {
+                  let b = best[0];
+                  if (b.hp * e.max_hp <= e.hp * b.max_hp) {
+                    return best;
+                  } else {
+                    return new Some(e);
+                  }
+                } else {
+                  return new Some(e);
+                }
+              }
+            );
+          }
+        } else {
+          _block = Option$None$const;
+        }
+        let pick = _block;
+        let _block$1;
+        if (pick instanceof Some) {
+          let t2 = pick[0];
+          if (t2.id === m.tether) {
+            _block$1 = [t2.id, m.mend, sign(t2.x - m.x)];
+          } else {
+            let t$1 = pick[0];
+            _block$1 = [t$1.id, 0, sign(t$1.x - m.x)];
+          }
+        } else {
+          _block$1 = [0, 0, m.facing];
+        }
+        let $ = _block$1;
+        let tether = $[0];
+        let before = $[1];
+        let facing = $[2];
+        let _block$2;
+        if (tether === 0) {
+          _block$2 = 0;
+        } else {
+          _block$2 = before + dt2 * pace(m);
+        }
+        let after = _block$2;
+        let ticks = truncate(divideFloat(after, mend_tick)) - truncate(
+          divideFloat(before, mend_tick)
+        );
+        return [m.id, tether, after, ticks, facing];
+      }
+    );
+    return map3(
+      enemies,
+      (e) => {
+        let _block;
+        let $ = find(choices, (c) => {
+          return c[0] === e.id;
+        });
+        if ($ instanceof Ok) {
+          let tether = $[0][1];
+          let mend$1 = $[0][2];
+          let facing = $[0][4];
+          _block = new Enemy(
+            e.id,
+            e.kind,
+            e.x,
+            e.y,
+            e.vx,
+            e.vy,
+            e.home_x,
+            e.home_y,
+            facing,
+            e.grounded,
+            e.wall,
+            e.hp,
+            e.max_hp,
+            e.respawn,
+            e.flash,
+            e.mode,
+            e.cooldown,
+            e.pattern,
+            e.awake,
+            e.tier,
+            e.ail,
+            e.robbed,
+            e.ward,
+            e.stroll,
+            e.seed,
+            tether,
+            mend$1,
+            e.dead,
+            e.grace
+          );
+        } else {
+          _block = e;
+        }
+        let e$1 = _block;
+        let gain2 = fold2(
+          choices,
+          0,
+          (sum3, c) => {
+            let $12 = c[1] === e$1.id && c[3] > 0;
+            if ($12) {
+              return sum3 + c[3] * max(
+                1,
+                globalThis.Math.trunc(e$1.max_hp * mend_pct / 100)
+              );
+            } else {
+              return sum3;
+            }
+          }
+        );
+        let $1 = gain2 > 0 && on_field(e$1);
+        if ($1) {
+          return new Enemy(
+            e$1.id,
+            e$1.kind,
+            e$1.x,
+            e$1.y,
+            e$1.vx,
+            e$1.vy,
+            e$1.home_x,
+            e$1.home_y,
+            e$1.facing,
+            e$1.grounded,
+            e$1.wall,
+            min(e$1.max_hp, e$1.hp + gain2),
+            e$1.max_hp,
+            e$1.respawn,
+            e$1.flash,
+            e$1.mode,
+            e$1.cooldown,
+            e$1.pattern,
+            e$1.awake,
+            e$1.tier,
+            e$1.ail,
+            e$1.robbed,
+            e$1.ward,
+            e$1.stroll,
+            e$1.seed,
+            e$1.tether,
+            e$1.mend,
+            e$1.dead,
+            e$1.grace
+          );
+        } else {
+          return e$1;
+        }
+      }
+    );
+  }
+}
+__name(mend, "mend");
 function take_hit(e, damage3, push_x, push_y) {
   let hit = new Enemy(
     e.id,
@@ -16713,6 +17517,8 @@ function take_hit(e, damage3, push_x, push_y) {
     e.ward,
     e.stroll,
     e.seed,
+    e.tether,
+    e.mend,
     e.dead,
     e.grace
   );
@@ -16742,6 +17548,8 @@ function take_hit(e, damage3, push_x, push_y) {
     hit.ward,
     hit.stroll,
     hit.seed,
+    hit.tether,
+    hit.mend,
     hit.dead,
     hit.grace
   );
@@ -16775,6 +17583,40 @@ function take_hit(e, damage3, push_x, push_y) {
       hit$1.ward,
       hit$1.stroll,
       hit$1.seed,
+      hit$1.tether,
+      hit$1.mend,
+      hit$1.dead,
+      hit$1.grace
+    );
+  } else if ($ instanceof Mender) {
+    return new Enemy(
+      hit$1.id,
+      hit$1.kind,
+      hit$1.x,
+      hit$1.y,
+      push_x,
+      push_y,
+      hit$1.home_x,
+      hit$1.home_y,
+      hit$1.facing,
+      hit$1.grounded,
+      hit$1.wall,
+      hit$1.hp,
+      hit$1.max_hp,
+      hit$1.respawn,
+      hit$1.flash,
+      new Stunned(stun_time),
+      mend_break,
+      0,
+      hit$1.awake,
+      hit$1.tier,
+      hit$1.ail,
+      hit$1.robbed,
+      hit$1.ward,
+      hit$1.stroll,
+      hit$1.seed,
+      0,
+      0,
       hit$1.dead,
       hit$1.grace
     );
@@ -16807,6 +17649,8 @@ function take_hit(e, damage3, push_x, push_y) {
       hit$1.ward,
       hit$1.stroll,
       hit$1.seed,
+      hit$1.tether,
+      hit$1.mend,
       hit$1.dead,
       hit$1.grace
     );
@@ -16863,6 +17707,8 @@ function spread_wards(enemies) {
             ward_time,
             e.stroll,
             e.seed,
+            e.tether,
+            e.mend,
             e.dead,
             e.grace
           );
@@ -16898,6 +17744,8 @@ function spread_wards(enemies) {
             e$1.ward,
             e$1.stroll,
             e$1.seed,
+            e$1.tether,
+            e$1.mend,
             e$1.dead,
             e$1.grace
           );
@@ -16971,6 +17819,8 @@ function tick(e, dt2) {
       max3(0, e.ward - dt2),
       e.stroll,
       e.seed,
+      e.tether,
+      e.mend,
       (() => {
         let $3 = e.hp > 0;
         if ($3) {
@@ -17106,6 +17956,8 @@ function split2(enemies, from) {
             _record.ward,
             _record.stroll,
             _record.seed,
+            _record.tether,
+            _record.mend,
             _record.dead,
             spawn_grace
           );
@@ -17143,6 +17995,8 @@ function split2(enemies, from) {
                   e.ward,
                   e.stroll,
                   e.seed,
+                  e.tether,
+                  e.mend,
                   e.dead,
                   e.grace
                 ),
@@ -22452,15 +23306,15 @@ function player(world2) {
       "let_assert",
       FILEPATH2,
       "game",
-      782,
+      785,
       "player",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 22821,
-        end: 22855,
-        pattern_start: 22832,
-        pattern_end: 22839
+        start: 22866,
+        end: 22900,
+        pattern_start: 22877,
+        pattern_end: 22884
       }
     );
   } else {
@@ -22532,6 +23386,29 @@ function tier_at(depth, i) {
   }
 }
 __name(tier_at, "tier_at");
+function support(t2, depth, count2) {
+  let fights = depth > 0 && !is_boss(depth) && !is_rest(depth);
+  let _block;
+  let $ = drop(t2.spawns, count2);
+  let $1 = last(t2.spawns);
+  if ($ instanceof Empty) {
+    _block = $1;
+  } else {
+    let s = $.head;
+    _block = new Ok(s);
+  }
+  let spot = _block;
+  let from = zone_at(depth) >= 2 || zone_at(depth) === 1 && place(depth) >= 3;
+  let $2 = fights && from;
+  if ($2 && spot instanceof Ok) {
+    let x = spot[0][0];
+    let y2 = spot[0][1];
+    return prepend([x, y2, Kind$Mender$const], List$Empty$const);
+  } else {
+    return List$Empty$const;
+  }
+}
+__name(support, "support");
 function load(world2, t2, depth) {
   let pace$1 = pace2(depth);
   let _block;
@@ -22600,8 +23477,9 @@ function load(world2, t2, depth) {
   let _pipe = t2.spawns;
   let _pipe$1 = take(_pipe, count2);
   let _pipe$2 = append(_pipe$1, roamers);
+  let _pipe$3 = append(_pipe$2, support(t2, depth, count2));
   _block$4 = index_map(
-    _pipe$2,
+    _pipe$3,
     (s, i) => {
       let e = spawn(i + 1, s[2], s[0], s[1]);
       let $4 = e.kind;
@@ -22634,6 +23512,8 @@ function load(world2, t2, depth) {
           e.ward,
           e.stroll,
           e.seed,
+          e.tether,
+          e.mend,
           e.dead,
           e.grace
         );
@@ -22669,6 +23549,8 @@ function load(world2, t2, depth) {
           e$1.ward,
           e$1.stroll,
           e$1.seed,
+          e$1.tether,
+          e$1.mend,
           e$1.dead,
           e$1.grace
         );
@@ -23172,6 +24054,8 @@ function hold_grace(world2, dt2) {
             e.ward,
             e.stroll,
             e.seed,
+            e.tether,
+            e.mend,
             e.dead,
             max3(e.grace, dt2 + 2e-3)
           );
@@ -23893,7 +24777,7 @@ function reward_label(r) {
   }
 }
 __name(reward_label, "reward_label");
-function mend(p2, amount) {
+function mend2(p2, amount) {
   let _block;
   let $ = has2(p2, Rule$LastStand$const);
   if ($) {
@@ -23904,7 +24788,7 @@ function mend(p2, amount) {
   let cap = _block;
   return max(0, min(cap, p2.hp + amount) - p2.hp);
 }
-__name(mend, "mend");
+__name(mend2, "mend");
 function apply_reward(loop$p, loop$r) {
   while (true) {
     let p2 = loop$p;
@@ -24074,7 +24958,7 @@ function apply_reward(loop$p, loop$r) {
         p2.lvl,
         p2.xp,
         p2.points,
-        p2.hp + mend(p2, max_hp3(p2)),
+        p2.hp + mend2(p2, max_hp3(p2)),
         p2.invuln,
         p2.hurt,
         p2.hexed,
@@ -24103,15 +24987,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      3841,
+      3866,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 120865,
-        end: 120915,
-        pattern_start: 120876,
-        pattern_end: 120883
+        start: 121699,
+        end: 121749,
+        pattern_start: 121710,
+        pattern_end: 121717
       }
     );
   } else {
@@ -24563,7 +25447,7 @@ function use_door(world2, up_fresh) {
       let $8 = is_rest(depth);
       if ($8) {
         let p$1 = player(world$2);
-        let amount = mend(p$1, max_hp3(p$1));
+        let amount = mend2(p$1, max_hp3(p$1));
         _block$6 = new World(
           prepend(
             new Player(
@@ -24884,7 +25768,7 @@ function check_clear(world2) {
     let _block$3;
     let $9 = fasting && world2.depth > 0;
     if ($9) {
-      _block$3 = mend(p2, globalThis.Math.trunc(max_hp3(p2) * 15 / 100));
+      _block$3 = mend2(p2, globalThis.Math.trunc(max_hp3(p2) * 15 / 100));
     } else {
       _block$3 = 0;
     }
@@ -25192,7 +26076,7 @@ function gain_xp(loop$p, loop$xp, loop$events) {
       if ($1) {
         _block = 0;
       } else {
-        _block = mend(
+        _block = mend2(
           p2,
           globalThis.Math.trunc(max_hp3(p2) * level_up_heal / 100)
         );
@@ -25422,7 +26306,7 @@ function loot(world2, dt2) {
     3,
     globalThis.Math.trunc(max_hp3(p2) * heart_pct / 100)
   );
-  let healed = mend(p2, heal);
+  let healed = mend2(p2, heal);
   let p$1 = new Player(
     p2.x,
     p2.y,
@@ -25560,6 +26444,8 @@ function steal(world2) {
               e.ward,
               e.stroll,
               e.seed,
+              e.tether,
+              e.mend,
               e.dead,
               e.grace
             )
@@ -26525,15 +27411,15 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        1563,
+        1566,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $22,
-          start: 46754,
-          end: 46810,
-          pattern_start: 46765,
-          pattern_end: 46770
+          start: 46799,
+          end: 46855,
+          pattern_start: 46810,
+          pattern_end: 46815
         }
       );
     }
@@ -28347,6 +29233,8 @@ function off_the_roof(world2) {
             _block = true;
           } else if ($1 instanceof Hexer) {
             _block = true;
+          } else if ($1 instanceof Mender) {
+            _block = true;
           } else {
             _block = false;
           }
@@ -28379,6 +29267,8 @@ function off_the_roof(world2) {
               e.ward,
               e.stroll,
               e.seed,
+              e.tether,
+              e.mend,
               e.dead,
               e.grace
             );
@@ -28456,6 +29346,8 @@ function enemies_act(world2, dt2) {
           e.ward,
           e.stroll,
           e.seed,
+          e.tether,
+          e.mend,
           e.dead,
           e.grace
         );
@@ -28503,6 +29395,8 @@ function enemies_act(world2, dt2) {
           next$1.ward,
           next$1.stroll,
           next$1.seed,
+          next$1.tether,
+          next$1.mend,
           next$1.dead,
           next$1.grace
         );
@@ -28545,6 +29439,8 @@ function enemies_act(world2, dt2) {
             next$2.ward,
             next$2.stroll,
             next$2.seed,
+            next$2.tether,
+            next$2.mend,
             next$2.dead,
             next$2.grace
           );
@@ -29251,7 +30147,7 @@ function fire_skills(world2, before, dt2) {
     _block$2 = max(2, globalThis.Math.trunc(max_hp3(p$1) * heals / 100));
   }
   let amount = _block$2;
-  let healed = mend(p$1, amount);
+  let healed = mend2(p$1, amount);
   let _block$3;
   let $5 = healed > 0;
   if ($5) {
@@ -30662,7 +31558,8 @@ function step_many(world2, inputs, dt2) {
     }, "from");
     let _block$1;
     let _pipe$102 = split2(w2.enemies, from);
-    _block$1 = spread_wards(_pipe$102);
+    let _pipe$112 = spread_wards(_pipe$102);
+    _block$1 = mend(_pipe$112, w2.level, dt2);
     let enemies = _block$1;
     return new World(
       w2.players,
@@ -32321,15 +33218,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3719,
+        3744,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 116773,
-          end: 116824,
-          pattern_start: 116784,
-          pattern_end: 116792
+          start: 117607,
+          end: 117658,
+          pattern_start: 117618,
+          pattern_end: 117626
         }
       );
     }
@@ -32341,15 +33238,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3721,
+        3746,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 116907,
-          end: 116968,
-          pattern_start: 116918,
-          pattern_end: 116935
+          start: 117741,
+          end: 117802,
+          pattern_start: 117752,
+          pattern_end: 117769
         }
       );
     } else {
@@ -32359,15 +33256,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          3721,
+          3746,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 116907,
-            end: 116968,
-            pattern_start: 116918,
-            pattern_end: 116935
+            start: 117741,
+            end: 117802,
+            pattern_start: 117752,
+            pattern_end: 117769
           }
         );
       } else {
@@ -34022,10 +34919,50 @@ function loadTexture(url) {
 }
 __name(loadTexture, "loadTexture");
 function stickerTexture(path) {
-  if (!stickerTextures.has(path)) stickerTextures.set(path, loadTexture(`art/${path}.webp`));
+  if (!stickerTextures.has(path)) {
+    const mender2 = path.match(/^enemies\/mender-(\d)$/);
+    stickerTextures.set(path, mender2 ? menderTexture(mender2[1]) : loadTexture(`art/${path}.webp`));
+  }
   return stickerTextures.get(path);
 }
 __name(stickerTexture, "stickerTexture");
+function menderTexture(tier) {
+  const t2 = new yi(), img = new Image();
+  t2.colorSpace = Je;
+  t2.userData.loaded = new Promise((ok, fail) => {
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      [c.width, c.height] = [img.width, img.height];
+      const g = c.getContext("2d");
+      g.drawImage(img, 0, 0);
+      const px = g.getImageData(0, 0, c.width, c.height), d2 = px.data;
+      for (let i = 0; i < d2.length; i += 4) {
+        const r = d2[i], gr2 = d2[i + 1], b = d2[i + 2], hi2 = Math.max(r, gr2, b), lo2 = Math.min(r, gr2, b);
+        if (hi2 - lo2 < 18 || !(b > gr2 && r > gr2 - 10)) continue;
+        if (hi2 > 170 && hi2 - lo2 > 80) {
+          d2[i] = lo2;
+          d2[i + 1] = hi2;
+          d2[i + 2] = lo2 * 1.1;
+          continue;
+        }
+        const l = (r + gr2 + b) / 3;
+        d2[i] = Math.min(255, l * 1.3 + 70);
+        d2[i + 1] = Math.min(255, l * 1.25 + 62);
+        d2[i + 2] = Math.min(255, l * 1.05 + 45);
+      }
+      g.putImageData(px, 0, 0);
+      t2.image = c;
+      t2.needsUpdate = true;
+      ok();
+    };
+    img.onerror = fail;
+  });
+  t2.userData.loaded.catch(() => {
+  });
+  img.src = `art/enemies/hexer-${tier}.webp`;
+  return t2;
+}
+__name(menderTexture, "menderTexture");
 var heroTexture = /* @__PURE__ */ __name((name3) => stickerTexture(`heroes/${name3.toLowerCase()}`), "heroTexture");
 function sticker(path) {
   const m = new Bs(new ha(1, 1), new es({ map: stickerTexture(path), transparent: true, side: p }));
@@ -34039,6 +34976,8 @@ var ENEMY_ART = {
   Charger: { wide: 1.5, tiers: true },
   Shooter: { wide: 1.85, tiers: true },
   Hexer: { wide: 1.85, tiers: true },
+  Mender: { wide: 1.85, tiers: true },
+  // the hexer's picture, recoloured (`menderTexture`)
   Bouncer: { wide: 1.35, tiers: true },
   Boss: { wide: 1.15 },
   Dummy: { wide: 1.25 }
@@ -34522,6 +35461,24 @@ function deathPose(e) {
   return { sx: 1 + 0.35 * q2 + 0.45 * b, sy: 1 - 0.4 * q2 + 0.15 * b, tilt: 0, dx: 0, dy: 0, u: u2, fade };
 }
 __name(deathPose, "deathPose");
+function menderMarks(e, ex, ey, w2, h, tall, marks, now) {
+  const bob = calm ? 0 : Math.sin(now / 300 + e.id) * 0.08;
+  marks.push({ art: "mend", x: ex, y: ey + tall + 0.35 + bob, w: 0.42, h: 0.42 });
+  const t2 = e.tether ? world.enemies.toArray().find((f) => f.id === e.tether && f.hp > 0) : null;
+  if (!t2) return;
+  const [, th2] = size2(t2.kind);
+  const fx = t2.x, fy = t2.y + th2 / 2, sx = ex + e.facing * w2 * 0.45, sy = ey + h * 0.95;
+  const dx = fx - sx, dy = fy - sy, len = Math.hypot(dx, dy), turn2 = Math.atan2(dy, dx);
+  const k2 = Math.min(1, 0.4 + e.mend / 0.5), wob = calm ? 1 : 1 + Math.sin(now / 60) * 0.12;
+  marks.push({ art: "beam", x: (sx + fx) / 2, y: (sy + fy) / 2, w: len, h: 0.34 * k2 * wob, turn: turn2, z: 0.5 });
+  for (let i = 0; i < 3; i++) {
+    const u2 = calm ? (i + 0.5) / 3 : (now / 700 + i / 3) % 1;
+    marks.push({ art: "spark", x: sx + dx * u2, y: sy + dy * u2, w: 0.24, h: 0.24 });
+    const v2 = calm ? 0.5 : (now / 900 + i / 3) % 1;
+    marks.push({ art: "spark", x: fx + (i - 1) * 0.35, y: fy + v2 * 1.1, w: 0.3 * (1 - v2 * 0.5), h: 0.3 * (1 - v2 * 0.5) });
+  }
+}
+__name(menderMarks, "menderMarks");
 function drawn(paint) {
   const c = document.createElement("canvas");
   c.width = c.height = 96;
@@ -34717,6 +35674,28 @@ var ART = {
   // stunned: not a mark over the bar, but three of these circling its head
   Stun: drawn((g) => {
     shape(g, star(5, 48, 48, 44, 19), "#ffd84a");
+  }),
+  // a mender's beam (TRIP-65): a green band with a bright core, ink-edged like everything else.
+  // Drawn square and stretched from the mender to the friend it mends
+  beam: drawn((g) => {
+    g.beginPath();
+    g.roundRect(2, 26, 92, 44, 22);
+    g.fillStyle = "#7ee08a";
+    g.fill();
+    g.stroke();
+    g.lineWidth = 0;
+    g.beginPath();
+    g.roundRect(6, 40, 84, 16, 8);
+    g.fillStyle = "#f0fff0";
+    g.fill();
+  }),
+  // a mender's mark, over its head, and the sparks its beam leaves on what it mends: a green cross
+  mend: drawn((g) => {
+    shape(g, [[36, 8], [60, 8], [60, 36], [88, 36], [88, 60], [60, 60], [60, 88], [36, 88], [36, 60], [8, 60], [8, 36], [36, 36]], "#5fd36e");
+  }),
+  spark: drawn((g) => {
+    g.lineWidth = 4;
+    shape(g, [[38, 14], [58, 14], [58, 38], [82, 38], [82, 58], [58, 58], [58, 82], [38, 82], [38, 58], [14, 58], [14, 38], [38, 38]], "#c8ffcc");
   }),
   // warded by a hexer (magic does half): a violet shield
   Ward: drawn((g) => {
@@ -35046,7 +36025,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "2bf9cbd2e0cc" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "39e6521a6230" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -35457,7 +36436,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "2bf9cbd2e0cc" : "dev";
+var BUILD = true ? "39e6521a6230" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
@@ -35750,6 +36729,7 @@ function frame(now) {
       const doses = name3 === "Poison" && e.ail.stacks > 1, k2 = doses ? 0.6 : 0.36;
       marks.push({ art: doses ? `Poison${Math.min(e.ail.stacks, 5)}` : name3, x: ex + (i - (ails.length - 1) / 2) * 0.42, y: ey + h + 0.62 + (k2 - 0.36) / 2, w: k2, h: k2 });
     });
+    if (e.hp > 0 && e.kind.constructor.name === "Mender") menderMarks(e, ex, ey, w2, h, tall, marks, now);
     if (!e.awake) body2.material.color.multiplyScalar(0.45);
     body2.material.opacity = gone ? pose.fade : 1;
     if (gone && dying(e)) {
