@@ -22389,15 +22389,15 @@ function player(world2) {
       "let_assert",
       FILEPATH2,
       "game",
-      775,
+      776,
       "player",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 22505,
-        end: 22539,
-        pattern_start: 22516,
-        pattern_end: 22523
+        start: 22582,
+        end: 22616,
+        pattern_start: 22593,
+        pattern_end: 22600
       }
     );
   } else {
@@ -23768,15 +23768,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      3726,
+      3727,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 117100,
-        end: 117150,
-        pattern_start: 117111,
-        pattern_end: 117118
+        start: 117177,
+        end: 117227,
+        pattern_start: 117188,
+        pattern_end: 117195
       }
     );
   } else {
@@ -24715,6 +24715,58 @@ function check_clear(world2) {
   }
 }
 __name(check_clear, "check_clear");
+function seal(world2) {
+  let out = world2.depth > 0 && !world2.sealed && all(
+    world2.players,
+    (p2) => {
+      return p2.x > world2.safe_x + 0.5;
+    }
+  );
+  let empty2 = !any(
+    world2.enemies,
+    (e) => {
+      return (alive(e) || dying(e)) && overlaps(
+        body(e),
+        tunnel_inside()
+      );
+    }
+  );
+  let $ = out && empty2;
+  if ($) {
+    return new World(
+      world2.players,
+      prepend(gate(), world2.level),
+      world2.enemies,
+      world2.projectiles,
+      world2.strikes,
+      append(
+        world2.events,
+        prepend(Event$GateShut$const, List$Empty$const)
+      ),
+      world2.depth,
+      world2.cleared,
+      world2.doors,
+      world2.exits,
+      world2.seed,
+      world2.tree,
+      world2.unlocked,
+      world2.npcs,
+      world2.time,
+      world2.kills,
+      world2.room_time,
+      world2.safe_x,
+      true,
+      world2.plan,
+      world2.difficulty,
+      world2.hard_open,
+      world2.danger,
+      world2.drops
+    );
+  } else {
+    return world2;
+  }
+}
+__name(seal, "seal");
 function spare_the_born(strikes, before, after) {
   let old = map3(before, (e) => {
     return e.id;
@@ -26119,15 +26171,15 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        1556,
+        1557,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $22,
-          start: 46438,
-          end: 46494,
-          pattern_start: 46449,
-          pattern_end: 46454
+          start: 46515,
+          end: 46571,
+          pattern_start: 46526,
+          pattern_end: 46531
         }
       );
     }
@@ -28170,55 +28222,6 @@ function enemies_act(world2, dt2) {
   );
 }
 __name(enemies_act, "enemies_act");
-function seal(world2) {
-  let out = world2.depth > 0 && !world2.sealed && all(
-    world2.players,
-    (p2) => {
-      return p2.x > world2.safe_x + 0.5;
-    }
-  );
-  let empty2 = !any(
-    world2.enemies,
-    (e) => {
-      return alive(e) && overlaps(body(e), tunnel_inside());
-    }
-  );
-  let $ = out && empty2;
-  if ($) {
-    return new World(
-      world2.players,
-      prepend(gate(), world2.level),
-      world2.enemies,
-      world2.projectiles,
-      world2.strikes,
-      append(
-        world2.events,
-        prepend(Event$GateShut$const, List$Empty$const)
-      ),
-      world2.depth,
-      world2.cleared,
-      world2.doors,
-      world2.exits,
-      world2.seed,
-      world2.tree,
-      world2.unlocked,
-      world2.npcs,
-      world2.time,
-      world2.kills,
-      world2.room_time,
-      world2.safe_x,
-      true,
-      world2.plan,
-      world2.difficulty,
-      world2.hard_open,
-      world2.danger,
-      world2.drops
-    );
-  } else {
-    return world2;
-  }
-}
-__name(seal, "seal");
 function orbit(world2) {
   let p2 = player(world2);
   let $ = partition(
@@ -30239,29 +30242,28 @@ function step_many(world2, inputs, dt2) {
     }
   );
   let _pipe$2 = orbit(_pipe$1);
-  let _pipe$3 = seal(_pipe$2);
-  let _pipe$4 = enemies_act(_pipe$3, dt2);
-  let _pipe$5 = off_the_roof(_pipe$4);
-  let _pipe$6 = each(_pipe$5, befores, (w2, _) => {
+  let _pipe$3 = enemies_act(_pipe$2, dt2);
+  let _pipe$4 = off_the_roof(_pipe$3);
+  let _pipe$5 = each(_pipe$4, befores, (w2, _) => {
     return combat(w2);
   });
-  let _pipe$7 = strikes_act(_pipe$6, dt2);
-  let _pipe$8 = each(_pipe$7, befores, (w2, _) => {
+  let _pipe$6 = strikes_act(_pipe$5, dt2);
+  let _pipe$7 = each(_pipe$6, befores, (w2, _) => {
     return take_damage(w2);
   });
-  let _pipe$9 = each(_pipe$8, befores, (w2, _) => {
+  let _pipe$8 = each(_pipe$7, befores, (w2, _) => {
     return steal(w2);
   });
-  let _pipe$10 = each(_pipe$9, befores, (w2, _) => {
+  let _pipe$9 = each(_pipe$8, befores, (w2, _) => {
     return loot(w2, dt2);
   });
-  let _pipe$11 = ((w2) => {
+  let _pipe$10 = ((w2) => {
     let from = /* @__PURE__ */ __name((x, y2) => {
       return nearest(w2, x, y2).x;
     }, "from");
     let _block$1;
-    let _pipe$112 = split2(w2.enemies, from);
-    _block$1 = spread_wards(_pipe$112);
+    let _pipe$102 = split2(w2.enemies, from);
+    _block$1 = spread_wards(_pipe$102);
     let enemies = _block$1;
     return new World(
       w2.players,
@@ -30289,7 +30291,8 @@ function step_many(world2, inputs, dt2) {
       w2.danger,
       w2.drops
     );
-  })(_pipe$10);
+  })(_pipe$9);
+  let _pipe$11 = seal(_pipe$10);
   let _pipe$12 = check_clear(_pipe$11);
   let _pipe$13 = each(_pipe$12, up_fresh, use_door);
   let _pipe$14 = each(_pipe$13, up_fresh, talk);
@@ -31836,15 +31839,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3604,
+        3605,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 113008,
-          end: 113059,
-          pattern_start: 113019,
-          pattern_end: 113027
+          start: 113085,
+          end: 113136,
+          pattern_start: 113096,
+          pattern_end: 113104
         }
       );
     }
@@ -31856,15 +31859,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3606,
+        3607,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 113142,
-          end: 113203,
-          pattern_start: 113153,
-          pattern_end: 113170
+          start: 113219,
+          end: 113280,
+          pattern_start: 113230,
+          pattern_end: 113247
         }
       );
     } else {
@@ -31874,15 +31877,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          3606,
+          3607,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 113142,
-            end: 113203,
-            pattern_start: 113153,
-            pattern_end: 113170
+            start: 113219,
+            end: 113280,
+            pattern_start: 113230,
+            pattern_end: 113247
           }
         );
       } else {
@@ -34501,7 +34504,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "fa68f4bdc5d4" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "ae1d94d5fedf" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -34912,7 +34915,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "fa68f4bdc5d4" : "dev";
+var BUILD = true ? "ae1d94d5fedf" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
