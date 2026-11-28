@@ -30909,16 +30909,18 @@ var pal = HUB;
 var ZONE_W = 36;
 var ZONE_H = ZONE_W * 9 / 16;
 var zoneTextures = /* @__PURE__ */ new Map();
-function zoneBackdrop(zone, top) {
-  const art = zone.art;
+function zoneTexture(art) {
   if (!zoneTextures.has(art)) {
-    const t2 = stickerLoader.load(`art/zones/${art}.webp`);
-    t2.colorSpace = Je;
+    const t2 = loadTexture(`art/zones/${art}.webp`);
     t2.wrapS = ft;
     t2.repeat.set(4, 1);
     zoneTextures.set(art, t2);
   }
-  const m = new Bs(new ha(ZONE_W * 4, ZONE_H), new es({ map: zoneTextures.get(art) }));
+  return zoneTextures.get(art);
+}
+__name(zoneTexture, "zoneTexture");
+function zoneBackdrop(zone, top) {
+  const m = new Bs(new ha(ZONE_W * 4, ZONE_H), new es({ map: zoneTexture(zone.art) }));
   const s = Math.max(1, (top + 4) / ZONE_H);
   m.scale.set(s, s, 1);
   m.position.set(0, ZONE_H * s / 2 - 4, -6);
@@ -30986,7 +30988,8 @@ var INK2 = "#3b2b25";
 var tileImages = /* @__PURE__ */ new Map();
 function tileImage(name3) {
   if (!tileImages.has(name3)) tileImages.set(name3, new Promise((ok, fail) => Object.assign(new Image(), { onload() {
-    ok(this);
+    this.decode().catch(() => {
+    }).then(() => ok(this));
   }, onerror: fail, src: `art/tiles/${name3}.webp` })));
   return tileImages.get(name3);
 }
@@ -31100,6 +31103,11 @@ function block2(r, rs) {
 }
 __name(block2, "block");
 var decoTextures = /* @__PURE__ */ new Map();
+function decoTexture(path) {
+  if (!decoTextures.has(path)) decoTextures.set(path, loadTexture(path));
+  return decoTextures.get(path);
+}
+__name(decoTexture, "decoTexture");
 function decorate(group2, r, open, set, deco) {
   const place2 = /* @__PURE__ */ __name((list, a, b, y2, hang) => {
     for (let x = Math.ceil(a) + 0.5; x < b; x += 1) {
@@ -31107,21 +31115,16 @@ function decorate(group2, r, open, set, deco) {
       if (hash(k2 * 1.37) < (hang ? 0.6 : 0.3)) continue;
       const [name3, tall] = list[Math.floor(hash(k2 + 3.1) * list.length)], cx = x + (hash(k2 + 7.7) - 0.5) * 0.5;
       if (cx - tall * 0.5 < a || cx + tall * 0.5 > b) continue;
-      const path = `art/tiles/${set}-deco/${name3}.webp`;
-      if (!decoTextures.has(path)) {
-        const tex2 = stickerLoader.load(path, () => decoTextures.get(path).ready.forEach((f) => f()));
-        tex2.colorSpace = Je;
-        decoTextures.set(path, { tex: tex2, ready: [] });
-      }
-      const { tex, ready } = decoTextures.get(path), flip = hash(k2 + 5.3) < 0.5 ? -1 : 1;
+      const tex = decoTexture(`art/tiles/${set}-deco/${name3}.webp`), flip = hash(k2 + 5.3) < 0.5 ? -1 : 1;
       const m = new Bs(new ha(1, 1), new es({ map: tex, transparent: true, side: p }));
       const fit = /* @__PURE__ */ __name(() => m.scale.set(flip * tall * tex.image.width / tex.image.height, tall, 1), "fit");
       if (tex.image) fit();
       else {
         m.visible = false;
-        ready.push(() => {
+        tex.userData.loaded.then(() => {
           fit();
           m.visible = true;
+        }, () => {
         });
       }
       m.position.set(cx, hang ? y2 + 0.04 - tall / 2 : y2 - 0.06 + tall / 2, 0.05);
@@ -31303,12 +31306,19 @@ var LOCKED_TINT = new Kr(15722202);
 var calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 var stickerLoader = new Qd();
 var stickerTextures = /* @__PURE__ */ new Map();
+function loadTexture(url) {
+  let done;
+  const loaded = new Promise((ok, fail) => done = [ok, fail]);
+  const t2 = stickerLoader.load(url, done[0], void 0, done[1]);
+  t2.colorSpace = Je;
+  t2.userData.loaded = loaded;
+  loaded.catch(() => {
+  });
+  return t2;
+}
+__name(loadTexture, "loadTexture");
 function stickerTexture(path) {
-  if (!stickerTextures.has(path)) {
-    const t2 = stickerLoader.load(`art/${path}.webp`);
-    t2.colorSpace = Je;
-    stickerTextures.set(path, t2);
-  }
+  if (!stickerTextures.has(path)) stickerTextures.set(path, loadTexture(`art/${path}.webp`));
   return stickerTextures.get(path);
 }
 __name(stickerTexture, "stickerTexture");
@@ -31330,7 +31340,8 @@ var ENEMY_ART = {
   Dummy: { wide: 1.25 }
 };
 var artOf = /* @__PURE__ */ __name((e) => ENEMY_ART[e.kind.constructor.name], "artOf");
-var enemyArt = /* @__PURE__ */ __name((e) => `enemies/${e.kind.constructor.name.toLowerCase()}${artOf(e).tiers ? "-" + e.tier : ""}`, "enemyArt");
+var enemyPath = /* @__PURE__ */ __name((kind, tier) => `enemies/${kind.toLowerCase()}${ENEMY_ART[kind].tiers ? "-" + tier : ""}`, "enemyPath");
+var enemyArt = /* @__PURE__ */ __name((e) => enemyPath(e.kind.constructor.name, e.tier), "enemyArt");
 var HERO_PX = 280;
 var stickerSize = /* @__PURE__ */ __name((image, tall) => image ? [tall * image.width / HERO_PX, tall * image.height / HERO_PX] : [tall, tall], "stickerSize");
 var FACES_LEFT = /* @__PURE__ */ new Set(["Hunter", "Duelist", "Thief", "Cavalier", "Wizard", "Trickster", "Bandit", "Bard", "Warrior"]);
@@ -31349,6 +31360,79 @@ function loadSprites(name3) {
   });
 }
 __name(loadSprites, "loadSprites");
+var TIERS = [1, 2, 3];
+var preloaded = /* @__PURE__ */ new Set();
+var preloadQueue = [];
+var toUpload = [];
+var preloading = 0;
+var idle2 = /* @__PURE__ */ __name((f) => window.requestIdleCallback ? requestIdleCallback(f, { timeout: 1e3 }) : setTimeout(f, 50), "idle");
+function upload(t2) {
+  toUpload.push(t2);
+  if (toUpload.length === 1) idle2(nextUpload);
+}
+__name(upload, "upload");
+function nextUpload() {
+  renderer.initTexture(toUpload.shift());
+  if (toUpload.length) idle2(nextUpload);
+}
+__name(nextUpload, "nextUpload");
+function preload(key2, start) {
+  if (preloaded.has(key2)) return;
+  preloaded.add(key2);
+  preloadQueue.push(start);
+  pumpPreload();
+}
+__name(preload, "preload");
+function pumpPreload() {
+  while (preloading < 4 && preloadQueue.length) {
+    preloading++;
+    preloadQueue.shift()().catch(() => {
+    }).finally(() => {
+      preloading--;
+      pumpPreload();
+    });
+  }
+}
+__name(pumpPreload, "pumpPreload");
+var preloadTexture = /* @__PURE__ */ __name((key2, make2) => preload(key2, () => {
+  const t2 = make2();
+  return t2.userData.loaded.then(() => t2.image.decode?.().catch(() => {
+  })).then(() => upload(t2));
+}), "preloadTexture");
+function preloadZone(zone) {
+  preloadTexture(`zone:${zone.art}`, () => zoneTexture(zone.art));
+  const set = zone.tiles ?? zone.art, t2 = TILES[set];
+  if (!t2) return;
+  for (const part of ["fill", "cap"]) preload(`tile:${set}-${part}`, () => tileImage(`${set}-${part}`));
+  for (const [name3] of [...t2.deco?.top ?? [], ...t2.deco?.under ?? []]) {
+    const path = `art/tiles/${set}-deco/${name3}.webp`;
+    preloadTexture(path, () => decoTexture(path));
+  }
+}
+__name(preloadZone, "preloadZone");
+function preloadHero(name3) {
+  preloadTexture(`heroes/${name3}`, () => heroTexture(name3));
+  if (!ANIMATED.has(name3)) return;
+  loadSprites(name3);
+  const path = `sprites/${name3.toLowerCase()}`;
+  preloadTexture(path, () => stickerTexture(path));
+}
+__name(preloadHero, "preloadHero");
+function preloadFor(w2) {
+  const depth = w2.depth, kinds = Object.keys(ENEMY_ART);
+  for (const d2 of [depth + 1, depth + 2]) preloadZone(zoneAt(d2));
+  if (depth !== 0) return;
+  for (const k2 of kinds) preloadTexture(enemyPath(k2, 1), () => stickerTexture(enemyPath(k2, 1)));
+  preloadTexture("door", () => stickerTexture("door"));
+  const cells2 = w2.tree.cells.toArray(), p2 = w2.players.head;
+  for (const k2 of [...p2.class instanceof Some ? [p2.class[0]] : [], ...w2.unlocked.toArray()]) if (!parked(cells2[k2].name)) preloadHero(cells2[k2].name);
+  for (const tier of TIERS) for (const k2 of kinds) preloadTexture(enemyPath(k2, tier), () => stickerTexture(enemyPath(k2, tier)));
+  if (!preloaded.has("strikes")) {
+    preloaded.add("strikes");
+    Object.values(ART).forEach(upload);
+  }
+}
+__name(preloadFor, "preloadFor");
 var MOMENT = { land: 0.1, slam: 0.32, tuck: 0.28, block: 0.3, skid: 0.14 };
 var HARD_FALL = -15;
 var ran = 0;
@@ -31601,6 +31685,7 @@ function syncRoom() {
       return { mesh, x: n.x, y: n.y + (statue ? PEDESTAL_H : 0) + HERO_H + 0.15, n };
     });
     builtDoors = null;
+    preloadFor(world);
   }
   if (world.doors !== builtDoors) {
     builtDoors = world.doors;
