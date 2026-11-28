@@ -17203,6 +17203,18 @@ var Statue = class extends CustomType {
     this.keystone = keystone;
   }
 };
+var Respec = class extends CustomType {
+  static {
+    __name(this, "Respec");
+  }
+};
+var Role$Respec$const = new Respec();
+var Reroll = class extends CustomType {
+  static {
+    __name(this, "Reroll");
+  }
+};
+var Role$Reroll$const = new Reroll();
 var hub_step = 3;
 var hub_centre = 18;
 var hub_gap = 3;
@@ -18246,9 +18258,18 @@ function rest_room() {
   return new Template(
     prepend(plat(16, 2.2, 6), walls(34, 20)),
     [2, 0],
-    List$Empty$const,
+    prepend(
+      [13, 0, Kind$Dummy$const],
+      prepend(
+        [14.5, 0, Kind$Dummy$const],
+        prepend([16, 0, Kind$Dummy$const], List$Empty$const)
+      )
+    ),
     prepend([28, 0], List$Empty$const),
-    List$Empty$const,
+    prepend(
+      new Npc(21, 0, Role$Respec$const),
+      prepend(new Npc(24, 0, Role$Reroll$const), List$Empty$const)
+    ),
     [0, 0],
     0
   );
@@ -20190,12 +20211,13 @@ var Acc = class extends CustomType {
   static {
     __name(this, "Acc");
   }
-  constructor(seed, next_id, nodes2, edges) {
+  constructor(seed, next_id, nodes2, edges, roll2) {
     super();
     this.seed = seed;
     this.next_id = next_id;
     this.nodes = nodes2;
     this.edges = edges;
+    this.roll = roll2;
   }
 };
 var side = 210;
@@ -20869,7 +20891,13 @@ function add3(acc2, kind, cell, x, y2) {
   let jy = $1[1];
   let n = new Node2(acc2.next_id, kind, cell, x + jx, y2 + jy);
   return [
-    new Acc(s$1, acc2.next_id + 1, prepend(n, acc2.nodes), acc2.edges),
+    new Acc(
+      s$1,
+      acc2.next_id + 1,
+      prepend(n, acc2.nodes),
+      acc2.edges,
+      acc2.roll
+    ),
     n
   ];
 }
@@ -20879,16 +20907,29 @@ function link(acc2, a, b) {
     acc2.seed,
     acc2.next_id,
     acc2.nodes,
-    prepend([a, b], acc2.edges)
+    prepend([a, b], acc2.edges),
+    acc2.roll
   );
 }
 __name(link, "link");
 function small(acc2, axis) {
   let items = pool(axis);
   let s = next(acc2.seed);
+  let _block;
+  let $1 = acc2.roll;
+  if ($1 === 0) {
+    _block = [0, s];
+  } else {
+    let r = $1;
+    let r$1 = next(r);
+    _block = [r$1, r$1];
+  }
+  let $ = _block;
+  let roll2 = $[0];
+  let pick = $[1];
   return [
-    new Acc(s, acc2.next_id, acc2.nodes, acc2.edges),
-    new Small(nth(items, remainderInt(s, length(items))))
+    new Acc(s, acc2.next_id, acc2.nodes, acc2.edges, roll2),
+    new Small(nth(items, remainderInt(pick, length(items))))
   ];
 }
 __name(small, "small");
@@ -20904,15 +20945,15 @@ function find2(acc2, id2) {
       "let_assert",
       FILEPATH,
       "tree",
-      573,
+      589,
       "find",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 18782,
-        end: 18843,
-        pattern_start: 18793,
-        pattern_end: 18798
+        start: 19193,
+        end: 19254,
+        pattern_start: 19204,
+        pattern_end: 19209
       }
     );
   }
@@ -20953,7 +20994,7 @@ function perp(x, y2) {
   return unit2(0 - y2, x);
 }
 __name(perp, "perp");
-function build() {
+function build_rolled(roll2) {
   let cs2 = cells();
   let degree = /* @__PURE__ */ __name((c) => {
     return count(cs2, (_capture) => {
@@ -20967,7 +21008,7 @@ function build() {
       return new Node2(c.id, new Keystone(c.name), c.id, c.x, c.y);
     }
   );
-  let acc2 = new Acc(layout_seed, 16, keystones, List$Empty$const);
+  let acc2 = new Acc(layout_seed, 16, keystones, List$Empty$const, roll2);
   let $ = fold2(
     cs2,
     [acc2, List$Empty$const],
@@ -20988,7 +21029,13 @@ function build() {
       let $4 = between(s$1, 0, 3.14);
       let s$2 = $4[0];
       let tilt = $4[1];
-      let acc$22 = new Acc(s$2, acc$12.next_id, acc$12.nodes, acc$12.edges);
+      let acc$22 = new Acc(
+        s$2,
+        acc$12.next_id,
+        acc$12.nodes,
+        acc$12.edges,
+        acc$12.roll
+      );
       let to_centre = atan2(centre[1] - c.y, centre[0] - c.x);
       let $5 = fold2(
         upto2(0, n - 1),
@@ -21003,7 +21050,13 @@ function build() {
           let $6 = between(acc$33.seed, -1, 1);
           let s$3 = $6[0];
           let noise2 = $6[1];
-          let acc$42 = new Acc(s$3, acc$33.next_id, acc$33.nodes, acc$33.edges);
+          let acc$42 = new Acc(
+            s$3,
+            acc$33.next_id,
+            acc$33.nodes,
+            acc$33.edges,
+            acc$33.roll
+          );
           let _block2;
           let $7 = region(c);
           if ($7 instanceof Some) {
@@ -21114,15 +21167,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        661,
-        "build",
+        689,
+        "build_rolled",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 22154,
-          end: 22200,
-          pattern_start: 22165,
-          pattern_end: 22173
+          start: 22964,
+          end: 23010,
+          pattern_start: 22975,
+          pattern_end: 22983
         }
       );
     }
@@ -21147,15 +21200,15 @@ function build() {
         "let_assert",
         FILEPATH,
         "tree",
-        662,
-        "build",
+        690,
+        "build_rolled",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 22205,
-          end: 22379,
-          pattern_start: 22216,
-          pattern_end: 22223
+          start: 23015,
+          end: 23189,
+          pattern_start: 23026,
+          pattern_end: 23033
         }
       );
     } else {
@@ -21193,7 +21246,7 @@ function build() {
       let $2 = between(s, -5, 5);
       let s$1 = $2[0];
       let bend = $2[1];
-      let acc$22 = new Acc(s$1, acc3.next_id, acc3.nodes, acc3.edges);
+      let acc$22 = new Acc(s$1, acc3.next_id, acc3.nodes, acc3.edges, acc3.roll);
       let gap = square_root(dist2(from.x, from.y, to2.x, to2.y));
       let fits = truncate(divideFloat(unwrap2(gap, 0), spacing)) - 1;
       let len$1 = max(0, min(truncate(len), fits));
@@ -21224,15 +21277,15 @@ function build() {
               "let_assert",
               FILEPATH,
               "tree",
-              706,
-              "build",
+              734,
+              "build_rolled",
               "Pattern match failed, no pattern matched the value.",
               {
                 value: chain2,
-                start: 23994,
-                end: 24023,
-                pattern_start: 24005,
-                pattern_end: 24015
+                start: 24804,
+                end: 24833,
+                pattern_start: 24815,
+                pattern_end: 24825
               }
             );
           } else {
@@ -21249,15 +21302,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          709,
-          "build",
+          737,
+          "build_rolled",
           "Pattern match failed, no pattern matched the value.",
           {
             value: chain,
-            start: 24099,
-            end: 24128,
-            pattern_start: 24110,
-            pattern_end: 24120
+            start: 24909,
+            end: 24938,
+            pattern_start: 24920,
+            pattern_end: 24930
           }
         );
       } else {
@@ -21308,7 +21361,7 @@ function build() {
       let $3 = between(acc3.seed, -0.9, 0.9);
       let s = $3[0];
       let turn2 = $3[1];
-      let acc$32 = new Acc(s, acc3.next_id, acc3.nodes, acc3.edges);
+      let acc$32 = new Acc(s, acc3.next_id, acc3.nodes, acc3.edges, acc3.roll);
       let lay = /* @__PURE__ */ __name((turn3) => {
         let rx2 = dx * cos(turn3) - dy * sin(turn3);
         let ry2 = dx * sin(turn3) + dy * cos(turn3);
@@ -21385,15 +21438,15 @@ function build() {
           "let_assert",
           FILEPATH,
           "tree",
-          767,
-          "build",
+          795,
+          "build_rolled",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $4,
-            start: 26343,
-            end: 26563,
-            pattern_start: 26354,
-            pattern_end: 26374
+            start: 27153,
+            end: 27373,
+            pattern_start: 27164,
+            pattern_end: 27184
           }
         );
       }
@@ -21476,7 +21529,15 @@ function build() {
     acc$3.edges
   );
 }
+__name(build_rolled, "build_rolled");
+function build() {
+  return build_rolled(0);
+}
 __name(build, "build");
+function reroll(seed) {
+  return build_rolled(absolute_value(seed) % 2147483646 + 1);
+}
+__name(reroll, "reroll");
 function can_allocate(t2, owned, id2) {
   let $ = get(t2.nodes, id2);
   if ($ instanceof Ok) {
@@ -22021,7 +22082,7 @@ var Player = class extends CustomType {
   static {
     __name(this, "Player");
   }
-  constructor(x, y2, vx, vy, grounded, on_platform, wall, facing, coyote, jump_buffer, air_jumps, dash_time, dashes, can_cut, up_held, down_held, jumped, dashed, struck, plunged, slam, grudge, conduit, quick, rebound, air_hits, weapon, loadout, trained, class$, allocated, mods, shield, block_charge, crash_wait, swings, risen, attack, stats, lvl, xp2, points, hp2, invuln, hurt2, hexed, rush, through, lunge, orbs_away) {
+  constructor(x, y2, vx, vy, grounded, on_platform, wall, facing, coyote, jump_buffer, air_jumps, dash_time, dashes, can_cut, up_held, down_held, jumped, dashed, struck, plunged, slam, grudge, conduit, quick, rebound, air_hits, weapon, loadout, trained, class$, allocated, mods, tree_stats, shield, block_charge, crash_wait, swings, risen, attack, stats, lvl, xp2, points, hp2, invuln, hurt2, hexed, rush, through, lunge, orbs_away) {
     super();
     this.x = x;
     this.y = y2;
@@ -22055,6 +22116,7 @@ var Player = class extends CustomType {
     this.class = class$;
     this.allocated = allocated;
     this.mods = mods;
+    this.tree_stats = tree_stats;
     this.shield = shield;
     this.block_charge = block_charge;
     this.crash_wait = crash_wait;
@@ -22124,7 +22186,7 @@ var World = class extends CustomType {
   static {
     __name(this, "World");
   }
-  constructor(players, level, enemies, projectiles, strikes, events, depth, cleared, doors, exits, seed, tree, unlocked, npcs, time, kills, room_time, safe_x, sealed, plan, difficulty, hard_open, danger, drops) {
+  constructor(players, level, enemies, projectiles, strikes, events, depth, cleared, doors, exits, seed, tree, unlocked, npcs, time, kills, room_time, safe_x, sealed, plan, difficulty, hard_open, danger, drops, rerolls) {
     super();
     this.players = players;
     this.level = level;
@@ -22150,6 +22212,7 @@ var World = class extends CustomType {
     this.hard_open = hard_open;
     this.danger = danger;
     this.drops = drops;
+    this.rerolls = rerolls;
   }
 };
 var Shard = class extends CustomType {
@@ -22389,15 +22452,15 @@ function player(world2) {
       "let_assert",
       FILEPATH2,
       "game",
-      776,
+      782,
       "player",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 22582,
-        end: 22616,
-        pattern_start: 22593,
-        pattern_end: 22600
+        start: 22821,
+        end: 22855,
+        pattern_start: 22832,
+        pattern_end: 22839
       }
     );
   } else {
@@ -22472,32 +22535,33 @@ __name(tier_at, "tier_at");
 function load(world2, t2, depth) {
   let pace$1 = pace2(depth);
   let _block;
-  if (depth === 0) {
+  let $ = depth === 0 || is_rest(depth);
+  if ($) {
     _block = length(t2.spawns);
   } else {
     _block = 2 + globalThis.Math.trunc(pace$1 / 2);
   }
   let count2 = _block;
-  let $ = t2.air;
-  let ax = $[0];
-  let ay = $[1];
+  let $1 = t2.air;
+  let ax = $1[0];
+  let ay = $1[1];
   let quiet = is_boss(depth) || is_rest(depth) || depth === 0;
   let _block$1;
-  let $1 = drop(zone_health, zone_at(depth));
-  if ($1 instanceof Empty) {
+  let $2 = drop(zone_health, zone_at(depth));
+  if ($2 instanceof Empty) {
     _block$1 = 100;
   } else {
-    let pct$1 = $1.head;
+    let pct$1 = $2.head;
     _block$1 = pct$1;
   }
   let health_pct = _block$1;
   let boss_tier = min(3, zone_at(depth) + 1);
   let _block$2;
-  let $2 = drop(boss_hp, zone_at(depth));
-  if ($2 instanceof Empty) {
+  let $3 = drop(boss_hp, zone_at(depth));
+  if ($3 instanceof Empty) {
     _block$2 = 1e3;
   } else {
-    let hp2 = $2.head;
+    let hp2 = $3.head;
     _block$2 = hp2;
   }
   let boss_hp$1 = _block$2;
@@ -22540,8 +22604,10 @@ function load(world2, t2, depth) {
     _pipe$2,
     (s, i) => {
       let e = spawn(i + 1, s[2], s[0], s[1]);
-      let $3 = e.kind;
-      if ($3 instanceof Boss) {
+      let $4 = e.kind;
+      if ($4 instanceof Dummy) {
+        return e;
+      } else if ($4 instanceof Boss) {
         return new Enemy(
           e.id,
           e.kind,
@@ -22647,6 +22713,7 @@ function load(world2, t2, depth) {
           p2.class,
           p2.allocated,
           p2.mods,
+          p2.tree_stats,
           p2.shield,
           p2.block_charge,
           p2.crash_wait,
@@ -22669,8 +22736,8 @@ function load(world2, t2, depth) {
       }
     ),
     (() => {
-      let $3 = depth === 0;
-      if ($3) {
+      let $4 = depth === 0;
+      if ($4) {
         return t2.level;
       } else if (quiet) {
         return prepend(tunnel(), t2.level);
@@ -22699,7 +22766,8 @@ function load(world2, t2, depth) {
     world2.difficulty,
     world2.hard_open,
     world2.danger,
-    List$Empty$const
+    List$Empty$const,
+    world2.rerolls
   );
 }
 __name(load, "load");
@@ -22747,7 +22815,8 @@ function hub_doors(world2) {
     world2.difficulty,
     world2.hard_open,
     world2.danger,
-    world2.drops
+    world2.drops,
+    world2.rerolls
   );
 }
 __name(hub_doors, "hub_doors");
@@ -22785,6 +22854,7 @@ function new_world(seed) {
     Option$None$const,
     List$Empty$const,
     sandbox,
+    new Stats(0, 0, 0),
     0,
     0,
     0,
@@ -22828,7 +22898,8 @@ function new_world(seed) {
     Difficulty$Normal$const,
     false,
     false,
-    List$Empty$const
+    List$Empty$const,
+    1
   );
   return hub_doors(load(world2, hub(), 0));
 }
@@ -22858,7 +22929,8 @@ function open_hard(world2) {
     world2.difficulty,
     true,
     world2.danger,
-    world2.drops
+    world2.drops,
+    world2.rerolls
   );
   let $ = world$1.depth;
   if ($ === 0) {
@@ -22980,7 +23052,8 @@ function drop_loot(world2, killed) {
     world2.difficulty,
     world2.hard_open,
     world2.danger,
-    drops
+    drops,
+    world2.rerolls
   );
 }
 __name(drop_loot, "drop_loot");
@@ -23047,7 +23120,8 @@ function tick_enemies(world2, dt2) {
     world2.difficulty,
     world2.hard_open,
     world2.danger,
-    world2.drops
+    world2.drops,
+    world2.rerolls
   );
   return drop_loot(_pipe$1, fallen);
 }
@@ -23126,7 +23200,8 @@ function hold_grace(world2, dt2) {
     world2.difficulty,
     world2.hard_open,
     world2.danger,
-    world2.drops
+    world2.drops,
+    world2.rerolls
   );
 }
 __name(hold_grace, "hold_grace");
@@ -23134,6 +23209,33 @@ function others(world2) {
   return drop(world2.players, 1);
 }
 __name(others, "others");
+function blocks(p2) {
+  let $ = has2(p2, Rule$Retribution$const);
+  if ($) {
+    return 0;
+  } else {
+    return p2.mods.shields;
+  }
+}
+__name(blocks, "blocks");
+function max_hp3(p2) {
+  let full = max_hp2(p2.stats) + p2.mods.bonus_hp;
+  let _block;
+  let $ = has2(p2, Rule$GlassCannon$const);
+  if ($) {
+    _block = max(1, globalThis.Math.trunc(full / 2));
+  } else {
+    _block = full;
+  }
+  let full$1 = _block;
+  let $1 = has2(p2, Rule$Phoenix$const);
+  if ($1) {
+    return max(1, globalThis.Math.trunc(full$1 * 3 / 4));
+  } else {
+    return full$1;
+  }
+}
+__name(max_hp3, "max_hp");
 function kit_mods(name3) {
   if (name3 === "Hunter") {
     return new Mods(
@@ -23314,6 +23416,247 @@ function kit_mods(name3) {
   }
 }
 __name(kit_mods, "kit_mods");
+function refundable(world2) {
+  let p2 = player(world2);
+  let $ = p2.class;
+  if ($ instanceof Some) {
+    return length(p2.allocated) - 2 + length(p2.trained);
+  } else {
+    return 0;
+  }
+}
+__name(refundable, "refundable");
+function refund(world2) {
+  let p2 = player(world2);
+  let cell = find(
+    world2.tree.cells,
+    (c) => {
+      return isEqual(new Some(c.id), p2.class);
+    }
+  );
+  let $ = is_rest(world2.depth);
+  let $1 = refundable(world2) > 0;
+  if ($ && $1 && cell instanceof Ok) {
+    let c = cell[0];
+    let t2 = p2.tree_stats;
+    let s = new Stats(
+      p2.stats.fighter - t2.fighter,
+      p2.stats.rogue - t2.rogue,
+      p2.stats.mage - t2.mage
+    );
+    let q2 = new Player(
+      p2.x,
+      p2.y,
+      p2.vx,
+      p2.vy,
+      p2.grounded,
+      p2.on_platform,
+      p2.wall,
+      p2.facing,
+      p2.coyote,
+      p2.jump_buffer,
+      p2.air_jumps,
+      p2.dash_time,
+      p2.dashes,
+      p2.can_cut,
+      p2.up_held,
+      p2.down_held,
+      p2.jumped,
+      p2.dashed,
+      p2.struck,
+      p2.plunged,
+      p2.slam,
+      p2.grudge,
+      p2.conduit,
+      p2.quick,
+      p2.rebound,
+      p2.air_hits,
+      p2.weapon,
+      prepend(signature(c.name), List$Empty$const),
+      List$Empty$const,
+      p2.class,
+      prepend(
+        c.id,
+        prepend(signature_node(world2.tree, c.id), List$Empty$const)
+      ),
+      (() => {
+        let _record = kit_mods(c.name);
+        return new Mods(
+          _record.bonus_hp,
+          _record.damage_pct,
+          _record.attack_speed_pct,
+          _record.reach_pct,
+          _record.cooldown_pct,
+          _record.iframes,
+          _record.xp_pct,
+          _record.knockback_pct,
+          _record.crit_pct,
+          _record.shields,
+          _record.knives,
+          _record.pierce,
+          _record.shockwave_pct,
+          _record.slash_pct,
+          _record.quake,
+          _record.air_jumps,
+          _record.dashes,
+          _record.wall_jump,
+          kit_rules(c.name)
+        );
+      })(),
+      new Stats(0, 0, 0),
+      p2.shield,
+      p2.block_charge,
+      p2.crash_wait,
+      p2.swings,
+      p2.risen,
+      p2.attack,
+      s,
+      p2.lvl,
+      p2.xp,
+      p2.points + refundable(world2),
+      p2.hp,
+      p2.invuln,
+      p2.hurt,
+      p2.hexed,
+      p2.rush,
+      p2.through,
+      p2.lunge,
+      List$Empty$const
+    );
+    let _block;
+    let $2 = p2.hp >= max_hp3(p2);
+    if ($2) {
+      _block = max_hp3(q2);
+    } else {
+      _block = min(p2.hp, max_hp3(q2));
+    }
+    let hp2 = _block;
+    let q$1 = new Player(
+      q2.x,
+      q2.y,
+      q2.vx,
+      q2.vy,
+      q2.grounded,
+      q2.on_platform,
+      q2.wall,
+      q2.facing,
+      q2.coyote,
+      q2.jump_buffer,
+      min(q2.air_jumps, q2.mods.air_jumps),
+      q2.dash_time,
+      min(q2.dashes, q2.mods.dashes),
+      q2.can_cut,
+      q2.up_held,
+      q2.down_held,
+      q2.jumped,
+      q2.dashed,
+      q2.struck,
+      q2.plunged,
+      q2.slam,
+      q2.grudge,
+      q2.conduit,
+      q2.quick,
+      q2.rebound,
+      q2.air_hits,
+      q2.weapon,
+      q2.loadout,
+      q2.trained,
+      q2.class,
+      q2.allocated,
+      q2.mods,
+      q2.tree_stats,
+      min(q2.shield, blocks(q2)),
+      q2.block_charge,
+      q2.crash_wait,
+      q2.swings,
+      q2.risen,
+      q2.attack,
+      q2.stats,
+      q2.lvl,
+      q2.xp,
+      q2.points,
+      hp2,
+      q2.invuln,
+      q2.hurt,
+      q2.hexed,
+      q2.rush,
+      q2.through,
+      q2.lunge,
+      q2.orbs_away
+    );
+    return new World(
+      prepend(q$1, others(world2)),
+      world2.level,
+      world2.enemies,
+      world2.projectiles,
+      world2.strikes,
+      world2.events,
+      world2.depth,
+      world2.cleared,
+      world2.doors,
+      world2.exits,
+      world2.seed,
+      world2.tree,
+      world2.unlocked,
+      world2.npcs,
+      world2.time,
+      world2.kills,
+      world2.room_time,
+      world2.safe_x,
+      world2.sealed,
+      world2.plan,
+      world2.difficulty,
+      world2.hard_open,
+      world2.danger,
+      world2.drops,
+      world2.rerolls
+    );
+  } else {
+    return world2;
+  }
+}
+__name(refund, "refund");
+function next2(seed) {
+  return next(seed);
+}
+__name(next2, "next");
+function reroll2(world2) {
+  let $ = is_rest(world2.depth) && world2.rerolls > 0 && !(player(world2).class instanceof None);
+  if ($) {
+    let seed = next2(world2.seed);
+    let world$1 = refund(world2);
+    return new World(
+      world$1.players,
+      world$1.level,
+      world$1.enemies,
+      world$1.projectiles,
+      world$1.strikes,
+      world$1.events,
+      world$1.depth,
+      world$1.cleared,
+      world$1.doors,
+      world$1.exits,
+      seed,
+      reroll(seed),
+      world$1.unlocked,
+      world$1.npcs,
+      world$1.time,
+      world$1.kills,
+      world$1.room_time,
+      world$1.safe_x,
+      world$1.sealed,
+      world$1.plan,
+      world$1.difficulty,
+      world$1.hard_open,
+      world$1.danger,
+      world$1.drops,
+      world$1.rerolls - 1
+    );
+  } else {
+    return world2;
+  }
+}
+__name(reroll2, "reroll");
 function choose_class(world2, keystone) {
   let p2 = player(world2);
   let cell = find(world2.tree.cells, (c) => {
@@ -23389,6 +23732,7 @@ function choose_class(world2, keystone) {
               kit_rules(c.name)
             );
           })(),
+          new Stats(0, 0, 0),
           0,
           p2.block_charge,
           0,
@@ -23432,7 +23776,8 @@ function choose_class(world2, keystone) {
       world2.difficulty,
       world2.hard_open,
       world2.danger,
-      world2.drops
+      world2.drops,
+      world2.rerolls
     );
   } else {
     return world2;
@@ -23458,6 +23803,10 @@ function talk(world2, up_fresh) {
     if ($1 instanceof Statue) {
       let k2 = $1.keystone;
       return choose_class(world2, k2);
+    } else if ($1 instanceof Respec) {
+      return refund(world2);
+    } else if ($1 instanceof Reroll) {
+      return reroll2(world2);
     } else {
       return world2;
     }
@@ -23502,7 +23851,8 @@ function each(world2, xs2, phase) {
           w$1.difficulty,
           w$1.hard_open,
           w$1.danger,
-          w$1.drops
+          w$1.drops,
+          w$1.rerolls
         );
       }
     }
@@ -23543,24 +23893,6 @@ function reward_label(r) {
   }
 }
 __name(reward_label, "reward_label");
-function max_hp3(p2) {
-  let full = max_hp2(p2.stats) + p2.mods.bonus_hp;
-  let _block;
-  let $ = has2(p2, Rule$GlassCannon$const);
-  if ($) {
-    _block = max(1, globalThis.Math.trunc(full / 2));
-  } else {
-    _block = full;
-  }
-  let full$1 = _block;
-  let $1 = has2(p2, Rule$Phoenix$const);
-  if ($1) {
-    return max(1, globalThis.Math.trunc(full$1 * 3 / 4));
-  } else {
-    return full$1;
-  }
-}
-__name(max_hp3, "max_hp");
 function mend(p2, amount) {
   let _block;
   let $ = has2(p2, Rule$LastStand$const);
@@ -23624,6 +23956,7 @@ function apply_reward(loop$p, loop$r) {
         p2.class,
         p2.allocated,
         p2.mods,
+        p2.tree_stats,
         p2.shield,
         p2.block_charge,
         p2.crash_wait,
@@ -23676,6 +24009,7 @@ function apply_reward(loop$p, loop$r) {
         q2.class,
         q2.allocated,
         q2.mods,
+        q2.tree_stats,
         q2.shield,
         q2.block_charge,
         q2.crash_wait,
@@ -23729,6 +24063,7 @@ function apply_reward(loop$p, loop$r) {
         p2.class,
         p2.allocated,
         p2.mods,
+        p2.tree_stats,
         p2.shield,
         p2.block_charge,
         p2.crash_wait,
@@ -23768,15 +24103,15 @@ function nth_room(i) {
       "let_assert",
       FILEPATH2,
       "game",
-      3727,
+      3841,
       "nth_room",
       "Pattern match failed, no pattern matched the value.",
       {
         value: $,
-        start: 117177,
-        end: 117227,
-        pattern_start: 117188,
-        pattern_end: 117195
+        start: 120865,
+        end: 120915,
+        pattern_start: 120876,
+        pattern_end: 120883
       }
     );
   } else {
@@ -23851,10 +24186,6 @@ function zone_pool(zone) {
   });
 }
 __name(zone_pool, "zone_pool");
-function next2(seed) {
-  return next(seed);
-}
-__name(next2, "next");
 function shuffle(items, seed) {
   let $ = map_fold(
     items,
@@ -23966,7 +24297,8 @@ function home2(world2) {
     _record.difficulty,
     _record.hard_open,
     _record.danger,
-    _record.drops
+    _record.drops,
+    _record.rerolls
   );
   let fresh = _block;
   let _block$1;
@@ -24003,7 +24335,8 @@ function home2(world2) {
     fresh$1.difficulty,
     fresh$1.hard_open,
     fresh$1.danger,
-    fresh$1.drops
+    fresh$1.drops,
+    fresh$1.rerolls
   );
   return each(
     fresh$2,
@@ -24074,7 +24407,8 @@ function use_door(world2, up_fresh) {
         _record.difficulty,
         _record.hard_open,
         _record.danger,
-        _record.drops
+        _record.drops,
+        _record.rerolls
       );
     } else {
       let d2 = door[0];
@@ -24152,7 +24486,8 @@ function use_door(world2, up_fresh) {
         difficulty,
         world2.hard_open,
         danger,
-        world2.drops
+        world2.drops,
+        world2.rerolls
       );
       let _block$5;
       let $6 = is_boss(depth);
@@ -24187,7 +24522,8 @@ function use_door(world2, up_fresh) {
             world$1.difficulty,
             world$1.hard_open,
             world$1.danger,
-            world$1.drops
+            world$1.drops,
+            world$1.rerolls
           )
         );
       }
@@ -24217,7 +24553,8 @@ function use_door(world2, up_fresh) {
           world$1.difficulty,
           world$1.hard_open,
           world$1.danger,
-          world$1.drops
+          world$1.drops,
+          world$1.rerolls
         ),
         t2,
         depth
@@ -24262,6 +24599,7 @@ function use_door(world2, up_fresh) {
               p$1.class,
               p$1.allocated,
               p$1.mods,
+              p$1.tree_stats,
               p$1.shield,
               p$1.block_charge,
               p$1.crash_wait,
@@ -24311,7 +24649,8 @@ function use_door(world2, up_fresh) {
           world$2.difficulty,
           world$2.hard_open,
           world$2.danger,
-          world$2.drops
+          world$2.drops,
+          world$2.rerolls
         );
       } else {
         _block$6 = world$2;
@@ -24367,7 +24706,8 @@ function use_door(world2, up_fresh) {
           world$3.difficulty,
           world$3.hard_open,
           world$3.danger,
-          world$3.drops
+          world$3.drops,
+          world$3.rerolls
         );
       } else {
         _block$7 = world$3;
@@ -24400,7 +24740,8 @@ function use_door(world2, up_fresh) {
         world$4.difficulty,
         world$4.hard_open,
         world$4.danger,
-        world$4.drops
+        world$4.drops,
+        world$4.rerolls
       );
     }
   } else {
@@ -24585,6 +24926,7 @@ function check_clear(world2) {
           p2.class,
           p2.allocated,
           p2.mods,
+          p2.tree_stats,
           p2.shield,
           p2.block_charge,
           p2.crash_wait,
@@ -24648,6 +24990,7 @@ function check_clear(world2) {
         player$1.class,
         player$1.allocated,
         player$1.mods,
+        player$1.tree_stats,
         player$1.shield,
         player$1.block_charge,
         player$1.crash_wait,
@@ -24710,7 +25053,8 @@ function check_clear(world2) {
       world2.difficulty,
       hard_open,
       world2.danger,
-      world2.drops
+      world2.drops,
+      world2.rerolls
     );
   }
 }
@@ -24760,7 +25104,8 @@ function seal(world2) {
       world2.difficulty,
       world2.hard_open,
       world2.danger,
-      world2.drops
+      world2.drops,
+      world2.rerolls
     );
   } else {
     return world2;
@@ -24886,6 +25231,7 @@ function gain_xp(loop$p, loop$xp, loop$events) {
         p2.class,
         p2.allocated,
         p2.mods,
+        p2.tree_stats,
         p2.shield,
         p2.block_charge,
         p2.crash_wait,
@@ -24957,6 +25303,7 @@ function gain_xp(loop$p, loop$xp, loop$events) {
           p2.class,
           p2.allocated,
           p2.mods,
+          p2.tree_stats,
           p2.shield,
           p2.block_charge,
           p2.crash_wait,
@@ -25109,6 +25456,7 @@ function loot(world2, dt2) {
     p2.class,
     p2.allocated,
     p2.mods,
+    p2.tree_stats,
     p2.shield,
     p2.block_charge,
     p2.crash_wait,
@@ -25166,7 +25514,8 @@ function loot(world2, dt2) {
     world2.difficulty,
     world2.hard_open,
     world2.danger,
-    reverse2(drops)
+    reverse2(drops),
+    world2.rerolls
   );
 }
 __name(loot, "loot");
@@ -25258,7 +25607,8 @@ function steal(world2) {
         world2.difficulty,
         world2.hard_open,
         world2.danger,
-        world2.drops
+        world2.drops,
+        world2.rerolls
       );
     } else {
       return new World(
@@ -25285,7 +25635,8 @@ function steal(world2) {
         world2.difficulty,
         world2.hard_open,
         world2.danger,
-        world2.drops
+        world2.drops,
+        world2.rerolls
       );
     }
   } else {
@@ -25350,6 +25701,7 @@ function blocked_by_shield(world2, k2) {
           p2.class,
           p2.allocated,
           p2.mods,
+          p2.tree_stats,
           p2.shield - 1,
           p2.block_charge,
           crash_recharge,
@@ -25396,7 +25748,8 @@ function blocked_by_shield(world2, k2) {
       world2.difficulty,
       world2.hard_open,
       world2.danger,
-      world2.drops
+      world2.drops,
+      world2.rerolls
     );
   } else {
     return k2();
@@ -25469,6 +25822,7 @@ function hurt(world2, damage3, from_x) {
                 p2.class,
                 p2.allocated,
                 p2.mods,
+                p2.tree_stats,
                 p2.shield,
                 p2.block_charge,
                 p2.crash_wait,
@@ -25524,7 +25878,8 @@ function hurt(world2, damage3, from_x) {
             world2.difficulty,
             world2.hard_open,
             world2.danger,
-            world2.drops
+            world2.drops,
+            world2.rerolls
           );
         } else if (others_up) {
           return new World(
@@ -25562,6 +25917,7 @@ function hurt(world2, damage3, from_x) {
                 p2.class,
                 p2.allocated,
                 p2.mods,
+                p2.tree_stats,
                 p2.shield,
                 p2.block_charge,
                 p2.crash_wait,
@@ -25605,7 +25961,8 @@ function hurt(world2, damage3, from_x) {
             world2.difficulty,
             world2.hard_open,
             world2.danger,
-            world2.drops
+            world2.drops,
+            world2.rerolls
           );
         } else {
           let _record = home2(world2);
@@ -25639,7 +25996,8 @@ function hurt(world2, damage3, from_x) {
             _record.difficulty,
             _record.hard_open,
             _record.danger,
-            _record.drops
+            _record.drops,
+            _record.rerolls
           );
         }
       } else {
@@ -25676,6 +26034,7 @@ function hurt(world2, damage3, from_x) {
           p2.class,
           p2.allocated,
           p2.mods,
+          p2.tree_stats,
           p2.shield,
           p2.block_charge,
           p2.crash_wait,
@@ -25732,6 +26091,7 @@ function hurt(world2, damage3, from_x) {
             p$1.class,
             p$1.allocated,
             p$1.mods,
+            p$1.tree_stats,
             p$1.shield,
             p$1.block_charge,
             p$1.crash_wait,
@@ -25790,6 +26150,7 @@ function hurt(world2, damage3, from_x) {
               p$2.class,
               p$2.allocated,
               p$2.mods,
+              p$2.tree_stats,
               p$2.shield,
               p$2.block_charge,
               p$2.crash_wait,
@@ -25849,7 +26210,8 @@ function hurt(world2, damage3, from_x) {
           world2.difficulty,
           world2.hard_open,
           world2.danger,
-          world2.drops
+          world2.drops,
+          world2.rerolls
         );
       }
     }
@@ -25889,15 +26251,6 @@ function damage2(p2) {
   );
 }
 __name(damage2, "damage");
-function blocks(p2) {
-  let $ = has2(p2, Rule$Retribution$const);
-  if ($) {
-    return 0;
-  } else {
-    return p2.mods.shields;
-  }
-}
-__name(blocks, "blocks");
 function bat_away(world2, targets, push) {
   let ids = map3(targets, (e) => {
     return e.id;
@@ -25942,7 +26295,8 @@ function bat_away(world2, targets, push) {
       world2.difficulty,
       world2.hard_open,
       world2.danger,
-      world2.drops
+      world2.drops,
+      world2.rerolls
     );
   }
 }
@@ -26171,15 +26525,15 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         "let_assert",
         FILEPATH2,
         "game",
-        1557,
+        1563,
         "hit_enemies",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $22,
-          start: 46515,
-          end: 46571,
-          pattern_start: 46526,
-          pattern_end: 46531
+          start: 46754,
+          end: 46810,
+          pattern_start: 46765,
+          pattern_end: 46770
         }
       );
     }
@@ -26247,6 +26601,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
       p2.class,
       p2.allocated,
       p2.mods,
+      p2.tree_stats,
       p2.shield,
       p2.block_charge,
       p2.crash_wait,
@@ -26309,6 +26664,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
       p$1.class,
       p$1.allocated,
       p$1.mods,
+      p$1.tree_stats,
       p$1.shield,
       p$1.block_charge,
       p$1.crash_wait,
@@ -26372,6 +26728,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
           p$2.class,
           p$2.allocated,
           p$2.mods,
+          p$2.tree_stats,
           p$2.shield + 1,
           0,
           p$2.crash_wait,
@@ -26428,6 +26785,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
           p$2.class,
           p$2.allocated,
           p$2.mods,
+          p$2.tree_stats,
           p$2.shield,
           charge,
           p$2.crash_wait,
@@ -26485,6 +26843,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
         p$2.class,
         p$2.allocated,
         p$2.mods,
+        p$2.tree_stats,
         p$2.shield,
         0,
         p$2.crash_wait,
@@ -26557,6 +26916,7 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
     p$3.class,
     p$3.allocated,
     p$3.mods,
+    p$3.tree_stats,
     p$3.shield,
     p$3.block_charge,
     p$3.crash_wait,
@@ -26623,7 +26983,8 @@ function hit_enemies(world2, targets, element2, dmg, sure_crit, push) {
     world$1.difficulty,
     world$1.hard_open,
     world$1.danger,
-    world$1.drops
+    world$1.drops,
+    world$1.rerolls
   );
   return drop_loot(_pipe, killed);
 }
@@ -26709,7 +27070,8 @@ function take_damage(world2) {
             world2.difficulty,
             world2.hard_open,
             world2.danger,
-            world2.drops
+            world2.drops,
+            world2.rerolls
           ),
           s.damage,
           s.x - s.vx
@@ -26753,6 +27115,7 @@ function take_damage(world2) {
                   _record.class,
                   _record.allocated,
                   _record.mods,
+                  _record.tree_stats,
                   _record.shield,
                   _record.block_charge,
                   _record.crash_wait,
@@ -26800,7 +27163,8 @@ function take_damage(world2) {
             w2.difficulty,
             w2.hard_open,
             w2.danger,
-            w2.drops
+            w2.drops,
+            w2.rerolls
           );
         } else {
           return w2;
@@ -26899,7 +27263,8 @@ function afflict2(world2, ids, with$) {
       world2.difficulty,
       world2.hard_open,
       world2.danger,
-      world2.drops
+      world2.drops,
+      world2.rerolls
     );
   } else {
     return world2;
@@ -26961,7 +27326,8 @@ function strikes_act(world2, dt2) {
       world2.difficulty,
       world2.hard_open,
       world2.danger,
-      world2.drops
+      world2.drops,
+      world2.rerolls
     ),
     (w2, s) => {
       let box3 = strike_box(s, p2.x, p2.y);
@@ -27118,7 +27484,8 @@ function strikes_act(world2, dt2) {
           w$2.difficulty,
           w$2.hard_open,
           w$2.danger,
-          w$2.drops
+          w$2.drops,
+          w$2.rerolls
         );
       } else {
         return w$2;
@@ -27264,6 +27631,7 @@ function strike(world2, a, box3) {
         p2.class,
         p2.allocated,
         p2.mods,
+        p2.tree_stats,
         p2.shield,
         p2.block_charge,
         p2.crash_wait,
@@ -27317,6 +27685,7 @@ function strike(world2, a, box3) {
         p2.class,
         p2.allocated,
         p2.mods,
+        p2.tree_stats,
         p2.shield,
         p2.block_charge,
         p2.crash_wait,
@@ -27376,6 +27745,7 @@ function strike(world2, a, box3) {
           p$1.class,
           p$1.allocated,
           p$1.mods,
+          p$1.tree_stats,
           p$1.shield,
           p$1.block_charge,
           p$1.crash_wait,
@@ -27432,6 +27802,7 @@ function strike(world2, a, box3) {
         p$1.class,
         p$1.allocated,
         p$1.mods,
+        p$1.tree_stats,
         p$1.shield,
         p$1.block_charge,
         p$1.crash_wait,
@@ -27522,6 +27893,7 @@ function strike(world2, a, box3) {
       p$2.class,
       p$2.allocated,
       p$2.mods,
+      p$2.tree_stats,
       p$2.shield,
       p$2.block_charge,
       p$2.crash_wait,
@@ -27577,7 +27949,8 @@ function strike(world2, a, box3) {
         world2.difficulty,
         world2.hard_open,
         world2.danger,
-        world2.drops
+        world2.drops,
+        world2.rerolls
       ),
       targets,
       Element$Physical$const,
@@ -27838,7 +28211,8 @@ function loose(world2, dir, effect) {
     world2.difficulty,
     world2.hard_open,
     world2.danger,
-    world2.drops
+    world2.drops,
+    world2.rerolls
   );
 }
 __name(loose, "loose");
@@ -27885,6 +28259,7 @@ function combat(world2) {
             p2.class,
             p2.allocated,
             p2.mods,
+            p2.tree_stats,
             p2.shield,
             p2.block_charge,
             p2.crash_wait,
@@ -27928,7 +28303,8 @@ function combat(world2) {
         world2.difficulty,
         world2.hard_open,
         world2.danger,
-        world2.drops
+        world2.drops,
+        world2.rerolls
       );
     } else if ($2 instanceof Some) {
       let effect = $2[0];
@@ -28031,7 +28407,8 @@ function off_the_roof(world2) {
       world2.difficulty,
       world2.hard_open,
       world2.danger,
-      world2.drops
+      world2.drops,
+      world2.rerolls
     );
   } else {
     return world2;
@@ -28218,7 +28595,8 @@ function enemies_act(world2, dt2) {
     world2.difficulty,
     world2.hard_open,
     world2.danger,
-    world2.drops
+    world2.drops,
+    world2.rerolls
   );
 }
 __name(enemies_act, "enemies_act");
@@ -28345,6 +28723,7 @@ function orbit(world2) {
           p2.class,
           p2.allocated,
           p2.mods,
+          p2.tree_stats,
           p2.shield,
           p2.block_charge,
           p2.crash_wait,
@@ -28388,7 +28767,8 @@ function orbit(world2) {
       world2.difficulty,
       world2.hard_open,
       world2.danger,
-      world2.drops
+      world2.drops,
+      world2.rerolls
     );
   } else {
     return new World(
@@ -28415,7 +28795,8 @@ function orbit(world2) {
       world2.difficulty,
       world2.hard_open,
       world2.danger,
-      world2.drops
+      world2.drops,
+      world2.rerolls
     );
   }
 }
@@ -28580,6 +28961,7 @@ function fire_skills(world2, before, dt2) {
         p2.class,
         p2.allocated,
         p2.mods,
+        p2.tree_stats,
         1,
         p2.block_charge,
         p2.crash_wait,
@@ -28970,6 +29352,7 @@ function fire_skills(world2, before, dt2) {
         p$1.class,
         p$1.allocated,
         p$1.mods,
+        p$1.tree_stats,
         p$1.shield,
         p$1.block_charge,
         p$1.crash_wait,
@@ -29031,7 +29414,8 @@ function fire_skills(world2, before, dt2) {
     world2.difficulty,
     world2.hard_open,
     world2.danger,
-    world2.drops
+    world2.drops,
+    world2.rerolls
   );
 }
 __name(fire_skills, "fire_skills");
@@ -29084,6 +29468,7 @@ function start_attack(p2, input) {
       p2.class,
       p2.allocated,
       p2.mods,
+      p2.tree_stats,
       p2.shield,
       p2.block_charge,
       p2.crash_wait,
@@ -29237,6 +29622,7 @@ function move(p2, level, dt2) {
     p2.class,
     p2.allocated,
     p2.mods,
+    p2.tree_stats,
     p2.shield,
     p2.block_charge,
     p2.crash_wait,
@@ -29330,6 +29716,7 @@ function dive(p2, input) {
     p2.class,
     p2.allocated,
     p2.mods,
+    p2.tree_stats,
     p2.shield,
     p2.block_charge,
     p2.crash_wait,
@@ -29411,6 +29798,7 @@ function dash(p2, input) {
           p2.class,
           p2.allocated,
           p2.mods,
+          p2.tree_stats,
           p2.shield,
           p2.block_charge,
           p2.crash_wait,
@@ -29477,6 +29865,7 @@ function jump(p2, input) {
         p2.class,
         p2.allocated,
         p2.mods,
+        p2.tree_stats,
         p2.shield,
         p2.block_charge,
         p2.crash_wait,
@@ -29530,6 +29919,7 @@ function jump(p2, input) {
         p2.class,
         p2.allocated,
         p2.mods,
+        p2.tree_stats,
         p2.shield,
         p2.block_charge,
         p2.crash_wait,
@@ -29583,6 +29973,7 @@ function jump(p2, input) {
         p2.class,
         p2.allocated,
         p2.mods,
+        p2.tree_stats,
         p2.shield,
         p2.block_charge,
         p2.crash_wait,
@@ -29638,6 +30029,7 @@ function jump(p2, input) {
           p2.class,
           p2.allocated,
           p2.mods,
+          p2.tree_stats,
           p2.shield,
           p2.block_charge,
           p2.crash_wait,
@@ -29697,6 +30089,7 @@ function jump(p2, input) {
         p2.class,
         p2.allocated,
         p2.mods,
+        p2.tree_stats,
         p2.shield,
         p2.block_charge,
         p2.crash_wait,
@@ -29793,6 +30186,7 @@ function vertical(p2, input, dt2) {
         p2.class,
         p2.allocated,
         p2.mods,
+        p2.tree_stats,
         p2.shield,
         p2.block_charge,
         p2.crash_wait,
@@ -29882,6 +30276,7 @@ function horizontal(p2, input, dt2) {
         p2.class,
         p2.allocated,
         p2.mods,
+        p2.tree_stats,
         p2.shield,
         p2.block_charge,
         p2.crash_wait,
@@ -30002,6 +30397,7 @@ function tick2(p2, input, dt2) {
     p2.class,
     p2.allocated,
     p2.mods,
+    p2.tree_stats,
     p2.shield,
     p2.block_charge,
     p2.crash_wait - dt2,
@@ -30095,6 +30491,7 @@ function move_player(p2, input, level, dt2) {
         p$1.class,
         p$1.allocated,
         p$1.mods,
+        p$1.tree_stats,
         p$1.shield,
         p$1.block_charge,
         p$1.crash_wait,
@@ -30153,6 +30550,7 @@ function move_player(p2, input, level, dt2) {
     p$2.class,
     p$2.allocated,
     p$2.mods,
+    p$2.tree_stats,
     p$2.shield,
     p$2.block_charge,
     p$2.crash_wait,
@@ -30232,7 +30630,8 @@ function step_many(world2, inputs, dt2) {
     world2.difficulty,
     world2.hard_open,
     world2.danger,
-    world2.drops
+    world2.drops,
+    world2.rerolls
   );
   let _pipe$1 = each(
     _pipe,
@@ -30289,7 +30688,8 @@ function step_many(world2, inputs, dt2) {
       w2.difficulty,
       w2.hard_open,
       w2.danger,
-      w2.drops
+      w2.drops,
+      w2.rerolls
     );
   })(_pipe$9);
   let _pipe$11 = seal(_pipe$10);
@@ -30403,6 +30803,7 @@ function apply_node(p2, kind) {
       p2.class,
       p2.allocated,
       m2,
+      p2.tree_stats,
       p2.shield,
       p2.block_charge,
       p2.crash_wait,
@@ -30429,7 +30830,74 @@ function apply_node(p2, kind) {
     let $ = kind.bonus;
     if ($ instanceof Stat) {
       let axis = $[0];
-      return apply_reward(p2, new Point(axis));
+      let q2 = apply_reward(p2, new Point(axis));
+      let gain2 = /* @__PURE__ */ __name((f) => {
+        return f(q2.stats) - f(p2.stats);
+      }, "gain");
+      let t2 = p2.tree_stats;
+      return new Player(
+        q2.x,
+        q2.y,
+        q2.vx,
+        q2.vy,
+        q2.grounded,
+        q2.on_platform,
+        q2.wall,
+        q2.facing,
+        q2.coyote,
+        q2.jump_buffer,
+        q2.air_jumps,
+        q2.dash_time,
+        q2.dashes,
+        q2.can_cut,
+        q2.up_held,
+        q2.down_held,
+        q2.jumped,
+        q2.dashed,
+        q2.struck,
+        q2.plunged,
+        q2.slam,
+        q2.grudge,
+        q2.conduit,
+        q2.quick,
+        q2.rebound,
+        q2.air_hits,
+        q2.weapon,
+        q2.loadout,
+        q2.trained,
+        q2.class,
+        q2.allocated,
+        q2.mods,
+        new Stats(
+          t2.fighter + gain2((s) => {
+            return s.fighter;
+          }),
+          t2.rogue + gain2((s) => {
+            return s.rogue;
+          }),
+          t2.mage + gain2((s) => {
+            return s.mage;
+          })
+        ),
+        q2.shield,
+        q2.block_charge,
+        q2.crash_wait,
+        q2.swings,
+        q2.risen,
+        q2.attack,
+        q2.stats,
+        q2.lvl,
+        q2.xp,
+        q2.points,
+        q2.hp,
+        q2.invuln,
+        q2.hurt,
+        q2.hexed,
+        q2.rush,
+        q2.through,
+        q2.lunge,
+        q2.orbs_away
+      );
     } else if ($ instanceof MaxHp) {
       let n = $[0];
       let q2 = with$(
@@ -30488,6 +30956,7 @@ function apply_node(p2, kind) {
         q2.class,
         q2.allocated,
         q2.mods,
+        q2.tree_stats,
         q2.shield,
         q2.block_charge,
         q2.crash_wait,
@@ -30764,6 +31233,7 @@ function apply_node(p2, kind) {
         p$1.class,
         p$1.allocated,
         p$1.mods,
+        p$1.tree_stats,
         min(p$1.shield + 1, blocks(p$1)),
         p$1.block_charge,
         p$1.crash_wait,
@@ -30967,6 +31437,7 @@ function apply_node(p2, kind) {
         p2.class,
         p2.allocated,
         p2.mods,
+        p2.tree_stats,
         p2.shield,
         p2.block_charge,
         p2.crash_wait,
@@ -31121,6 +31592,7 @@ function apply_node(p2, kind) {
           p$1.class,
           p$1.allocated,
           p$1.mods,
+          p$1.tree_stats,
           0,
           p$1.block_charge,
           p$1.crash_wait,
@@ -31194,6 +31666,7 @@ function apply_node(p2, kind) {
             m$1.wall_jump,
             m$1.rules
           ),
+          p$1.tree_stats,
           p$1.shield,
           p$1.block_charge,
           p$1.crash_wait,
@@ -31247,6 +31720,7 @@ function apply_node(p2, kind) {
           p$1.class,
           p$1.allocated,
           p$1.mods,
+          p$1.tree_stats,
           p$1.shield,
           p$1.block_charge,
           p$1.crash_wait,
@@ -31300,6 +31774,7 @@ function apply_node(p2, kind) {
           p$1.class,
           p$1.allocated,
           p$1.mods,
+          p$1.tree_stats,
           p$1.shield,
           p$1.block_charge,
           p$1.crash_wait,
@@ -31373,6 +31848,7 @@ function apply_node(p2, kind) {
             m$1.wall_jump,
             m$1.rules
           ),
+          p$1.tree_stats,
           p$1.shield,
           p$1.block_charge,
           p$1.crash_wait,
@@ -31426,6 +31902,7 @@ function apply_node(p2, kind) {
           p$1.class,
           p$1.allocated,
           p$1.mods,
+          p$1.tree_stats,
           p$1.shield,
           p$1.block_charge,
           p$1.crash_wait,
@@ -31538,6 +32015,7 @@ function level_up(world2, id2, otherwise) {
               p2.class,
               p2.allocated,
               p2.mods,
+              p2.tree_stats,
               p2.shield,
               p2.block_charge,
               p2.crash_wait,
@@ -31581,7 +32059,8 @@ function level_up(world2, id2, otherwise) {
           world2.difficulty,
           world2.hard_open,
           world2.danger,
-          world2.drops
+          world2.drops,
+          world2.rerolls
         );
       } else {
         return otherwise();
@@ -31642,6 +32121,7 @@ function allocate(world2, id2) {
           p2.class,
           prepend(id2, p2.allocated),
           p2.mods,
+          p2.tree_stats,
           p2.shield,
           p2.block_charge,
           p2.crash_wait,
@@ -31710,7 +32190,8 @@ function allocate(world2, id2) {
           world2.difficulty,
           world2.hard_open,
           world2.danger,
-          world2.drops
+          world2.drops,
+          world2.rerolls
         );
       } else {
         return world2;
@@ -31756,7 +32237,8 @@ function set_unlocked(world2, unlocked) {
     world2.difficulty,
     world2.hard_open,
     world2.danger,
-    world2.drops
+    world2.drops,
+    world2.rerolls
   );
 }
 __name(set_unlocked, "set_unlocked");
@@ -31828,7 +32310,7 @@ function npc_lines(world2, n) {
         )
       )
     );
-  } else {
+  } else if ($ instanceof Statue) {
     let k2 = $.keystone;
     let $1 = get(world2.tree.nodes, k2);
     let node;
@@ -31839,15 +32321,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3605,
+        3719,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $1,
-          start: 113085,
-          end: 113136,
-          pattern_start: 113096,
-          pattern_end: 113104
+          start: 116773,
+          end: 116824,
+          pattern_start: 116784,
+          pattern_end: 116792
         }
       );
     }
@@ -31859,15 +32341,15 @@ function npc_lines(world2, n) {
         "let_assert",
         FILEPATH2,
         "game",
-        3607,
+        3721,
         "npc_lines",
         "Pattern match failed, no pattern matched the value.",
         {
           value: $2,
-          start: 113219,
-          end: 113280,
-          pattern_start: 113230,
-          pattern_end: 113247
+          start: 116907,
+          end: 116968,
+          pattern_start: 116918,
+          pattern_end: 116935
         }
       );
     } else {
@@ -31877,15 +32359,15 @@ function npc_lines(world2, n) {
           "let_assert",
           FILEPATH2,
           "game",
-          3607,
+          3721,
           "npc_lines",
           "Pattern match failed, no pattern matched the value.",
           {
             value: $2,
-            start: 113219,
-            end: 113280,
-            pattern_start: 113230,
-            pattern_end: 113247
+            start: 116907,
+            end: 116968,
+            pattern_start: 116918,
+            pattern_end: 116935
           }
         );
       } else {
@@ -31925,6 +32407,50 @@ function npc_lines(world2, n) {
                 "Starts with: " + kit_move(name3),
                 prepend(status, List$Empty$const)
               ),
+              List$Empty$const
+            )
+          )
+        )
+      );
+    }
+  } else if ($ instanceof Respec) {
+    return prepend(
+      "Mentor",
+      prepend(
+        (() => {
+          let $1 = refundable(world2);
+          if ($1 === 0) {
+            return "Nothing to take back yet.";
+          } else if ($1 === 1) {
+            return "Press up to take back your 1 tree point.";
+          } else {
+            let n$1 = $1;
+            return "Press up to take back your " + to_string(n$1) + " tree points.";
+          }
+        })(),
+        prepend(
+          "You keep your class and what doors gave you.",
+          List$Empty$const
+        )
+      )
+    );
+  } else {
+    let $1 = world2.rerolls;
+    if ($1 === 0) {
+      return prepend(
+        "Shrine",
+        prepend("No re-rolls left this run.", List$Empty$const)
+      );
+    } else {
+      let n$1 = $1;
+      return prepend(
+        "Shrine",
+        prepend(
+          "Press up to re-roll the tree.",
+          prepend(
+            "Your points come back and the small nodes change.",
+            prepend(
+              to_string(n$1) + " re-roll left",
               List$Empty$const
             )
           )
@@ -32141,8 +32667,15 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
   let view = { s: 1, ox: 0, oy: 0 };
   let lastMove = 0, held = null, padPrev = {};
   const w0 = getWorld();
-  const nodes2 = nodes(w0.tree).toArray();
+  let nodes2 = nodes(w0.tree).toArray(), nodesOf = w0.tree;
   const byId = new Map(nodes2.map((n) => [n.id, n]));
+  function syncNodes(t2) {
+    if (t2 === nodesOf) return;
+    nodesOf = t2;
+    nodes2 = nodes(t2).toArray();
+    for (const n of nodes2) byId.set(n.id, n);
+  }
+  __name(syncNodes, "syncNodes");
   const edges = w0.tree.edges.toArray().map((e) => [e[0], e[1]]);
   const neighbours = new Map(nodes2.map((n) => [n.id, []]));
   for (const [a, b] of edges) {
@@ -32327,6 +32860,7 @@ function createTreeScreen({ getWorld, setWorld, onUnlock }) {
   __name(mix, "mix");
   function derive() {
     const w2 = getWorld(), p2 = w2.players.head;
+    syncNodes(w2.tree);
     const picking = p2.class instanceof None;
     const owned = new Set(p2.allocated.toArray());
     const unlocked = new Set(w2.unlocked.toArray());
@@ -33828,12 +34362,20 @@ function syncRoom() {
     enemyMeshes = new Map(world.enemies.toArray().map((e) => [e.id, enemyMesh(e)]));
     const cells2 = world.tree.cells.toArray();
     npcMeshes = world.npcs.toArray().map((n) => {
-      const statue = n.role instanceof Statue, cell = statue ? cells2[n.role.keystone] : null;
-      const name3 = statue ? cell.name : "Mentor", lift = statue ? PEDESTAL_H : 0;
-      const hero = sticker(`${statue ? "statues" : "heroes"}/${name3.toLowerCase()}`);
+      const statue = n.role instanceof Statue, shrine = n.role instanceof Reroll, cell = statue ? cells2[n.role.keystone] : null;
+      const name3 = statue ? cell.name : shrine ? "Shrine" : "Mentor", lift = statue || shrine ? PEDESTAL_H : 0;
+      const mine = world.players.head.class instanceof Some ? cells2[world.players.head.class[0]].name : "Bard";
+      const hero = sticker(statue ? `statues/${name3.toLowerCase()}` : shrine ? `statues/${mine.toLowerCase()}` : "heroes/mentor");
       hero.position.set(n.x, n.y + lift + HERO_H / 2, -0.6);
       roomGroup.add(hero);
-      if (!statue) return { hero, n, statue, name: name3, y: hero.position.y };
+      if (shrine) {
+        const pedestal2 = box2(1.5, PEDESTAL_H, GOLD2);
+        outline(pedestal2);
+        pedestal2.position.set(n.x, n.y + PEDESTAL_H / 2, -1.2);
+        roomGroup.add(pedestal2);
+        return { hero, pedestal: pedestal2, n, statue, shrine, lift, name: name3, y: hero.position.y };
+      }
+      if (!statue) return { hero, n, statue, lift, name: name3, y: hero.position.y };
       const niche = alcove(n.x, n.y), pedestal = box2(1.5, PEDESTAL_H, STONE);
       outline(pedestal);
       pedestal.position.set(n.x, n.y + PEDESTAL_H / 2, -1.2);
@@ -33844,12 +34386,12 @@ function syncRoom() {
         sign3.position.set(n.x, n.y + PEDESTAL_H + 0.32, -0.5);
         roomGroup.add(sign3);
       }
-      return { hero, niche, pedestal, n, statue, name: name3, tint: tint(cell), y: hero.position.y };
+      return { hero, niche, pedestal, n, statue, lift, name: name3, tint: tint(cell), y: hero.position.y };
     });
-    npcLabels = npcMeshes.map(({ n, statue, name: name3 }) => {
+    npcLabels = npcMeshes.map(({ n, lift, name: name3 }) => {
       const mesh = nameLabel(name3, true);
       roomGroup.add(mesh);
-      return { mesh, x: n.x, y: n.y + (statue ? PEDESTAL_H : 0) + HERO_H + 0.15, n };
+      return { mesh, x: n.x, y: n.y + lift + HERO_H + 0.15, n };
     });
     builtDoors = null;
     preloadFor(world);
@@ -34504,7 +35046,7 @@ var startClass = (() => {
 })();
 world = choose_class(world, startClass);
 var REPLAYS_KEY = "trip.replays";
-var replay = { v: 1, build: true ? "ae1d94d5fedf" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
+var replay = { v: 1, build: true ? "2bf9cbd2e0cc" : "dev", id: Date.now().toString(36), at: (/* @__PURE__ */ new Date()).toISOString(), seed: SEED, unlocked: world.unlocked.toArray(), hard: hardOpen, class: startClass, steps: 0, log: [] };
 var lastInput = "";
 function recordInput(input) {
   const s = input.join();
@@ -34915,7 +35457,7 @@ function saveRunLog() {
 __name(saveRunLog, "saveRunLog");
 var UPLOAD_KEY = "trip.upload";
 var UPLOAD_URL = "/api/triangle-runs";
-var BUILD = true ? "ae1d94d5fedf" : "dev";
+var BUILD = true ? "2bf9cbd2e0cc" : "dev";
 var canShare = BUILD !== "dev" && location.protocol.startsWith("http") && !["localhost", "127.0.0.1"].includes(location.hostname);
 var sharing = true;
 var uploading = false;
@@ -35287,11 +35829,16 @@ function frame(now) {
   const unlockedNow = new Set(world.unlocked.toArray());
   const mine = world.players.head.class instanceof Some ? world.players.head.class[0] : -1;
   npcMeshes.forEach((s, i) => {
-    const [wide, tall] = stickerSize(s.hero.material.map.image, HERO_H), feet = s.n.y + (s.statue ? PEDESTAL_H : 0);
+    const [wide, tall] = stickerSize(s.hero.material.map.image, HERO_H), feet = s.n.y + s.lift;
     s.hero.scale.set(wide, tall, 1);
     s.y = feet + tall / 2;
     s.hero.position.y = s.y;
     npcLabels[i].y = feet + tall + 0.15;
+    if (s.shrine) {
+      const left = world.rerolls > 0;
+      s.hero.material.opacity = left ? 1 : 0.45;
+      s.pedestal.material.color.set(left ? GOLD2 : STONE);
+    }
     if (!s.statue) return;
     const k2 = s.n.role.keystone, open = unlockedNow.has(k2), me3 = k2 === mine;
     s.hero.material.color.set(open ? 16777215 : 2760475);
